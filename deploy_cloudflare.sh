@@ -38,18 +38,59 @@ echo "Creating deployment directory..."
 DEPLOY_DIR=$(mktemp -d)
 cp "$DASHBOARD_HTML" "$DEPLOY_DIR/index.html"
 
-echo "Creating tarball for upload..."
-TARBALL=$(mktemp -u).tar.gz
-tar -czf "$TARBALL" -C "$DEPLOY_DIR" .
+echo "Creating manifest..."
+cat > "$DEPLOY_DIR/_headers" << EOF
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+EOF
+
+cat > "$DEPLOY_DIR/_routes.json" << EOF
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": []
+}
+EOF
+
+echo "Creating deployment package..."
+cd "$DEPLOY_DIR"
+zip -q -r ../deployment.zip .
+cd - > /dev/null
 
 echo "Uploading to Cloudflare Pages..."
 RESPONSE=$(curl -s -X POST \
   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
   $AUTH_HEADERS \
-  -F "file=@$TARBALL")
+  -H "Content-Type: application/json" \
+  -d @- << PAYLOAD
+{
+  "manifest": {
+    "/index.html": "$(sha256sum "$DEPLOY_DIR/index.html" | cut -d' ' -f1)",
+    "/_headers": "$(sha256sum "$DEPLOY_DIR/_headers" | cut -d' ' -f1)",
+    "/_routes.json": "$(sha256sum "$DEPLOY_DIR/_routes.json" | cut -d' ' -f1)"
+  }
+}
+PAYLOAD
+)
+
+# Upload files if manifest accepted
+if echo "$RESPONSE" | grep -q '"success":true'; then
+    UPLOAD_TOKEN=$(echo "$RESPONSE" | grep -o '"jwt":"[^"]*"' | cut -d'"' -f4)
+    
+    echo "Uploading files..."
+    cd "$DEPLOY_DIR"
+    for file in index.html _headers _routes.json; do
+        curl -s -X PUT \
+          "https://api.cloudflare.com/client/v4/pages/assets/upload" \
+          -H "Authorization: Bearer $UPLOAD_TOKEN" \
+          --data-binary "@$file"
+    done
+    cd - > /dev/null
+fi
 
 # Clean up
-rm -rf "$DEPLOY_DIR" "$TARBALL"
+rm -rf "$DEPLOY_DIR" ../deployment.zip 2>/dev/null || true
 
 # Parse response
 SUCCESS=$(echo "$RESPONSE" | grep -o '"success":true' || echo "")

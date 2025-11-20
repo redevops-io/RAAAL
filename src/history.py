@@ -13,6 +13,7 @@ import pandas as pd
 from .config import AUX_SERIES, UNIVERSE
 from .data_loader import download_prices
 from .features import compute_returns, exponential_cov, exponential_mean
+from .hrp import compute_hrp_weights
 from .optimizer import optimize_weights, optimize_weights_unrestricted
 from .portfolio_utils import build_rationales, portfolio_metrics, rf_from_sgov, weights_array
 from .regime import detect_regime
@@ -96,6 +97,38 @@ def run_historical_analysis(
         regime_unrestricted_weights = optimize_weights_unrestricted(mu, cov, rf_rate)
         unrestricted_metrics = portfolio_metrics(regime_unrestricted_weights, mu, cov, rf_rate)
         standard_unrestricted_weights = optimize_weights_unrestricted(mu_standard, cov_standard, rf_rate)  # Uses uniform weighting
+        
+        # HRP weights (4 variants)
+        # 1. Base HRP using uniform-weighted returns (like standard strategies)
+        hrp_weights = compute_hrp_weights(base_returns)
+        hrp_metrics = portfolio_metrics(hrp_weights, mu, cov, rf_rate)
+        
+        # 2. HRP with regime-aware approach (same base returns, will differ after bounds applied)
+        hrp_regime_weights = compute_hrp_weights(base_returns)
+        
+        # 3 & 4: Apply regime restrictions to both HRP variants
+        from .optimizer import _bounds
+        hrp_restricted = {}
+        hrp_regime_restricted = {}
+        bounds_baseline = _bounds(baseline_regime)
+        bounds_regime = _bounds(regime.name)
+        
+        for i, asset in enumerate(UNIVERSE):
+            ticker = asset.ticker
+            # HRP restricted: apply baseline bounds to base HRP
+            low, high = bounds_baseline[i]
+            hrp_restricted[ticker] = max(low, min(high, hrp_weights.get(ticker, 0.0)))
+            # HRP regime restricted: apply regime-specific bounds
+            low_r, high_r = bounds_regime[i]
+            hrp_regime_restricted[ticker] = max(low_r, min(high_r, hrp_regime_weights.get(ticker, 0.0)))
+        
+        # Renormalize after clipping
+        hrp_restricted_sum = sum(hrp_restricted.values())
+        if hrp_restricted_sum > 0:
+            hrp_restricted = {k: v / hrp_restricted_sum for k, v in hrp_restricted.items()}
+        hrp_regime_restricted_sum = sum(hrp_regime_restricted.values())
+        if hrp_regime_restricted_sum > 0:
+            hrp_regime_restricted = {k: v / hrp_regime_restricted_sum for k, v in hrp_regime_restricted.items()}
 
         vix_value = float(prices_window["^VIX"].iloc[-1]) if "^VIX" in prices_window.columns else float("nan")
         gld_value = float(prices_window["GLD"].iloc[-1]) if "GLD" in prices_window.columns else float("nan")
@@ -110,6 +143,7 @@ def run_historical_analysis(
                 **{f"diag_{k}": v for k, v in regime.diagnostics.items()},
                 **metrics,
                 "sharpe_unrestricted": unrestricted_metrics.get("sharpe", float("nan")),
+                "sharpe_hrp": hrp_metrics.get("sharpe", float("nan")),
                 "rf_daily": rf_rate,
             }
         )
@@ -122,6 +156,10 @@ def run_historical_analysis(
                     "unrestricted_weight": regime_unrestricted_weights.get(ticker, 0.0),
                     "standard_weight": standard_weights.get(ticker, 0.0),
                     "standard_unrestricted_weight": standard_unrestricted_weights.get(ticker, 0.0),
+                    "hrp_weight": hrp_weights.get(ticker, 0.0),
+                    "hrp_restricted_weight": hrp_restricted.get(ticker, 0.0),
+                    "hrp_regime_weight": hrp_regime_weights.get(ticker, 0.0),
+                    "hrp_regime_restricted_weight": hrp_regime_restricted.get(ticker, 0.0),
                 }
             )
 
@@ -136,6 +174,10 @@ def run_historical_analysis(
         "standard_unrestricted": "standard_unrestricted_weight",
         "regime_restricted": "weight",
         "regime_unrestricted": "unrestricted_weight",
+        "hrp_unrestricted": "hrp_weight",
+        "hrp_restricted": "hrp_restricted_weight",
+        "hrp_regime_unrestricted": "hrp_regime_weight",
+        "hrp_regime_restricted": "hrp_regime_restricted_weight",
     }
     performance = {
         label: _strategy_total_return(weights_df, asset_returns, column)

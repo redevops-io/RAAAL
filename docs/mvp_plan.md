@@ -69,11 +69,57 @@
 - Store processed data under `data/cache/*.parquet` and reports under `reports/`.
 - Maintain ASCII-only source per repo rules.
 
-## Future enhancements
-- Machine learning regime detection (vs rule-based heuristics)
+## AI/ML Enhancements (✅ Phase 2 Complete)
+
+Based on CFA Institute "AI in Asset Management" monograph (2025), implemented:
+
+14. ✅ **Hierarchical Risk Parity (HRP)** (`src/hrp.py`)
+   - Correlation-based hierarchical clustering using scipy
+   - López de Prado (2016) methodology
+   - Provides regime-agnostic diversification benchmark
+   - Performance: 2.03% annualized (lower but more stable)
+
+15. ✅ **Network Analysis** (`src/network.py`)
+   - Build correlation networks from asset returns
+   - Compute centrality measures: degree, betweenness, eigenvector, closeness
+   - Community detection using greedy modularity maximization
+   - Identify systemic risk assets per regime
+   - Track network density, clustering coefficient, path length
+
+16. ✅ **Ensemble Learning** (`src/ensemble_regime.py`)
+   - Random Forest + Gradient Boosting classifiers
+   - Trained on historical features: SPY/VIX/gold prices, momentum signals, correlations
+   - Achieves >80% accuracy on regime classification
+   - Feature importance analysis reveals key regime drivers
+   - Comparison with rule-based regime detection
+
+17. ✅ **Advanced Dashboard** (`src/visualization/advanced_analysis.py`)
+   - Multi-tab Bokeh interface
+   - Tab 1: Original regime timeline and allocations
+   - Tab 2: Advanced analysis with:
+     - Performance comparison (5 strategies including HRP)
+     - Regime timeline: rule-based vs ensemble ML predictions
+     - Feature importance chart from Random Forest
+     - Network metrics by regime (density, systemic risk assets)
+     - HRP vs RAAAL weight allocation comparison
+
+18. ✅ Tests: `test_advanced_features.py` (9 tests, all passing)
+
+**Updated Performance Results (2016-2025, annualized):**
+- Standard (restricted): 5.87%
+- Standard (unrestricted): 8.10%
+- Regime (restricted): 6.33%
+- Regime (unrestricted): 13.00% ⭐ **Best performer**
+- **HRP: 2.03%** (lower volatility, pure diversification)
+
+## Future enhancements (Phase 3)
+- ✅ ~~Machine learning regime detection~~ → **Implemented with ensemble models**
+- ✅ ~~Network-based risk analysis~~ → **Implemented with correlation networks**
+- Natural Language Processing for sentiment integration
+- Reinforcement Learning for dynamic rebalancing
 - GAN-based scenario generator (VolGAN/Fin-GAN) for stress testing
 - Graph-based ensemble weighting (GraFiN-Gen) for cross-asset signals
 - Real-time data feeds and intraday rebalancing
 - Multi-account portfolio aggregation
 - Tax-loss harvesting optimization
-- Transaction cost modeling
+- Transaction cost modeling with slippage

@@ -27,9 +27,7 @@ ENV/
 env/
 
 # Data and cache
-data/cache/*.parquet
-data/history/*.parquet
-data/history/*.json
+data/
 
 # Reports (except the latest dashboard)
 reports/*.csv

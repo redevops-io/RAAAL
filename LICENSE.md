@@ -12,14 +12,28 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-**Attribution Requirement:**
+**Attribution Requirements:**
+
 Any use, modification, or distribution of this software must include attribution
-to **Dr. Milena Vuletić** and reference her research:
+to the following researchers and their work:
 
-> Vuletić, M. (2025). *Multi-asset financial markets: mathematical modelling and 
-> data-driven approaches*. DPhil thesis, University of Oxford.
+1. **Dr. Milena Vuletić** - Core multi-asset modeling framework:
+   > Vuletić, M. (2025). *Multi-asset financial markets: mathematical modelling and 
+   > data-driven approaches*. DPhil thesis, University of Oxford.
 
-This attribution should appear prominently in documentation, publications, or
+2. **CFA Institute Research Foundation** - AI/ML enhancement methodologies:
+   > Simonian, J. (Ed.). (2025). *AI in Asset Management: Tools, Applications, and Frontiers*. 
+   > CFA Institute Research Foundation. Contributors: Paul Bilokon, Francesco A. Fabozzi, 
+   > Maxim Golts, Tony Guida, Igor Halperin, Petter N. Kolm, Gueorgui S. Konstantinov, 
+   > Anna Martirosyan, Mona Naqvi, Gordon Ritter, Agathe Sadeghi, Alireza Yazdani, 
+   > Oswaldo Zapata.
+   > Available at: https://rpc.cfainstitute.org/sites/default/files/docs/research-reports/rf_aiinassetmanagement_full-monograph_online.pdf
+
+3. **Marcos López de Prado** - Hierarchical Risk Parity methodology:
+   > López de Prado, M. (2016). "Building Diversified Portfolios That Outperform Out of Sample." 
+   > *Journal of Portfolio Management*, 42(4), 59-69.
+
+These attributions should appear prominently in documentation, publications, or
 derivative works that build upon this codebase.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR

@@ -19,6 +19,8 @@ from bokeh.models import (
     Slider,
     Span,
     TableColumn,
+    TabPanel,
+    Tabs,
     TapTool,
 )
 from bokeh.palettes import Category10
@@ -127,15 +129,11 @@ def _build_regime_segments(timeline: pd.DataFrame, weights_wide: pd.DataFrame) -
 
 
 
-def build_dashboard(
-    timeline_path: Path = TIMELINE_PATH,
-    weights_path: Path = WEIGHTS_PATH,
-    output_path: Path | None = None,
-) -> Path:
-    if output_path is None:
-        output_path = REPORTS_DIR / "regime_dashboard.html"
-
-    timeline = pd.read_parquet(timeline_path)
+def build_main_dashboard_panel(
+    timeline: pd.DataFrame,
+    weights: pd.DataFrame,
+) -> TabPanel:
+    """Build the main dashboard panel (original view)."""
     if "sharpe_unrestricted" not in timeline.columns:
         timeline["sharpe_unrestricted"] = float("nan")
     if "gold_price_oz" not in timeline.columns:
@@ -150,7 +148,6 @@ def build_dashboard(
             timeline["gold_price_oz"] = float("nan")
         except Exception:  # noqa: BLE001 - best effort to hydrate GLD history
             timeline["gold_price_oz"] = float("nan")
-    weights = pd.read_parquet(weights_path)
 
     price_source, alloc_source, timeline_sorted, weights_wide = _prepare_sources(timeline, weights)
     regime_segments = _build_regime_segments(timeline_sorted, weights_wide)
@@ -519,8 +516,36 @@ def build_dashboard(
     # Keep slider out of layout but ensure callbacks wire up by triggering initial update
     slider.value = len(price_source.data["date"]) - 1
 
-    output_file(output_path, title="Regime Dashboard")
-    save(layout)
+    return TabPanel(title="Main Dashboard", child=layout)
+
+
+def build_dashboard(
+    timeline_path: Path = TIMELINE_PATH,
+    weights_path: Path = WEIGHTS_PATH,
+    output_path: Path | None = None,
+) -> Path:
+    """Build complete dashboard with multiple tabs."""
+    if output_path is None:
+        output_path = REPORTS_DIR / "regime_dashboard.html"
+
+    timeline = pd.read_parquet(timeline_path)
+    weights = pd.read_parquet(weights_path)
+
+    # Build main dashboard panel
+    main_panel = build_main_dashboard_panel(timeline, weights)
+    
+    # Build advanced analysis panel
+    try:
+        from .advanced_analysis import create_advanced_analysis_tab
+        advanced_panel = create_advanced_analysis_tab()
+        tabs = Tabs(tabs=[main_panel, advanced_panel])
+    except Exception as e:
+        # Fallback to main panel only if advanced analysis fails
+        print(f"Warning: Could not build advanced analysis panel: {e}")
+        tabs = Tabs(tabs=[main_panel])
+
+    output_file(output_path, title="RAAAL Dashboard")
+    save(tabs)
     return output_path
 
 

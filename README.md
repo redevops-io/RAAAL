@@ -1,33 +1,71 @@
-# Regime-adjusted Asset Allocation MVP
+# RAAAL: Regime-Adjusted Asset Allocation with AI/ML Enhancements
 
-This prototype follows the MVP brief from `Regime-adjusted asset allocation model.odt` and builds on the multi-asset modelling principles laid out by Vuletic (2025), focusing on clean ETF exposures, explainable regime logic, and fast constrained optimization.
+This prototype follows the MVP brief from `Regime-adjusted asset allocation model.odt` and builds on the multi-asset modelling principles laid out by Vuletic (2025), enhanced with AI/ML techniques from the CFA Institute "AI in Asset Management" monograph (2025).
+
+## Academic References
+
+- **Vuletic, M. (2025).** Multi-asset portfolio modeling and regime detection.
+- **CFA Institute Research Foundation. (2025).** *AI in Asset Management: Tools, Applications, and Frontiers.* 
+  Editor: Joseph Simonian, PhD. 
+  Available at: https://rpc.cfainstitute.org/sites/default/files/docs/research-reports/rf_aiinassetmanagement_full-monograph_online.pdf
+  
+  Key chapters implemented:
+  - Chapter 1: Unsupervised Learning (Hierarchical Clustering for HRP)
+  - Chapter 2: Network Theory (Correlation Networks & Centrality Measures)
+  - Chapter 5: Ensemble Learning (Random Forest & Gradient Boosting)
+  
+- **López de Prado, M. (2016).** "Building Diversified Portfolios That Outperform Out of Sample." 
+  *Journal of Portfolio Management*, 42(4), 59-69.
 
 ## Features
+
+### Core Portfolio Engine
 - **ETF universe (9 tickers)**: SPY/SH (equity long/short), TLT/TBT (treasury long/short), LQD (investment grade credit), DBC (commodities), GLD (gold), HYG (high yield), BIL (cash proxy). Auxiliary series: TIP, VIX for signals.
 - **Regime detection**: rule-based classifier (Risk-On, Risk-Off, Inflation Shock) using SPY trend, VIX level, credit-spread proxy, SPY–TLT correlation, commodity/TIP momentum.
 - **Portfolio engine**: Sharpe-maximizing optimizer with per-ETF bounds, cash floors, inverse caps, leverage guardrails, and turnover penalty. Falls back to risk-parity if the solver fails.
 - **Rebalancing signal**: change of regime triggers rebalance flag (state stored in `reports/state.json`).
 - **Reporting**: console table + CSV/JSON snapshots under `reports/` for dashboard ingestion.
 
+### AI/ML Enhancements (NEW)
+- **Hierarchical Risk Parity (HRP)**: Academic portfolio construction using correlation-based clustering (López de Prado 2016). Provides regime-agnostic diversification benchmark.
+- **Network Analysis**: Correlation networks with centrality measures (degree, betweenness, eigenvector) to identify systemic risk assets. Includes community detection per regime.
+- **Ensemble Learning**: Random Forest + Gradient Boosting classifiers for regime prediction. Trained on historical features with accuracy metrics and feature importance analysis.
+- **Multi-tab Dashboard**: Interactive Bokeh visualization with:
+  - **Main Dashboard**: Original regime timeline, allocation weights, VIX tracking
+  - **Advanced Analysis**: HRP vs RAAAL comparison, ensemble regime predictions, network visualizations, feature importance charts
+
+### Performance Results (Annualized, 2016-2025)
+- Standard (Restricted): **5.87%**
+- Standard (Unrestricted): **8.10%**
+- Regime (Restricted): **6.33%**
+- Regime (Unrestricted): **13.00%** ⭐
+- **HRP: 2.03%** (diversification-focused, lower volatility)
+
 ## Project layout
 ```
-├── main.py                # CLI entrypoint
+├── main.py                      # CLI entrypoint
 ├── src/
-│   ├── config.py          # Universe + constraints
-│   ├── data_loader.py     # yfinance downloader with caching
-│   ├── features.py        # Rolling stats & signals
-│   ├── regime.py          # Regime classifier
-│   ├── optimizer.py       # Sharpe-maximizing weights
-│   ├── pipeline.py        # Orchestration & state mgmt
-│   ├── portfolio_utils.py # Shared RF/metrics helpers
-│   ├── history.py         # Historical backtest + storage
+│   ├── config.py                # Universe + constraints
+│   ├── data_loader.py           # yfinance downloader with caching
+│   ├── features.py              # Rolling stats & signals
+│   ├── regime.py                # Rule-based regime classifier
+│   ├── optimizer.py             # Sharpe-maximizing weights
+│   ├── hrp.py                   # Hierarchical Risk Parity optimizer (NEW)
+│   ├── network.py               # Network analysis & centrality measures (NEW)
+│   ├── ensemble_regime.py       # ML ensemble regime classifier (NEW)
+│   ├── pipeline.py              # Orchestration & state mgmt
+│   ├── portfolio_utils.py       # Shared RF/metrics helpers
+│   ├── history.py               # Historical backtest (now includes HRP)
 │   └── visualization/
-│       └── bokeh_app.py   # Animated SPY/regime/weights dashboard
-├── docs/mvp_plan.md       # Design plan & references
+│       ├── bokeh_app.py         # Multi-tab dashboard
+│       └── advanced_analysis.py # Advanced ML visualizations (NEW)
+├── docs/mvp_plan.md             # Design plan & references
 ├── requirements.txt
+├── rf_aiinassetmanagement_full-monograph_online.pdf  # CFA Institute reference
 └── tests/
     ├── test_regime.py
-    └── test_optimizer.py
+    ├── test_optimizer.py
+    └── test_advanced_features.py  # Tests for HRP, network, ensemble (NEW)
 ```
 
 ## Quick start
