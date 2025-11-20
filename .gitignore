@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Data and cache
+data/cache/*.parquet
+data/history/*.parquet
+data/history/*.json
+
+# Reports (except the latest dashboard)
+reports/*.csv
+reports/*.json
+reports/allocation_*.csv
+reports/allocation_*.json
+reports/state.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (for wrangler)
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+.wrangler/
+
+# Docker
+.dockerignore
