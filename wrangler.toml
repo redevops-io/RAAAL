@@ -1,1 +1,2 @@
-account_id = "6b031ff3027de1c065d463b2734e7955"
+name = "raaal-dashboard"
+pages_build_output_dir = "/tmp/raaal-deploy"
