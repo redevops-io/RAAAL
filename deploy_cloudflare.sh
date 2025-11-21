@@ -55,7 +55,21 @@ EOF
 
 echo "Creating deployment package..."
 cd "$DEPLOY_DIR"
-zip -q -r ../deployment.zip .
+
+# Use shasum if sha256sum isn't available (macOS/some CI environments)
+if command -v sha256sum >/dev/null 2>&1; then
+    HASH_CMD="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+    HASH_CMD="shasum -a 256"
+else
+    echo "Error: Neither sha256sum nor shasum found"
+    exit 1
+fi
+
+INDEX_HASH=$($HASH_CMD index.html | cut -d' ' -f1)
+HEADERS_HASH=$($HASH_CMD _headers | cut -d' ' -f1)
+ROUTES_HASH=$($HASH_CMD _routes.json | cut -d' ' -f1)
+
 cd - > /dev/null
 
 echo "Uploading to Cloudflare Pages..."
@@ -66,9 +80,9 @@ RESPONSE=$(curl -s -X POST \
   -d @- << PAYLOAD
 {
   "manifest": {
-    "/index.html": "$(sha256sum "$DEPLOY_DIR/index.html" | cut -d' ' -f1)",
-    "/_headers": "$(sha256sum "$DEPLOY_DIR/_headers" | cut -d' ' -f1)",
-    "/_routes.json": "$(sha256sum "$DEPLOY_DIR/_routes.json" | cut -d' ' -f1)"
+    "/index.html": "$INDEX_HASH",
+    "/_headers": "$HEADERS_HASH",
+    "/_routes.json": "$ROUTES_HASH"
   }
 }
 PAYLOAD
