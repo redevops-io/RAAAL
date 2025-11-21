@@ -621,4 +621,4 @@ def create_advanced_analysis_tab() -> TabPanel:
         network_viz,
     )
     
-    return TabPanel(title="Advanced Analysis", child=layout)
+    return TabPanel(title="vs Academia", child=layout)

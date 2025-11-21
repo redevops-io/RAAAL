@@ -516,7 +516,7 @@ def build_main_dashboard_panel(
     # Keep slider out of layout but ensure callbacks wire up by triggering initial update
     slider.value = len(price_source.data["date"]) - 1
 
-    return TabPanel(title="Main Dashboard", child=layout)
+    return TabPanel(title="The Strategy", child=layout)
 
 
 def build_dashboard(
@@ -531,18 +531,27 @@ def build_dashboard(
     timeline = pd.read_parquet(timeline_path)
     weights = pd.read_parquet(weights_path)
 
-    # Build main dashboard panel
+    # Build main dashboard panel (Tab 1: Regime Rules)
     main_panel = build_main_dashboard_panel(timeline, weights)
     
-    # Build advanced analysis panel
+    # Build advanced analysis panel (Tab 2: vs ML + HRP)
+    all_tabs = [main_panel]
     try:
         from .advanced_analysis import create_advanced_analysis_tab
         advanced_panel = create_advanced_analysis_tab()
-        tabs = Tabs(tabs=[main_panel, advanced_panel])
+        all_tabs.append(advanced_panel)
     except Exception as e:
-        # Fallback to main panel only if advanced analysis fails
         print(f"Warning: Could not build advanced analysis panel: {e}")
-        tabs = Tabs(tabs=[main_panel])
+    
+    # Build BRK.B comparison panel (Tab 3: vs BRK.B)
+    try:
+        from .brk_comparison import create_brk_comparison_tab
+        brk_panel = create_brk_comparison_tab()
+        all_tabs.append(brk_panel)
+    except Exception as e:
+        print(f"Warning: Could not build BRK.B comparison panel: {e}")
+    
+    tabs = Tabs(tabs=all_tabs)
 
     output_file(output_path, title="RAAAL Dashboard")
     save(tabs)

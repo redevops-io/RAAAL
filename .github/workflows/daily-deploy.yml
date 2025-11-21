@@ -1,0 +1,71 @@
+name: Daily Backtest & Deploy
+
+on:
+  schedule:
+    # Run at 6 AM UTC every day (1 AM EST, 2 AM EDT)
+    - cron: '0 6 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+  
+  # Run on push to master
+  push:
+    branches:
+      - master
+
+jobs:
+  backtest-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run historical backtest
+        run: |
+          python -m src.history \
+            --start 2016-01-01 \
+            --end $(date +%Y-%m-%d) \
+            --refresh
+      
+      - name: Build dashboard
+        run: |
+          python -m src.visualization.bokeh_app
+      
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install Wrangler
+        run: npm install -g wrangler
+      
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          mkdir -p /tmp/raaal-deploy
+          cp reports/regime_dashboard.html /tmp/raaal-deploy/index.html
+          wrangler pages deploy /tmp/raaal-deploy \
+            --project-name raaal-dashboard \
+            --branch main
+      
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-${{ github.sha }}
+          path: reports/regime_dashboard.html
+          retention-days: 30
