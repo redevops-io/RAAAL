@@ -78,7 +78,9 @@ echo "DEBUG: Project = $PROJECT_NAME"
 echo "DEBUG: Token = ${CLOUDFLARE_API_TOKEN:0:6}..."
 echo "DEBUG: Auth method = $([ -n "$CLOUDFLARE_EMAIL" ] && echo "API Key" || echo "Bearer Token")"
 
-RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+# Disable set -e temporarily to capture curl error
+set +e
+RESPONSE=$(curl -v -w "\nHTTP_STATUS:%{http_code}" -X POST \
   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
   $AUTH_HEADERS \
   -H "Content-Type: application/json" \
@@ -92,6 +94,18 @@ RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
 }
 PAYLOAD
 )
+CURL_EXIT=$?
+set -e
+
+if [ $CURL_EXIT -ne 0 ]; then
+    echo "❌ Curl failed with exit code: $CURL_EXIT"
+    case $CURL_EXIT in
+        6) echo "Could not resolve host - check network/DNS" ;;
+        7) echo "Failed to connect to host" ;;
+        *) echo "See curl exit codes: https://curl.se/docs/manpage.html#EXIT" ;;
+    esac
+    exit $CURL_EXIT
+fi
 
 HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
 RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_STATUS:/d')
