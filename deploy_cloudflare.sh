@@ -77,14 +77,8 @@ echo "DEBUG: Auth method = $([ -n "$CLOUDFLARE_EMAIL" ] && echo "API Key" || ech
 # Disable set -e temporarily to capture curl error
 set +e
 
-# Construct curl command with proper auth
-if [ -n "$CLOUDFLARE_EMAIL" ] && [ -n "$GLOBAL_API_TOKEN" ]; then
-    RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
-      "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
-      -H "X-Auth-Email: $CLOUDFLARE_EMAIL" \
-      -H "X-Auth-Key: $GLOBAL_API_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d @- << PAYLOAD
+# Create manifest JSON payload
+MANIFEST_JSON=$(cat <<EOF
 {
   "manifest": {
     "/index.html": "$INDEX_HASH",
@@ -92,24 +86,17 @@ if [ -n "$CLOUDFLARE_EMAIL" ] && [ -n "$GLOBAL_API_TOKEN" ]; then
     "/_routes.json": "$ROUTES_HASH"
   }
 }
-PAYLOAD
+EOF
 )
-else
-    RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
-      "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
-      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d @- << PAYLOAD
-{
-  "manifest": {
-    "/index.html": "$INDEX_HASH",
-    "/_headers": "$HEADERS_HASH",
-    "/_routes.json": "$ROUTES_HASH"
-  }
-}
-PAYLOAD
-)
-fi
+
+echo "DEBUG: Manifest JSON = $MANIFEST_JSON"
+
+# Use Bearer token auth (API token, not Global API Key)
+RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$MANIFEST_JSON")
 
 CURL_EXIT=$?
 set -e

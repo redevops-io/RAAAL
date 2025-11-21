@@ -44,12 +44,14 @@ jobs:
         run: |
           python -m src.visualization.bokeh_app
       
-      - name: Deploy to Cloudflare Pages via Direct Upload
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          bash deploy_cloudflare.sh raaal-dashboard reports/regime_dashboard.html
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: raaal-dashboard
+          directory: reports
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Upload dashboard artifact
         uses: actions/upload-artifact@v4
