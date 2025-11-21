@@ -73,7 +73,12 @@ ROUTES_HASH=$($HASH_CMD _routes.json | cut -d' ' -f1)
 cd - > /dev/null
 
 echo "Uploading to Cloudflare Pages..."
-RESPONSE=$(curl -s -X POST \
+echo "DEBUG: Account ID = ${CLOUDFLARE_ACCOUNT_ID:0:6}..."
+echo "DEBUG: Project = $PROJECT_NAME"
+echo "DEBUG: Token = ${CLOUDFLARE_API_TOKEN:0:6}..."
+echo "DEBUG: Auth method = $([ -n "$CLOUDFLARE_EMAIL" ] && echo "API Key" || echo "Bearer Token")"
+
+RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
   $AUTH_HEADERS \
   -H "Content-Type: application/json" \
@@ -88,9 +93,15 @@ RESPONSE=$(curl -s -X POST \
 PAYLOAD
 )
 
+HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_STATUS:/d')
+
+echo "DEBUG: HTTP Status = $HTTP_STATUS"
+echo "DEBUG: Response = $RESPONSE_BODY"
+
 # Upload files if manifest accepted
-if echo "$RESPONSE" | grep -q '"success":true'; then
-    UPLOAD_TOKEN=$(echo "$RESPONSE" | grep -o '"jwt":"[^"]*"' | cut -d'"' -f4)
+if echo "$RESPONSE_BODY" | grep -q '"success":true'; then
+    UPLOAD_TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"jwt":"[^"]*"' | cut -d'"' -f4)
     
     echo "Uploading files..."
     cd "$DEPLOY_DIR"
@@ -107,9 +118,9 @@ fi
 rm -rf "$DEPLOY_DIR" ../deployment.zip 2>/dev/null || true
 
 # Parse response
-SUCCESS=$(echo "$RESPONSE" | grep -o '"success":true' || echo "")
+SUCCESS=$(echo "$RESPONSE_BODY" | grep -o '"success":true' || echo "")
 if [ -n "$SUCCESS" ]; then
-    URL=$(echo "$RESPONSE" | grep -o '"url":"[^"]*"' | head -1 | cut -d'"' -f4)
+    URL=$(echo "$RESPONSE_BODY" | grep -o '"url":"[^"]*"' | head -1 | cut -d'"' -f4)
     echo ""
     echo "✅ Deployment successful!"
     echo "URL: $URL"
@@ -120,6 +131,6 @@ if [ -n "$SUCCESS" ]; then
     echo "3. Or for www: www -> $PROJECT_NAME.pages.dev"
 else
     echo "❌ Deployment failed:"
-    echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+    echo "$RESPONSE_BODY" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE_BODY"
     exit 1
 fi
