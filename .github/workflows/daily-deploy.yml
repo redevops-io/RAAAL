@@ -51,7 +51,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: raaal-dashboard
           directory: reports
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Upload dashboard artifact
         uses: actions/upload-artifact@v4
