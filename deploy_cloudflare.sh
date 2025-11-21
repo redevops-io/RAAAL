@@ -15,12 +15,8 @@ if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
     exit 1
 fi
 
-# Determine auth method
-if [ -n "$CLOUDFLARE_EMAIL" ] && [ -n "$GLOBAL_API_TOKEN" ]; then
-    AUTH_HEADERS="-H X-Auth-Email:$CLOUDFLARE_EMAIL -H X-Auth-Key:$GLOBAL_API_TOKEN"
-else
-    AUTH_HEADERS="-H Authorization:Bearer $CLOUDFLARE_API_TOKEN"
-fi
+# Determine auth method - we'll pass headers directly to curl, not via variable
+# (variable expansion with spaces in headers is problematic)
 
 if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
     echo "Error: CLOUDFLARE_ACCOUNT_ID environment variable not set"
@@ -80,11 +76,15 @@ echo "DEBUG: Auth method = $([ -n "$CLOUDFLARE_EMAIL" ] && echo "API Key" || ech
 
 # Disable set -e temporarily to capture curl error
 set +e
-RESPONSE=$(curl -v -w "\nHTTP_STATUS:%{http_code}" -X POST \
-  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
-  $AUTH_HEADERS \
-  -H "Content-Type: application/json" \
-  -d @- << PAYLOAD
+
+# Construct curl command with proper auth
+if [ -n "$CLOUDFLARE_EMAIL" ] && [ -n "$GLOBAL_API_TOKEN" ]; then
+    RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+      "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
+      -H "X-Auth-Email: $CLOUDFLARE_EMAIL" \
+      -H "X-Auth-Key: $GLOBAL_API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d @- << PAYLOAD
 {
   "manifest": {
     "/index.html": "$INDEX_HASH",
@@ -94,6 +94,23 @@ RESPONSE=$(curl -v -w "\nHTTP_STATUS:%{http_code}" -X POST \
 }
 PAYLOAD
 )
+else
+    RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+      "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
+      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d @- << PAYLOAD
+{
+  "manifest": {
+    "/index.html": "$INDEX_HASH",
+    "/_headers": "$HEADERS_HASH",
+    "/_routes.json": "$ROUTES_HASH"
+  }
+}
+PAYLOAD
+)
+fi
+
 CURL_EXIT=$?
 set -e
 
