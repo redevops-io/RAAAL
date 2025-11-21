@@ -75,12 +75,13 @@ def _get_rec_bipart(cov: pd.DataFrame, sort_ix: list) -> pd.Series:
     return w
 
 
-def compute_hrp_weights(returns: pd.DataFrame) -> Dict[str, float]:
+def compute_hrp_weights(returns: pd.DataFrame, cov: pd.DataFrame | None = None) -> Dict[str, float]:
     """
     Compute Hierarchical Risk Parity portfolio weights.
     
     Args:
-        returns: DataFrame of asset returns
+        returns: DataFrame of asset returns (for correlation structure)
+        cov: Optional covariance matrix (e.g., exponentially weighted). If None, computed from returns.
         
     Returns:
         Dictionary mapping tickers to weights
@@ -93,8 +94,9 @@ def compute_hrp_weights(returns: pd.DataFrame) -> Dict[str, float]:
         n = len(tickers)
         return {ticker: 1.0 / n for ticker in tickers}
     
-    # Compute correlation matrix
-    cov = returns.cov()
+    # Compute covariance and correlation matrix
+    if cov is None:
+        cov = returns.cov()
     corr = returns.corr()
     
     # Handle any NaN or inf values

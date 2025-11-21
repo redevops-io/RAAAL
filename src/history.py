@@ -72,6 +72,7 @@ def run_historical_analysis(
         base_returns = returns_window[[asset.ticker for asset in UNIVERSE]]
 
         regime = detect_regime(prices_window, returns_window)
+        # Regime-aware statistics: exponentially weighted with regime-specific decay
         mu = exponential_mean(base_returns)
         cov = exponential_cov(base_returns)
         rf_rate = rf_from_sgov(prices_window)
@@ -98,13 +99,13 @@ def run_historical_analysis(
         unrestricted_metrics = portfolio_metrics(regime_unrestricted_weights, mu, cov, rf_rate)
         standard_unrestricted_weights = optimize_weights_unrestricted(mu_standard, cov_standard, rf_rate)  # Uses uniform weighting
         
-        # HRP weights (4 variants)
-        # 1. Base HRP using uniform-weighted returns (like standard strategies)
-        hrp_weights = compute_hrp_weights(base_returns)
+        # HRP weights (2 variants)
+        # 1. Base HRP using uniform-weighted returns with standard covariance (baseline regime)
+        hrp_weights = compute_hrp_weights(base_returns, cov_standard)
         hrp_metrics = portfolio_metrics(hrp_weights, mu, cov, rf_rate)
         
-        # 2. HRP with regime-aware approach (same base returns, will differ after bounds applied)
-        hrp_regime_weights = compute_hrp_weights(base_returns)
+        # 2. HRP with regime-aware approach: uses regime-specific exponentially-weighted covariance
+        hrp_regime_weights = compute_hrp_weights(base_returns, cov)
         
         # 3 & 4: Apply regime restrictions to both HRP variants
         from .optimizer import _bounds
