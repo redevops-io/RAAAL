@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import time
 from pathlib import Path
 from typing import Iterable, List
 
@@ -40,6 +41,30 @@ def _save_cache(ticker: str, df: pd.DataFrame) -> None:
     df_to_store.reset_index().to_parquet(path, index=False)
 
 
+def _download_ticker(ticker: str, start: datetime, end: datetime, retries: int = 3) -> pd.DataFrame:
+    delay = 2.0
+    for attempt in range(1, retries + 1):
+        try:
+            hist = yf.download(
+                ticker,
+                start=start,
+                end=end,
+                auto_adjust=False,
+                group_by="column",
+                progress=False,
+            )
+            if hist.empty:
+                raise RuntimeError(f"empty response for {ticker}")
+            hist.index = pd.to_datetime(hist.index).tz_localize(None)
+            hist.columns = [col[0] if isinstance(col, tuple) else col for col in hist.columns]
+            return hist
+        except Exception as exc:
+            if attempt == retries:
+                raise RuntimeError(f"Failed to download {ticker} after {retries} attempts") from exc
+            time.sleep(delay)
+            delay = min(delay * 2, 20.0)
+
+
 def download_prices(
     tickers: Iterable[str],
     start: datetime,
@@ -57,18 +82,7 @@ def download_prices(
             if last_ts >= end - timedelta(days=2):
                 needs_download = False
         if needs_download:
-            hist = yf.download(
-                ticker,
-                start=start,
-                end=end,
-                auto_adjust=False,
-                group_by="column",
-                progress=False,
-            )
-            if hist.empty:
-                raise RuntimeError(f"No data downloaded for {ticker}")
-            hist.index = pd.to_datetime(hist.index).tz_localize(None)
-            hist.columns = [col[0] if isinstance(col, tuple) else col for col in hist.columns]
+            hist = _download_ticker(ticker, start, end)
             _save_cache(ticker, hist)
             cache = hist
         frames.append(cache[[PRICE_COLUMN]].rename(columns={PRICE_COLUMN: ticker}))
