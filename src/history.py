@@ -13,10 +13,12 @@ import pandas as pd
 from .config import AUX_SERIES, UNIVERSE
 from .data_loader import download_prices
 from .features import compute_returns, exponential_cov, exponential_mean
+from .ensemble_regime import load_ensemble_models
 from .hrp import compute_hrp_weights
 from .optimizer import optimize_weights, optimize_weights_unrestricted
 from .portfolio_utils import build_rationales, portfolio_metrics, rf_from_sgov, weights_array
 from .regime import detect_regime
+from .strategies import StrategySuite
 
 HISTORY_DIR = Path("data/history")
 HISTORY_DIR.mkdir(parents=True, exist_ok=True)
@@ -35,6 +37,7 @@ class HistoryRunResult:
     weights: pd.DataFrame
     prices: pd.DataFrame
     performance: Dict[str, float]
+    strategy_columns: Dict[str, str]
 
 
 def _evaluation_dates(returns: pd.DataFrame, warmup: int, step: int) -> List[pd.Timestamp]:
@@ -65,6 +68,10 @@ def run_historical_analysis(
     prev_weights_vec = None
     prev_standard_vec = None
     baseline_regime = "risk_on"
+    strategy_suite = StrategySuite()
+    ensemble_models = load_ensemble_models()
+    strategy_modes = ["rule_based", "none"] + (["ml"] if ensemble_models else [])
+    strategy_column_map: Dict[str, str] = {}
 
     for date in eval_dates:
         prices_window = prices.loc[:date]
@@ -131,6 +138,29 @@ def run_historical_analysis(
         if hrp_regime_restricted_sum > 0:
             hrp_regime_restricted = {k: v / hrp_regime_restricted_sum for k, v in hrp_regime_restricted.items()}
 
+        if timeline_rows:
+            timeline_so_far = pd.DataFrame(timeline_rows).set_index("date").sort_index()
+        else:
+            timeline_so_far = None
+        strategy_evaluations = []
+        for mode in strategy_modes:
+            eval_kwargs: Dict[str, object] = {}
+            if mode == "ml":
+                if not ensemble_models or timeline_so_far is None or timeline_so_far.empty:
+                    continue
+                eval_kwargs = {"timeline": timeline_so_far, "ensemble_models": ensemble_models}
+            results = strategy_suite.evaluate(
+                prices_window,
+                base_returns,
+                detection_mode=mode,
+                **eval_kwargs,
+            )
+            strategy_evaluations.append((mode, results))
+            for strat_name in results:
+                key = f"{mode}:{strat_name}"
+                column = f"strategy_{mode}_{strat_name}_weight"
+                strategy_column_map.setdefault(key, column)
+
         vix_value = float(prices_window["^VIX"].iloc[-1]) if "^VIX" in prices_window.columns else float("nan")
         gld_value = float(prices_window["GLD"].iloc[-1]) if "GLD" in prices_window.columns else float("nan")
         gold_oz_price = gld_value * GLD_SHARE_TO_OUNCE if pd.notna(gld_value) else float("nan")
@@ -146,6 +176,11 @@ def run_historical_analysis(
                 "sharpe_unrestricted": unrestricted_metrics.get("sharpe", float("nan")),
                 "sharpe_hrp": hrp_metrics.get("sharpe", float("nan")),
                 "rf_daily": rf_rate,
+                **{
+                    f"strategy_{mode}_{strat}_sharpe": outcome.metrics.get("sharpe", float("nan"))
+                    for mode, results in strategy_evaluations
+                    for strat, outcome in results.items()
+                },
             }
         )
         for ticker, weight in weights.items():
@@ -161,6 +196,11 @@ def run_historical_analysis(
                     "hrp_restricted_weight": hrp_restricted.get(ticker, 0.0),
                     "hrp_regime_weight": hrp_regime_weights.get(ticker, 0.0),
                     "hrp_regime_restricted_weight": hrp_regime_restricted.get(ticker, 0.0),
+                    **{
+                        f"strategy_{mode}_{strat}_weight": outcome.weights.get(ticker, 0.0)
+                        for mode, results in strategy_evaluations
+                        for strat, outcome in results.items()
+                    },
                 }
             )
 
@@ -180,6 +220,10 @@ def run_historical_analysis(
         "hrp_regime_unrestricted": "hrp_regime_weight",
         "hrp_regime_restricted": "hrp_regime_restricted_weight",
     }
+    for key, column in strategy_column_map.items():
+        mode, strat = key.split(":", 1)
+        label = f"strategy_{mode}_{strat}"
+        strategy_map[label] = column
     performance = {
         label: _strategy_total_return(weights_df, asset_returns, column)
         for label, column in strategy_map.items()
@@ -187,7 +231,15 @@ def run_historical_analysis(
     for label, value in performance.items():
         timeline_df[f"total_return_{label}"] = value
 
-    return HistoryRunResult(timeline=timeline_df, weights=weights_df, prices=prices, performance=performance)
+    strategy_columns = {label: column for label, column in strategy_map.items() if label.startswith("strategy_")}
+
+    return HistoryRunResult(
+        timeline=timeline_df,
+        weights=weights_df,
+        prices=prices,
+        performance=performance,
+        strategy_columns=strategy_columns,
+    )
 
 
 def _strategy_total_return(weights: pd.DataFrame, asset_returns: pd.DataFrame, column: str) -> float:
@@ -225,6 +277,7 @@ def save_history(result: HistoryRunResult) -> Dict[str, str]:
         "timeline": result.timeline.reset_index().to_dict(orient="list"),
         "weights": result.weights.to_dict(orient="list"),
         "performance": result.performance,
+        "strategy_columns": result.strategy_columns,
     }
     SUMMARY_JSON.write_text(json.dumps(payload, default=str))
 
@@ -260,3 +313,24 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def strategy_cumulative_returns(weights: pd.DataFrame, asset_returns: pd.DataFrame, column: str) -> pd.Series:
+    """Return cumulative growth series for a given strategy weight column."""
+    if column not in weights.columns:
+        return pd.Series(dtype=float)
+    weight_history = (
+        weights.pivot(index="date", columns="ticker", values=column)
+        .sort_index()
+        .reindex(columns=asset_returns.columns, fill_value=0.0)
+    )
+    if weight_history.empty:
+        return pd.Series(dtype=float)
+    weight_history = weight_history.reindex(asset_returns.index).ffill().fillna(0.0)
+    aligned_returns = asset_returns.loc[weight_history.index].fillna(0.0)
+    daily_returns = (weight_history * aligned_returns).sum(axis=1)
+    cumulative = (1.0 + daily_returns).cumprod()
+    if not cumulative.empty:
+        cumulative = cumulative / cumulative.iloc[0]
+    cumulative.name = column
+    return cumulative

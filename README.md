@@ -31,8 +31,22 @@ This prototype follows the MVP brief from `Regime-adjusted asset allocation mode
 - **Network Analysis**: Correlation networks with centrality measures (degree, betweenness, eigenvector) to identify systemic risk assets. Includes community detection per regime.
 - **Ensemble Learning**: Random Forest + Gradient Boosting classifiers for regime prediction. Trained on historical features with accuracy metrics and feature importance analysis.
 - **Multi-tab Dashboard**: Interactive Bokeh visualization with:
-  - **Main Dashboard**: Original regime timeline, allocation weights, VIX tracking
-  - **Advanced Analysis**: HRP vs RAAAL comparison, ensemble regime predictions, network visualizations, feature importance charts
+   - **Main Dashboard**: Original regime timeline, allocation weights, VIX tracking
+   - **Advanced Analysis**: HRP vs RAAAL comparison, ensemble regime predictions, network visualizations, feature importance charts
+   - **Strategy Lab**: Multi-strategy growth comparison (momentum, relative-value, risk-based, factor sleeves) with rule-based, ML, or neutral regime inputs, plus a multi-select growth plot and buy/sell pressure bar chart for the chosen strategies.
+
+### Strategy experimentation (NEW)
+- **Strategy test harness**: `src/strategies.py` exposes a `StrategySuite` that can score additional trading approaches (momentum, relative-value/mean-reversion, risk-based, and factor portfolios) using rule-based regimes, ML regimes, or no regime overlay.
+- **Regime flexibility**: Toggle `detection_mode` between `"rule_based"`, `"ml"`, or `"none"` to combine each strategy with rule-based signals, ensemble predictions, or neutral baselines.
+- **Pytest coverage**: `tests/test_strategies.py` exercises all strategy families, including ML-backed regime detection, to guard against regressions.
+- **Quick usage**:
+   ```python
+   from src.strategies import StrategySuite
+   suite = StrategySuite()
+   results = suite.evaluate(prices, returns, detection_mode="rule_based")
+   print(results["dual_momentum"].metrics)
+   ```
+- **Strategy Lab dashboard tab**: after running `python -m src.history ...` the new Tab 4 visualizes normalized growth curves plus summary table. The "Visible strategies" multi-select now defaults to the union of the top Sharpe and top total-return strategies (≈6–10 series) so the stacked signal lanes and composites stay readable; you can still Ctrl/Cmd + click to toggle more. The diagnostics include per-strategy bar lanes (one row per strategy) driven by net cash redeployments so only one buy/sell marker fires per rebalance, and clicking any bar opens a ticker showing that rebalance's turnover, cash, and top-three holdings. A composite recommendation panel aggregates equal-weight signals from the top 5 Sharpe and top 5 total-return strategies, complete with normalized portfolio compositions sourced from each strategy's most recent rebalance snapshot. Use `python -m src.visualization.bokeh_app --timeline data/history/timeline.parquet --weights data/history/weights.parquet --prices data/history/prices.parquet --output reports/regime_dashboard.html` to regenerate manually.
 
 ### Performance Results (Annualized, 2016-2025)
 - Standard (Restricted): **5.87%**
@@ -117,6 +131,22 @@ The container runs `scripts/service.py`, which:
 2. Copies it to `/app/site/index.html`.
 3. Repeats every `REFRESH_INTERVAL` seconds.
 4. Serves `/app/site` over HTTP so the Bokeh HTML is the only page.
+
+### Local preview via Docker
+
+To test locally with the new Strategy Lab tab enabled:
+
+```bash
+docker build -t regime-dashboard .
+docker run --rm -it \
+   -e START_DATE=2018-01-01 \
+   -e STEP_DAYS=5 \
+   -e REFRESH_INTERVAL=0 \
+   -p 8000:8000 \
+   regime-dashboard
+```
+
+Then open `http://localhost:8000` and navigate to the **Strategy Lab** tab to compare all strategy families side-by-side.
 
 ### Deploying to Cloudflare Pages
 For static hosting of the dashboard HTML:

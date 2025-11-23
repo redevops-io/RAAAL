@@ -6,7 +6,7 @@ CFA Institute AI monograph Chapter 5: Ensemble Learning in Investment.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Iterable, Tuple
 
 import joblib
 import numpy as np
@@ -17,6 +17,17 @@ from sklearn.preprocessing import LabelEncoder
 
 MODELS_DIR = Path("data/models")
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _align_features(frame: pd.DataFrame, feature_names: Iterable[str]) -> pd.DataFrame:
+    """Reindex feature frame to match estimator feature names."""
+    ordered = list(feature_names)
+    missing = [col for col in ordered if col not in frame.columns]
+    for col in missing:
+        frame[col] = 0.0
+    # Drop extras but keep deterministic order
+    aligned = frame.reindex(columns=ordered)
+    return aligned.fillna(0.0)
 
 
 def prepare_features(timeline: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
@@ -164,6 +175,12 @@ def predict_regime_ensemble(
     le = models['label_encoder']
     
     # Get predictions from both models
+    feature_names = getattr(rf_model, "feature_names_in_", None)
+    if feature_names is None:
+        feature_names = getattr(gb_model, "feature_names_in_", None)
+    if feature_names is not None:
+        features = _align_features(features.copy(), feature_names)
+
     rf_proba = rf_model.predict_proba(features)[0]
     gb_proba = gb_model.predict_proba(features)[0]
     
@@ -202,6 +219,12 @@ def compute_regime_agreement(
     le = models['label_encoder']
     
     # Predict for all samples
+    feature_names = getattr(rf_model, "feature_names_in_", None)
+    if feature_names is None:
+        feature_names = getattr(gb_model, "feature_names_in_", None)
+    if feature_names is not None:
+        X = _align_features(X.copy(), feature_names)
+
     rf_pred = rf_model.predict(X)
     gb_pred = gb_model.predict(X)
     
