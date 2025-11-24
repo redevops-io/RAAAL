@@ -48,6 +48,7 @@ jobs:
       - name: Build dashboard
         run: |
           python -m src.visualization.bokeh_app
+          cp reports/regime_dashboard.html reports/index.html
       
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
