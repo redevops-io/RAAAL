@@ -22,6 +22,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Force the workflow to run off the canonical main branch so the
+          # resulting Pages deployment goes to the production environment.
+          ref: main
       
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
@@ -52,6 +56,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: raaal-dashboard
           directory: reports
+          branch: main
       
       - name: Upload dashboard artifact
         uses: actions/upload-artifact@v4
