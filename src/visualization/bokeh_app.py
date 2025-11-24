@@ -581,6 +581,13 @@ def build_strategy_comparison_panel(
     if asset_returns.empty:
         return TabPanel(title="Strategy Lab", child=Div(text="Not enough price history to compute returns."))
 
+    nowcast_cols = [col for col in timeline.columns if col.startswith("nowcast_")]
+    nowcast_labels = {
+        col: col.replace("nowcast_", "").replace("_", " ").title()
+        for col in nowcast_cols
+    }
+    nowcast_frame = timeline[nowcast_cols].copy().sort_index() if nowcast_cols else pd.DataFrame(index=timeline.index)
+
     cum_df = pd.DataFrame(index=asset_returns.index)
     summary_rows = []
     for label, weight_col in sorted(strategy_columns.items()):
@@ -700,6 +707,32 @@ def build_strategy_comparison_panel(
         )
         return history
 
+    def _nowcast_snapshot(target_date: pd.Timestamp | None) -> dict[str, float]:
+        if (
+            not nowcast_cols
+            or nowcast_frame.empty
+            or target_date is None
+            or pd.isna(target_date)
+        ):
+            return {}
+        index = nowcast_frame.index
+        match_idx = None
+        if target_date in index:
+            match_idx = target_date
+        else:
+            try:
+                loc = index.get_indexer([target_date], method="ffill")
+            except Exception:
+                loc = np.array([-1])
+            if loc.size and loc[0] != -1:
+                match_idx = index[loc[0]]
+        if match_idx is None:
+            return {}
+        row = nowcast_frame.loc[match_idx]
+        if isinstance(row, pd.DataFrame):
+            row = row.iloc[-1]
+        return {col: float(row.get(col, float("nan"))) for col in nowcast_cols}
+
     def _format_holdings(snapshot: pd.Series | None) -> str:
         if snapshot is None or snapshot.empty:
             return "—"
@@ -803,20 +836,22 @@ def build_strategy_comparison_panel(
             if magnitude <= net_threshold:
                 continue
             direction = "Buy" if net_value >= 0 else "Sell"
-            signal_rows.append(
-                {
-                    "date": date,
-                    "strategy": record["strategy_display"],
-                    "strategy_label": record["legend"],
-                    "strategy_key": label,
-                    "signal": direction,
-                    "magnitude": magnitude,
-                    "gross_buy": float(gross_buy.loc[date]) if date in gross_buy.index else 0.0,
-                    "gross_sell": float(gross_sell.loc[date]) if date in gross_sell.index else 0.0,
-                    "turnover": float(turnover.loc[date]) if date in turnover.index else 0.0,
-                    "cash": float(cash_series.loc[date]) if date in cash_series.index else 0.0,
-                }
-            )
+            signal_entry = {
+                "date": date,
+                "strategy": record["strategy_display"],
+                "strategy_label": record["legend"],
+                "strategy_key": label,
+                "signal": direction,
+                "magnitude": magnitude,
+                "gross_buy": float(gross_buy.loc[date]) if date in gross_buy.index else 0.0,
+                "gross_sell": float(gross_sell.loc[date]) if date in gross_sell.index else 0.0,
+                "turnover": float(turnover.loc[date]) if date in turnover.index else 0.0,
+                "cash": float(cash_series.loc[date]) if date in cash_series.index else 0.0,
+            }
+            nowcast_values = _nowcast_snapshot(date)
+            for col in nowcast_cols:
+                signal_entry[col] = nowcast_values.get(col, float("nan"))
+            signal_rows.append(signal_entry)
 
     if details_rows:
         details_frame = pd.DataFrame(details_rows)
@@ -878,6 +913,10 @@ def build_strategy_comparison_panel(
                 "cash",
             ]
         )
+
+    for col in nowcast_cols:
+        if col not in signals_df.columns:
+            signals_df[col] = float("nan")
 
     def _filter_signals(df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
         if df.empty or not keys:
@@ -1182,7 +1221,12 @@ def build_strategy_comparison_panel(
     strategy_select.js_on_change("value", selection_callback)
 
     detail_callback = CustomJS(
-        args=dict(source=filtered_signal_source, detail=signal_detail),
+        args=dict(
+            source=filtered_signal_source,
+            detail=signal_detail,
+            macro_columns=nowcast_cols,
+            macro_labels=nowcast_labels,
+        ),
         code="""
         const indices = source.selected.indices;
         if (!indices || indices.length === 0) {
@@ -1204,6 +1248,25 @@ def build_strategy_comparison_panel(
         detail.text = `<b>${strategy}</b> ${signal} on <b>${date}</b> — Net Δ: ${magnitude}, Turnover: ${turnover}, Cash: ${cash}<br>` +
             `Gross buy: ${grossBuy} | Gross sell: ${grossSell}<br>` +
             `Top weights: ${holdings}`;
+        if (macro_columns && macro_columns.length) {
+            const macroParts = [];
+            macro_columns.forEach((col) => {
+                const column = data[col];
+                if (!column || column.length <= idx) {
+                    return;
+                }
+                const value = column[idx];
+                if (!isFinite(value)) {
+                    return;
+                }
+                const label = macro_labels && macro_labels[col] ? macro_labels[col] : col;
+                const formatted = `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
+                macroParts.push(`${label}: ${formatted}`);
+            });
+            if (macroParts.length) {
+                detail.text += '<br><i>Macro tilts:</i> ' + macroParts.join(' · ');
+            }
+        }
         """
     )
     filtered_signal_source.selected.js_on_change("indices", detail_callback)

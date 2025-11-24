@@ -20,6 +20,7 @@ from .optimizer import optimize_weights, optimize_weights_unrestricted
 from .portfolio_utils import build_rationales, portfolio_metrics, rf_from_sgov, weights_array
 from .regime import detect_regime
 from .strategies import StrategySuite
+from .nowcasting import compute_nowcasts
 
 HISTORY_DIR = Path("data/history")
 HISTORY_DIR.mkdir(parents=True, exist_ok=True)
@@ -168,6 +169,8 @@ def run_historical_analysis(
                     },
                 }
             }
+        nowcasts = compute_nowcasts(prices_window)
+        indicator_context.setdefault("nowcasts", nowcasts)
 
         strategy_evaluations = []
         for mode in strategy_modes:
@@ -209,6 +212,8 @@ def run_historical_analysis(
                 for strat, outcome in results.items()
             },
         }
+        for name, value in nowcasts.items():
+            timeline_entry[f"nowcast_{name}"] = float(value)
 
         if indicator_point is not None:
             timeline_entry["fomo_fobi_score"] = float(indicator_point.get("fomo_fobi_score", float("nan")))

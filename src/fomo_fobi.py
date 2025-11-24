@@ -32,11 +32,15 @@ _REQUIRED_TICKERS = {
     "RSP",
     "QQQ",
     "MGK",
+    "IWM",
     "BIL",
     "BRK-B",
+    "HYG",
+    "LQD",
+    "TIP",
 }
 
-_OPTIONAL_TICKERS = {"^VIX"}
+_OPTIONAL_TICKERS = {"^VIX", "^VVIX"}
 
 
 def _window_return(series: pd.Series, window: int) -> pd.Series:
@@ -56,6 +60,25 @@ def _volatility_complacency(prices: pd.DataFrame) -> pd.Series:
     realized = spy_returns.rolling(FOMO_SHORT_LOOKBACK).std() * np.sqrt(252) * 100.0
     vix = prices["^VIX"].reindex_like(realized)
     return realized - vix
+
+
+def _options_hedging_pressure(prices: pd.DataFrame) -> pd.Series:
+    if "^VIX" not in prices.columns or "^VVIX" not in prices.columns:
+        return pd.Series(np.nan, index=prices.index)
+    vix = prices["^VIX"].replace(0.0, np.nan)
+    vvix = prices["^VVIX"].replace(0.0, np.nan)
+    spread = (vix - vvix).rolling(FOMO_SHORT_LOOKBACK).mean()
+    return spread
+
+
+def _cross_sectional_dispersion(prices: pd.DataFrame) -> pd.Series:
+    subset = prices[[col for col in ["SPY", "QQQ", "IWM", "RSP"] if col in prices.columns]].copy()
+    if subset.empty:
+        return pd.Series(np.nan, index=prices.index)
+    returns = np.log(subset).diff()
+    dispersion = returns.std(axis=1)
+    smoothed = dispersion.rolling(FOMO_SHORT_LOOKBACK).mean()
+    return -smoothed
 
 
 def _rolling_zscore(series: pd.Series, window: int = FOMO_LONG_LOOKBACK) -> pd.Series:
@@ -87,9 +110,13 @@ def compute_component_scores(prices: pd.DataFrame) -> pd.DataFrame:
     df["component_breadth"] = _relative_performance(prices, "SPY", "RSP", FOMO_SHORT_LOOKBACK)
     df["component_mega_cap"] = _relative_performance(prices, "MGK", "RSP", FOMO_SHORT_LOOKBACK)
     df["component_tech_leadership"] = _relative_performance(prices, "QQQ", "SPY", FOMO_SHORT_LOOKBACK)
+    df["component_small_cap_leadership"] = _relative_performance(prices, "IWM", "SPY", FOMO_SHORT_LOOKBACK)
+    df["component_dispersion"] = _cross_sectional_dispersion(prices)
     df["component_cash_shortage"] = _relative_performance(prices, "SPY", "BIL", FOMO_SHORT_LOOKBACK)
+    df["component_liquidity_stress"] = _relative_performance(prices, "HYG", "LQD", FOMO_SHORT_LOOKBACK)
     df["component_berkshire_cash"] = _relative_performance(prices, "SPY", "BRK-B", FOMO_LONG_LOOKBACK)
     df["component_vol_complacency"] = _volatility_complacency(prices)
+    df["component_options_hedging"] = _options_hedging_pressure(prices)
 
     for column in list(df.columns):
         df[f"{column}_z"] = _rolling_zscore(df[column])

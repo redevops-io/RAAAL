@@ -42,12 +42,16 @@ AUX_SERIES: List[str] = [
 
 # Composite FOMO/FOBI indicator defaults
 FOMO_COMPONENT_WEIGHTS: Dict[str, float] = {
-    "breadth": 0.25,
-    "mega_cap": 0.2,
-    "tech_leadership": 0.15,
-    "cash_shortage": 0.2,
-    "berkshire_cash": 0.1,
-    "vol_complacency": 0.1,
+    "breadth": 0.18,
+    "mega_cap": 0.12,
+    "tech_leadership": 0.1,
+    "small_cap_leadership": 0.08,
+    "dispersion": 0.1,
+    "cash_shortage": 0.12,
+    "liquidity_stress": 0.1,
+    "berkshire_cash": 0.07,
+    "vol_complacency": 0.08,
+    "options_hedging": 0.05,
 }
 
 FOMO_SCORE_THRESHOLDS = {
