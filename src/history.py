@@ -10,10 +10,11 @@ from typing import Dict, List
 
 import pandas as pd
 
-from .config import AUX_SERIES, UNIVERSE
+from .config import AUX_SERIES, FOMO_COMPONENT_WEIGHTS, UNIVERSE
 from .data_loader import download_prices
 from .features import compute_returns, exponential_cov, exponential_mean
 from .ensemble_regime import load_ensemble_models
+from .fomo_fobi import compute_fomo_fobi_indicator
 from .hrp import compute_hrp_weights
 from .optimizer import optimize_weights, optimize_weights_unrestricted
 from .portfolio_utils import build_rationales, portfolio_metrics, rf_from_sgov, weights_array
@@ -26,6 +27,7 @@ TIMELINE_PATH = HISTORY_DIR / "timeline.parquet"
 WEIGHTS_PATH = HISTORY_DIR / "weights.parquet"
 PRICES_PATH = HISTORY_DIR / "prices.parquet"
 SUMMARY_JSON = HISTORY_DIR / "history_summary.json"
+FOMO_PATH = HISTORY_DIR / "fomo_indicator.parquet"
 
 # SPDR GLD share corresponds to roughly 1/10 ounce of gold after fees.
 GLD_SHARE_TO_OUNCE = 10.0
@@ -38,6 +40,7 @@ class HistoryRunResult:
     prices: pd.DataFrame
     performance: Dict[str, float]
     strategy_columns: Dict[str, str]
+    fomo_indicator: pd.DataFrame | None = None
 
 
 def _evaluation_dates(returns: pd.DataFrame, warmup: int, step: int) -> List[pd.Timestamp]:
@@ -57,6 +60,12 @@ def run_historical_analysis(
     tickers = [asset.ticker for asset in UNIVERSE] + AUX_SERIES
     prices = download_prices(tickers, start=start, end=end, force_refresh=force_refresh)
     returns = compute_returns(prices)
+    try:
+        fomo_indicator = compute_fomo_fobi_indicator(prices)
+    except ValueError as exc:
+        print(f"Warning: could not compute FOMO/FOBI indicator — {exc}")
+        fomo_indicator = pd.DataFrame(index=prices.index)
+    indicator_aligned = fomo_indicator.reindex(prices.index).ffill() if not fomo_indicator.empty else None
 
     eval_dates = _evaluation_dates(returns, warmup_days, step)
     if not eval_dates:
@@ -142,6 +151,24 @@ def run_historical_analysis(
             timeline_so_far = pd.DataFrame(timeline_rows).set_index("date").sort_index()
         else:
             timeline_so_far = None
+        indicator_point = None
+        if indicator_aligned is not None and date in indicator_aligned.index:
+            indicator_point = indicator_aligned.loc[date]
+
+        indicator_context = {}
+        if indicator_point is not None:
+            indicator_context = {
+                "fomo_fobi": {
+                    "score": float(indicator_point.get("fomo_fobi_score", float("nan"))),
+                    "state": str(indicator_point.get("fomo_fobi_state", "neutral")),
+                    "probability": float(indicator_point.get("fomo_probability", float("nan"))),
+                    "components": {
+                        name: float(indicator_point.get(f"component_{name}_z", float("nan")))
+                        for name in FOMO_COMPONENT_WEIGHTS
+                    },
+                }
+            }
+
         strategy_evaluations = []
         for mode in strategy_modes:
             eval_kwargs: Dict[str, object] = {}
@@ -153,6 +180,7 @@ def run_historical_analysis(
                 prices_window,
                 base_returns,
                 detection_mode=mode,
+                extra_context=indicator_context,
                 **eval_kwargs,
             )
             strategy_evaluations.append((mode, results))
@@ -164,25 +192,39 @@ def run_historical_analysis(
         vix_value = float(prices_window["^VIX"].iloc[-1]) if "^VIX" in prices_window.columns else float("nan")
         gld_value = float(prices_window["GLD"].iloc[-1]) if "GLD" in prices_window.columns else float("nan")
         gold_oz_price = gld_value * GLD_SHARE_TO_OUNCE if pd.notna(gld_value) else float("nan")
-        timeline_rows.append(
-            {
-                "date": date,
-                "regime": regime.name,
-                "spy_price": float(prices_window["SPY"].iloc[-1]),
-                "vix": vix_value,
-                "gold_price_oz": gold_oz_price,
-                **{f"diag_{k}": v for k, v in regime.diagnostics.items()},
-                **metrics,
-                "sharpe_unrestricted": unrestricted_metrics.get("sharpe", float("nan")),
-                "sharpe_hrp": hrp_metrics.get("sharpe", float("nan")),
-                "rf_daily": rf_rate,
-                **{
-                    f"strategy_{mode}_{strat}_sharpe": outcome.metrics.get("sharpe", float("nan"))
-                    for mode, results in strategy_evaluations
-                    for strat, outcome in results.items()
-                },
-            }
-        )
+        timeline_entry = {
+            "date": date,
+            "regime": regime.name,
+            "spy_price": float(prices_window["SPY"].iloc[-1]),
+            "vix": vix_value,
+            "gold_price_oz": gold_oz_price,
+            **{f"diag_{k}": v for k, v in regime.diagnostics.items()},
+            **metrics,
+            "sharpe_unrestricted": unrestricted_metrics.get("sharpe", float("nan")),
+            "sharpe_hrp": hrp_metrics.get("sharpe", float("nan")),
+            "rf_daily": rf_rate,
+            **{
+                f"strategy_{mode}_{strat}_sharpe": outcome.metrics.get("sharpe", float("nan"))
+                for mode, results in strategy_evaluations
+                for strat, outcome in results.items()
+            },
+        }
+
+        if indicator_point is not None:
+            timeline_entry["fomo_fobi_score"] = float(indicator_point.get("fomo_fobi_score", float("nan")))
+            timeline_entry["fomo_probability"] = float(indicator_point.get("fomo_probability", float("nan")))
+            timeline_entry["fomo_fobi_state"] = str(indicator_point.get("fomo_fobi_state", "neutral"))
+            for name in FOMO_COMPONENT_WEIGHTS:
+                column = f"component_{name}_z"
+                timeline_entry[f"fomo_component_{name}_z"] = float(indicator_point.get(column, float("nan")))
+        else:
+            timeline_entry["fomo_fobi_score"] = float("nan")
+            timeline_entry["fomo_probability"] = float("nan")
+            timeline_entry["fomo_fobi_state"] = "neutral"
+            for name in FOMO_COMPONENT_WEIGHTS:
+                timeline_entry[f"fomo_component_{name}_z"] = float("nan")
+
+        timeline_rows.append(timeline_entry)
         for ticker, weight in weights.items():
             weight_rows.append(
                 {
@@ -239,6 +281,7 @@ def run_historical_analysis(
         prices=prices,
         performance=performance,
         strategy_columns=strategy_columns,
+        fomo_indicator=fomo_indicator,
     )
 
 
@@ -272,6 +315,8 @@ def save_history(result: HistoryRunResult) -> Dict[str, str]:
     result.timeline.to_parquet(TIMELINE_PATH)
     result.weights.to_parquet(WEIGHTS_PATH)
     result.prices.to_parquet(PRICES_PATH)
+    if result.fomo_indicator is not None and not result.fomo_indicator.empty:
+        result.fomo_indicator.to_parquet(FOMO_PATH)
 
     payload = {
         "timeline": result.timeline.reset_index().to_dict(orient="list"),
@@ -286,6 +331,7 @@ def save_history(result: HistoryRunResult) -> Dict[str, str]:
         "weights": str(WEIGHTS_PATH),
         "prices": str(PRICES_PATH),
         "summary": str(SUMMARY_JSON),
+        "fomo_indicator": str(FOMO_PATH) if result.fomo_indicator is not None and not result.fomo_indicator.empty else "",
     }
 
 

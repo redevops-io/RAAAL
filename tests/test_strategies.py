@@ -124,3 +124,26 @@ def test_strategy_suite_without_regime_detection_defaults_to_baseline(synthetic_
     for name, outcome in results.items():
         assert pytest.approx(1.0, abs=1e-6) == sum(outcome.weights.values())
         assert np.isfinite(outcome.metrics["exp_return"])
+
+
+def test_fomo_fobi_overlay_reacts_to_indicator(synthetic_market_data):
+    prices, returns = synthetic_market_data
+    suite = StrategySuite()
+    bullish = suite.evaluate(
+        prices,
+        returns,
+        detection_mode="none",
+        strategy_names=["fomo_fobi_overlay"],
+        extra_context={"fomo_fobi": {"state": "FOBI", "score": 1.2}},
+    )
+    defensive = suite.evaluate(
+        prices,
+        returns,
+        detection_mode="none",
+        strategy_names=["fomo_fobi_overlay"],
+        extra_context={"fomo_fobi": {"state": "FOMO", "score": 1.2}},
+    )
+    bull_weight = bullish["fomo_fobi_overlay"].weights.get("SPY", 0.0)
+    cash_weight = defensive["fomo_fobi_overlay"].weights.get("BIL", 0.0)
+    assert bull_weight > 0.5
+    assert cash_weight > 0.4

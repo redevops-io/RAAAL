@@ -29,7 +29,34 @@ UNIVERSE: List[Asset] = [
 ]
 
 # Additional series needed for features/regime detection
-AUX_SERIES: List[str] = ["^VIX", "TIP"]
+AUX_SERIES: List[str] = [
+    "^VIX",
+    "^VVIX",
+    "TIP",
+    "RSP",  # S&P 500 equal weight (breadth proxy)
+    "QQQ",  # Nasdaq 100 (mega-cap tech leadership)
+    "MGK",  # Mega-cap growth (Magnificent 7 proxy)
+    "IWM",  # Russell 2000 (small-cap breadth)
+    "BRK-B",  # Berkshire Hathaway cash proxy
+]
+
+# Composite FOMO/FOBI indicator defaults
+FOMO_COMPONENT_WEIGHTS: Dict[str, float] = {
+    "breadth": 0.25,
+    "mega_cap": 0.2,
+    "tech_leadership": 0.15,
+    "cash_shortage": 0.2,
+    "berkshire_cash": 0.1,
+    "vol_complacency": 0.1,
+}
+
+FOMO_SCORE_THRESHOLDS = {
+    "fomo": 0.75,
+    "fobi": -0.75,
+}
+
+FOMO_LONG_LOOKBACK = 252
+FOMO_SHORT_LOOKBACK = 63
 
 # Lookback windows (trading days)
 FAST_LOOKBACK = 21

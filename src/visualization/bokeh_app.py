@@ -7,14 +7,18 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+from bokeh.events import SelectionGeometry
 from bokeh.io import output_file, save
 from bokeh.layouts import column, row
 from bokeh.models import (
+    BoxAnnotation,
+    BoxSelectTool,
     ColumnDataSource,
     CustomJS,
     DataTable,
     Div,
     HoverTool,
+    LabelSet,
     LinearAxis,
     MultiSelect,
     NumberFormatter,
@@ -29,7 +33,7 @@ from bokeh.models import (
 from bokeh.palettes import Category10
 from bokeh.plotting import figure
 
-from ..config import UNIVERSE
+from ..config import FOMO_COMPONENT_WEIGHTS, FOMO_SCORE_THRESHOLDS, UNIVERSE
 from ..features import compute_returns
 from ..history import (
     GLD_SHARE_TO_OUNCE,
@@ -1225,6 +1229,450 @@ def build_strategy_comparison_panel(
     return TabPanel(title="Strategy Lab", child=layout)
 
 
+def build_fomo_fobi_panel(timeline: pd.DataFrame) -> TabPanel:
+    """Visualize the FOMO vs FOBI composite indicator in its own tab."""
+
+    if "fomo_fobi_score" not in timeline.columns:
+        raise ValueError("Timeline missing FOMO/FOBI columns")
+
+    indicator = timeline.reset_index().rename(columns={"index": "date"})
+    indicator = indicator.dropna(subset=["fomo_fobi_score"])
+    if indicator.empty:
+        return TabPanel(title="FOMO vs FOBI", child=Div(text="Indicator not available for the selected period."))
+
+    indicator["date"] = pd.to_datetime(indicator["date"])
+    indicator["date_ms"] = indicator["date"].astype("int64") / 10**6
+    source = ColumnDataSource(indicator)
+
+    score_fig = figure(
+        title="Composite FOMO/FOBI Score",
+        x_axis_type="datetime",
+        sizing_mode="stretch_width",
+        height=300,
+        tools="xpan,xwheel_zoom,reset,save,tap",
+    )
+    score_renderer = score_fig.line(
+        "date",
+        "fomo_fobi_score",
+        source=source,
+        color="#d62728",
+        line_width=3,
+        legend_label="Score",
+    )
+    hi = FOMO_SCORE_THRESHOLDS["fomo"]
+    lo = FOMO_SCORE_THRESHOLDS["fobi"]
+    score_fig.line(x=indicator["date"], y=[hi] * len(indicator), color="#ff7f0e", line_dash="dashed", legend_label="FOMO threshold")
+    score_fig.line(x=indicator["date"], y=[lo] * len(indicator), color="#1f77b4", line_dash="dotted", legend_label="FOBI threshold")
+    score_fig.yaxis.axis_label = "Z-score"
+    score_fig.legend.location = "top_left"
+    score_fig.extra_y_ranges = {"prob": Range1d(start=0, end=1)}
+    score_fig.add_layout(LinearAxis(y_range_name="prob", axis_label="Probability"), "right")
+    prob_renderer = score_fig.line(
+        "date",
+        "fomo_probability",
+        source=source,
+        color="#2ca02c",
+        line_width=2,
+        y_range_name="prob",
+        legend_label="Risk-on probability",
+    )
+    hover = HoverTool(
+        tooltips=[
+            ("Date", "@date{%F}"),
+            ("Score", "@fomo_fobi_score{0.00}"),
+            ("State", "@fomo_fobi_state"),
+            ("Probability", "@fomo_probability{0.00}"),
+        ],
+        formatters={"@date": "datetime"},
+        mode="vline",
+        renderers=[score_renderer, prob_renderer],
+    )
+    score_fig.add_tools(hover)
+
+    latest = indicator.iloc[-1]
+    component_names = []
+    component_scores = []
+    component_columns = []
+    for comp in FOMO_COMPONENT_WEIGHTS:
+        component_col = f"fomo_component_{comp}_z"
+        if component_col not in indicator.columns:
+            continue
+        component_names.append(comp.replace("_", " ").title())
+        component_scores.append(float(latest.get(component_col, float("nan"))))
+        component_columns.append(component_col)
+
+    latest_component_label = latest["date"].strftime("%Y-%m-%d")
+    COMPONENT_LABEL_OFFSET = 0.15
+    comp_source: ColumnDataSource | None = None
+    if component_names:
+        palette = Category10[max(3, min(10, len(component_names)))]
+        colors = [palette[i % len(palette)] for i in range(len(component_names))]
+        labels = ["{:.2f}".format(value) if pd.notna(value) else "—" for value in component_scores]
+        label_positions = []
+        for value in component_scores:
+            if not np.isfinite(value):
+                label_positions.append(0.0)
+            elif abs(value) < COMPONENT_LABEL_OFFSET:
+                label_positions.append(value + (COMPONENT_LABEL_OFFSET if value >= 0 else -COMPONENT_LABEL_OFFSET))
+            else:
+                label_positions.append(value / 2)
+        comp_source = ColumnDataSource(
+            {
+                "component": component_names,
+                "score": component_scores,
+                "color": colors,
+                "score_text": labels,
+                "label_y": label_positions,
+            }
+        )
+        component_fig = figure(
+            title=f"Component z-scores on {latest_component_label}",
+            x_range=component_names,
+            height=280,
+            sizing_mode="stretch_width",
+            tools="reset,save",
+        )
+        component_fig.vbar(x="component", top="score", width=0.7, color="color", source=comp_source)
+        component_fig.yaxis.axis_label = "Z-score"
+        component_fig.xaxis.major_label_orientation = 0.9
+        labels = LabelSet(
+            x="component",
+            y="label_y",
+            text="score_text",
+            text_color="black",
+            text_font_style="bold",
+            level="glyph",
+            source=comp_source,
+            text_align="center",
+        )
+        component_fig.add_layout(labels)
+    else:
+        component_fig = Div(text="Component breakdown unavailable.")
+
+    price_fig = figure(
+        title="SPY vs Gold",
+        x_axis_type="datetime",
+        sizing_mode="stretch_width",
+        height=250,
+        tools="xpan,xwheel_zoom,reset,save,tap",
+    )
+    price_fig.x_range = score_fig.x_range
+    price_fig.yaxis.axis_label = "SPY"
+    price_renderer = price_fig.line("date", "spy_price", source=source, color="#1f77b4", line_width=2, legend_label="SPY")
+    spy_series = indicator.get("spy_price")
+    if spy_series is not None and pd.notna(spy_series).any():
+        spy_values = spy_series[pd.notna(spy_series)]
+        spy_min = float(spy_values.min())
+        spy_max = float(spy_values.max())
+    else:
+        spy_min, spy_max = 0.0, 1.0
+    spy_pad = max((spy_max - spy_min) * 0.08, 1.0)
+    price_fig.y_range = Range1d(start=spy_min - spy_pad, end=spy_max + spy_pad)
+    gold_series = indicator.get("gold_price_oz")
+    if gold_series is not None:
+        gold_min = float(gold_series.min()) if pd.notna(gold_series).any() else 0.0
+        gold_max = float(gold_series.max()) if pd.notna(gold_series).any() else 1.0
+    else:
+        gold_min, gold_max = 0.0, 1.0
+    gold_pad = max((gold_max - gold_min) * 0.05, 1.0)
+    gold_range = Range1d(start=gold_min - gold_pad, end=gold_max + gold_pad)
+    price_fig.extra_y_ranges = {"gold": gold_range}
+    price_fig.add_layout(LinearAxis(y_range_name="gold", axis_label="Gold (oz)"), "right")
+    gold_renderer = price_fig.line(
+        "date",
+        "gold_price_oz",
+        source=source,
+        color="#ffbf00",
+        line_dash="dashed",
+        line_width=2,
+        y_range_name="gold",
+        legend_label="Gold",
+    )
+    price_fig.legend.location = "top_left"
+    price_fig.add_tools(
+        HoverTool(
+            tooltips=[
+                ("Date", "@date{%F}"),
+                ("SPY", "@spy_price{0.0}")
+            ],
+            formatters={"@date": "datetime"},
+            mode="vline",
+            renderers=[price_renderer],
+        )
+    )
+    price_fig.add_tools(
+        HoverTool(
+            tooltips=[
+                ("Date", "@date{%F}"),
+                ("Gold", "@gold_price_oz{0.0}")
+            ],
+            formatters={"@date": "datetime"},
+            mode="vline",
+            renderers=[gold_renderer],
+        )
+    )
+    slider = Slider(
+        start=0,
+        end=len(source.data["date"]) - 1,
+        value=len(source.data["date"]) - 1,
+        step=1,
+        title="Timeline index",
+        visible=False,
+    )
+    box_select = BoxSelectTool(dimensions="width")
+    score_fig.add_tools(box_select)
+    score_fig.toolbar.active_drag = box_select
+    selection_box_score = BoxAnnotation(left=None, right=None, fill_alpha=0.1, fill_color="#c5d5f5", line_color=None)
+    selection_box_price = BoxAnnotation(left=None, right=None, fill_alpha=0.1, fill_color="#c5d5f5", line_color=None)
+    score_fig.add_layout(selection_box_score)
+    price_fig.add_layout(selection_box_price)
+    initial_date_ms = float(source.data["date_ms"][0]) if len(source.data["date_ms"]) else 0.0
+    span_score_end = Span(location=initial_date_ms, dimension="height", line_color="black", line_width=2)
+    span_price_end = Span(location=initial_date_ms, dimension="height", line_color="black", line_width=2)
+    span_score_start = Span(location=initial_date_ms, dimension="height", line_color="#555555", line_width=2, line_dash="dashed")
+    span_price_start = Span(location=initial_date_ms, dimension="height", line_color="#555555", line_width=2, line_dash="dashed")
+    score_fig.add_layout(span_score_start)
+    price_fig.add_layout(span_price_start)
+    score_fig.add_layout(span_score_end)
+    price_fig.add_layout(span_price_end)
+    selection_state = ColumnDataSource(data={"active": [0]})
+
+    slider_callback = CustomJS(
+        args=dict(
+            slider=slider,
+            source=source,
+            span_score_end=span_score_end,
+            span_price_end=span_price_end,
+            span_score_start=span_score_start,
+            span_price_start=span_price_start,
+            selection_state=selection_state,
+        ),
+        code="""
+        const idx = slider.value;
+        const dateMs = source.data['date_ms'][idx];
+        if (dateMs === undefined) { return; }
+        span_score_end.location = dateMs;
+        span_price_end.location = dateMs;
+        span_score_end.change.emit();
+        span_price_end.change.emit();
+        const isWindowActive = selection_state.data['active'] && selection_state.data['active'][0] === 1;
+        if (!isWindowActive) {
+            span_score_start.location = dateMs;
+            span_price_start.location = dateMs;
+            span_score_start.change.emit();
+            span_price_start.change.emit();
+        }
+        """,
+    )
+    slider.js_on_change("value", slider_callback)
+
+    const_update = """
+        const x = cb_obj.x;
+        if (x === undefined || x === null) { return; }
+        const dates = source.data['date'];
+        let best = 0;
+        let minDiff = Infinity;
+        for (let i = 0; i < dates.length; i++) {
+            const diff = Math.abs(dates[i] - x);
+            if (diff < minDiff) {
+                minDiff = diff;
+                best = i;
+            }
+        }
+        slider.value = best;
+    """;
+    tap_callback = CustomJS(args=dict(slider=slider, source=source), code=const_update)
+    score_fig.js_on_event("tap", tap_callback)
+    price_fig.js_on_event("tap", tap_callback)
+
+    selection_summary = Div(text="Drag across the score chart to measure SPY vs Gold performance across that window.")
+    selection_callback = CustomJS(
+        args=dict(
+            source=source,
+            summary=selection_summary,
+            box_score=selection_box_score,
+            box_price=selection_box_price,
+            slider=slider,
+            default_text="Drag across the score chart to measure SPY vs Gold performance across that window.",
+            component_source=comp_source if component_names else None,
+            component_columns=component_columns,
+            component_fig=component_fig if component_names else None,
+            component_label_offset=COMPONENT_LABEL_OFFSET,
+            latest_component_index=len(source.data["date"]) - 1,
+            latest_component_label=latest_component_label,
+            span_score_start=span_score_start,
+            span_score_end=span_score_end,
+            span_price_start=span_price_start,
+            span_price_end=span_price_end,
+            selection_state=selection_state,
+        ),
+        code="""
+        if (!cb_obj.final) { return; }
+        const geometry = cb_obj.geometry || {};
+        const x0raw = geometry.x0;
+        const x1raw = geometry.x1;
+        const dates = source.data['date'];
+        const setComponents = (idx, labelText) => {
+            if (!component_source || !component_columns || component_columns.length === 0) {
+                return;
+            }
+            const scores = [];
+            const scoreText = [];
+            const labelY = [];
+            for (let i = 0; i < component_columns.length; i++) {
+                const column = component_columns[i];
+                const series = source.data[column] || [];
+                const value = series[idx];
+                scores.push(value);
+                if (Number.isFinite(value)) {
+                    scoreText.push(value.toFixed(2));
+                    if (Math.abs(value) < component_label_offset) {
+                        labelY.push(value >= 0 ? value + component_label_offset : value - component_label_offset);
+                    } else {
+                        labelY.push(value / 2);
+                    }
+                } else {
+                    scoreText.push('—');
+                    labelY.push(0);
+                }
+            }
+            component_source.data.score = scores;
+            component_source.data.score_text = scoreText;
+            component_source.data.label_y = labelY;
+            component_source.change.emit();
+            if (component_fig && component_fig.title) {
+                component_fig.title.text = `Component z-scores on ${labelText}`;
+            }
+        };
+        const resetState = () => {
+            summary.text = default_text;
+            box_score.left = null;
+            box_score.right = null;
+            box_price.left = null;
+            box_price.right = null;
+            box_score.change.emit();
+            box_price.change.emit();
+            if (dates && dates.length) {
+                const idx = dates.length - 1;
+                slider.value = idx;
+                const dateMs = source.data['date_ms'];
+                if (dateMs && dateMs.length) {
+                    const ms = dateMs[idx];
+                    span_score_start.location = ms;
+                    span_price_start.location = ms;
+                    span_score_end.location = ms;
+                    span_price_end.location = ms;
+                    span_score_start.change.emit();
+                    span_price_start.change.emit();
+                    span_score_end.change.emit();
+                    span_price_end.change.emit();
+                }
+            }
+            setComponents(latest_component_index, latest_component_label);
+            if (selection_state && selection_state.data && selection_state.data['active']) {
+                selection_state.data['active'][0] = 0;
+                selection_state.change.emit();
+            }
+        };
+        if (!Number.isFinite(x0raw) || !Number.isFinite(x1raw) || !dates || !dates.length) {
+            resetState();
+            return;
+        }
+        let x0 = x0raw;
+        let x1 = x1raw;
+        if (x0 > x1) {
+            const tmp = x0;
+            x0 = x1;
+            x1 = tmp;
+        }
+        if (Math.abs(x1 - x0) < 1) {
+            // treat as click — only sync slider and revert multi-chart context
+            let best = 0;
+            let minDiff = Infinity;
+            for (let i = 0; i < dates.length; i++) {
+                const diff = Math.abs(dates[i] - x0);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    best = i;
+                }
+            }
+            slider.value = best;
+            resetState();
+            return;
+        }
+        const nearestIndex = (target) => {
+            let best = 0;
+            let minDiff = Infinity;
+            for (let i = 0; i < dates.length; i++) {
+                const diff = Math.abs(dates[i] - target);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    best = i;
+                }
+            }
+            return best;
+        };
+        const startIdx = nearestIndex(x0);
+        const endIdx = nearestIndex(x1);
+        const spy = source.data['spy_price'] || [];
+        const gold = source.data['gold_price_oz'] || [];
+        const pctChange = (start, end) => (Number.isFinite(start) && Number.isFinite(end) && start !== 0)
+            ? (end - start) / start
+            : NaN;
+        const fmt = (value) => Number.isFinite(value)
+            ? `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`
+            : '—';
+        const startDate = new Date(dates[startIdx]).toISOString().slice(0, 10);
+        const endDate = new Date(dates[endIdx]).toISOString().slice(0, 10);
+        const daySpan = Math.max(0, Math.round((dates[endIdx] - dates[startIdx]) / (24 * 60 * 60 * 1000)));
+        const spyDelta = fmt(pctChange(spy[startIdx], spy[endIdx]));
+        const goldDelta = fmt(pctChange(gold[startIdx], gold[endIdx]));
+        summary.text = `<b>${startDate} → ${endDate}</b> (${daySpan} days)<br>SPY: ${spyDelta} | Gold: ${goldDelta}`;
+        const startDateValue = dates[startIdx];
+        const endDateValue = dates[endIdx];
+        box_score.left = startDateValue;
+        box_score.right = endDateValue;
+        box_price.left = startDateValue;
+        box_price.right = endDateValue;
+        box_score.change.emit();
+        box_price.change.emit();
+        slider.value = endIdx;
+        const dateMs = source.data['date_ms'] || [];
+        const startMs = dateMs[startIdx];
+        const endMs = dateMs[endIdx];
+        if (Number.isFinite(startMs) && Number.isFinite(endMs)) {
+            span_score_start.location = startMs;
+            span_price_start.location = startMs;
+            span_score_end.location = endMs;
+            span_price_end.location = endMs;
+            span_score_start.change.emit();
+            span_price_start.change.emit();
+            span_score_end.change.emit();
+            span_price_end.change.emit();
+        }
+        if (selection_state && selection_state.data && selection_state.data['active']) {
+            selection_state.data['active'][0] = 1;
+            selection_state.change.emit();
+        }
+        setComponents(startIdx, startDate);
+        """,
+    )
+    score_fig.js_on_event(SelectionGeometry, selection_callback)
+    summary = Div(
+        text=(
+            "<b>How to read</b><br>"
+            "• Score above {:.2f} → institutions in FOMO (reduce risk)<br>"
+            "• Score below {:.2f} → FOBI capitulation (deploy risk)<br>"
+            "Components blend breadth, mega-cap concentration, cash positioning proxies, Berkshire cash posture, and volatility complacency."
+        ).format(hi, lo)
+    )
+
+    slider.value = len(source.data["date"]) - 1
+
+    layout = column(score_fig, price_fig, selection_summary, component_fig, summary, sizing_mode="stretch_width")
+    return TabPanel(title="FOMO vs FOBI", child=layout)
+
+
 def build_dashboard(
     timeline_path: Path = TIMELINE_PATH,
     weights_path: Path = WEIGHTS_PATH,
@@ -1247,6 +1695,7 @@ def build_dashboard(
     
     # Build advanced analysis panel (Tab 2: vs ML + HRP)
     all_tabs = [main_panel]
+    fomo_panel = None
     try:
         from .advanced_analysis import create_advanced_analysis_tab
         advanced_panel = create_advanced_analysis_tab()
@@ -1270,6 +1719,14 @@ def build_dashboard(
 
         traceback.print_exc()
         print(f"Warning: Could not build strategy comparison panel: {e}")
+
+    if fomo_panel is None:
+        try:
+            fomo_panel = build_fomo_fobi_panel(timeline)
+        except Exception as e:
+            print(f"Warning: Could not build FOMO/FOBI panel: {e}")
+    if fomo_panel is not None:
+        all_tabs.append(fomo_panel)
 
     tabs = Tabs(tabs=all_tabs)
 

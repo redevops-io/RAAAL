@@ -383,6 +383,47 @@ def multi_factor_blend_strategy(
     return _blend_weights([equity, macro])
 
 
+def fomo_fobi_overlay_strategy(
+    prices: pd.DataFrame,
+    returns: pd.DataFrame,
+    regime: Optional[str],
+    context: Dict[str, object],
+) -> Dict[str, float]:
+    indicator = (context or {}).get("fomo_fobi", {})
+    state = indicator.get("state", "neutral").upper()
+    score = indicator.get("score", 0.0)
+    intensity = float(min(max(abs(score) / 2.0, 0.0), 1.5))
+
+    if state == "FOMO":
+        cash_weight = min(0.8, 0.4 + 0.25 * intensity)
+        duration_weight = min(0.3, 0.15 + 0.1 * intensity)
+        gold_weight = max(0.05, 1.0 - cash_weight - duration_weight)
+        weights = {
+            CASH_TICKER: cash_weight,
+            "TLT": duration_weight,
+            "GLD": gold_weight,
+        }
+    elif state == "FOBI":
+        equity_weight = min(1.1, 0.55 + 0.35 * intensity)
+        credit_weight = max(0.05, 0.15 + 0.1 * intensity)
+        cyclicals = max(0.05, 0.15)
+        defensive = max(0.05, 1.0 - equity_weight - credit_weight - cyclicals)
+        weights = {
+            "SPY": equity_weight,
+            "HYG": credit_weight,
+            "DBC": cyclicals,
+            "LQD": defensive,
+        }
+    else:
+        weights = {
+            "SPY": 0.55,
+            "LQD": 0.2,
+            "TLT": 0.15,
+            "GLD": 0.1,
+        }
+    return _normalize_weights(weights)
+
+
 DEFAULT_STRATEGIES: List[StrategySpec] = [
     StrategySpec("time_series_momentum", "momentum", False, momentum_time_series_strategy),
     StrategySpec("cross_sectional_momentum", "momentum", False, momentum_cross_sectional_strategy),
@@ -400,6 +441,7 @@ DEFAULT_STRATEGIES: List[StrategySpec] = [
     StrategySpec("equity_factors", "factor_based", False, equity_factor_strategy),
     StrategySpec("macro_factors", "factor_based", False, macro_factor_strategy),
     StrategySpec("multi_factor_blend", "factor_based", False, multi_factor_blend_strategy),
+    StrategySpec("fomo_fobi_overlay", "sentiment", False, fomo_fobi_overlay_strategy),
 ]
 
 
@@ -426,6 +468,7 @@ class StrategySuite:
         strategy_names: Optional[Sequence[str]] = None,
         timeline: Optional[pd.DataFrame] = None,
         ensemble_models: Optional[Dict[str, object]] = None,
+        extra_context: Optional[Dict[str, object]] = None,
     ) -> Dict[str, StrategyResult]:
         selected_specs = self._select_specs(strategy_names)
         regime_name, regime_meta, regime_prob = self._resolve_regime(
@@ -445,6 +488,8 @@ class StrategySuite:
             "regime_metadata": regime_meta,
             "regime_probabilities": regime_prob or {},
         }
+        if extra_context:
+            context.update(extra_context)
         results: Dict[str, StrategyResult] = {}
         for spec in selected_specs:
             effective_regime = regime_name or (self.default_regime if spec.requires_regime else None)
