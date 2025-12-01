@@ -85,7 +85,7 @@ def optimize_weights(
 
 
 def _risk_parity_fallback(cov: pd.DataFrame) -> Dict[str, float]:
-    diag = np.diag(cov.values)
+    diag = np.diag(cov.values).copy()
     diag[diag <= 0] = 1e-6
     inv_vol = 1.0 / np.sqrt(diag)
     weights = inv_vol / inv_vol.sum()
