@@ -24,6 +24,7 @@ UNIVERSE: List[Asset] = [
     Asset("LQD", "Investment Grade Credit", 0.0, 0.35, asset_class="credit"),
     Asset("DBC", "Broad Commodities", 0.0, 0.2, asset_class="commodities"),
     Asset("GLD", "Gold", 0.0, 0.15, asset_class="commodities"),
+    Asset("BTC-USD", "Bitcoin", 0.0, 0.1, asset_class="crypto"),
     Asset("HYG", "High Yield Credit", 0.0, 0.2, asset_class="credit"),
     Asset("BIL", "Cash Proxy", 0.05, 0.8, asset_class="cash"),
 ]
