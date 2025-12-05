@@ -75,17 +75,23 @@ def download_prices(
 
     frames: List[pd.DataFrame] = []
     for ticker in tickers:
-        cache = None if force_refresh else _load_cache(ticker)
-        needs_download = True
-        if cache is not None and not cache.empty:
-            last_ts = cache.index.max()
-            if last_ts >= end - timedelta(days=2):
-                needs_download = False
-        if needs_download:
+        if force_refresh:
+            # Force fresh download, ignore cache completely
             hist = _download_ticker(ticker, start, end)
             _save_cache(ticker, hist)
-            cache = hist
-        frames.append(cache[[PRICE_COLUMN]].rename(columns={PRICE_COLUMN: ticker}))
+            frames.append(hist[[PRICE_COLUMN]].rename(columns={PRICE_COLUMN: ticker}))
+        else:
+            cache = _load_cache(ticker)
+            needs_download = True
+            if cache is not None and not cache.empty:
+                last_ts = cache.index.max()
+                if last_ts >= end - timedelta(days=2):
+                    needs_download = False
+            if needs_download:
+                hist = _download_ticker(ticker, start, end)
+                _save_cache(ticker, hist)
+                cache = hist
+            frames.append(cache[[PRICE_COLUMN]].rename(columns={PRICE_COLUMN: ticker}))
 
     prices = pd.concat(frames, axis=1).sort_index().dropna(how="all")
     prices = prices.ffill().dropna()
