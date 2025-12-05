@@ -25,10 +25,12 @@ def rebuild_dashboard(
     step_days: int,
     force_refresh: bool,
 ) -> Path:
-    logging.info("Running historical analysis up to %s", datetime.utcnow().isoformat())
+    # Use today's date at midnight to avoid timezone issues with market data
+    end_dt = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    logging.info("Running historical analysis up to %s", end_dt.date().isoformat())
     result = run_historical_analysis(
         start=start_dt,
-        end=datetime.utcnow(),
+        end=end_dt,
         warmup_days=warmup_days,
         step=step_days,
         force_refresh=force_refresh,
