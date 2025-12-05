@@ -64,3 +64,4 @@ jobs:
           name: dashboard-${{ github.sha }}
           path: reports/regime_dashboard.html
           retention-days: 30
+
