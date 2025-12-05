@@ -8,10 +8,9 @@ on:
   # Allow manual trigger
   workflow_dispatch:
   
-  # Run on push to master
+  # Run on push to main
   push:
     branches:
-      - master
       - main
 
 jobs:
