@@ -46,8 +46,25 @@ jobs:
       
       - name: Build dashboard
         run: |
+          echo "Building dashboard from historical data..."
           python -m src.visualization.bokeh_app
+          echo "Dashboard build completed"
+          ls -lh reports/regime_dashboard.html
           cp reports/regime_dashboard.html reports/index.html
+          echo "Dashboard files ready for deployment:"
+          ls -lh reports/*.html
+      
+      - name: Verify data freshness
+        run: |
+          python -c "
+          import pandas as pd
+          from pathlib import Path
+          prices = pd.read_parquet('data/history/prices.parquet')
+          timeline = pd.read_parquet('data/history/timeline.parquet')
+          print(f'Price data range: {prices.index.min().date()} to {prices.index.max().date()}')
+          print(f'Timeline range: {timeline.index.min().date()} to {timeline.index.max().date()}')
+          print(f'Dashboard size: {Path(\"reports/regime_dashboard.html\").stat().st_size / 1024 / 1024:.2f} MB')
+          "
       
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
