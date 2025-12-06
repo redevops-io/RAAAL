@@ -48,7 +48,11 @@ def _evaluation_dates(returns: pd.DataFrame, warmup: int, step: int) -> List[pd.
     if returns.shape[0] <= warmup:
         return []
     eligible = returns.index[warmup:]
-    return list(eligible[::step])
+    dates = list(eligible[::step])
+    # Always include the most recent date for up-to-date dashboard
+    if dates and eligible[-1] not in dates:
+        dates.append(eligible[-1])
+    return dates
 
 
 def run_historical_analysis(
