@@ -32,6 +32,7 @@ from bokeh.models import (
 )
 from bokeh.palettes import Category10
 from bokeh.plotting import figure
+from bokeh.transform import dodge
 
 from ..config import FOMO_COMPONENT_WEIGHTS, FOMO_SCORE_THRESHOLDS, UNIVERSE
 from ..features import compute_returns
@@ -148,6 +149,169 @@ def _build_regime_segments(timeline: pd.DataFrame, weights_wide: pd.DataFrame) -
         return pd.DataFrame(columns=["left", "right"])
     return pd.DataFrame(rows)
 
+
+def _beta_from_returns(
+    asset_returns: pd.Series,
+    market_returns: pd.Series,
+) -> float:
+    if len(asset_returns) < 2 or len(market_returns) < 2:
+        return float("nan")
+    cov = np.cov(asset_returns, market_returns)
+    var = np.var(market_returns)
+    if var == 0:
+        return 0.0
+    return float(cov[0, 1] / var)
+
+
+def _salience_expectation(
+    asset_returns: np.ndarray,
+    market_returns: np.ndarray,
+    theta: float = 0.1,
+    delta: float = 0.7,
+) -> tuple[float, float]:
+    if asset_returns.size == 0 or market_returns.size == 0:
+        return float("nan"), float("nan")
+    denom = np.abs(asset_returns) + np.abs(market_returns) + theta
+    sigma = np.abs(asset_returns - market_returns) / denom
+    order = np.argsort(-sigma)
+    ranks = np.empty_like(order)
+    ranks[order] = np.arange(1, len(order) + 1)
+    weights = np.power(delta, ranks.astype(float))
+    if weights.sum() == 0:
+        return float("nan"), float("nan")
+    salience_probs = weights / weights.sum()
+    salience_mean = np.sum(salience_probs * asset_returns)
+    st_value = salience_mean - np.mean(asset_returns)
+    return float(salience_mean), float(st_value)
+
+
+def _salience_score(
+    asset_returns: np.ndarray,
+    market_returns: np.ndarray,
+    theta: float = 0.1,
+    delta: float = 0.7,
+) -> float:
+    _, st_value = _salience_expectation(
+        asset_returns,
+        market_returns,
+        theta=theta,
+        delta=delta,
+    )
+    return st_value
+
+
+def _build_salience_samples(
+    prices: pd.DataFrame,
+    tickers: list[str],
+    rebalance_dates: list[pd.Timestamp] | None = None,
+    lookback_days: int = 21,
+    beta_window: int = 63,
+    forward_window: int = 21,
+    theta: float = 0.1,
+    delta: float = 0.7,
+) -> pd.DataFrame:
+    if prices is None or prices.empty:
+        return pd.DataFrame()
+    price_subset = prices[tickers].dropna(how="all")
+    returns = price_subset.pct_change().dropna()
+    if returns.empty:
+        return pd.DataFrame()
+
+    if rebalance_dates:
+        anchor_dates = [pd.to_datetime(date) for date in rebalance_dates]
+    else:
+        month_groups = returns.groupby(pd.Grouper(freq="M"))
+        anchor_dates = [
+            group.index[-1] for _, group in month_groups if not group.empty
+        ]
+    market_returns = returns[tickers].mean(axis=1)
+
+    rows = []
+    for raw_date in anchor_dates:
+        if returns.index.empty:
+            continue
+        available = returns.index[returns.index <= raw_date]
+        if available.empty:
+            continue
+        date = available[-1]
+        lookback_slice = returns.loc[:date].tail(lookback_days)
+        beta_slice = returns.loc[:date].tail(beta_window)
+        forward_slice = returns.loc[date:].iloc[1: forward_window + 1]
+        if (
+            len(lookback_slice) < lookback_days
+            or len(beta_slice) < beta_window
+            or len(forward_slice) < forward_window
+        ):
+            continue
+        market_lookback = market_returns.loc[lookback_slice.index].to_numpy()
+        market_beta = market_returns.loc[beta_slice.index]
+
+        for ticker in tickers:
+            asset_lookback = lookback_slice[ticker].to_numpy()
+            predicted_return, st_value = _salience_expectation(
+                asset_lookback,
+                market_lookback,
+                theta=theta,
+                delta=delta,
+            )
+            beta_value = _beta_from_returns(beta_slice[ticker], market_beta)
+            forward_return = (1 + forward_slice[ticker]).prod() - 1
+            rows.append(
+                {
+                    "date": date,
+                    "ticker": ticker,
+                    "st": float(st_value),
+                    "beta": float(beta_value),
+                    "predicted_return": float(predicted_return),
+                    "forward_return": float(forward_return),
+                }
+            )
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).dropna()
+
+
+def _salience_quintile_summary(
+    samples: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if samples.empty:
+        return pd.DataFrame(), pd.DataFrame()
+    samples = samples.copy()
+    samples["salience_group"] = np.where(
+        samples["st"] >= 0,
+        "Salient Upside",
+        "Salient Downside",
+    )
+
+    rows = []
+    for (date, group), sub in samples.groupby(["date", "salience_group"]):
+        if len(sub) < 5 or sub["beta"].nunique() < 5:
+            continue
+        sub = sub.copy()
+        try:
+            sub["quintile"] = (
+                pd.qcut(sub["beta"], 5, labels=False, duplicates="drop") + 1
+            )
+        except ValueError:
+            continue
+        if sub["quintile"].nunique() < 2:
+            continue
+        grouped = sub.groupby(
+            "quintile", as_index=False
+        )["forward_return"].mean()
+        grouped["date"] = date
+        grouped["salience_group"] = group
+        rows.append(grouped)
+
+    if not rows:
+        return pd.DataFrame(), pd.DataFrame()
+    monthly = pd.concat(rows, ignore_index=True)
+    summary = monthly.groupby(
+        ["salience_group", "quintile"], as_index=False
+    )["forward_return"].mean()
+    summary = summary.sort_values(["salience_group", "quintile"])
+    return monthly, summary
 
 
 def build_main_dashboard_panel(
@@ -1292,6 +1456,465 @@ def build_strategy_comparison_panel(
     return TabPanel(title="Strategy Lab", child=layout)
 
 
+def build_salience_panel(
+    prices: pd.DataFrame | None,
+    timeline: pd.DataFrame | None = None,
+) -> TabPanel:
+    """Visualize salience theory metrics using project price data."""
+    if prices is None or prices.empty:
+        return TabPanel(
+            title="Salience",
+            child=Div(text="Price history unavailable."),
+        )
+
+    lookback_days = 21
+    beta_window = 63
+    forward_window = 21
+
+    rebalance_dates = None
+    if timeline is not None and not timeline.empty:
+        if "date" in timeline.columns:
+            rebalance_dates = timeline["date"].dropna().tolist()
+        else:
+            rebalance_dates = timeline.index.tolist()
+
+    tickers = [
+        asset.ticker
+        for asset in UNIVERSE
+        if asset.ticker in prices.columns
+    ]
+    if len(tickers) < 3:
+        return TabPanel(
+            title="Salience",
+            child=Div(text="Not enough assets to compute salience metrics."),
+        )
+
+    samples = _build_salience_samples(
+        prices,
+        tickers,
+        rebalance_dates=rebalance_dates,
+        lookback_days=lookback_days,
+        beta_window=beta_window,
+        forward_window=forward_window,
+    )
+    if samples.empty:
+        return TabPanel(
+            title="Salience",
+            child=Div(text="Salience samples could not be computed."),
+        )
+
+    samples["salience_group"] = np.where(
+        samples["st"] >= 0,
+        "Salient Upside",
+        "Salient Downside",
+    )
+
+    monthly, summary = _salience_quintile_summary(samples)
+    if summary.empty:
+        return TabPanel(
+            title="Salience",
+            child=Div(text="Salience beta/return summary unavailable."),
+        )
+
+    quintiles = pd.DataFrame({"quintile": [1, 2, 3, 4, 5]})
+
+    def _group_series(group: str) -> ColumnDataSource:
+        subset = summary[summary["salience_group"] == group][
+            ["quintile", "forward_return"]
+        ]
+        merged = quintiles.merge(subset, on="quintile", how="left")
+        return ColumnDataSource(
+            {
+                "quintile": merged["quintile"].tolist(),
+                "forward_return": merged["forward_return"].tolist(),
+            }
+        )
+
+    upside_source = _group_series("Salient Upside")
+    downside_source = _group_series("Salient Downside")
+
+    line_fig = figure(
+        title="Forward return by beta quintile",
+        x_axis_label="Beta quintile",
+        y_axis_label=(
+            "Avg post-rebalancing return "
+            f"(next {forward_window} trading days)"
+        ),
+        height=300,
+        sizing_mode="stretch_width",
+        tools="xpan,xwheel_zoom,reset,save",
+    )
+    line_fig.line(
+        "quintile",
+        "forward_return",
+        source=upside_source,
+        color="#1f77b4",
+        line_width=2,
+        legend_label="Salient Upside",
+    )
+    line_fig.circle(
+        "quintile",
+        "forward_return",
+        source=upside_source,
+        color="#1f77b4",
+        size=7,
+    )
+    line_fig.line(
+        "quintile",
+        "forward_return",
+        source=downside_source,
+        color="#d62728",
+        line_width=2,
+        legend_label="Salient Downside",
+    )
+    line_fig.circle(
+        "quintile",
+        "forward_return",
+        source=downside_source,
+        color="#d62728",
+        size=7,
+    )
+    line_fig.legend.location = "top_left"
+    line_fig.add_tools(
+        HoverTool(
+            tooltips=[
+                ("Quintile", "@quintile"),
+                ("Post-rebalancing Return", "@forward_return{0.00%}"),
+            ]
+        )
+    )
+
+    def _regression(subset: pd.DataFrame) -> tuple[float, float] | None:
+        if subset.empty or subset["beta"].nunique() < 2:
+            return None
+        x = subset["beta"].to_numpy()
+        y = subset["forward_return"].to_numpy()
+        slope, intercept = np.polyfit(x, y, 1)
+        return float(slope), float(intercept)
+
+    reg_fig = figure(
+        title="Beta vs forward return (regression)",
+        x_axis_label="Beta",
+        y_axis_label=(
+            "Post-rebalancing return "
+            f"(next {forward_window} trading days)"
+        ),
+        height=320,
+        sizing_mode="stretch_width",
+        tools="xpan,xwheel_zoom,reset,save",
+    )
+
+    upside_samples = samples[samples["salience_group"] == "Salient Upside"]
+    downside_samples = samples[samples["salience_group"] == "Salient Downside"]
+    upside_source = ColumnDataSource(upside_samples)
+    downside_source = ColumnDataSource(downside_samples)
+    reg_fig.circle(
+        "beta",
+        "forward_return",
+        source=upside_source,
+        color="#1f77b4",
+        alpha=0.6,
+        size=6,
+        legend_label="Salient Upside",
+    )
+    reg_fig.circle(
+        "beta",
+        "forward_return",
+        source=downside_source,
+        color="#d62728",
+        alpha=0.6,
+        size=6,
+        legend_label="Salient Downside",
+    )
+
+    slope_lines = []
+    slope_text = []
+    for label, subset, color in (
+        ("Salient Upside", upside_samples, "#1f77b4"),
+        ("Salient Downside", downside_samples, "#d62728"),
+    ):
+        params = _regression(subset)
+        if not params:
+            continue
+        slope, intercept = params
+        x_min = float(subset["beta"].min())
+        x_max = float(subset["beta"].max())
+        x_line = np.linspace(x_min, x_max, 50)
+        y_line = slope * x_line + intercept
+        slope_lines.append(
+            reg_fig.line(
+                x_line,
+                y_line,
+                line_width=2,
+                color=color,
+                line_dash="dashed",
+            )
+        )
+        slope_text.append(f"{label} slope: {slope:+.4f}")
+
+    reg_fig.legend.location = "top_left"
+    reg_fig.add_tools(
+        HoverTool(
+            tooltips=[
+                ("Ticker", "@ticker"),
+                ("Beta", "@beta{0.00}"),
+                ("Post-rebalancing Return", "@forward_return{0.00%}"),
+                ("Salience", "@salience_group"),
+            ]
+        )
+    )
+
+    slope_summary = Div(
+        text=(
+            "<b>Regression slopes</b><br>" + "<br>".join(slope_text)
+            if slope_text
+            else "<b>Regression slopes</b><br>Not enough data"
+        )
+    )
+
+    latest_date = samples["date"].max()
+    latest_samples = samples[samples["date"] == latest_date].copy()
+    latest_samples["color"] = np.where(
+        latest_samples["st"] >= 0,
+        "#2ca02c",
+        "#d62728",
+    )
+    latest_samples = latest_samples.sort_values("st", ascending=False)
+    latest_source = ColumnDataSource(latest_samples)
+    bar_fig = figure(
+        title=(
+            "Latest salience vs post-rebalancing return "
+            f"({latest_date:%Y-%m-%d})"
+        ),
+        x_range=latest_samples["ticker"].tolist(),
+        height=320,
+        sizing_mode="stretch_width",
+        tools="xpan,xwheel_zoom,reset,save",
+    )
+    bar_fig.vbar(
+        x=dodge("ticker", -0.18, range=bar_fig.x_range),
+        top="predicted_return",
+        width=0.35,
+        color="#1f77b4",
+        source=latest_source,
+        legend_label="Predicted (salience-weighted)",
+    )
+    bar_fig.vbar(
+        x=dodge("ticker", 0.18, range=bar_fig.x_range),
+        top="forward_return",
+        width=0.35,
+        color="#ff7f0e",
+        source=latest_source,
+        legend_label="Post-rebalancing (realized)",
+    )
+    bar_fig.xgrid.grid_line_color = None
+    bar_fig.yaxis.axis_label = "Return"
+    bar_fig.legend.location = "top_left"
+    bar_fig.add_tools(
+        HoverTool(
+            tooltips=[
+                ("Ticker", "@ticker"),
+                ("ST", "@st{0.000}"),
+                ("Beta", "@beta{0.00}"),
+                ("Predicted", "@predicted_return{0.00%}"),
+                ("Post-rebalancing", "@forward_return{0.00%}"),
+            ]
+        )
+    )
+
+    table = DataTable(
+        source=latest_source,
+        columns=[
+            TableColumn(field="ticker", title="Ticker"),
+            TableColumn(
+                field="st",
+                title="ST",
+                formatter=NumberFormatter(format="0.000"),
+            ),
+            TableColumn(
+                field="beta",
+                title="Beta",
+                formatter=NumberFormatter(format="0.00"),
+            ),
+            TableColumn(
+                field="predicted_return",
+                title="Predicted Return",
+                formatter=NumberFormatter(format="0.00%"),
+            ),
+            TableColumn(
+                field="forward_return",
+                title="Post-rebalancing Return",
+                formatter=NumberFormatter(format="0.00%"),
+            ),
+        ],
+        height=260,
+        width=420,
+        index_position=None,
+    )
+
+    def _salience_portfolio_performance(
+        sample_frame: pd.DataFrame,
+        smooth_window: int = 3,
+    ) -> pd.DataFrame:
+        rows = []
+        for date, sub in sample_frame.groupby("date"):
+            predicted = sub["predicted_return"].copy()
+            if predicted.isna().all():
+                continue
+            positive = predicted.clip(lower=0)
+            if positive.sum() > 0:
+                weights = positive / positive.sum()
+            else:
+                weights = pd.Series(1 / len(sub), index=sub.index)
+            predicted_port = float((weights * predicted).sum())
+            actual_port = float((weights * sub["forward_return"]).sum())
+            rows.append(
+                {
+                    "date": date,
+                    "predicted": predicted_port,
+                    "actual": actual_port,
+                }
+            )
+        if not rows:
+            return pd.DataFrame()
+        perf = pd.DataFrame(rows).sort_values("date")
+        perf["predicted_nav"] = (1 + perf["predicted"]).cumprod()
+        perf["actual_nav"] = (1 + perf["actual"]).cumprod()
+        perf["predicted_smooth"] = (
+            perf["predicted"].rolling(smooth_window).mean()
+        )
+        perf["actual_smooth"] = perf["actual"].rolling(smooth_window).mean()
+        return perf
+
+    perf = _salience_portfolio_performance(samples)
+    if perf.empty:
+        perf_fig = Div(text="Salience allocation performance unavailable.")
+        perf_period_fig = Div(text="Salience period returns unavailable.")
+    else:
+        perf_source = ColumnDataSource(perf)
+        perf_fig = figure(
+            title="Salience-weighted allocation performance",
+            x_axis_type="datetime",
+            height=300,
+            sizing_mode="stretch_width",
+            tools="xpan,xwheel_zoom,reset,save",
+        )
+        perf_fig.line(
+            "date",
+            "predicted_nav",
+            source=perf_source,
+            color="#1f77b4",
+            line_width=2,
+            legend_label="Predicted (salience-weighted)",
+        )
+        perf_fig.line(
+            "date",
+            "actual_nav",
+            source=perf_source,
+            color="#ff7f0e",
+            line_width=2,
+            legend_label="Post-rebalancing (realized)",
+        )
+        perf_fig.yaxis.axis_label = "Cumulative growth"
+        perf_fig.legend.location = "top_left"
+        perf_fig.add_tools(
+            HoverTool(
+                tooltips=[
+                    ("Date", "@date{%F}"),
+                    ("Predicted", "@predicted_nav{0.000}"),
+                    ("Actual", "@actual_nav{0.000}"),
+                ],
+                formatters={"@date": "datetime"},
+            )
+        )
+
+        perf_period_fig = figure(
+            title="Salience-weighted period returns",
+            x_axis_type="datetime",
+            height=260,
+            sizing_mode="stretch_width",
+            tools="xpan,xwheel_zoom,reset,save",
+        )
+        perf_period_fig.vbar(
+            x="date",
+            top="predicted",
+            width=1000 * 60 * 60 * 24 * 3,
+            color="#1f77b4",
+            alpha=0.6,
+            source=perf_source,
+            legend_label="Predicted",
+        )
+        perf_period_fig.vbar(
+            x="date",
+            top="actual",
+            width=1000 * 60 * 60 * 24 * 3,
+            color="#ff7f0e",
+            alpha=0.6,
+            source=perf_source,
+            legend_label="Post-rebalancing",
+        )
+        perf_period_fig.line(
+            "date",
+            "predicted_smooth",
+            source=perf_source,
+            color="#1f77b4",
+            line_width=2,
+            line_dash="dashed",
+            legend_label="Predicted (3-period avg)",
+        )
+        perf_period_fig.line(
+            "date",
+            "actual_smooth",
+            source=perf_source,
+            color="#ff7f0e",
+            line_width=2,
+            line_dash="dashed",
+            legend_label="Post-rebalancing (3-period avg)",
+        )
+        perf_period_fig.yaxis.axis_label = "Return"
+        perf_period_fig.legend.location = "top_left"
+        perf_period_fig.add_tools(
+            HoverTool(
+                tooltips=[
+                    ("Date", "@date{%F}"),
+                    ("Predicted", "@predicted{0.00%}"),
+                    ("Post-rebalancing", "@actual{0.00%}"),
+                ],
+                formatters={"@date": "datetime"},
+            )
+        )
+
+    description = Div(
+        text=(
+            "<b>Salience methodology (BGS 2012)</b><br>"
+            "(Cosemans & Frehen 2021 implementation)<br>"
+            f"Daily returns over the last {lookback_days} trading days "
+            "approximate the state space.<br>"
+            "For each asset, we compute the salience function versus the "
+            "equal-weighted market, rank states by salience, and apply "
+            "salience "
+            "weights ($\\theta=0.1$, $\\delta=0.7$).<br>"
+            "The salience distortion ST is the difference between salience-"
+            "weighted and equal-weighted expected returns.<br>"
+            "Positive ST denotes salient upside; negative ST denotes salient "
+            "downside. Samples align to rebalance dates.<br>"
+            "Predicted returns are salience-weighted expectations; realized "
+            "post-rebalancing returns are observed outcomes."
+        )
+    )
+
+    layout = column(
+        description,
+        line_fig,
+        row(reg_fig, slope_summary, sizing_mode="stretch_width"),
+        perf_fig,
+        perf_period_fig,
+        row(bar_fig, table, sizing_mode="stretch_width"),
+        sizing_mode="stretch_width",
+    )
+    return TabPanel(title="Salience", child=layout)
+
+
 def build_fomo_fobi_panel(timeline: pd.DataFrame) -> TabPanel:
     """Visualize the FOMO vs FOBI composite indicator in its own tab."""
 
@@ -1765,6 +2388,12 @@ def build_dashboard(
         all_tabs.append(advanced_panel)
     except Exception as e:
         print(f"Warning: Could not build advanced analysis panel: {e}")
+
+    try:
+        salience_panel = build_salience_panel(prices, timeline)
+        all_tabs.append(salience_panel)
+    except Exception as e:
+        print(f"Warning: Could not build salience panel: {e}")
     
     # Build BRK.B comparison panel (Tab 3: vs BRK.B)
     try:

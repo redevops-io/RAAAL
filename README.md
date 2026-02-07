@@ -15,7 +15,12 @@ This prototype follows the MVP brief from `Regime-adjusted asset allocation mode
   - Chapter 5: Ensemble Learning (Random Forest & Gradient Boosting)
   
 - **López de Prado, M. (2016).** "Building Diversified Portfolios That Outperform Out of Sample." 
-  *Journal of Portfolio Management*, 42(4), 59-69.
+   *Journal of Portfolio Management*, 42(4), 59-69.
+   Available at: https://doi.org/10.3905/jpm.2016.42.4.59
+
+- **Guo, J., & Li, Y. (2026).** *Salience Theory and Risk Anomalies* (SSRN preprint).
+   Methodology source for salience-weighted return expectations and the salience-based risk-return analysis.
+   Available at: https://ssrn.com/abstract=4603171
 
 ## Features
 
@@ -33,6 +38,7 @@ This prototype follows the MVP brief from `Regime-adjusted asset allocation mode
 - **Multi-tab Dashboard**: Interactive Bokeh visualization with:
    - **Main Dashboard**: Original regime timeline, allocation weights, VIX tracking
    - **Advanced Analysis**: HRP vs RAAAL comparison, ensemble regime predictions, network visualizations, feature importance charts
+   - **Salience**: Salience-weighted expected vs realized returns, beta-return slopes, and salience allocation performance
    - **Strategy Lab**: Multi-strategy growth comparison (momentum, relative-value, risk-based, factor sleeves) with rule-based, ML, or neutral regime inputs, plus a multi-select growth plot and buy/sell pressure bar chart for the chosen strategies.
 
 ### Strategy experimentation (NEW)
@@ -94,6 +100,7 @@ This prototype follows the MVP brief from `Regime-adjusted asset allocation mode
 3. Inspect outputs in `reports/` and the console summary.
 
 ### Historical analysis + Bokeh dashboard
+For localhost visualization, use the Dockerfile service (recommended below).
 1. Generate the historical regime/portfolio dataset (weekly steps, adjustable):
    ```bash
    python -m src.history --start 2018-01-01 --end 2025-11-15 --step 5
@@ -133,6 +140,7 @@ The container runs `scripts/service.py`, which:
 4. Serves `/app/site` over HTTP so the Bokeh HTML is the only page.
 
 ### Local preview via Docker
+Use this for localhost visualization via the Dockerfile service.
 
 To test locally with the new Strategy Lab tab enabled:
 

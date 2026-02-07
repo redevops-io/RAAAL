@@ -32,6 +32,11 @@ to the following researchers and their work:
 3. **Marcos López de Prado** - Hierarchical Risk Parity methodology:
    > López de Prado, M. (2016). "Building Diversified Portfolios That Outperform Out of Sample." 
    > *Journal of Portfolio Management*, 42(4), 59-69.
+   > Available at: https://doi.org/10.3905/jpm.2016.42.4.59
+
+4. **Jiaqi Guo & Youwei Li** - Salience theory metrics and risk-return analysis:
+   > Guo, J., & Li, Y. (2026). *Salience Theory and Risk Anomalies* (SSRN preprint).
+   > Available at: https://ssrn.com/abstract=4603171
 
 These attributions should appear prominently in documentation, publications, or
 derivative works that build upon this codebase.
