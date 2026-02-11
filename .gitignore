@@ -35,6 +35,7 @@ reports/*.json
 reports/allocation_*.csv
 reports/allocation_*.json
 reports/state.json
+reports/index.html
 
 # IDE
 .vscode/
