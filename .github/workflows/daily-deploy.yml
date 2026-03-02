@@ -14,7 +14,21 @@ on:
       - main
 
 jobs:
+  # Prevent GitHub from disabling the scheduled workflow after 60 days
+  # of inactivity by keeping the workflow file "touched".
+  keepalive:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   backtest-and-deploy:
+    needs: [keepalive]
+    if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
     timeout-minutes: 60
     
@@ -22,9 +36,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Force the workflow to run off the canonical main branch so the
-          # resulting Pages deployment goes to the production environment.
-          ref: main
+            # Force the workflow to run off the canonical main branch so the
+            # resulting Pages deployment goes to the production environment.
+              ref: main
       
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
