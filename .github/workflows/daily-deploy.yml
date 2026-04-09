@@ -29,12 +29,15 @@ jobs:
   backtest-and-deploy:
     needs: [keepalive]
     if: always() && !failure() && !cancelled()
-    runs-on: ubuntu-latest
+    # Use a larger runner for the full ML stack (torch, transformers, lightgbm, SB3).
+    # Requires GitHub Team/Enterprise or a paid larger-runner plan.
+    # Falls back to ubuntu-latest if the label isn't configured yet.
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 90
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
             # Force the workflow to run off the canonical main branch so the
             # resulting Pages deployment goes to the production environment.
@@ -60,7 +63,8 @@ jobs:
             --end $(date +%Y-%m-%d) \
             --refresh \
             --use-forecaster \
-            --use-sentiment
+            --use-sentiment \
+            --sentiment-backend auto
       
       - name: Build dashboard
         run: |

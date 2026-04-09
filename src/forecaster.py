@@ -92,6 +92,7 @@ class LightGBMForecaster:
             num_leaves=num_leaves,
         )
         self.models: Dict[str, Any] = {}  # ticker -> fitted model
+        self._feature_names: Dict[str, List[str]] = {}  # ticker -> column names
         self._prediction_history: Dict[str, List[float]] = {}
 
     def fit(
@@ -127,8 +128,9 @@ class LightGBMForecaster:
                 continue
 
             model = lgb.LGBMRegressor(**self.params, verbose=-1)
-            model.fit(X_clean.values, y_clean.values)
+            model.fit(X_clean.values, y_clean.values, feature_name=list(X_clean.columns))
             self.models[ticker] = model
+            self._feature_names[ticker] = list(X_clean.columns)
             self._prediction_history.setdefault(ticker, [])
 
     def predict(self, features: pd.DataFrame) -> pd.Series:
@@ -140,11 +142,21 @@ class LightGBMForecaster:
             if model is None:
                 preds[ticker] = 0.0
                 continue
-            cols = [c for c in features.columns if c.startswith(f"{ticker}_")]
-            if not cols:
-                cols = list(features.columns)
+            # Use stored feature names to pass a named DataFrame (avoids sklearn warning)
+            stored_cols = self._feature_names.get(ticker)
+            if stored_cols:
+                cols = [c for c in stored_cols if c in features.columns]
+                if len(cols) != len(stored_cols):
+                    # Columns missing — fall back to pattern match
+                    cols = [c for c in features.columns if c.startswith(f"{ticker}_")]
+                    if not cols:
+                        cols = list(features.columns)
+            else:
+                cols = [c for c in features.columns if c.startswith(f"{ticker}_")]
+                if not cols:
+                    cols = list(features.columns)
             row = features[cols].iloc[[-1]].fillna(0.0)
-            pred = float(model.predict(row.values)[0])
+            pred = float(model.predict(row)[0])
             preds[ticker] = pred
             self._prediction_history.setdefault(ticker, []).append(pred)
         return pd.Series(preds, index=tickers)
@@ -499,9 +511,19 @@ class ReturnForecaster:
         else:
             raise ValueError(f"Unknown backend: {backend}")
 
-    def fit(self, prices: pd.DataFrame, returns: pd.DataFrame) -> None:
-        """Build features and train the underlying model."""
-        features = build_universe_features(prices)
+    def fit(
+        self,
+        prices: pd.DataFrame,
+        returns: pd.DataFrame,
+        features: Optional[pd.DataFrame] = None,
+    ) -> None:
+        """Build features and train the underlying model.
+
+        If *features* is supplied it is used directly, avoiding the
+        (expensive) call to ``build_universe_features``.
+        """
+        if features is None:
+            features = build_universe_features(prices)
         tickers = ordered_tickers()
 
         if isinstance(self._engine, LightGBMForecaster):
@@ -519,9 +541,15 @@ class ReturnForecaster:
         prices: pd.DataFrame,
         returns: pd.DataFrame,
         fallback_mu: Optional[pd.Series] = None,
+        features: Optional[pd.DataFrame] = None,
     ) -> ForecastResult:
-        """Generate expected-return estimates and check for drift."""
-        features = build_universe_features(prices)
+        """Generate expected-return estimates and check for drift.
+
+        If *features* is supplied it is used directly, skipping the
+        expensive ``build_universe_features`` call.
+        """
+        if features is None:
+            features = build_universe_features(prices)
         tickers = ordered_tickers()
 
         if isinstance(self._engine, LightGBMForecaster):
@@ -560,14 +588,19 @@ class ReturnForecaster:
         self,
         prices: pd.DataFrame,
         returns: pd.DataFrame,
+        features: Optional[pd.DataFrame] = None,
     ) -> ForecastResult:
-        """Retrain if needed, then predict."""
-        result = self.predict(prices, returns)
+        """Retrain if needed, then predict.
+
+        If *features* is supplied it is reused for both the retrain
+        and prediction steps, avoiding duplicate feature builds.
+        """
+        result = self.predict(prices, returns, features=features)
         needs_retrain = result.metadata.get("needs_retrain", False)
         if needs_retrain:
             logger.info("Rolling retrain triggered (drift=%s, steps=%d)", result.drift_report, self._steps_since_train)
-            self.fit(prices, returns)
-            result = self.predict(prices, returns)
+            self.fit(prices, returns, features=features)
+            result = self.predict(prices, returns, features=features)
         return result
 
     def save(self, path: Optional[Path] = None) -> None:

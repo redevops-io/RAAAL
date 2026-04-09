@@ -65,6 +65,7 @@ def run_historical_analysis(
     use_forecaster: bool = False,
     forecaster_backend: str = "lightgbm",
     use_sentiment: bool = False,
+    sentiment_backend: str = "auto",
 ) -> HistoryRunResult:
     logger = logging.getLogger(__name__)
     tickers = [asset.ticker for asset in UNIVERSE] + AUX_SERIES
@@ -77,7 +78,7 @@ def run_historical_analysis(
         try:
             from .sentiment import SentimentEngine
 
-            engine = SentimentEngine(scorer="auto")
+            engine = SentimentEngine(scorer=sentiment_backend)
             base_tickers = [a.ticker for a in UNIVERSE][:5]
             nlp_components = engine.as_fomo_components(tickers=base_tickers)
             logger.info(
@@ -113,14 +114,23 @@ def run_historical_analysis(
 
     # --- ML Forecaster (train once, rolling-retrain inside loop) ---
     forecaster = None
+    all_features = None
     if use_forecaster:
         try:
             from .forecaster import ReturnForecaster
+            from .features_alpha import build_universe_features
 
             forecaster = ReturnForecaster(backend=forecaster_backend)
-            logger.info("ML forecaster (%s) enabled", forecaster_backend)
+            all_features = build_universe_features(prices)
+            logger.info(
+                "ML forecaster (%s) enabled — features shape %s",
+                forecaster_backend, all_features.shape,
+            )
         except Exception as exc:
-            logger.warning("Forecaster init failed (%s) — using exponential mean", exc)
+            logger.warning(
+                "Forecaster init failed (%s) — using exponential mean",
+                exc,
+            )
 
     for date in eval_dates:
         prices_window = prices.loc[:date]
@@ -133,9 +143,13 @@ def run_historical_analysis(
         rf_rate = rf_from_sgov(prices_window)
 
         # --- Expected returns (μ): ML forecaster or exponential mean ---
-        if forecaster is not None:
+        if forecaster is not None and all_features is not None:
             try:
-                result = forecaster.rolling_retrain(prices_window, returns_window)
+                features_window = all_features.loc[:date]
+                result = forecaster.rolling_retrain(
+                    prices_window, returns_window,
+                    features=features_window,
+                )
                 mu = result.mu
                 fallback = exponential_mean(base_returns)
                 if result.drift_report and result.drift_report.is_drifted:
@@ -406,6 +420,7 @@ def main() -> None:
     parser.add_argument("--use-forecaster", action="store_true", help="Use ML forecaster for expected returns")
     parser.add_argument("--forecaster-backend", default="lightgbm", choices=["lightgbm", "lstm", "transformer"], help="Forecaster backend")
     parser.add_argument("--use-sentiment", action="store_true", help="Enable NLP sentiment engine")
+    parser.add_argument("--sentiment-backend", default="auto", choices=["auto", "vader", "fingpt"], help="Sentiment scorer backend")
     args = parser.parse_args()
 
     result = run_historical_analysis(
@@ -417,6 +432,7 @@ def main() -> None:
         use_forecaster=args.use_forecaster,
         forecaster_backend=args.forecaster_backend,
         use_sentiment=args.use_sentiment,
+        sentiment_backend=args.sentiment_backend,
     )
     paths = save_history(result)
     print("Historical analysis saved:")
