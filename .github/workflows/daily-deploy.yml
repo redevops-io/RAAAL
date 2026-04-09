@@ -29,10 +29,7 @@ jobs:
   backtest-and-deploy:
     needs: [keepalive]
     if: always() && !failure() && !cancelled()
-    # Use a larger runner for the full ML stack (torch, transformers, lightgbm, SB3).
-    # Requires GitHub Team/Enterprise or a paid larger-runner plan.
-    # Falls back to ubuntu-latest if the label isn't configured yet.
-    runs-on: ubuntu-latest-4-cores
+    runs-on: self-hosted
     timeout-minutes: 90
     
     steps:
@@ -43,14 +40,10 @@ jobs:
             # resulting Pages deployment goes to the production environment.
               ref: main
       
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-          cache: 'pip'
-      
-      - name: Install Python dependencies
+      - name: Set up Python virtualenv
         run: |
+          python3 -m venv .venv --clear
+          . .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
@@ -58,6 +51,7 @@ jobs:
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: |
+          . .venv/bin/activate
           python -m src.history \
             --start 2016-01-01 \
             --end $(date +%Y-%m-%d) \
@@ -68,6 +62,7 @@ jobs:
       
       - name: Build dashboard
         run: |
+          . .venv/bin/activate
           echo "Building dashboard from historical data..."
           python -m src.visualization.bokeh_app
           echo "Dashboard build completed"
@@ -78,6 +73,7 @@ jobs:
       
       - name: Verify data freshness
         run: |
+          . .venv/bin/activate
           python -c "
           import pandas as pd
           from pathlib import Path
