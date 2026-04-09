@@ -383,6 +383,134 @@ def multi_factor_blend_strategy(
     return _blend_weights([equity, macro])
 
 
+# ---------------------------------------------------------------------------
+# IBS Hybrid Switch  (regime-conditional mean-reversion)
+# ---------------------------------------------------------------------------
+# Inspired by the Internal Bar Strength (IBS) dip-buying system:
+#   Calm market  (VIX < threshold & SPY > SMA-200) → overweight equities
+#   Volatile mkt (VIX >= threshold | SPY < SMA-200) → IBS dip-buy on pullbacks
+#
+# IBS = (Close − Low) / (High − Low)   ∈ [0, 1]
+# Low IBS ≈ close near day's low → oversold → mean-reversion buy signal.
+#
+# Because RAAAL uses daily *close-only* data from yfinance, we approximate
+# intraday bar structure with a rolling min/max proxy:
+#   IBS_proxy = (close − rolling_low_5d) / (rolling_high_5d − rolling_low_5d)
+#
+# Regime filter mirrors the original: VIX < 22 AND SPY above 200-day SMA.
+# ---------------------------------------------------------------------------
+
+_IBS_VIX_THRESHOLD = 22.0
+_IBS_SMA_WINDOW = 200
+_IBS_RANGE_WINDOW = 5      # rolling H/L window for IBS proxy
+_IBS_BUY_THRESHOLD = 0.2   # IBS below this → dip buy
+_IBS_RSI_WINDOW = 2         # ultra-short RSI confirmation
+
+
+def _compute_ibs_proxy(
+    spy_prices: pd.Series,
+    window: int = _IBS_RANGE_WINDOW,
+) -> pd.Series:
+    """Approximate IBS using rolling high/low over *window* days."""
+    rolling_high = spy_prices.rolling(window, min_periods=1).max()
+    rolling_low = spy_prices.rolling(window, min_periods=1).min()
+    span = rolling_high - rolling_low
+    # Avoid division by zero on flat stretches
+    span = span.replace(0.0, np.nan)
+    ibs = (spy_prices - rolling_low) / span
+    return ibs.fillna(0.5)
+
+
+def _compute_rsi(series: pd.Series, window: int = _IBS_RSI_WINDOW) -> float:
+    """RSI(2) of the most recent bar — used as confirmation."""
+    delta = series.diff()
+    gain = delta.clip(lower=0.0).rolling(window, min_periods=1).mean()
+    loss = (-delta.clip(upper=0.0)).rolling(window, min_periods=1).mean()
+    rs = gain / loss.replace(0.0, np.nan)
+    rsi = 100.0 - 100.0 / (1.0 + rs)
+    last = rsi.iloc[-1] if not rsi.empty else 50.0
+    return float(last) if not np.isnan(last) else 50.0
+
+
+def ibs_hybrid_switch_strategy(
+    prices: pd.DataFrame,
+    returns: pd.DataFrame,
+    regime: Optional[str],
+    context: Dict[str, object],
+) -> Dict[str, float]:
+    """IBS Hybrid Switch: regime-gated mean-reversion dip-buying.
+
+    Calm regime  → overweight equity + growth assets (momentum hold).
+    Volatile     → if IBS is low (dip), buy equities; else park in cash/bonds.
+    """
+    # --- Regime filter: VIX + SMA-200 ---
+    vix_col = "^VIX"
+    spy_col = "SPY"
+    if spy_col not in prices.columns:
+        return _normalize_weights({CASH_TICKER: 1.0})
+
+    spy = prices[spy_col].dropna()
+    if len(spy) < _IBS_SMA_WINDOW:
+        # Not enough data — fall back to balanced
+        return _normalize_weights({
+            spy_col: 0.4, "TLT": 0.3,
+            "GLD": 0.15, CASH_TICKER: 0.15,
+        })
+
+    sma200 = spy.rolling(_IBS_SMA_WINDOW).mean().iloc[-1]
+    spy_last = spy.iloc[-1]
+    spy_above_sma = spy_last > sma200
+
+    vix_last = 20.0  # default if VIX unavailable
+    if vix_col in prices.columns:
+        vix_series = prices[vix_col].dropna()
+        if not vix_series.empty:
+            vix_last = float(vix_series.iloc[-1])
+
+    calm_regime = (vix_last < _IBS_VIX_THRESHOLD) and spy_above_sma
+
+    if calm_regime:
+        # ------ CALM: hold leveraged / momentum-biased equity ------
+        # In the real system this maps to 2× leveraged ETFs.
+        # In RAAAL's universe, overweight SPY + growth-correlated assets.
+        return _normalize_weights({
+            spy_col: 0.60,
+            "HYG": 0.15,   # high-yield as equity proxy
+            "DBC": 0.10,   # commodities momentum
+            "GLD": 0.10,
+            CASH_TICKER: 0.05,
+        })
+
+    # ------ VOLATILE: IBS dip-buying logic ------
+    ibs = _compute_ibs_proxy(spy)
+    ibs_last = float(ibs.iloc[-1])
+    rsi2 = _compute_rsi(spy)
+
+    if ibs_last < _IBS_BUY_THRESHOLD and rsi2 < 30.0:
+        # Strong dip signal → aggressive equity entry
+        return _normalize_weights({
+            spy_col: 0.55,
+            "HYG": 0.10,
+            "TLT": 0.15,
+            CASH_TICKER: 0.20,
+        })
+    elif ibs_last < 0.4:
+        # Mild dip → cautious equity tilt
+        return _normalize_weights({
+            spy_col: 0.30,
+            "TLT": 0.30,
+            "GLD": 0.15,
+            CASH_TICKER: 0.25,
+        })
+    else:
+        # No dip → defensive / wait
+        return _normalize_weights({
+            "TLT": 0.30,
+            "GLD": 0.15,
+            CASH_TICKER: 0.55,
+        })
+
+
 def fomo_fobi_overlay_strategy(
     prices: pd.DataFrame,
     returns: pd.DataFrame,
@@ -433,6 +561,7 @@ DEFAULT_STRATEGIES: List[StrategySpec] = [
     StrategySpec("pairs_trading", "relative_value_mean_reversion", False, pairs_trading_strategy),
     StrategySpec("stat_arb_credit", "relative_value_mean_reversion", False, stat_arbitrage_strategy),
     StrategySpec("reversal", "relative_value_mean_reversion", False, reversal_strategy),
+    StrategySpec("ibs_hybrid_switch", "regime_mean_reversion", False, ibs_hybrid_switch_strategy),
     StrategySpec("risk_parity", "risk_based", False, risk_parity_strategy),
     StrategySpec("minimum_variance", "risk_based", False, minimum_variance_strategy),
     StrategySpec("max_diversification", "risk_based", False, max_diversification_strategy),
@@ -443,6 +572,19 @@ DEFAULT_STRATEGIES: List[StrategySpec] = [
     StrategySpec("multi_factor_blend", "factor_based", False, multi_factor_blend_strategy),
     StrategySpec("fomo_fobi_overlay", "sentiment", False, fomo_fobi_overlay_strategy),
 ]
+
+# DRL strategies are optional — only available when gymnasium + SB3 are installed.
+try:
+    from .drl_strategy import (
+        adaptive_rotation_strategy,
+        drl_portfolio_strategy,
+    )
+    DEFAULT_STRATEGIES += [
+        StrategySpec("drl_portfolio", "reinforcement_learning", False, drl_portfolio_strategy),
+        StrategySpec("adaptive_rotation", "reinforcement_learning", True, adaptive_rotation_strategy),
+    ]
+except ImportError:  # gymnasium / stable-baselines3 not installed
+    pass
 
 
 class StrategySuite:

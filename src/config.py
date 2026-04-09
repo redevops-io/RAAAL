@@ -42,17 +42,24 @@ AUX_SERIES: List[str] = [
 ]
 
 # Composite FOMO/FOBI indicator defaults
+# Weights redistributed to include 4 NLP-derived sentiment components
 FOMO_COMPONENT_WEIGHTS: Dict[str, float] = {
-    "breadth": 0.18,
-    "mega_cap": 0.12,
-    "tech_leadership": 0.1,
-    "small_cap_leadership": 0.08,
-    "dispersion": 0.1,
-    "cash_shortage": 0.12,
-    "liquidity_stress": 0.1,
-    "berkshire_cash": 0.07,
-    "vol_complacency": 0.08,
-    "options_hedging": 0.05,
+    # --- Price-based components (original, slightly reduced) ---
+    "breadth": 0.14,
+    "mega_cap": 0.09,
+    "tech_leadership": 0.08,
+    "small_cap_leadership": 0.06,
+    "dispersion": 0.08,
+    "cash_shortage": 0.09,
+    "liquidity_stress": 0.08,
+    "berkshire_cash": 0.05,
+    "vol_complacency": 0.06,
+    "options_hedging": 0.04,
+    # --- NLP sentiment components (new — from sentiment.py) ---
+    "news_sentiment_momentum": 0.08,
+    "social_media_intensity": 0.05,
+    "fear_language_ratio": 0.06,
+    "fed_hawkishness": 0.04,
 }
 
 FOMO_SCORE_THRESHOLDS = {

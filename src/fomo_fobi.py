@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -99,8 +99,23 @@ def required_tickers() -> List[str]:
     return sorted(_REQUIRED_TICKERS.union(extra))
 
 
-def compute_component_scores(prices: pd.DataFrame) -> pd.DataFrame:
-    """Return raw + z-scored component series for the indicator."""
+def compute_component_scores(
+    prices: pd.DataFrame,
+    nlp_components: Optional[Dict[str, float]] = None,
+) -> pd.DataFrame:
+    """Return raw + z-scored component series for the indicator.
+
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        Price data with required tickers.
+    nlp_components : dict, optional
+        NLP-derived sentiment scores from ``SentimentEngine.as_fomo_components()``.
+        Keys: news_sentiment_momentum, social_media_intensity,
+              fear_language_ratio, fed_hawkishness
+        Each value is a float in [-1, 1].  If ``None``, the NLP columns are
+        filled with NaN and contribute zero to the composite.
+    """
 
     missing = [ticker for ticker in _REQUIRED_TICKERS if ticker not in prices.columns]
     if missing:
@@ -118,16 +133,30 @@ def compute_component_scores(prices: pd.DataFrame) -> pd.DataFrame:
     df["component_vol_complacency"] = _volatility_complacency(prices)
     df["component_options_hedging"] = _options_hedging_pressure(prices)
 
+    # NLP sentiment components — injected as constant series
+    nlp = nlp_components or {}
+    for nlp_key in (
+        "news_sentiment_momentum",
+        "social_media_intensity",
+        "fear_language_ratio",
+        "fed_hawkishness",
+    ):
+        value = nlp.get(nlp_key, np.nan)
+        df[f"component_{nlp_key}"] = value
+
     for column in list(df.columns):
         df[f"{column}_z"] = _rolling_zscore(df[column])
 
     return df
 
 
-def compute_fomo_fobi_indicator(prices: pd.DataFrame) -> pd.DataFrame:
+def compute_fomo_fobi_indicator(
+    prices: pd.DataFrame,
+    nlp_components: Optional[Dict[str, float]] = None,
+) -> pd.DataFrame:
     """Aggregate component z-scores into a composite sentiment series."""
 
-    components = compute_component_scores(prices)
+    components = compute_component_scores(prices, nlp_components)
     z_cols = [col for col in components.columns if col.endswith("_z")]
     composite = pd.Series(0.0, index=components.index, dtype=float)
     weight_sum = sum(FOMO_COMPONENT_WEIGHTS.values())
@@ -158,8 +187,11 @@ def compute_fomo_fobi_indicator(prices: pd.DataFrame) -> pd.DataFrame:
     return indicator
 
 
-def latest_snapshot(prices: pd.DataFrame) -> FomoFobiSnapshot:
-    indicator = compute_fomo_fobi_indicator(prices)
+def latest_snapshot(
+    prices: pd.DataFrame,
+    nlp_components: Optional[Dict[str, float]] = None,
+) -> FomoFobiSnapshot:
+    indicator = compute_fomo_fobi_indicator(prices, nlp_components)
     latest = indicator.dropna(how="all").iloc[-1]
     components = {
         key.replace("component_", "").replace("_z", ""): float(value)

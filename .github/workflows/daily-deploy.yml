@@ -30,7 +30,7 @@ jobs:
     needs: [keepalive]
     if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     
     steps:
       - name: Checkout repository
@@ -52,11 +52,15 @@ jobs:
           pip install -r requirements.txt
       
       - name: Run historical backtest
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: |
           python -m src.history \
             --start 2016-01-01 \
             --end $(date +%Y-%m-%d) \
-            --refresh
+            --refresh \
+            --use-forecaster \
+            --use-sentiment
       
       - name: Build dashboard
         run: |
