@@ -133,19 +133,34 @@ def compute_component_scores(
     df["component_vol_complacency"] = _volatility_complacency(prices)
     df["component_options_hedging"] = _options_hedging_pressure(prices)
 
-    # NLP sentiment components — injected as constant series
-    nlp = nlp_components or {}
-    for nlp_key in (
+    # NLP sentiment components — point-in-time only.
+    # Unlike market-structure components which have full history, NLP scores
+    # are only available for the current moment (live scrape).  We store them
+    # as NaN for all historical rows and inject the live value only on the
+    # last date.  Because there is no time-series history to rolling-zscore,
+    # the raw [-1, 1] score from the sentiment engine IS the z-score.
+    _NLP_KEYS = (
         "news_sentiment_momentum",
         "social_media_intensity",
         "fear_language_ratio",
         "fed_hawkishness",
-    ):
+    )
+    nlp = nlp_components or {}
+    for nlp_key in _NLP_KEYS:
+        raw_col = f"component_{nlp_key}"
+        df[raw_col] = np.nan  # no historical sentiment data
         value = nlp.get(nlp_key, np.nan)
-        df[f"component_{nlp_key}"] = value
+        if not np.isnan(value) if isinstance(value, float) else True:
+            df.iloc[-1, df.columns.get_loc(raw_col)] = value
 
+    # Z-score market-structure components (rolling); NLP gets special handling
     for column in list(df.columns):
-        df[f"{column}_z"] = _rolling_zscore(df[column])
+        if any(column.endswith(k) for k in _NLP_KEYS):
+            # NLP: the raw [-1, 1] score already acts as a z-score.
+            # Copy the last-row value directly; rest stays NaN.
+            df[f"{column}_z"] = df[column]
+        else:
+            df[f"{column}_z"] = _rolling_zscore(df[column])
 
     return df
 
