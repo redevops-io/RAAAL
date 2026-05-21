@@ -2,33 +2,71 @@ name: Daily Backtest & Deploy
 
 on:
   schedule:
-    # Run at 6 AM UTC every day (1 AM EST, 2 AM EDT)
-    - cron: '0 6 * * *'
-  
-  # Allow manual trigger
+    # Three daily attempts spaced ~5h apart so the workflow still lands
+    # when the self-hosted runner host is offline for part of the day.
+    # The precheck job below ensures only one successful deploy per day.
+    - cron: '0 6 * * *'   # 06:00 UTC (~1-2 AM ET)
+    - cron: '0 11 * * *'  # 11:00 UTC
+    - cron: '0 16 * * *'  # 16:00 UTC
+
   workflow_dispatch:
-  
-  # Run on push to main
+
   push:
     branches:
       - main
 
+# Only one workflow run pending or in-flight at a time. When a newer
+# scheduled run arrives, GitHub cancels the previously-pending one — so
+# if the self-hosted host stays offline through 06:00 and 11:00, the
+# 16:00 attempt is the one that ends up queued for the runner.
+concurrency:
+  group: daily-deploy
+  cancel-in-progress: false
+
 jobs:
-  # Prevent GitHub from disabling the scheduled workflow after 60 days
-  # of inactivity by keeping the workflow file "touched".
-  keepalive:
+  precheck:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
+    outputs:
+      should_deploy: ${{ steps.gate.outputs.should_deploy }}
     permissions:
       actions: write
+      contents: read
     steps:
-      - uses: liskin/gh-workflow-keepalive@v1
+      - name: Keep scheduled workflow active
+        if: github.event_name == 'schedule'
+        uses: liskin/gh-workflow-keepalive@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Skip if a successful run already deployed today
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Non-scheduled trigger; proceeding regardless of prior runs."
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          today=$(date -u +%Y-%m-%d)
+          count=$(gh run list \
+            --workflow=daily-deploy.yml \
+            --status=success \
+            --created=">=${today}" \
+            --json databaseId \
+            --jq 'length')
+          if [ "${count:-0}" -gt 0 ]; then
+            echo "A successful run already completed today (count=${count}); skipping."
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "No successful run today; queuing self-hosted job."
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
   backtest-and-deploy:
-    needs: [keepalive]
-    if: always() && !failure() && !cancelled()
+    needs: [precheck]
+    if: needs.precheck.outputs.should_deploy == 'true'
     runs-on: self-hosted
     timeout-minutes: 90
     
@@ -46,7 +84,16 @@ jobs:
           . .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
+      - name: Purge persisted data caches
+        # Self-hosted workspaces persist between runs; stale parquet/yfinance
+        # caches have silently truncated the dashboard's date range before.
+        # Wipe both the per-ticker cache and the joined history outputs so
+        # `--refresh` re-downloads everything from scratch each run.
+        run: |
+          rm -rf data/cache data/history
+          rm -rf "${HOME}/.cache/py-yfinance"
+
       - name: Run historical backtest
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
