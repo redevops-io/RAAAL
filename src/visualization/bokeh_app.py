@@ -1960,7 +1960,7 @@ def build_fomo_fobi_panel(timeline: pd.DataFrame) -> TabPanel:
         color="#2ca02c",
         line_width=2,
         y_range_name="prob",
-        legend_label="Risk-on probability",
+        legend_label="FOMO probability (be risk-off)",
     )
     hover = HoverTool(
         tooltips=[
