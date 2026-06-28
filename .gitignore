@@ -58,3 +58,5 @@ package-lock.json
 
 # Docker
 .dockerignore
+# Claude Code local session dir
+.claude/
