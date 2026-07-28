@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -99,8 +99,23 @@ def required_tickers() -> List[str]:
     return sorted(_REQUIRED_TICKERS.union(extra))
 
 
-def compute_component_scores(prices: pd.DataFrame) -> pd.DataFrame:
-    """Return raw + z-scored component series for the indicator."""
+def compute_component_scores(
+    prices: pd.DataFrame,
+    nlp_components: Optional[Dict[str, float]] = None,
+) -> pd.DataFrame:
+    """Return raw + z-scored component series for the indicator.
+
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        Price data with required tickers.
+    nlp_components : dict, optional
+        NLP-derived sentiment scores from ``SentimentEngine.as_fomo_components()``.
+        Keys: news_sentiment_momentum, social_media_intensity,
+              fear_language_ratio, fed_hawkishness
+        Each value is a float in [-1, 1].  If ``None``, the NLP columns are
+        filled with NaN and contribute zero to the composite.
+    """
 
     missing = [ticker for ticker in _REQUIRED_TICKERS if ticker not in prices.columns]
     if missing:
@@ -118,16 +133,45 @@ def compute_component_scores(prices: pd.DataFrame) -> pd.DataFrame:
     df["component_vol_complacency"] = _volatility_complacency(prices)
     df["component_options_hedging"] = _options_hedging_pressure(prices)
 
+    # NLP sentiment components — point-in-time only.
+    # Unlike market-structure components which have full history, NLP scores
+    # are only available for the current moment (live scrape).  We store them
+    # as NaN for all historical rows and inject the live value only on the
+    # last date.  Because there is no time-series history to rolling-zscore,
+    # the raw [-1, 1] score from the sentiment engine IS the z-score.
+    _NLP_KEYS = (
+        "news_sentiment_momentum",
+        "social_media_intensity",
+        "fear_language_ratio",
+        "fed_hawkishness",
+    )
+    nlp = nlp_components or {}
+    for nlp_key in _NLP_KEYS:
+        raw_col = f"component_{nlp_key}"
+        df[raw_col] = np.nan  # no historical sentiment data
+        value = nlp.get(nlp_key, np.nan)
+        if not np.isnan(value) if isinstance(value, float) else True:
+            df.iloc[-1, df.columns.get_loc(raw_col)] = value
+
+    # Z-score market-structure components (rolling); NLP gets special handling
     for column in list(df.columns):
-        df[f"{column}_z"] = _rolling_zscore(df[column])
+        if any(column.endswith(k) for k in _NLP_KEYS):
+            # NLP: the raw [-1, 1] score already acts as a z-score.
+            # Copy the last-row value directly; rest stays NaN.
+            df[f"{column}_z"] = df[column]
+        else:
+            df[f"{column}_z"] = _rolling_zscore(df[column])
 
     return df
 
 
-def compute_fomo_fobi_indicator(prices: pd.DataFrame) -> pd.DataFrame:
+def compute_fomo_fobi_indicator(
+    prices: pd.DataFrame,
+    nlp_components: Optional[Dict[str, float]] = None,
+) -> pd.DataFrame:
     """Aggregate component z-scores into a composite sentiment series."""
 
-    components = compute_component_scores(prices)
+    components = compute_component_scores(prices, nlp_components)
     z_cols = [col for col in components.columns if col.endswith("_z")]
     composite = pd.Series(0.0, index=components.index, dtype=float)
     weight_sum = sum(FOMO_COMPONENT_WEIGHTS.values())
@@ -158,8 +202,11 @@ def compute_fomo_fobi_indicator(prices: pd.DataFrame) -> pd.DataFrame:
     return indicator
 
 
-def latest_snapshot(prices: pd.DataFrame) -> FomoFobiSnapshot:
-    indicator = compute_fomo_fobi_indicator(prices)
+def latest_snapshot(
+    prices: pd.DataFrame,
+    nlp_components: Optional[Dict[str, float]] = None,
+) -> FomoFobiSnapshot:
+    indicator = compute_fomo_fobi_indicator(prices, nlp_components)
     latest = indicator.dropna(how="all").iloc[-1]
     components = {
         key.replace("component_", "").replace("_z", ""): float(value)

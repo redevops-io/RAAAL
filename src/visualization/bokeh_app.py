@@ -1960,7 +1960,7 @@ def build_fomo_fobi_panel(timeline: pd.DataFrame) -> TabPanel:
         color="#2ca02c",
         line_width=2,
         y_range_name="prob",
-        legend_label="Risk-on probability",
+        legend_label="FOMO probability (be risk-off)",
     )
     hover = HoverTool(
         tooltips=[
@@ -2422,8 +2422,42 @@ def build_dashboard(
 
     tabs = Tabs(tabs=all_tabs)
 
-    output_file(output_path, title="RAAAL Dashboard")
-    save(tabs)
+    # --- DEMO framing + customer-facing legend (wraps the bare Tabs) -----------------------------
+    header = Div(text="""
+        <div style="font-family:system-ui;max-width:1100px">
+          <h1 style="margin:0 0 2px">RAAAL &mdash; Research Dashboard</h1>
+          <div style="color:#667">The analytics surface behind the Agentic Investment Operating System.
+          Regime detection, the research-backed strategy library, salience and behavioural signals.</div>
+        </div>""", sizing_mode="stretch_width")
+    disclaimer = Div(text="""
+        <div style="font-family:system-ui;max-width:1100px;margin:10px 0 6px;background:#fff8e1;
+             border-left:4px solid #ffc107;padding:12px 16px;border-radius:5px">
+          <b>DEMO &mdash; decision support only, not investment advice.</b> Paper trading; no real orders are
+          ever placed. Every allocation shown is produced by a registered, research-backed strategy, and any
+          rebalance in the live console requires explicit human approval. Past simulated performance does not
+          guarantee future results.
+        </div>""", sizing_mode="stretch_width")
+    legend = Div(text="""
+        <div style="font-family:system-ui;max-width:1100px;color:#445;font-size:13px;margin:0 0 8px">
+          <b>How to read these tabs:</b>
+          <b>The Strategy</b> &mdash; the detected market regime and the allocation it drives.
+          <b>vs Academia</b> &mdash; rule-based vs ML-ensemble regime detection and factor/network analysis.
+          <b>Salience</b> &mdash; a behavioural-finance (salience-theory) view of forward returns by beta.
+          <b>vs Buffett</b> &mdash; the strategy benchmarked against Berkshire Hathaway.
+          <b>Strategy Lab</b> &mdash; the ~20 registered strategies the planner selects among, with growth
+          curves and signals. <b>FOMO vs FOBI</b> &mdash; a composite sentiment indicator for risk-on/off.
+        </div>""", sizing_mode="stretch_width")
+    footer = Div(text="""
+        <div style="font-family:system-ui;max-width:1100px;color:#889;font-size:12px;margin-top:14px;
+             border-top:1px solid #e5e7eb;padding-top:8px">
+          RAAAL Agentic Investment OS &mdash; DEMO, not investment advice. Paper trading only.
+          The live operating console (discovery &rarr; three objective plans &rarr; governed paper approval)
+          runs at the site root; this page is its research/analytics surface.
+        </div>""", sizing_mode="stretch_width")
+
+    page = column(header, disclaimer, legend, tabs, footer, sizing_mode="stretch_width")
+    output_file(output_path, title="RAAAL — Research Dashboard (DEMO, not investment advice)")
+    save(page)
     return output_path
 
 

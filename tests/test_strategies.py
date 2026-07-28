@@ -147,3 +147,44 @@ def test_fomo_fobi_overlay_reacts_to_indicator(synthetic_market_data):
     cash_weight = defensive["fomo_fobi_overlay"].weights.get("BIL", 0.0)
     assert bull_weight > 0.5
     assert cash_weight > 0.4
+
+
+def test_ibs_hybrid_switch_calm_market(synthetic_market_data):
+    """In calm regime (low VIX, SPY > SMA200), IBS should overweight equity."""
+    prices, returns = synthetic_market_data
+    # Ensure VIX is low and SPY is trending up (above SMA-200)
+    prices["^VIX"] = 16.0  # constant low VIX
+    suite = StrategySuite()
+    results = suite.evaluate(
+        prices,
+        returns,
+        detection_mode="none",
+        strategy_names=["ibs_hybrid_switch"],
+    )
+    ibs = results["ibs_hybrid_switch"]
+    assert pytest.approx(1.0, abs=1e-6) == sum(ibs.weights.values())
+    # In calm mode, SPY should get the lion's share
+    assert ibs.weights.get("SPY", 0.0) >= 0.5
+
+
+def test_ibs_hybrid_switch_volatile_no_dip(synthetic_market_data):
+    """In volatile regime with no dip, IBS should be defensive."""
+    prices, returns = synthetic_market_data
+    # Set VIX high → volatile regime
+    prices["^VIX"] = 32.0
+    # Set SPY flat-ish near top of range → no dip signal
+    spy = prices["SPY"].copy()
+    # Make sure close is near rolling high (IBS ~ 1.0)
+    prices["SPY"] = spy.cummax()
+    suite = StrategySuite()
+    results = suite.evaluate(
+        prices,
+        returns,
+        detection_mode="none",
+        strategy_names=["ibs_hybrid_switch"],
+    )
+    ibs = results["ibs_hybrid_switch"]
+    assert pytest.approx(1.0, abs=1e-6) == sum(ibs.weights.values())
+    # Defensive: cash + bonds should dominate
+    safe = ibs.weights.get("BIL", 0.0) + ibs.weights.get("TLT", 0.0)
+    assert safe >= 0.5

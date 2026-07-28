@@ -93,6 +93,19 @@ def download_prices(
                 cache = hist
             frames.append(cache[[PRICE_COLUMN]].rename(columns={PRICE_COLUMN: ticker}))
 
-    prices = pd.concat(frames, axis=1).sort_index().dropna(how="all")
-    prices = prices.ffill().dropna()
+    raw_panel = pd.concat(frames, axis=1).sort_index().dropna(how="all")
+
+    # Capture per-ticker freshness BEFORE ffill (ffill erases the lag signal)
+    # so CI logs can identify a laggy source if the dashboard date range
+    # ever silently truncates again.
+    panel_last = raw_panel.index.max()
+    print(f"Price panel last date: {panel_last.date() if panel_last is not None else 'n/a'}")
+    for ticker in raw_panel.columns:
+        ts = raw_panel[ticker].last_valid_index()
+        marker = ""
+        if ts is not None and panel_last is not None and (panel_last - ts).days > 3:
+            marker = " <-- LAGGING"
+        print(f"  {ticker}: {ts.date() if ts is not None else 'n/a'}{marker}")
+
+    prices = raw_panel.ffill().dropna()
     return prices

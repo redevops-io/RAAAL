@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -61,12 +62,36 @@ def run_historical_analysis(
     warmup_days: int = 252,
     step: int = 5,
     force_refresh: bool = False,
+    use_forecaster: bool = False,
+    forecaster_backend: str = "lightgbm",
+    use_sentiment: bool = False,
+    sentiment_backend: str = "auto",
 ) -> HistoryRunResult:
+    logger = logging.getLogger(__name__)
     tickers = [asset.ticker for asset in UNIVERSE] + AUX_SERIES
     prices = download_prices(tickers, start=start, end=end, force_refresh=force_refresh)
     returns = compute_returns(prices)
+
+    # --- Sentiment engine (scrapes once, caches for 1 h) ---
+    nlp_components = None
+    if use_sentiment:
+        try:
+            from .sentiment import SentimentEngine
+
+            engine = SentimentEngine(scorer=sentiment_backend)
+            base_tickers = [a.ticker for a in UNIVERSE][:5]
+            nlp_components = engine.as_fomo_components(tickers=base_tickers)
+            logger.info(
+                "Sentiment engine: %s",
+                {k: round(v, 4) for k, v in nlp_components.items()},
+            )
+        except Exception as exc:
+            logger.warning("Sentiment engine unavailable (%s)", exc)
+
     try:
-        fomo_indicator = compute_fomo_fobi_indicator(prices)
+        fomo_indicator = compute_fomo_fobi_indicator(
+            prices, nlp_components=nlp_components,
+        )
     except ValueError as exc:
         print(f"Warning: could not compute FOMO/FOBI indicator — {exc}")
         fomo_indicator = pd.DataFrame(index=prices.index)
@@ -87,6 +112,26 @@ def run_historical_analysis(
     strategy_modes = ["rule_based", "none"] + (["ml"] if ensemble_models else [])
     strategy_column_map: Dict[str, str] = {}
 
+    # --- ML Forecaster (train once, rolling-retrain inside loop) ---
+    forecaster = None
+    all_features = None
+    if use_forecaster:
+        try:
+            from .forecaster import ReturnForecaster
+            from .features_alpha import build_universe_features
+
+            forecaster = ReturnForecaster(backend=forecaster_backend)
+            all_features = build_universe_features(prices)
+            logger.info(
+                "ML forecaster (%s) enabled — features shape %s",
+                forecaster_backend, all_features.shape,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Forecaster init failed (%s) — using exponential mean",
+                exc,
+            )
+
     for date in eval_dates:
         prices_window = prices.loc[:date]
         returns_window = returns.loc[:date]
@@ -94,9 +139,30 @@ def run_historical_analysis(
 
         regime = detect_regime(prices_window, returns_window)
         # Regime-aware statistics: exponentially weighted with regime-specific decay
-        mu = exponential_mean(base_returns)
         cov = exponential_cov(base_returns)
         rf_rate = rf_from_sgov(prices_window)
+
+        # --- Expected returns (μ): ML forecaster or exponential mean ---
+        if forecaster is not None and all_features is not None:
+            try:
+                features_window = all_features.loc[:date]
+                result = forecaster.rolling_retrain(
+                    prices_window, returns_window,
+                    features=features_window,
+                )
+                mu = result.mu
+                fallback = exponential_mean(base_returns)
+                if result.drift_report and result.drift_report.is_drifted:
+                    logger.debug(
+                        "Forecaster drift at %s (z=%.2f) — blending",
+                        date.date(), result.drift_report.value,
+                    )
+                    mu = 0.7 * mu + 0.3 * fallback
+            except Exception as exc:
+                logger.debug("Forecaster error at %s: %s", date.date(), exc)
+                mu = exponential_mean(base_returns)
+        else:
+            mu = exponential_mean(base_returns)
 
         # Standard (uniform-weighted) statistics for non-regime strategies
         mu_standard = base_returns.mean()  # Simple arithmetic mean
@@ -351,6 +417,10 @@ def main() -> None:
     parser.add_argument("--warmup", type=int, default=252, help="Warmup window in trading days")
     parser.add_argument("--step", type=int, default=5, help="Evaluate every N trading days")
     parser.add_argument("--refresh", action="store_true", help="Force data refresh from Yahoo")
+    parser.add_argument("--use-forecaster", action="store_true", help="Use ML forecaster for expected returns")
+    parser.add_argument("--forecaster-backend", default="lightgbm", choices=["lightgbm", "lstm", "transformer"], help="Forecaster backend")
+    parser.add_argument("--use-sentiment", action="store_true", help="Enable NLP sentiment engine")
+    parser.add_argument("--sentiment-backend", default="auto", choices=["auto", "vader", "fingpt"], help="Sentiment scorer backend")
     args = parser.parse_args()
 
     result = run_historical_analysis(
@@ -359,6 +429,10 @@ def main() -> None:
         warmup_days=args.warmup,
         step=args.step,
         force_refresh=args.refresh,
+        use_forecaster=args.use_forecaster,
+        forecaster_backend=args.forecaster_backend,
+        use_sentiment=args.use_sentiment,
+        sentiment_backend=args.sentiment_backend,
     )
     paths = save_history(result)
     print("Historical analysis saved:")
