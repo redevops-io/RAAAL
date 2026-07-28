@@ -26,13 +26,22 @@ def test_health_and_paper_only_info():
     assert r["paper_only"] is True and r["external_execution_path"] is False
 
 
-def test_console_renders_three_objectives_and_demo_banner():
+def test_console_renders_boot_sequence_and_recommendation():
     page = client.get("/").text
     assert "DEMO" in page and "not investment advice" in page.lower()
-    assert "Objective decisions" in page
-    for label in ("Minimum Risk", "Maximum Return-to-Risk", "Maximum Total Return", "Current / no action"):
+    # the "continuously thinking" boot sequence + the three runtime phases
+    assert "is thinking" in page
+    for phase in ("Discovery Runtime", "Decision Planner", "Mission Runtime"):
+        assert phase in page
+    # reversed hierarchy: discovery first, then a dominant recommendation
+    assert "Today's recommendation" in page
+    # friendly objective names up front (internal ids stay in EXPLAIN/API)
+    for label in ("Capital Preservation", "Balanced Growth", "Maximum Growth", "Current portfolio"):
         assert label in page
-    assert "Attention queue" in page
+    # the pipeline strip
+    assert "Registered Strategies" in page
+    # real boot numbers are embedded for the animation
+    assert '"strategies":' in page and '"regime":' in page
 
 
 def test_full_contract_flow_and_paper_safety():
