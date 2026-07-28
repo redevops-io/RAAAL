@@ -1,4 +1,4 @@
-"""The portfolio operating console (served at /) — the live decision surface for quantife.club.
+"""The portfolio operating console (served at /) — the live decision surface for quantify.club.
 
 Reuses the agentic_os console contract (attention_priority ranking) via an in-process Aggregator, and
 renders the three side-by-side objective decisions (min_risk | max_return_to_risk | max_total_return)
@@ -118,11 +118,13 @@ def console():
     promote = learn.get("promotion", "") if learn.get("enabled") else ""
 
     boot = json.dumps({"regime": compare.get("regime"), "snapshot_id": compare.get("snapshot_id")})
-    return HTMLResponse(_PAGE.format(
+    page = _PAGE.format(
         tenant=html.escape(_TENANT), disclaimer=html.escape(DEMO_DISCLAIMER),
         regime=html.escape(str(compare.get("regime", "—"))), cards=cards, queue=queue_rows,
         learn_pill=html.escape(learn_pill), promote=html.escape(promote),
-        ndisc=len(disc.get("queue", [])), boot=boot))
+        ndisc=len(disc.get("queue", [])), boot=boot)
+    # a live operating console must never be edge-cached (stale portfolio data)
+    return HTMLResponse(page, headers={"Cache-Control": "no-store, max-age=0"})
 
 
 _PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">

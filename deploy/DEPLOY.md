@@ -1,6 +1,6 @@
-# Deploying the Agentic Investment OS to quantife.club
+# Deploying the Agentic Investment OS to quantify.club
 
-quantife.club runs as **one containerized app** on proxmox, alongside redevops.io / vibexgen.io /
+quantify.club runs as **one containerized app** on proxmox, alongside redevops.io / vibexgen.io /
 demo.redevops.io, reached only through the **shared Cloudflare tunnel** (outbound-only; no inbound port).
 The container serves the operating console at `/` and the §17 API under `/api/investment/*`; the nightly
 Bokeh dashboard is served at `/research` from a mounted volume.
@@ -35,7 +35,7 @@ The service mounts RAAAL's `reports/` (ro) + `data/` (rw — an import creates `
 nightly research artifacts; its paper book + mission ledger persist in the `investment_state` volume. If
 the parquet is absent the console falls back to a deterministic synthetic snapshot.
 
-## 2. Route quantife.club through the shared tunnel
+## 2. Route quantify.club through the shared tunnel
 
 Add ONE ingress rule to the existing cloudflared `config.yml` (the same tunnel already fronting
 demo.redevops.io) — above the catch-all 404 rule:
@@ -43,7 +43,7 @@ demo.redevops.io) — above the catch-all 404 rule:
 ```yaml
 ingress:
   # ... existing rules ...
-  - hostname: quantife.club
+  - hostname: quantify.club
     service: http://investment-agent:8250
   - service: http_status:404
 ```
@@ -58,18 +58,18 @@ systemctl restart cloudflared
 
 ### Go-live DNS record (the one manual step)
 
-quantife.club is in a **different Cloudflare account** than the tunnel, so
-`cloudflared tunnel route dns … quantife.club` fails with `Authentication error` (same cross-account
-caveat as demo.redevops.io). Create this record **by hand in quantife.club's own Cloudflare zone**:
+quantify.club is in a **different Cloudflare account** than the tunnel, so
+`cloudflared tunnel route dns … quantify.club` fails with `Authentication error` (same cross-account
+caveat as demo.redevops.io). Create this record **by hand in quantify.club's own Cloudflare zone**:
 
 ```
 Type:   CNAME
-Name:   quantife.club              (root / @)
+Name:   quantify.club              (root / @)
 Target: 1711f014-dea7-4b4d-a409-9cd38d1c4ee2.cfargotunnel.com
 Proxy:  Proxied  (orange cloud)
 ```
 
-Once that record exists, quantife.club resolves through the tunnel to `investment-agent:8250`. Nothing
+Once that record exists, quantify.club resolves through the tunnel to `investment-agent:8250`. Nothing
 else is required — the service + ingress rule are already live on proxmox.
 
 ## 3. Nightly research artifacts
@@ -83,10 +83,10 @@ is absent the app falls back to a deterministic synthetic series so it always re
 ## 4. Smoke test after deploy
 
 ```bash
-curl -s https://quantife.club/health
-curl -s -X POST https://quantife.club/api/investment/projects            # manifest (paper-only)
-curl -s https://quantife.club/api/investment/projects/default/discoveries
-curl -s -X POST https://quantife.club/api/investment/projects/default/missions/objective-compare
-# open https://quantife.club/ -> three objective columns + attention queue + governed paper approval
-# open https://quantife.club/research -> nightly Bokeh dashboard with the DEMO banner
+curl -s https://quantify.club/health
+curl -s -X POST https://quantify.club/api/investment/projects            # manifest (paper-only)
+curl -s https://quantify.club/api/investment/projects/default/discoveries
+curl -s -X POST https://quantify.club/api/investment/projects/default/missions/objective-compare
+# open https://quantify.club/ -> three objective columns + attention queue + governed paper approval
+# open https://quantify.club/research -> nightly Bokeh dashboard with the DEMO banner
 ```

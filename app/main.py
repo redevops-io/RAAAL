@@ -17,6 +17,16 @@ PORT = int(os.environ.get("PORT", "8250"))
 
 app = FastAPI(title="investment-agent (RAAAL Agentic Investment OS)")
 
+
+@app.middleware("http")
+async def _no_store(request, call_next):
+    # dynamic decision surface — never let the CDN cache API/console responses (prevents stale
+    # portfolio data). Static research assets set their own caching in research.py.
+    resp = await call_next(request)
+    if not request.url.path.startswith("/research"):
+        resp.headers.setdefault("Cache-Control", "no-store, max-age=0")
+    return resp
+
 # guarded router mount: a broken optional import degrades to /health, never a crash
 _ROUTERS_OK = True
 _ROUTER_ERR = ""
