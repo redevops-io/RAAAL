@@ -4,11 +4,12 @@
 # (requirements-core, no torch/transformers/RL) — the heavy backtest + Bokeh render happen in CI and are
 # served as the /research artifact from a mounted volume.
 #
-# The shared runtime package `agentic_os` is provided at runtime by a bind mount (see the compose file):
-#   ../agentic-os-src/agentic_os -> /app/agentic_os   (PYTHONPATH=/app makes it importable)
-# so the image stays public-repo-clean. If it is absent the app still serves /health (guarded imports).
+# The shared runtime package `agentic_os` is VENDORED into the image (like the other agentic_os app
+# images). It is not committed to this public repo — run `scripts/vendor_agentic_os.sh` first to copy it
+# from the sibling agentic-os-src checkout into ./agentic_os, then build. If it is absent the app still
+# serves /health (guarded imports).
 #
-#   docker build -f Dockerfile.agent -t investment-agent .
+#   scripts/vendor_agentic_os.sh && docker build -f Dockerfile.agent -t investment-agent .
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app PORT=8250
@@ -22,6 +23,7 @@ RUN pip install --no-cache-dir -r requirements-core.txt \
 
 COPY src ./src
 COPY app ./app
+COPY agentic_os ./agentic_os      # vendored shared runtime (see scripts/vendor_agentic_os.sh)
 
 RUN mkdir -p /data/state reports data/history
 

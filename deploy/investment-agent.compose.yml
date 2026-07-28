@@ -18,9 +18,8 @@ services:
       CONSOLE_TENANT: "ReDevOps Pilot Development"
     volumes:
       - investment_state:/data/state                                   # persists paper book + mission ledger
-      - /projects/agentic-os-src/agentic_os:/app/agentic_os:ro         # shared runtime (bind mount)
       - /projects/RAAAL/reports:/app/reports:ro                        # nightly Bokeh /research artifact
-      - /projects/RAAAL/data:/app/data:ro                              # nightly parquet history
+      - /projects/RAAAL/data:/app/data                                  # nightly parquet history (rw: an import creates data/models)
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined

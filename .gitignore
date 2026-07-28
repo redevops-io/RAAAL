@@ -60,3 +60,6 @@ package-lock.json
 .dockerignore
 # Claude Code local session dir
 .claude/
+
+# vendored shared runtime (see scripts/vendor_agentic_os.sh)
+/agentic_os/

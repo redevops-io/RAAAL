@@ -11,20 +11,29 @@ a *paper* order to the local state store. `mode: paper` is enforced at manifest 
 
 ## 1. Build + run the service
 
-Merge `deploy/investment-agent.compose.yml` into the shared `integrated.compose.yml` (or run it stand-alone
-on the `agentic` network), then:
+`agentic_os` (the shared runtime) is **vendored** into the image, not bind-mounted (the proxmox
+`/projects/agentic-os-src` is only a partial copy). Vendor it from a full agentic-os-src checkout first:
 
 ```bash
 ssh proxmox
-cd /projects/agentic-os-stack            # wherever integrated.compose.yml lives
-docker compose -f integrated.compose.yml up -d --build investment-agent
-docker compose -f integrated.compose.yml logs -f investment-agent   # expect: Uvicorn running on :8250
-curl -s http://investment-agent:8250/health
+cd /projects && git clone https://github.com/redevops-io/RAAAL.git   # if not present
+cd /projects/RAAAL && git fetch && git checkout feat/agentic-investment-os
+scripts/vendor_agentic_os.sh /projects/agentic-os-src   # or rsync a full agentic_os into ./agentic_os
+docker build -f Dockerfile.agent -t localhost:5000/investment-agent:stable .
 ```
 
-The service bind-mounts `/projects/agentic-os-src/agentic_os` (the shared runtime) and RAAAL's
-`reports/` + `data/` (the nightly research artifacts). Its paper book + mission ledger persist in the
-`investment_state` volume.
+Merge `deploy/investment-agent.compose.yml` into the shared `integrated.compose.yml` (it uses the
+`*agent` anchor there — networks/security_opt/host-gateway), then:
+
+```bash
+cd /projects/agentic-os-stack
+docker compose -f integrated.compose.yml up -d --no-deps investment-agent
+curl -s http://192.168.40.105:8250/health          # what cloudflared will hit
+```
+
+The service mounts RAAAL's `reports/` (ro) + `data/` (rw — an import creates `data/models`) for the
+nightly research artifacts; its paper book + mission ledger persist in the `investment_state` volume. If
+the parquet is absent the console falls back to a deterministic synthetic snapshot.
 
 ## 2. Route quantife.club through the shared tunnel
 
@@ -39,14 +48,29 @@ ingress:
   - service: http_status:404
 ```
 
-Then publish the DNS route and restart the tunnel:
+Reload the tunnel (it runs as the `cloudflared` systemd service on the host, config at
+`/main/cloudflared/config.yml`):
 
 ```bash
-cloudflared tunnel route dns <tunnel-name> quantife.club
-docker compose -f integrated.compose.yml restart cloudflared
+cloudflared tunnel --config /main/cloudflared/config.yml ingress validate
+systemctl restart cloudflared
 ```
 
-Only the tunnel sidecar reaches `investment-agent` (it is `expose`d, not `ports`-published).
+### Go-live DNS record (the one manual step)
+
+quantife.club is in a **different Cloudflare account** than the tunnel, so
+`cloudflared tunnel route dns … quantife.club` fails with `Authentication error` (same cross-account
+caveat as demo.redevops.io). Create this record **by hand in quantife.club's own Cloudflare zone**:
+
+```
+Type:   CNAME
+Name:   quantife.club              (root / @)
+Target: 1711f014-dea7-4b4d-a409-9cd38d1c4ee2.cfargotunnel.com
+Proxy:  Proxied  (orange cloud)
+```
+
+Once that record exists, quantife.club resolves through the tunnel to `investment-agent:8250`. Nothing
+else is required — the service + ingress rule are already live on proxmox.
 
 ## 3. Nightly research artifacts
 
