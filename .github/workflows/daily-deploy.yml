@@ -13,7 +13,7 @@ on:
 
   push:
     branches:
-      - main
+      - master
 
 # Only one workflow run pending or in-flight at a time. When a newer
 # scheduled run arrives, GitHub cancels the previously-pending one — so
@@ -76,7 +76,7 @@ jobs:
         with:
             # Force the workflow to run off the canonical main branch so the
             # resulting Pages deployment goes to the production environment.
-              ref: main
+              ref: master
       
       - name: Set up Python virtualenv
         run: |
@@ -132,7 +132,7 @@ jobs:
           "
       
       - name: Publish research artifacts to the live app volume
-        # The live investment-agent (quantife.club) serves the console at / and the nightly Bokeh
+        # The live investment-agent (quantify.club) serves the console at / and the nightly Bokeh
         # dashboard at /research from mounted volumes. Instead of Cloudflare Pages, sync the freshly
         # built dashboard + parquet history to the host paths the container mounts, then restart it so
         # the objective columns + /research reflect today's data. Guarded so a missing path/compose

@@ -17,7 +17,7 @@ a *paper* order to the local state store. `mode: paper` is enforced at manifest 
 ```bash
 ssh proxmox
 cd /projects && git clone https://github.com/redevops-io/RAAAL.git   # if not present
-cd /projects/RAAAL && git fetch && git checkout feat/agentic-investment-os
+cd /projects/RAAAL && git fetch && git checkout master
 scripts/vendor_agentic_os.sh /projects/agentic-os-src   # or rsync a full agentic_os into ./agentic_os
 docker build -f Dockerfile.agent -t localhost:5000/investment-agent:stable .
 ```
@@ -122,6 +122,7 @@ curl -s https://quantify.club/health
 curl -s -X POST https://quantify.club/api/investment/projects            # manifest (paper-only)
 curl -s https://quantify.club/api/investment/projects/default/discoveries
 curl -s -X POST https://quantify.club/api/investment/projects/default/missions/objective-compare
-# open https://quantify.club/ -> three objective columns + attention queue + governed paper approval
+# open https://quantify.club/ -> "thinking" boot sequence -> Discovery checks -> Today's Recommendation
+#   (dominant) -> alternatives + current portfolio -> governed paper mission (Evidence/Verify/Approval)
 # open https://quantify.club/research -> nightly Bokeh dashboard with the DEMO banner
 ```
