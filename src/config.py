@@ -119,6 +119,59 @@ REGIME_CONSTRAINTS: Dict[str, Dict[str, float]] = {
     },
 }
 
+# ---------------------------------------------------------------------------
+# Investment objectives + mandate constraints (the agentic operating layer).
+#
+# IMPORTANT: the three objectives are NOT three new optimizers. They are
+# selection/ranking policies over the existing research-backed strategy
+# library (see src/strategies.py registry + src/agentic/selection.py). The
+# runtime never fabricates allocations outside that registry.
+# ---------------------------------------------------------------------------
+OBJECTIVES: Tuple[str, ...] = ("max_total_return", "max_return_to_risk", "min_risk")
+
+OBJECTIVE_LABELS: Dict[str, str] = {
+    "max_total_return": "Maximum Total Return",
+    "max_return_to_risk": "Maximum Return-to-Risk",
+    "min_risk": "Minimum Risk",
+}
+
+# Customer-facing explanation of what each objective column means.
+OBJECTIVE_DESCRIPTIONS: Dict[str, str] = {
+    "max_total_return": (
+        "Ranks the return-seeking strategies (momentum, factor, regime dip-buying) by "
+        "held-out regime-specific CAGR, with a drawdown guard. Picks the growth engine that "
+        "has paid off most in conditions like today's."
+    ),
+    "max_return_to_risk": (
+        "Ranks strategies by held-out regime-specific Sharpe / Sortino. This is the balanced "
+        "objective; the guardrailed Sharpe optimizer competes here as one registered strategy."
+    ),
+    "min_risk": (
+        "Ranks the defensive strategies (minimum-variance, risk-parity, max-diversification, "
+        "equal-risk-contribution, volatility-targeting) by realized volatility, max drawdown "
+        "and CVaR. Picks the calmest allocation, ignoring return chasing."
+    ),
+}
+
+# Prominent, reused everywhere a recommendation is shown.
+DEMO_DISCLAIMER = (
+    "DEMO — decision support only, not investment advice. Paper trading; no real orders "
+    "are ever placed. Every allocation is produced by a registered, research-backed strategy."
+)
+
+# Hard mandate constraints, applied BEFORE any strategy selection or learning.
+# Mirrors the InvestmentProject manifest `constraints` block and the semantics
+# already encoded in REGIME_CONSTRAINTS / Asset.upper / Asset.is_inverse.
+MANDATE_CONSTRAINTS: Dict[str, float | bool] = {
+    "long_only": True,
+    "leverage_cap": 1.0,
+    "inverse_exposure_cap": 0.15,
+    "crypto_cap": 0.10,
+    "minimum_cash": 0.05,
+    "maximum_turnover": 0.25,
+}
+
+
 # Default risk-free assumption when cash proxy history unavailable
 DEFAULT_RF = 0.02 / 252
 

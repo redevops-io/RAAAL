@@ -1,13 +1,14 @@
 """Strategy testing utilities for the expanded strategy families."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Sequence
+import importlib
+from dataclasses import dataclass, field
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 
-from .config import UNIVERSE
+from .config import DEFAULT_RF, MANDATE_CONSTRAINTS, UNIVERSE
 from .ensemble_regime import prepare_features, predict_regime_ensemble
 from .features import exponential_cov, exponential_mean
 from .portfolio_utils import portfolio_metrics, rf_from_sgov
@@ -585,6 +586,324 @@ try:
     ]
 except ImportError:  # gymnasium / stable-baselines3 not installed
     pass
+
+
+# ===========================================================================
+# Strategy capability registry — the authoritative capability graph used by
+# the Decision Planner and the learning selector.
+#
+# The three user objectives are RANKING/SELECTION policies over THIS registry
+# (see src/agentic/selection.py). No allocation is ever produced outside a
+# registered `implementation`. Adding a new optimizer/strategy requires a new
+# registry entry that passes the same research/benchmark/promotion process.
+# ===========================================================================
+
+
+def sharpe_optimizer_strategy(
+    prices: pd.DataFrame,
+    returns: pd.DataFrame,
+    regime: Optional[str],
+    context: Dict[str, object],
+) -> Dict[str, float]:
+    """The existing guardrailed Sharpe optimizer, exposed as a registered capability.
+
+    This is the ONLY optimizer in the production registry (Amendments §5); it keeps
+    its role as the max-return-to-risk RAAAL strategy and is not repurposed to
+    fabricate the other objectives.
+    """
+    from .optimizer import optimize_weights  # local import avoids import cycle
+
+    rf = float((context or {}).get("rf", DEFAULT_RF))
+    reg = regime if regime in {"risk_on", "risk_off", "inflation"} else "risk_on"
+    try:
+        return _normalize_weights(optimize_weights(returns, reg, rf_rate=rf))
+    except Exception:  # pragma: no cover - solver edge cases fall back to cash
+        return _normalize_weights({CASH_TICKER: 1.0})
+
+
+# Members of the approved Strategy-Lab composite (governed ensemble, Amendments §7).
+COMPOSITE_MEMBERS: Tuple[str, ...] = (
+    "dual_momentum",
+    "sharpe_optimizer",
+    "risk_parity",
+    "multi_factor_blend",
+)
+
+
+def raaal_composite_strategy(
+    prices: pd.DataFrame,
+    returns: pd.DataFrame,
+    regime: Optional[str],
+    context: Dict[str, object],
+) -> Dict[str, float]:
+    """Approved ensemble: an EQUAL-WEIGHT blend of named member strategies.
+
+    Reuses the Strategy-Lab composite idea but governs it explicitly — the members
+    and weighting rule are declared (COMPOSITE_MEMBERS, equal-weight). The planner
+    may never invent an opaque blend.
+    """
+    member_weights = []
+    for member_id in COMPOSITE_MEMBERS:
+        try:
+            member_weights.append(run_capability(member_id, prices, returns, regime, context))
+        except Exception:  # pragma: no cover - skip a failing member
+            continue
+    if not member_weights:
+        return _normalize_weights({CASH_TICKER: 1.0})
+    return _blend_weights(member_weights)
+
+
+@dataclass(frozen=True)
+class StrategyCapability:
+    """One registered, research-backed strategy the planner/learning may select."""
+
+    id: str
+    family: str
+    implementation: str                      # dotted path, e.g. "src.strategies.momentum_dual_strategy"
+    supported_objectives: Tuple[str, ...]    # subset of config.OBJECTIVES
+    allowed_regimes: Tuple[str, ...] = ("risk_on", "risk_off", "inflation")
+    evidence_requirements: Tuple[str, ...] = ("prices", "returns", "regime")
+    data_freshness_days: int = 3
+    hard_constraints: Tuple[str, ...] = ("mandate", "cash_floor", "turnover_cap")
+    risk_profile: str = "moderate"           # defensive | balanced | moderate | aggressive
+    expected_behavior: str = ""
+    benchmark_status: str = "validated"      # validated | provisional | unbenchmarked
+    research_refs: Tuple[str, ...] = ()
+    known_failure_modes: Tuple[str, ...] = ()
+    min_history: int = 126
+    txn_cost_sensitivity: str = "medium"     # low | medium | high
+    promotion_status: str = "approved"       # experimental | shadow | approved | deprecated
+    is_ensemble: bool = False
+    ensemble_members: Tuple[str, ...] = ()
+    fallback_rank: int = 100
+
+    def as_dict(self) -> Dict[str, object]:
+        return {
+            "id": self.id,
+            "family": self.family,
+            "implementation": self.implementation,
+            "supported_objectives": list(self.supported_objectives),
+            "allowed_regimes": list(self.allowed_regimes),
+            "risk_profile": self.risk_profile,
+            "expected_behavior": self.expected_behavior,
+            "benchmark_status": self.benchmark_status,
+            "research_refs": list(self.research_refs),
+            "known_failure_modes": list(self.known_failure_modes),
+            "promotion_status": self.promotion_status,
+            "is_ensemble": self.is_ensemble,
+            "ensemble_members": list(self.ensemble_members),
+            "min_history": self.min_history,
+            "txn_cost_sensitivity": self.txn_cost_sensitivity,
+        }
+
+
+_ALL = ("risk_on", "risk_off", "inflation")
+_RES_REFS = (
+    "Vuletic (2025), Multi-asset financial markets (repo monograph)",
+    "AI in Asset Management (CFA Research Foundation monograph, repo)",
+)
+
+# Authoritative registry. supported_objectives decide which objective column may
+# select a capability; promotion_status gates what the LIVE path may use.
+STRATEGY_REGISTRY: List[StrategyCapability] = [
+    # --- return-seeking (momentum) ---
+    StrategyCapability("time_series_momentum", "momentum", "src.strategies.momentum_time_series_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="aggressive", min_history=63,
+        txn_cost_sensitivity="high", expected_behavior="Buys trailing 3m winners; strong in trends, whipsaws in chop.",
+        research_refs=_RES_REFS, known_failure_modes=("regime turning points", "high turnover"), fallback_rank=20),
+    StrategyCapability("cross_sectional_momentum", "momentum", "src.strategies.momentum_cross_sectional_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="aggressive", min_history=63,
+        txn_cost_sensitivity="high", expected_behavior="Concentrates in the top-3 momentum assets.",
+        research_refs=_RES_REFS, known_failure_modes=("concentration", "reversals"), fallback_rank=22),
+    StrategyCapability("dual_momentum", "momentum", "src.strategies.momentum_dual_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="aggressive", min_history=126,
+        txn_cost_sensitivity="high", expected_behavior="Absolute+relative momentum vs cash; rotates to cash in downtrends.",
+        research_refs=_RES_REFS, known_failure_modes=("sharp V-shaped recoveries",), fallback_rank=10),
+    StrategyCapability("regime_momentum", "momentum", "src.strategies.momentum_regime_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="aggressive", min_history=63,
+        txn_cost_sensitivity="medium", expected_behavior="Momentum within the regime's preferred bucket.",
+        research_refs=_RES_REFS, known_failure_modes=("regime misclassification",), fallback_rank=18),
+    # --- relative value / mean reversion ---
+    StrategyCapability("relative_value", "relative_value_mean_reversion", "src.strategies.relative_value_strategy",
+        ("max_return_to_risk",), risk_profile="moderate", min_history=63, txn_cost_sensitivity="high",
+        expected_behavior="Contrarian tilt toward recent laggards.", research_refs=_RES_REFS,
+        known_failure_modes=("persistent trends",), fallback_rank=40),
+    StrategyCapability("pairs_trading", "relative_value_mean_reversion", "src.strategies.pairs_trading_strategy",
+        ("max_return_to_risk",), risk_profile="moderate", min_history=63, txn_cost_sensitivity="high",
+        expected_behavior="SPY/TLT mean-reversion pair.", research_refs=_RES_REFS,
+        known_failure_modes=("correlation breakdown",), fallback_rank=44),
+    StrategyCapability("stat_arb_credit", "relative_value_mean_reversion", "src.strategies.stat_arbitrage_strategy",
+        ("max_return_to_risk",), risk_profile="moderate", min_history=63, txn_cost_sensitivity="medium",
+        expected_behavior="LQD/HYG credit-spread reversion.", research_refs=_RES_REFS,
+        known_failure_modes=("credit stress",), fallback_rank=46),
+    StrategyCapability("reversal", "relative_value_mean_reversion", "src.strategies.reversal_strategy",
+        ("max_return_to_risk",), risk_profile="moderate", min_history=42, txn_cost_sensitivity="high",
+        expected_behavior="Short-term (1m) reversal toward laggards.", research_refs=_RES_REFS,
+        known_failure_modes=("momentum regimes",), fallback_rank=48),
+    StrategyCapability("ibs_hybrid_switch", "regime_mean_reversion", "src.strategies.ibs_hybrid_switch_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="aggressive", min_history=200,
+        txn_cost_sensitivity="medium", expected_behavior="Calm: overweight equity; volatile: IBS dip-buy or defend.",
+        research_refs=_RES_REFS, known_failure_modes=("gap-down regimes",), fallback_rank=16),
+    # --- defensive / risk-based ---
+    StrategyCapability("risk_parity", "risk_based", "src.strategies.risk_parity_strategy",
+        ("min_risk", "max_return_to_risk"), risk_profile="defensive", min_history=63, txn_cost_sensitivity="low",
+        expected_behavior="Inverse-vol weighting; balanced risk.", research_refs=_RES_REFS,
+        known_failure_modes=("all-asset drawdowns",), fallback_rank=6),
+    StrategyCapability("minimum_variance", "risk_based", "src.strategies.minimum_variance_strategy",
+        ("min_risk",), risk_profile="defensive", min_history=126, txn_cost_sensitivity="low",
+        expected_behavior="Minimizes portfolio variance; concentrates in low-vol assets.", research_refs=_RES_REFS,
+        known_failure_modes=("estimation error in cov",), fallback_rank=4),
+    StrategyCapability("max_diversification", "risk_based", "src.strategies.max_diversification_strategy",
+        ("min_risk", "max_return_to_risk"), risk_profile="defensive", min_history=126, txn_cost_sensitivity="low",
+        expected_behavior="Maximizes diversification ratio (vol / avg correlation).", research_refs=_RES_REFS,
+        known_failure_modes=("correlation regime shifts",), fallback_rank=8),
+    StrategyCapability("equal_risk_contribution", "risk_based", "src.strategies.equal_risk_contribution_strategy",
+        ("min_risk",), risk_profile="defensive", min_history=126, txn_cost_sensitivity="low",
+        expected_behavior="Equalizes each asset's risk contribution.", research_refs=_RES_REFS,
+        known_failure_modes=("cov estimation",), fallback_rank=7),
+    StrategyCapability("volatility_targeting", "risk_based", "src.strategies.volatility_targeting_strategy",
+        ("min_risk", "max_return_to_risk"), risk_profile="defensive", min_history=126, txn_cost_sensitivity="medium",
+        expected_behavior="Scales risk-parity to a 10% vol target, parking the rest in cash.", research_refs=_RES_REFS,
+        known_failure_modes=("vol spikes lag",), fallback_rank=9),
+    # --- factor ---
+    StrategyCapability("equity_factors", "factor_based", "src.strategies.equity_factor_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="moderate", min_history=126, txn_cost_sensitivity="medium",
+        expected_behavior="Value/momentum/quality/low-vol/size factor tilts.", research_refs=_RES_REFS,
+        known_failure_modes=("factor crowding",), fallback_rank=30),
+    StrategyCapability("macro_factors", "factor_based", "src.strategies.macro_factor_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="moderate", min_history=84, txn_cost_sensitivity="medium",
+        expected_behavior="Growth/inflation/liquidity/real-rate/credit factor tilts.", research_refs=_RES_REFS,
+        known_failure_modes=("macro regime shifts",), fallback_rank=32),
+    StrategyCapability("multi_factor_blend", "factor_based", "src.strategies.multi_factor_blend_strategy",
+        ("max_total_return", "max_return_to_risk"), risk_profile="moderate", min_history=126, txn_cost_sensitivity="medium",
+        expected_behavior="Equal blend of equity + macro factor tilts.", research_refs=_RES_REFS,
+        known_failure_modes=("compound factor decay",), fallback_rank=28),
+    # --- sentiment overlay ---
+    StrategyCapability("fomo_fobi_overlay", "sentiment", "src.strategies.fomo_fobi_overlay_strategy",
+        ("max_return_to_risk", "min_risk"), risk_profile="defensive", min_history=63, txn_cost_sensitivity="medium",
+        expected_behavior="Risk-off on FOMO extremes, risk-on on FOBI (capitulation).",
+        research_refs=("alpha salient metrics (Cosemans-Frehen salience, repo)",) + _RES_REFS,
+        known_failure_modes=("indicator lag",), fallback_rank=36),
+    # --- the guardrailed optimizer, as a first-class capability ---
+    StrategyCapability("sharpe_optimizer", "optimizer", "src.strategies.sharpe_optimizer_strategy",
+        ("max_return_to_risk",), risk_profile="balanced", min_history=126, txn_cost_sensitivity="low",
+        expected_behavior="SLSQP Sharpe maximization with regime guardrails + turnover penalty.",
+        research_refs=_RES_REFS, known_failure_modes=("mean estimation error",), fallback_rank=2),
+    # --- approved governed ensemble ---
+    StrategyCapability("raaal_composite", "ensemble", "src.strategies.raaal_composite_strategy",
+        ("max_return_to_risk", "max_total_return"), risk_profile="balanced", min_history=126,
+        txn_cost_sensitivity="medium", expected_behavior="Equal-weight blend of dual_momentum + sharpe_optimizer + "
+        "risk_parity + multi_factor_blend.", research_refs=_RES_REFS, is_ensemble=True,
+        ensemble_members=COMPOSITE_MEMBERS, fallback_rank=12),
+]
+
+# DRL capabilities are registered but NOT approved for the live path (shadow only).
+if any(spec.name == "drl_portfolio" for spec in DEFAULT_STRATEGIES):
+    STRATEGY_REGISTRY += [
+        StrategyCapability("drl_portfolio", "reinforcement_learning", "src.drl_strategy.drl_portfolio_strategy",
+            ("max_total_return", "max_return_to_risk"), risk_profile="aggressive", benchmark_status="provisional",
+            promotion_status="shadow", expected_behavior="RL portfolio policy.", fallback_rank=80),
+        StrategyCapability("adaptive_rotation", "reinforcement_learning", "src.drl_strategy.adaptive_rotation_strategy",
+            ("max_total_return",), risk_profile="aggressive", benchmark_status="provisional",
+            promotion_status="shadow", expected_behavior="RL regime rotation.", fallback_rank=82),
+    ]
+
+CAPABILITY_BY_ID: Dict[str, StrategyCapability] = {c.id: c for c in STRATEGY_REGISTRY}
+
+
+def strategy_capabilities() -> List[Dict[str, object]]:
+    """The registry as JSON-serializable metadata (for the API / EXPLAIN / UI)."""
+    return [c.as_dict() for c in STRATEGY_REGISTRY]
+
+
+def registry_for_objective(
+    objective: str,
+    regime: Optional[str] = None,
+    promotion: Sequence[str] = ("approved",),
+) -> List[StrategyCapability]:
+    """Eligible capabilities for an objective + regime + promotion status (the pre-selection prune)."""
+    out = []
+    for c in STRATEGY_REGISTRY:
+        if objective not in c.supported_objectives:
+            continue
+        if c.promotion_status not in promotion:
+            continue
+        if regime is not None and regime not in c.allowed_regimes:
+            continue
+        out.append(c)
+    return sorted(out, key=lambda c: c.fallback_rank)
+
+
+def _resolve_implementation(cap: StrategyCapability) -> StrategyFn:
+    module_path, _, fn_name = cap.implementation.rpartition(".")
+    module = importlib.import_module(module_path)
+    fn = getattr(module, fn_name)
+    if not callable(fn):
+        raise TypeError(f"capability {cap.id}: {cap.implementation} is not callable")
+    return fn  # type: ignore[return-value]
+
+
+def run_capability(
+    capability_id: str,
+    prices: pd.DataFrame,
+    returns: pd.DataFrame,
+    regime: Optional[str],
+    context: Optional[Dict[str, object]] = None,
+) -> Dict[str, float]:
+    """Produce weights from a REGISTERED capability's implementation (the only way weights are made)."""
+    cap = CAPABILITY_BY_ID.get(capability_id)
+    if cap is None:
+        raise KeyError(f"unknown strategy capability: {capability_id}")
+    fn = _resolve_implementation(cap)
+    return _normalize_weights(fn(prices, returns, regime, context or {}))
+
+
+def apply_mandate(
+    weights: Dict[str, float],
+    mandate: Optional[Dict[str, object]] = None,
+) -> Tuple[Dict[str, float], List[str]]:
+    """Clip weights to the HARD mandate (long-only, inverse cap, crypto cap, cash floor) and renormalize.
+
+    Returns (constrained_weights, binding_constraints). Applied to every recommendation so no allocation
+    can violate the mandate regardless of which strategy produced it.
+    """
+    m = mandate or MANDATE_CONSTRAINTS
+    binding: List[str] = []
+    w = {t: max(0.0, float(weights.get(t, 0.0))) for t in TICKERS}  # long_only
+
+    inverse = [a.ticker for a in UNIVERSE if a.is_inverse]
+    inv_sum = sum(w[t] for t in inverse)
+    inv_cap = float(m.get("inverse_exposure_cap", 1.0))
+    if inv_sum > inv_cap and inv_sum > 0:
+        scale = inv_cap / inv_sum
+        for t in inverse:
+            w[t] *= scale
+        binding.append(f"inverse_exposure_cap {inv_cap:.0%}")
+
+    crypto_cap = float(m.get("crypto_cap", 1.0))
+    for a in UNIVERSE:
+        if a.asset_class == "crypto" and w[a.ticker] > crypto_cap:
+            w[a.ticker] = crypto_cap
+            binding.append(f"crypto_cap {crypto_cap:.0%}")
+
+    total = sum(w.values())
+    if total <= 0:
+        w = {t: 0.0 for t in TICKERS}
+        w[CASH_TICKER] = 1.0
+        return w, ["minimum_cash (forced all-cash)"]
+    w = {t: v / total for t, v in w.items()}
+
+    floor = float(m.get("minimum_cash", 0.0))
+    if w.get(CASH_TICKER, 0.0) < floor:
+        cash = floor
+        others = {t: v for t, v in w.items() if t != CASH_TICKER}
+        os = sum(others.values())
+        if os > 0:
+            for t in others:
+                w[t] = others[t] / os * (1.0 - cash)
+        w[CASH_TICKER] = cash
+        binding.append(f"minimum_cash {floor:.0%}")
+    return w, binding
 
 
 class StrategySuite:

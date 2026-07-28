@@ -131,15 +131,31 @@ jobs:
           print(f'Dashboard size: {Path(\"reports/regime_dashboard.html\").stat().st_size / 1024 / 1024:.2f} MB')
           "
       
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: raaal-dashboard
-          directory: reports
-          branch: main
-      
+      - name: Publish research artifacts to the live app volume
+        # The live investment-agent (quantife.club) serves the console at / and the nightly Bokeh
+        # dashboard at /research from mounted volumes. Instead of Cloudflare Pages, sync the freshly
+        # built dashboard + parquet history to the host paths the container mounts, then restart it so
+        # the objective columns + /research reflect today's data. Guarded so a missing path/compose
+        # never fails the run (the app falls back to a synthetic snapshot if the parquet is absent).
+        env:
+          RAAAL_DEPLOY_DIR: ${{ secrets.RAAAL_DEPLOY_DIR }}      # e.g. /projects/RAAAL on the proxmox host
+          COMPOSE_FILE: ${{ secrets.INTEGRATED_COMPOSE_FILE }}   # e.g. /projects/agentic-os-stack/integrated.compose.yml
+        run: |
+          set -e
+          if [ -z "${RAAAL_DEPLOY_DIR}" ]; then
+            echo "RAAAL_DEPLOY_DIR not set — skipping live publish (research artifacts still built + uploaded)."
+            exit 0
+          fi
+          echo "Syncing research artifacts to ${RAAAL_DEPLOY_DIR} ..."
+          mkdir -p "${RAAAL_DEPLOY_DIR}/reports" "${RAAAL_DEPLOY_DIR}/data/history"
+          rsync -a --delete reports/ "${RAAAL_DEPLOY_DIR}/reports/"
+          rsync -a data/history/ "${RAAAL_DEPLOY_DIR}/data/history/"
+          if [ -n "${COMPOSE_FILE}" ] && command -v docker >/dev/null 2>&1; then
+            echo "Restarting investment-agent to pick up fresh artifacts ..."
+            docker compose -f "${COMPOSE_FILE}" up -d --no-deps investment-agent || \
+              echo "investment-agent restart skipped (service not in compose yet — see deploy/DEPLOY.md)."
+          fi
+
       - name: Upload dashboard artifact
         uses: actions/upload-artifact@v4
         with:

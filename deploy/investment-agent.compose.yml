@@ -1,0 +1,37 @@
+# investment-agent — merge this service into the shared integrated.compose.yml on proxmox (the same
+# stack that runs redevops.io / vibexgen.io / demo.redevops.io). It joins the existing `agentic` network
+# and is reached only through the shared Cloudflare tunnel (see deploy/DEPLOY.md). Paper-only: the image
+# ships no broker client and no order router.
+services:
+  investment-agent:
+    build:
+      context: ..
+      dockerfile: Dockerfile.agent
+    image: localhost:5000/investment-agent:stable
+    container_name: investment-agent
+    restart: unless-stopped
+    environment:
+      PORT: "8250"
+      RAAAL_STATE_DIR: /data/state              # the three volume-backed records (manifest/portfolio/ledger)
+      RAAAL_PRICES_PATH: /app/data/history/prices.parquet
+      RAAAL_RESEARCH_HTML: /app/reports/regime_dashboard.html
+      CONSOLE_TENANT: "ReDevOps Pilot Development"
+    volumes:
+      - investment_state:/data/state                                   # persists paper book + mission ledger
+      - /projects/agentic-os-src/agentic_os:/app/agentic_os:ro         # shared runtime (bind mount)
+      - /projects/RAAAL/reports:/app/reports:ro                        # nightly Bokeh /research artifact
+      - /projects/RAAAL/data:/app/data:ro                              # nightly parquet history
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    networks:
+      - agentic
+    expose:
+      - "8250"                                   # not published; only the cloudflared sidecar reaches it
+
+volumes:
+  investment_state:
+
+networks:
+  agentic:
+    external: true

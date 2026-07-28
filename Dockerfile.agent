@@ -1,0 +1,33 @@
+# investment-agent — the live Agentic Investment OS (console + API) for quantife.club.
+#
+# One container: serves the operating console at / and the §17 API under /api/investment/*. Lean image
+# (requirements-core, no torch/transformers/RL) — the heavy backtest + Bokeh render happen in CI and are
+# served as the /research artifact from a mounted volume.
+#
+# The shared runtime package `agentic_os` is provided at runtime by a bind mount (see the compose file):
+#   ../agentic-os-src/agentic_os -> /app/agentic_os   (PYTHONPATH=/app makes it importable)
+# so the image stays public-repo-clean. If it is absent the app still serves /health (guarded imports).
+#
+#   docker build -f Dockerfile.agent -t investment-agent .
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app PORT=8250
+
+WORKDIR /app
+
+# core numeric + web stack only (pipeline falls back to exponential-mean when the ML stack is absent)
+COPY requirements-core.txt ./
+RUN pip install --no-cache-dir -r requirements-core.txt \
+    "fastapi>=0.110" "uvicorn[standard]>=0.27" "pyyaml>=6.0"
+
+COPY src ./src
+COPY app ./app
+
+RUN mkdir -p /data/state reports data/history
+
+EXPOSE 8250
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8250/health').status==200 else 1)"
+
+# sh -c so $PORT expands at runtime (parity with the other agentic_os app images)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
