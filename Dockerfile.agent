@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir -r requirements-core.txt \
 
 COPY src ./src
 COPY app ./app
-COPY agentic_os ./agentic_os      # vendored shared runtime (see scripts/vendor_agentic_os.sh)
+# vendored shared runtime (see scripts/vendor_agentic_os.sh)
+COPY agentic_os ./agentic_os
 
 RUN mkdir -p /data/state reports data/history
 
