@@ -72,13 +72,48 @@ Proxy:  Proxied  (orange cloud)
 Once that record exists, quantify.club resolves through the tunnel to `investment-agent:8250`. Nothing
 else is required — the service + ingress rule are already live on proxmox.
 
-## 3. Nightly research artifacts
+## 3. Daily updates — proxmox systemd timer (the reliable path)
 
-`.github/workflows/daily-deploy.yml` still runs the historical backtest + `bokeh_app` (with the DEMO
-banner + legend) and now, instead of Cloudflare Pages, syncs `reports/regime_dashboard.html` +
-`data/history/*.parquet` to `/projects/RAAAL/{reports,data}` on the proxmox host — the volumes the
-container serves from. The live console reads the same parquet for the objective columns; if the parquet
-is absent the app falls back to a deterministic synthetic series so it always renders.
+The GitHub Actions self-hosted runner (`ROG-Strix`) is intermittent and off-box, so daily refresh runs
+**on proxmox** where the container + volumes live. `scripts/nightly_refresh.sh` runs the backtest +
+Bokeh build inside the lean `investment-agent` image and writes fresh `data/history/*.parquet` +
+`reports/regime_dashboard.html` into `/projects/RAAAL/{data,reports}`. The console reads the parquet on
+every request and `/research` is a file read, so **no restart is needed** — the site updates on the next
+page load. If the parquet is ever absent the console falls back to a deterministic synthetic snapshot.
+
+Install the timer (once):
+
+```bash
+ssh proxmox
+sudo tee /etc/systemd/system/raaal-nightly.service >/dev/null <<'UNIT'
+[Unit]
+Description=RAAAL nightly research refresh (quantify.club)
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+ExecStart=/projects/RAAAL/scripts/nightly_refresh.sh
+UNIT
+sudo tee /etc/systemd/system/raaal-nightly.timer >/dev/null <<'UNIT'
+[Unit]
+Description=Run the RAAAL nightly refresh daily
+[Timer]
+OnCalendar=*-*-* 07:00:00 UTC
+Persistent=true
+[Install]
+WantedBy=timers.target
+UNIT
+chmod +x /projects/RAAAL/scripts/nightly_refresh.sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now raaal-nightly.timer
+systemctl start raaal-nightly.service      # run the first refresh now
+systemctl list-timers raaal-nightly.timer  # confirm next run
+tail -f /projects/RAAAL/reports/nightly.log
+```
+
+The GitHub Actions `daily-deploy.yml` is kept as an optional secondary path: when `ROG-Strix` is online
+it builds the dashboard and, if `RAAAL_DEPLOY_DIR` + `INTEGRATED_COMPOSE_FILE` secrets are set and the
+runner can reach the host, syncs artifacts too. The proxmox timer is authoritative.
 
 ## 4. Smoke test after deploy
 
