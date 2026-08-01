@@ -60,9 +60,17 @@ immediately exposed a real defect:
 ## Quick start
 
 ```bash
-pip install -r requirements-core.txt
+pip install -r requirements-core.txt   # or requirements-core.lock, pinned
 python3 -m pytest tests/ -q
-uvicorn src.api:app --reload         # /ui library · /workspace private scenarios
+uvicorn src.api:app --reload           # /ui library · /workspace private scenarios
+```
+
+Market data is **not** in the repository — it is vendor-licensed. Without it five
+tests skip with a message naming this command, and the result panels render
+empty; everything else runs from a clone alone:
+
+```bash
+python3 -m src.history --start 2015-01-01 --end $(date +%F) --step 5
 ```
 
 Describing a scenario in prose uses a language model for **stage 1 of the

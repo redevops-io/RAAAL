@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from src.ledger import Ledger
 from src.web.chain import CHAIN_ORDER
+from tests.conftest import requires_price_history
 
 
 @pytest.fixture
@@ -60,6 +61,7 @@ class TestArtifactChain:
         for step, _domain in CHAIN_ORDER:
             assert step in chain, f"artifact chain is missing the {step} step"
 
+    @requires_price_history
     def test_chain_shows_concrete_artifact_ids(self, client):
         """Not labels — the actual versioned identifiers a result cites."""
         chain = client.get("/ui/m/hrp/3").text.split("Artifact chain")[1]
@@ -90,6 +92,7 @@ class TestProvenanceIsVisible:
         assert "Limitations" in text
         assert "not a replication of that paper" in text
 
+    @requires_price_history
     def test_result_names_the_protocol_that_produced_it(self, client):
         """`methodology + protocol = performance` — a figure citing only the
         methodology would be irreproducible."""
@@ -103,6 +106,7 @@ class TestProvenanceIsVisible:
         assert "Configurations attempted" in text
         assert "multiple-testing correction" in text
 
+    @requires_price_history
     def test_statistics_explain_what_they_account_for(self, client):
         text = visible_text(client.get("/ui/m/hrp/3").text)
         assert "DSR" in text
