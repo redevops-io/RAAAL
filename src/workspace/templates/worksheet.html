@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ view.title }}{% endblock %}
+{% block content %}
+
+{# Renders what the view model resolved. Calculates nothing: every figure here
+   came out of a stored run, because a number derived at render time is a second
+   implementation of the engine living in the view layer. #}
+
+<h1>{{ view.title }}</h1>
+<p class="small muted">
+  Revision {{ view.worksheet.revision }} ·
+  <span class="mono">{{ view.worksheet.canonical_hash[:24] }}</span>
+  {% if view.worksheet.change_reason %} · {{ view.worksheet.change_reason }}{% endif %}
+</p>
+
+{% if view.unresolved_references %}
+<div class="blocked">
+  <strong>Some references could not be resolved.</strong>
+  <ul>{% for reference in view.unresolved_references %}
+    <li class="small">{{ reference }}</li>{% endfor %}</ul>
+  <p class="small muted" style="margin:8px 0 0">
+    Reported rather than dropped. A section that vanishes reads as though there
+    were nothing to report, which is a different claim.
+  </p>
+</div>
+{% endif %}
+
+{% for block in view.blocks %}
+<h2>{{ block.title }}</h2>
+{% if not block.available %}
+<div class="panel muted small">{{ block.unavailable_because }}</div>
+{% else %}
+<div class="panel">
+  <table class="plan">
+    {% for key, value in block.payload.items() %}
+    <tr><th>{{ key.replace('_', ' ') }}</th><td class="mono small">{{ value }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if revisions|length > 1 %}
+<h2>Revisions</h2>
+<div class="panel">
+  <ul>{% for entry in revisions %}
+    <li class="small">
+      <a href="/workspace/research/{{ view.worksheet.worksheet_id }}?revision={{ entry.revision }}">
+        Revision {{ entry.revision }}</a>
+      {% if entry.payload.change_reason %} — {{ entry.payload.change_reason }}{% endif %}
+    </li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% endblock %}

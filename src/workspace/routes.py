@@ -541,3 +541,91 @@ def counterfactual(request: Request, plan_id: str, constraint: str = "a blackout
                             if d not in verdict.differing_dimensions],
          "unavailable": None},
     )
+
+
+# --- research worksheets ---------------------------------------------------
+#
+# Three operations that look alike and must stay apart:
+#
+#     GET    /research/{id}              read the saved worksheet
+#     POST   /research/{id}/reinterpret  compile the original words again
+#     POST   /research/{id}/rerun        simulate again
+#
+# Only the first is what reopening owes. The plan page conflated them once —
+# recompiling stored prose and simulating the fresh interpretation while
+# displaying the stored scenario — and it reached compilation through a helper
+# rather than directly, which is why the read path below takes no text at all.
+
+@router.get("/research/{worksheet_id}", response_class=HTMLResponse)
+def open_worksheet(request: Request, worksheet_id: str,
+                   revision: Optional[int] = None):
+    """Resolve stored references and render them. Nothing else.
+
+    Side-effect free by construction: it has nowhere to pass original text, and
+    a test asserts it names no compiler, simulator or writer.
+    """
+    from .worksheet import from_json
+    from .worksheet_view import build as build_worksheet_view
+
+    store = _store()
+    record = store.get_worksheet(worksheet_id, PILOT_OWNER, revision)
+    if record is None:
+        raise HTTPException(status_code=404,
+                            detail=f"no worksheet {worksheet_id!r}")
+
+    worksheet = from_json(record["payload"])
+    view = build_worksheet_view(worksheet, store=store, owner=PILOT_OWNER)
+    return TEMPLATES.TemplateResponse(
+        request, "worksheet.html",
+        {"view": view,
+         "revisions": store.worksheet_revisions(worksheet_id, PILOT_OWNER)},
+    )
+
+
+@router.post("/research/{worksheet_id}/reinterpret")
+def reinterpret_worksheet(worksheet_id: str):
+    """What today's compiler makes of the same words.
+
+    Deliberately a separate, explicit action. Adopting a new interpretation
+    changes what a saved worksheet means, and only its owner can agree to that —
+    so this returns a proposal and writes nothing.
+    """
+    from .worksheet import from_json
+
+    store = _store()
+    record = store.get_worksheet(worksheet_id, PILOT_OWNER)
+    if record is None:
+        raise HTTPException(status_code=404,
+                            detail=f"no worksheet {worksheet_id!r}")
+
+    worksheet = from_json(record["payload"])
+    plan = store.get_plan(worksheet.scenario_ref, PILOT_OWNER)
+    if plan is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"worksheet {worksheet_id} cites scenario "
+                    f"{worksheet.scenario_ref}, which is not in this workspace"))
+
+    compiled = compile_scenario(plan["stated_text"], name=worksheet.scenario_ref,
+                                version=1, benchmark_rule=BENCHMARK_RULE,
+                                parsed=_pinned_parse(plan))
+    return {"worksheet_id": worksheet_id,
+            "revision": worksheet.revision,
+            "migration": migration_for(worksheet.scenario_ref, plan["scenario"],
+                                       compiled),
+            "applied": False}
+
+
+@router.post("/research/{worksheet_id}/rerun")
+def rerun_worksheet(worksheet_id: str):
+    """Simulate the stored scenario again, against today's data.
+
+    Also separate, and also not something reopening does. A rerun produces a new
+    run and therefore a new worksheet revision; it never overwrites the figures
+    a saved worksheet cites.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail=("rerun is not implemented yet. It must create a new run and a "
+                "new worksheet revision rather than refresh the stored one, so "
+                "it is left unbuilt rather than approximated"))

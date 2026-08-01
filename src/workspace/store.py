@@ -297,6 +297,24 @@ class WorkspaceStore:
             ).fetchone()
         return self._hydrate(row) if row else None
 
+    def get_run(self, run_id: str, owner: str) -> Optional[Dict[str, Any]]:
+        """One run by id, scoped by owner through its plan.
+
+        Exists because a worksheet pins an exact run. Resolving through
+        `runs_for(...)[0]` would hand back the *newest* run for the plan, which
+        is how a saved worksheet silently starts showing figures it never cited.
+        """
+        with self._conn() as conn:
+            row = conn.execute(
+                """SELECT plan_run.* FROM plan_run
+                   JOIN plan ON plan.plan_id = plan_run.plan_id
+                   WHERE plan_run.run_id = ? AND plan.owner = ?""",
+                (run_id, owner)).fetchone()
+        if row is None:
+            return None
+        return {**dict(row), "result": json.loads(row["result"]),
+                "comparison": json.loads(row["comparison"])}
+
     def runs_for(self, plan_id: str, owner: str) -> List[Dict[str, Any]]:
         if self.get_plan(plan_id, owner) is None:
             return []
