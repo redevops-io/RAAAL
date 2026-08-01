@@ -1,0 +1,33 @@
+name: hrp-sharpe-implausible
+version: 1
+outcome: FINDING_RECORDED
+opened_at: '2026-07-30'
+closed_at: '2026-07-30'
+
+question: >-
+  Why does methodology/hrp@1 report a Sharpe ratio of 6.59 on a diversified
+  multi-asset universe, when published multi-asset risk-parity results cluster
+  an order of magnitude below that?
+
+motivation: >-
+  The figure was not challenged by any check in place at the time. It passed
+  every test, satisfied its output contract, and was arithmetically correct.
+  It was opened because the number was implausible, which is a judgement no
+  automated gate was making.
+
+examined:
+  - methodology/hrp@1
+  - methodology/hrp@2
+  - assumption/sample-covariance@1
+  - evidence/lopez-de-prado-2016@1
+
+findings:
+  - finding/hrp-degenerates-to-cash-proxy@1
+
+trials_examined: 4
+
+resolution: >-
+  Concluded with a finding. The inquiry also produced the degeneracy diagnostics
+  now applied to every result — concentration, degenerate volatility, implausible
+  Sharpe and effective breadth — so the next instance is caught by a gate rather
+  than by someone noticing.

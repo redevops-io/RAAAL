@@ -1,0 +1,56 @@
+name: hrp-degenerates-to-cash-proxy
+version: 1
+status: CONCLUDED
+opened_at: '2026-07-30'
+concluded_at: '2026-07-30'
+
+statement: >-
+  Hierarchical risk parity degenerates into a cash proxy when the universe
+  contains a near-zero-variance instrument and no per-asset ceiling is imposed.
+  Recursive bisection allocates inverse-variance, so an instrument whose variance
+  approaches zero absorbs an unbounded share of the portfolio. This is a property
+  of the method, not an implementation error, and the source paper does not
+  address it because it demonstrates HRP on assets of comparable risk.
+
+supported_by:
+  - evidence/raaal-cash-degeneracy-2026@1
+  - evidence/raaal-capped-hrp-2026@1
+  - evidence/lopez-de-prado-2016@1
+
+impacts:
+  - target: claim/hrp-diversifies-without-constraints@1
+    relation: REFUTES
+    detail: >-
+      The claim asserts HRP diversifies without explicit constraints. It allocated
+      99.6% to BIL with an effective breadth of 1.01 assets.
+  - target: claim/hrp-outperforms-mvo-out-of-sample@1
+    relation: QUALIFIES
+    detail: >-
+      The source claim survives, narrowed: it holds for universes of
+      comparable-risk assets, not for any universe.
+  - target: methodology/hrp@1
+    relation: INVALIDATES_RESULTS_OF
+    detail: >-
+      Its reported Sharpe of 6.59 was cash return divided by cash volatility.
+      The figure is arithmetically correct and economically meaningless.
+  - target: methodology/hrp@2
+    relation: INVALIDATES_RESULTS_OF
+    detail: Same degeneracy; the turnover cap does not address concentration.
+  - target: methodology/hrp@3
+    relation: MOTIVATED
+    detail: >-
+      Created in response, imposing a 25% per-asset ceiling — the smallest change
+      that makes the allocation describe the methodology rather than describing BIL.
+  - target: assumption/hard-bounds-beat-soft-turnover@1
+    relation: INTRODUCED
+    detail: >-
+      Imposing a ceiling surfaced a conflict with the turnover cap, forcing the
+      precedence rule to be declared rather than resolved in executor code.
+
+resolution: >-
+  Published methodology/hrp@3 with a 25% per-asset ceiling; effective breadth
+  6.37 assets, Sharpe 0.53, no diagnostic flags. Added result-level degeneracy
+  diagnostics (concentration, degenerate volatility, implausible Sharpe,
+  effective breadth) that refuse publication of a flagged result. hrp@1 and
+  hrp@2 remain published and reachable; their results are not deleted, and the
+  publication gate now blocks them rather than the library hiding them.

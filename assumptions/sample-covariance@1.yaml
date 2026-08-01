@@ -1,0 +1,26 @@
+name: sample-covariance
+version: 1
+kind: ESTIMATION
+statement: >-
+  An equal-weighted sample covariance over the lookback window is an adequate
+  estimator for correlation-based hierarchical clustering.
+
+risk: >-
+  The source paper does not specify an estimator. Two faithful implementations
+  differing only on this point produce different allocations and different
+  published returns — a 0.50% divergence was measured between the sample and
+  exponentially-weighted variants of the same methodology. This is the
+  non-standard error Menkveld et al. (2024) measured across 164 teams.
+
+realized_by:
+  - artifact_kind: methodology
+    field: params.covariance_estimator
+    value: sample
+
+validated_by:
+  - test: tests/test_executor.py::TestParametersDriveComputation::test_covariance_estimator_is_honoured
+
+history:
+  - >-
+    Undeclared until 2026-07-30. Discovered when a spec-driven evaluation
+    diverged from the engine by 0.50% with no other difference.

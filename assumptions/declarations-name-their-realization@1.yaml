@@ -1,0 +1,40 @@
+name: declarations-name-their-realization
+version: 1
+kind: CONSTRAINT_POLICY
+statement: >-
+  Every declaration in the system identifies what realizes it, and the
+  realization is checkable. A claim is realized by evidence, an assumption by
+  tests, a methodology by the executor, a protocol by the runner, a calendar by
+  its session generator, a policy by the publication engine, and a rule by a
+  contract field or pipeline stage.
+
+risk: >-
+  A declarative system has two failure modes. Behaviour without declaration is a
+  hidden choice that moves a published number while living nowhere in an
+  artifact — the defect class of every erratum in this project. Declaration
+  without behaviour is the complement: a declared rule that appears to take
+  effect and does not, which is arguably worse because declaring it creates the
+  belief that it is checked. Without this principle the system eliminates the
+  first failure mode while accumulating the second.
+
+realized_by:
+  - artifact_kind: methodology
+    field: rules[].enforced_by
+  - artifact_kind: methodology
+    field: universe_filters[].enforced_by
+  - artifact_kind: assumption
+    field: validated_by
+  - artifact_kind: claim
+    field: depends_on
+
+validated_by:
+  - test: tests/test_executor.py::TestDeclarationsAreRealized::test_every_shipped_declaration_is_realized
+  - test: tests/test_executor.py::TestDeclarationsAreRealized::test_drifted_rule_fails_verification
+  - test: tests/test_knowledge.py::TestShippedKnowledge::test_shipped_assumptions_are_all_validated
+
+history:
+  - >-
+    Introduced 2026-07-31 by finding/declared-rules-do-not-execute@1, which was
+    itself surfaced by adding a second methodology family. The first four
+    releases eliminated behaviour without declaration; this closes the
+    complementary gap.

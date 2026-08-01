@@ -1,0 +1,19 @@
+name: raaal-cash-degeneracy-2026
+version: 1
+kind: PLATFORM_RESULT
+identifier: run/hrp@1-x-standard@1
+about: claim/hrp-diversifies-without-constraints@1
+stance: CONTRADICTS
+strength: strong
+valid_from: '2026-07-30'
+summary: >-
+  Evaluating methodology/hrp@1 over a nine-ETF universe containing BIL, a cash
+  proxy, allocated 99.6% of the portfolio to BIL with an effective breadth of
+  1.01 assets. Recursive bisection allocates inverse-variance, so a
+  near-zero-variance instrument absorbs the portfolio. The reported Sharpe of
+  6.59 was cash return divided by cash volatility rather than risk-adjusted
+  performance. Without an explicit weight ceiling the allocation was not
+  diversified — which is what this claim asserts it would be.
+produced_by:
+  - methodology/hrp@1
+  - protocol/standard@1

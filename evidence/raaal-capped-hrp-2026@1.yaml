@@ -1,0 +1,18 @@
+name: raaal-capped-hrp-2026
+version: 1
+kind: PLATFORM_RESULT
+identifier: run/hrp@3-x-long-warmup@1
+about: claim/hrp-outperforms-mvo-out-of-sample@1
+stance: QUALIFIES
+strength: moderate
+valid_from: '2026-07-30'
+summary: >-
+  methodology/hrp@3 imposes a 25% per-asset ceiling and produces an effective
+  breadth of 6.37 assets with a Sharpe of 0.53. The method behaves as described
+  once the universe is constrained, which narrows rather than refutes the source
+  claim: it holds for universes of comparable-risk assets, not for any universe.
+  Note the ceiling is not part of the published method, so results under hrp@3
+  are not a replication of the source paper.
+produced_by:
+  - methodology/hrp@3
+  - protocol/long-warmup@1

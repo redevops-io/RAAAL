@@ -1,0 +1,13 @@
+name: jegadeesh-titman-1993
+version: 1
+kind: PAPER
+identifier: doi:10.1111/j.1540-6261.1993.tb04702.x
+about: claim/cross-sectional-momentum-persists@1
+stance: SUPPORTS
+strength: strong
+valid_from: '1993-03-01'
+summary: >-
+  Returns to Buying Winners and Selling Losers, Journal of Finance 48(1).
+  Documents continuation in relative performance over three- to twelve-month
+  horizons across a broad cross-section of US equities, 1965-1989, with the most
+  recent month skipped.

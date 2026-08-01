@@ -1,0 +1,49 @@
+name: joined-panel-inherits-widest-calendar
+version: 1
+status: CONCLUDED
+opened_at: '2026-07-30'
+concluded_at: '2026-07-30'
+
+statement: >-
+  A price panel joined across instruments with different trading calendars
+  inherits the union of their sessions. Forward-filling a five-session instrument
+  onto a seven-day index manufactures zero-return observations that are not
+  market data — deflating realized volatility and mis-scaling any annualization
+  that assumes a session count the data does not have.
+
+supported_by:
+  - evidence/raaal-calendar-contamination-2026@1
+
+impacts:
+  - target: assumption/nyse-sessions@1
+    relation: INTRODUCED
+    detail: >-
+      Forced the trading calendar to be declared as a referenced artifact
+      (calendar/nyse@1) rather than assumed by the panel's accidental index.
+  - target: assumption/adjusted-close-is-restated@1
+    relation: INTRODUCED
+    detail: >-
+      Investigating the panel also established that a declared date range does
+      not identify data — only a content hash does.
+  - target: erratum/2026-07-30-02
+    relation: CORRECTED
+    detail: Published as a material erratum superseding the figures it affected.
+  - target: methodology/hrp@3
+    relation: INVALIDATES_RESULTS_OF
+    detail: >-
+      Annualized 1.3664% -> 2.2892% and volatility 3.1879% -> 4.0939% once
+      weekend padding was removed; a further correction to 2.2094% once NYSE
+      holidays were excluded.
+  - target: erratum/2026-07-30-01
+    relation: INVALIDATES_RESULTS_OF
+    detail: >-
+      The earlier erratum's absolute levels were computed on the contaminated
+      calendar. Its relative conclusion — that the look-ahead was the dominant
+      correction — is unchanged.
+
+resolution: >-
+  Trading calendars became versioned artifacts with rule-based holidays
+  (calendar/nyse@1, calendar/crypto@1), each declaring the range it covers and
+  refusing to extrapolate beyond it. Protocols reference a calendar rather than
+  naming a rule inline, and annualization reads the session count from the
+  calendar instead of a hardcoded 252. Erratum 2026-07-30-02 published.

@@ -1,0 +1,18 @@
+name: raaal-calendar-contamination-2026
+version: 1
+kind: PLATFORM_RESULT
+identifier: erratum/2026-07-30-02
+about: claim/hrp-outperforms-mvo-out-of-sample@1
+stance: QUALIFIES
+strength: strong
+valid_from: '2026-07-30'
+summary: >-
+  The joined price panel carried a seven-day index because BTC-USD trades at
+  weekends, so 31.1% of daily returns were zeros that are not market data.
+  Measured against the corrected NYSE-session panel, annualized return and
+  volatility both moved by roughly 0.9 percentage points. Any claim about
+  out-of-sample performance is conditional on the session calendar the
+  performance was measured over.
+produced_by:
+  - protocol/standard@1
+  - calendar/nyse@1

@@ -1,0 +1,34 @@
+name: cost-model-vs-realized-spreads
+version: 1
+outcome: INCONCLUSIVE
+opened_at: '2026-07-31'
+closed_at: '2026-07-31'
+
+question: >-
+  Is the flat 10bps transaction cost in protocol/standard@1 an adequate stand-in
+  for realized costs across this universe, or does it systematically flatter
+  instruments with wider spreads?
+
+motivation: >-
+  A flat cost applied to a universe spanning treasury ETFs and crypto is
+  unlikely to be right for both. The concern was raised when execution lag and
+  costs were first introduced and was deferred rather than answered.
+
+examined:
+  - protocol/standard@1
+  - methodology/hrp@3
+  - methodology/xsmom@1
+  - assumption/one-session-execution-lag@1
+
+trials_examined: 0
+
+resolution: >-
+  Could not be settled with the data available. Answering it requires
+  instrument-level historical spread and volume data that this platform does not
+  hold, and substituting a modelled spread would have replaced one undeclared
+  assumption with another wearing more decimal places.
+
+  Recorded as inconclusive rather than closed. The 10bps figure stands as a
+  declared assumption whose adequacy is explicitly unverified — which is a
+  weaker position than a validated cost model and a much stronger one than an
+  unexamined constant.

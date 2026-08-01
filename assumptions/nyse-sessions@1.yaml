@@ -1,0 +1,29 @@
+name: nyse-sessions
+version: 1
+kind: MARKET_STRUCTURE
+statement: >-
+  Returns are observed on NYSE regular sessions — Monday to Friday excluding
+  exchange holidays — and there are 252 such sessions per year.
+
+risk: >-
+  A price panel joined across instruments with different calendars inherits the
+  union. Forward-filling a five-session instrument onto a seven-day index
+  manufactures zero-return observations that are not market data, deflating
+  realized volatility and mis-scaling annualization.
+
+realized_by:
+  - artifact_kind: protocol
+    field: walk_forward.calendar
+    value: nyse@1
+  - artifact_kind: calendar
+    field: weekmask
+    value: [0, 1, 2, 3, 4]
+
+validated_by:
+  - test: tests/test_calendars.py::TestNyseCalendar::test_filtering_removes_weekends_and_holidays
+  - test: tests/test_calendars.py::TestProtocolIntegration::test_protocols_reference_a_calendar_artifact
+
+history:
+  - >-
+    Undeclared until 2026-07-30. BTC-USD forced a seven-day index and 31.1% of
+    daily returns were weekend padding. See Erratum 2026-07-30-02.

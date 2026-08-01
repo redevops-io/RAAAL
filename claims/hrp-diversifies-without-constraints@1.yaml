@@ -1,0 +1,15 @@
+name: hrp-diversifies-without-constraints
+version: 1
+statement: >-
+  Hierarchical risk parity produces a diversified allocation without needing
+  explicit per-asset weight constraints.
+
+scope: Any long-only multi-asset universe.
+
+depends_on:
+  - assumption/sample-covariance@1
+
+change_rationale: >-
+  Stated separately from the outperformance claim because it is the one this
+  platform's own results bear on directly, and because a methodology can rely on
+  either without relying on both.

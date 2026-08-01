@@ -1,0 +1,25 @@
+name: skip-most-recent-period
+version: 1
+kind: ESTIMATION
+statement: >-
+  The most recent period is excluded from the momentum formation window, because
+  short-horizon reversal contaminates the continuation signal.
+
+risk: >-
+  An implementation without the skip measures a different effect. The source
+  literature reports that including the most recent month materially weakens or
+  reverses the result, so two implementations differing only on this point are
+  not testing the same claim.
+
+realized_by:
+  - artifact_kind: methodology
+    field: params.skip
+    value: 21
+
+validated_by:
+  - test: tests/test_executor.py::TestMomentumFamily::test_skip_changes_the_signal
+
+history:
+  - >-
+    Declared at first publication of the momentum lineage rather than discovered
+    by defect — the first assumption in this project to be declared proactively.

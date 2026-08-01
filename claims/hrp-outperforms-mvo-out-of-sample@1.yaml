@@ -1,0 +1,16 @@
+name: hrp-outperforms-mvo-out-of-sample
+version: 1
+statement: >-
+  Quasi-diagonalization of the correlation matrix followed by recursive bisection
+  produces out-of-sample performance superior to mean-variance optimization,
+  because it does not require inverting an ill-conditioned covariance matrix.
+
+scope: >-
+  Asserted for portfolios of assets with broadly comparable risk. The source
+  paper does not address universes containing a near-zero-variance instrument.
+
+depends_on:
+  - assumption/sample-covariance@1
+  - assumption/nyse-sessions@1
+
+change_rationale: Initial publication, extracted from the source paper's abstract.

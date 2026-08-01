@@ -1,0 +1,31 @@
+name: declared-rules-are-inert
+version: 1
+outcome: FINDING_RECORDED
+opened_at: '2026-07-31'
+closed_at: '2026-07-31'
+
+question: >-
+  Do the `rules` and `universe_filters` a methodology declares actually
+  constrain what the executor does, or are they documentation that happens to
+  be hashed?
+
+motivation: >-
+  Opened as a deliberate audit rather than in response to a defect. Every
+  previous erratum had been a hidden choice that turned out to matter; this
+  asked the inverse question — whether any visible choice turned out not to.
+
+examined:
+  - methodology/hrp@3
+  - methodology/xsmom@1
+  - evidence/inert-declarations-2026@1
+
+findings:
+  - finding/declared-rules-do-not-execute@1
+
+trials_examined: 0
+
+resolution: >-
+  Concluded with a finding. Rules now carry `enforced_by`, the contract verifier
+  refuses a declaration with no realization, and `unrealized_declaration` is a
+  hard publication blocker. The audit found the failure mode it went looking
+  for, which is the argument for running it again on the next artifact type.

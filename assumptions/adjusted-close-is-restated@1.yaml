@@ -1,0 +1,23 @@
+name: adjusted-close-is-restated
+version: 1
+kind: DATA
+statement: >-
+  Vendor adjusted-close history is restated over time for splits and dividends,
+  so a date range does not identify the data — only a content hash does.
+
+risk: >-
+  Two runs over the same declared period can see different numbers. Without a
+  snapshot hash on the run record, an irreproducible result is indistinguishable
+  from a reproducible one.
+
+realized_by:
+  - artifact_kind: protocol
+    field: data_snapshot.content_hash
+
+validated_by:
+  - test: tests/test_evaluation.py::TestIdentity::test_snapshot_binding_does_not_change_identity
+
+history:
+  - >-
+    Recognized 2026-07-30 while separating protocol identity from run-time data
+    binding: the realized panel hash belongs to the run, not the procedure.
