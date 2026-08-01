@@ -52,6 +52,7 @@ from ..mission.scenario import UNSIMULATED
 from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
+from .confirmation import build as build_confirmation
 from .store import NotSaveable, WorkspaceStore
 
 #: Two search paths: the workspace's own templates, and the shared design
@@ -332,6 +333,7 @@ def new_plan(request: Request, describe: str = ""):
             "describe": describe,
             "result": compiled,
             "confirmation": compiled.confirmation(),
+            "view": build_confirmation(compiled, text=describe),
             "parse": json.dumps(stage1.parsed.to_json()),
             "parse_provenance": stage1.provenance,
             "chain": build_scenario_chain(

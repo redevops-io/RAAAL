@@ -114,8 +114,8 @@ class TestProseToConfirmation:
     def test_a_description_produces_the_confirmation_groups(self, client):
         page = text(client.get("/workspace/new", params={"describe": INFERRING}).text)
 
-        assert "You stated" in page
-        assert "We inferred" in page
+        assert "understood directly from what you wrote" in page
+        assert "Please confirm" in page
 
     def test_a_fully_specified_plan_infers_nothing(self, client):
         """Asking about choices the user already made is noise, and asking about
@@ -123,15 +123,15 @@ class TestProseToConfirmation:
         that does not exist in it."""
         page = text(client.get("/workspace/new", params={"describe": COMPLETE}).text)
 
-        assert "We inferred" not in page
-        assert "We still need" not in page
+        assert "Please confirm" not in page
+        assert "1 question" not in page and "2 questions" not in page
         assert "Ready to save" in page
 
     def test_a_contradiction_is_shown_and_not_resolved_for_the_user(self, client):
         page = text(client.get("/workspace/new",
                                params={"describe": CONTRADICTORY}).text)
 
-        assert "These conflict" in page
+        assert "Choose which you meant" in page
         assert "picking one for you would run a plan you did not describe" in page
 
     def test_inferences_name_the_versioned_default_set(self, client):
@@ -449,4 +449,4 @@ class TestStageOneIsPinnedToTheSavedPlan:
         monkeypatch.setattr(routes, "_parser_client", lambda: Broken())
         page = client.get("/workspace/new", params={"describe": COMPLETE})
         assert page.status_code == 200
-        assert "Before this runs" in text(page.text)
+        assert "Here is what we understood" in text(page.text)
