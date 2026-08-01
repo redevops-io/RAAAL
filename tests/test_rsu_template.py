@@ -210,10 +210,16 @@ class TestTheComparisonTheTemplateExistsToMake:
         assert hold.path.contributed == pytest.approx(diversify.path.contributed)
 
     def test_the_comparison_isolates_the_disposition(self, prices, inputs):
+        # Every dimension pinned. "Same vests, same costs, same period" is a
+        # claim about what was held identical, and under classifier @2 a
+        # dimension nobody pinned was not held identical — it was not looked at.
         conditions = RunConditions(
             flow_schedule_hash="rsu-vest-schedule", starting_capital=0.0,
             cash_policy_rate=0.0, tax_treatment="NONE_APPLIED", cost_bps=10.0,
-            execution_lag=1, period_start="2021-01-04", period_end="2023-01-01")
+            execution_lag=1, period_start="2021-01-04", period_end="2023-01-01",
+            allocation_rule_hash="rsu-disposition", data_snapshot="prices@2023-01-01",
+            account_hash="account/taxable@1", calendar_hash="calendar/nyse@1",
+            market_data_hash="market-data/test@1")
         verdict = classify(conditions, conditions)
 
         assert verdict.attribution_isolated, (

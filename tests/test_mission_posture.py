@@ -280,10 +280,15 @@ class TestScenarioSeparatesRuleFromMoney:
 
 
 class TestTwoComparisonClasses:
+    #: Pins the runtime dimensions. Under classifier @2 an absent value is
+    #: NOT_EVALUATED rather than a match, so "identical conditions" has to
+    #: include what the runtimes were — otherwise the comparison claims an
+    #: isolation it never established.
     BASE = dict(flow_schedule_hash="h1", starting_capital=0.0,
                 cash_policy_rate=0.0, tax_treatment="NONE_APPLIED",
                 cost_bps=10.0, execution_lag=1,
-                period_start="2020-01-01", period_end="2025-01-01")
+                period_start="2020-01-01", period_end="2025-01-01", allocation_rule_hash="r1", data_snapshot="s1",
+                account_hash="a1", calendar_hash="c1", market_data_hash="m1")
 
     def test_identical_conditions_isolate_the_rule(self):
         verdict = classify(RunConditions(**self.BASE), RunConditions(**self.BASE))

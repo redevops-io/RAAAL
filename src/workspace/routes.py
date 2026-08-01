@@ -54,6 +54,7 @@ from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
 from .confirmation import build as build_confirmation
 from .comparability_record import as_payload as comparability_payload
+from .environment import pins_for
 from .comparability_record import record as comparability_records
 from .generate import generate as generate_worksheet
 from .store import NotSaveable, WorkspaceStore
@@ -277,12 +278,24 @@ def _run(scenario, prices: pd.DataFrame,
     # scenario would look enforced and the figure would silently ignore it.
     scope = declare_unsimulated(scenario, scope)
 
+    # Pin what this run actually used, before it runs. Left empty, the
+    # classifier compares two absences — and before classifier@2 reported them
+    # equal, so a stored verdict claimed the account treatment was checked when
+    # nothing was. An unpinnable runtime becomes a declared limitation on the
+    # result rather than a blank, which is why this must happen before the scope
+    # is handed to `simulate` rather than after.
+    snapshot = f"prices@{sessions[-1].date()}"
+    pins = pins_for(scenario, snapshot=snapshot)
+    if pins.unpinned:
+        scope = {**scope, "unpinned_runtimes": pins.limitations()}
+
     result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
                       cash_policy=policy, modelling_scope=scope)
     specs = _benchmark_specs(prices, tradeable)
     benchmarks = compare(prices, flows=flows, cash_policy=policy, benchmarks=specs)
 
     conditions = RunConditions(
+        **pins.as_conditions(),
         flow_schedule_hash=scenario.flow_schedule.schedule_hash,
         starting_capital=scenario.flow_schedule.starting_capital,
         cash_policy_rate=policy.annual_rate,
@@ -290,7 +303,7 @@ def _run(scenario, prices: pd.DataFrame,
         cost_bps=10.0, execution_lag=1,
         period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
         allocation_rule_hash=scenario.rule_hash,
-        data_snapshot=f"prices@{sessions[-1].date()}",
+        data_snapshot=snapshot,
     )
     # One verdict per benchmark, computed here and stored with the run. The
     # worksheet reads them; it never recomputes. Every benchmark shares the
@@ -552,14 +565,20 @@ def counterfactual(request: Request, plan_id: str, constraint: str = "a blackout
         )
 
     sessions = prices.index
+    # Pinned here too. A counterfactual claims the *only* difference is the
+    # constraint, which under classifier @2 requires that every other dimension
+    # was actually evaluated rather than absent on both sides.
+    snapshot = f"prices@{sessions[-1].date()}"
+    pins = pins_for(scenario, snapshot=snapshot)
     common = dict(
+        **pins.as_conditions(),
         flow_schedule_hash=scenario.flow_schedule.schedule_hash,
         starting_capital=scenario.flow_schedule.starting_capital,
         cash_policy_rate=0.0, tax_treatment=scenario.tax_treatment,
         cost_bps=10.0,
         period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
         allocation_rule_hash=scenario.rule_hash,
-        data_snapshot=f"prices@{sessions[-1].date()}",
+        data_snapshot=snapshot,
     )
     verdict = classify_counterfactual(
         RunConditions(**common, execution_lag=1),

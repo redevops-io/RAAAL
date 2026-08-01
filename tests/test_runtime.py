@@ -232,7 +232,11 @@ class TestComparabilityUsesTheHashNotTheLabel:
         """The migration the string was blocking: same field, real content."""
         from src.mission import ComparisonClass, RunConditions, classify
 
-        base = dict(flow_schedule_hash="h1", starting_capital=0.0,
+        # Pinned: under classifier @2 an absent runtime is NOT_EVALUATED
+        # rather than a match, so a test about tax treatment has to pin the
+        # other runtimes or it is measuring their absence instead.
+        base = dict(account_hash="a1", calendar_hash="c1", market_data_hash="m1",
+                    flow_schedule_hash="h1", starting_capital=0.0,
                     cash_policy_rate=0.0, cost_bps=10.0, execution_lag=1,
                     period_start="2021-01-01", period_end="2023-01-01",
                     allocation_rule_hash="r1", data_snapshot="prices@2023-01-01")
@@ -248,7 +252,11 @@ class TestComparabilityUsesTheHashNotTheLabel:
         """The verdict the label produced, preserved as the reason for the change."""
         from src.mission import RunConditions, classify
 
-        base = dict(flow_schedule_hash="h1", starting_capital=0.0,
+        # Pinned: under classifier @2 an absent runtime is NOT_EVALUATED
+        # rather than a match, so a test about tax treatment has to pin the
+        # other runtimes or it is measuring their absence instead.
+        base = dict(account_hash="a1", calendar_hash="c1", market_data_hash="m1",
+                    flow_schedule_hash="h1", starting_capital=0.0,
                     cash_policy_rate=0.0, cost_bps=10.0, execution_lag=1,
                     period_start="2021-01-01", period_end="2023-01-01",
                     allocation_rule_hash="r1", data_snapshot="prices@2023-01-01")

@@ -150,11 +150,16 @@ class TestIsolationChecksSemanticDependencies:
 
 
 class TestTheVerdictReportsWhatItCouldNotCheck:
+    #: Pins every dimension, so "a full comparison" below is actually full.
+    #: Under classifier @1 this set looked complete because two absent hashes
+    #: compared equal; under @2 an absent value is NOT_EVALUATED, and the test
+    #: was asserting completeness it did not have.
     BASE = dict(flow_schedule_hash="h1", starting_capital=0.0,
                 cash_policy_rate=0.0, tax_treatment="NONE", cost_bps=10.0,
                 execution_lag=1, period_start="2021-01-01",
                 period_end="2023-01-01", allocation_rule_hash="r1",
-                data_snapshot="s1")
+                data_snapshot="s1", account_hash="a1", calendar_hash="c1",
+                market_data_hash="m1")
 
     def test_a_full_comparison_reports_nothing_unchecked(self):
         from src.mission import RunConditions, classify
@@ -175,8 +180,8 @@ class TestTheVerdictReportsWhatItCouldNotCheck:
         from src.mission import RunConditions, classify
 
         verdict = classify(
-            RunConditions(**self.BASE, account_hash="a"),
-            RunConditions(**self.BASE, account_hash="b"))
+            RunConditions(**{**self.BASE, "account_hash": "a"}),
+            RunConditions(**{**self.BASE, "account_hash": "b"}))
 
         assert "account" in verdict.differing_dimensions
 
@@ -184,8 +189,8 @@ class TestTheVerdictReportsWhatItCouldNotCheck:
         from src.mission import RunConditions, classify_counterfactual
 
         verdict = classify_counterfactual(
-            RunConditions(**{**self.BASE, "execution_lag": 1}, calendar_hash="a"),
-            RunConditions(**{**self.BASE, "execution_lag": 0}, calendar_hash="b"),
+            RunConditions(**{**self.BASE, "execution_lag": 1, "calendar_hash": "a"}),
+            RunConditions(**{**self.BASE, "execution_lag": 0, "calendar_hash": "b"}),
             constraint="the blackout window")
 
         assert not verdict.attribution_isolated
@@ -271,3 +276,133 @@ class TestDependenciesAreDerivedNotRestated:
 
         assert dimension("data_snapshot").depends_on == ("market_data",)
         assert derived_dependencies(dimension("data_snapshot")) is None
+
+
+class TestClassifierV2:
+    """`@2`: an absent value is NOT_EVALUATED, never a match.
+
+    A stored verdict does not merely answer "did I find a difference?". It
+    claims "these dimensions were checked and found equivalent" — and when both
+    hashes are empty that claim is false.
+    """
+
+    COMMON = dict(flow_schedule_hash="f1", starting_capital=0.0,
+                  cash_policy_rate=0.0, tax_treatment="ROTH", cost_bps=10.0,
+                  execution_lag=1, period_start="2016-01-04",
+                  period_end="2025-11-19", data_snapshot="prices@x")
+
+    def conditions(self, **overrides):
+        from src.mission.comparability import RunConditions
+
+        return RunConditions(**{**self.COMMON, "allocation_rule_hash": "a",
+                                **overrides})
+
+    def test_two_absent_values_are_not_a_match(self):
+        from src.mission.comparability import DimensionStatus, classify
+
+        verdict = classify(self.conditions(), self.conditions())
+        statuses = {r.dimension: r.status for r in verdict.dimension_results}
+        assert statuses["account"] is DimensionStatus.NOT_EVALUATED
+        assert statuses["calendar"] is DimensionStatus.NOT_EVALUATED
+        assert statuses["market_data"] is DimensionStatus.NOT_EVALUATED
+
+    def test_a_one_sided_absence_is_not_a_match(self):
+        """A value cannot be compared against an unknown, and calling that a
+        match asserts the unknown away."""
+        from src.mission.comparability import DimensionStatus, classify
+
+        verdict = classify(self.conditions(account_hash="acc"),
+                           self.conditions())
+        statuses = {r.dimension: r.status for r in verdict.dimension_results}
+        assert statuses["account"] is DimensionStatus.NOT_EVALUATED
+
+    def test_isolation_is_refused_while_a_dimension_is_unevaluated(self):
+        """The most important consequence. The comparison may still be shown;
+        it may not claim the strategy was isolated."""
+        from src.mission.comparability import classify
+
+        verdict = classify(self.conditions(), self.conditions())
+        assert verdict.comparable is True
+        assert verdict.attribution_isolated is False
+        assert "never evaluated" in verdict.detail
+
+    def test_isolation_is_granted_when_everything_is_pinned(self):
+        from src.mission.comparability import classify
+
+        pinned = dict(account_hash="acc", calendar_hash="cal",
+                      market_data_hash="md")
+        verdict = classify(self.conditions(**pinned), self.conditions(**pinned))
+        assert verdict.attribution_isolated is True
+        assert verdict.unchecked_dimensions == ()
+
+    def test_a_real_difference_is_still_reported(self):
+        from src.mission.comparability import DimensionStatus, classify
+
+        pinned = dict(account_hash="acc", calendar_hash="cal",
+                      market_data_hash="md")
+        verdict = classify(self.conditions(**pinned),
+                           self.conditions(**{**pinned, "account_hash": "other"}))
+        statuses = {r.dimension: r.status for r in verdict.dimension_results}
+        assert statuses["account"] is DimensionStatus.NOT_MATCHED
+        assert "account" in verdict.differing_dimensions
+
+    def test_every_dimension_explains_itself(self):
+        """A boolean said only whether something differed. It could not say
+        whether anyone had looked."""
+        from src.mission.comparability import classify
+
+        for result in classify(self.conditions(), self.conditions()).dimension_results:
+            assert result.reason, result.dimension
+
+    def test_the_classifier_version_travels_with_the_verdict(self):
+        """`@1` verdicts must keep meaning what they meant, so a reader has to
+        be able to tell which rules produced one."""
+        from src.mission.comparability import CLASSIFIER_VERSION, classify
+
+        verdict = classify(self.conditions(), self.conditions())
+        assert verdict.classifier_version == CLASSIFIER_VERSION
+        assert verdict.to_json()["classifier_version"] == CLASSIFIER_VERSION
+        assert CLASSIFIER_VERSION.endswith("@2")
+
+
+class TestWorkspaceRunsPinTheirRuntimes:
+    """The deeper fix: those dimensions were unevaluated because the run never
+    recorded what it used."""
+
+    def test_a_known_account_is_pinned(self):
+        from src.mission.compiler import compile_scenario
+        from src.workspace.environment import pins_for
+
+        compiled = compile_scenario(
+            "I put $500 into SPY monthly in my Roth IRA and never sell.",
+            name="p", version=1, benchmark_rule="benchmark-policy/public-default@1")
+        pins = pins_for(compiled.scenario, snapshot="prices@2025-11-19")
+        assert pins.account_hash and pins.calendar_hash and pins.market_data_hash
+        assert pins.unpinned == ()
+
+    def test_an_account_outside_the_runtime_vocabulary_is_declared(self):
+        """Pinning the nearest available kind would record a tax treatment the
+        user did not describe."""
+        from src.mission.compiler import compile_scenario
+        from src.workspace.environment import pins_for
+
+        compiled = compile_scenario(
+            "I put $500 into SPY monthly in my Roth 401(k) and never sell.",
+            name="p", version=1, benchmark_rule="benchmark-policy/public-default@1")
+        pins = pins_for(compiled.scenario, snapshot="prices@2025-11-19")
+        assert pins.account_hash == ""
+        assert "account" in pins.unpinned
+        assert pins.limitations()[0]["dimension"] == "account"
+
+    def test_a_missing_snapshot_is_declared_not_defaulted(self):
+        """A default filled in at read time describes the current setup rather
+        than the historical one."""
+        from src.mission.compiler import compile_scenario
+        from src.workspace.environment import pins_for
+
+        compiled = compile_scenario(
+            "I put $500 into SPY monthly in my Roth IRA and never sell.",
+            name="p", version=1, benchmark_rule="benchmark-policy/public-default@1")
+        pins = pins_for(compiled.scenario, snapshot="")
+        assert pins.market_data_hash == ""
+        assert "market_data" in pins.unpinned

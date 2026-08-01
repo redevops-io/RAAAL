@@ -59,6 +59,53 @@ ISOLATION_DIMENSIONS = tuple(sorted(REGISTERED_DIMENSIONS))
 #: Versioned, because changing what a comparison claims is a change to the claim.
 DISCLOSURE_VERSION = "comparability-disclosure@1"
 
+#: How a verdict decided what "matched" means. Persisted with every verdict,
+#: because the answer changed and old verdicts must keep meaning what they meant.
+#:
+#:     @1  two absent values compare equal, and the dimension is *also* listed
+#:         as unchecked. Honest in the record, misleading when read as a match.
+#:     @2  an absent value on either side is NOT_EVALUATED. A verdict claims
+#:         "checked and equivalent", and when both hashes are empty that claim
+#:         is false.
+#:
+#: `@2` additionally refuses `attribution_isolated` while any dimension required
+#: to be equal was never evaluated: a comparison may still be shown, but it
+#: cannot claim the strategy was isolated.
+CLASSIFIER_VERSION = "comparability/classifier@2"
+
+
+class DimensionStatus(str, Enum):
+    MATCHED = "MATCHED"
+    NOT_MATCHED = "NOT_MATCHED"
+    NOT_EVALUATED = "NOT_EVALUATED"
+
+
+@dataclass(frozen=True)
+class DimensionResult:
+    """One dimension, with enough to explain the verdict rather than assert it."""
+
+    dimension: str
+    status: DimensionStatus
+    left_value: Any = None
+    right_value: Any = None
+    reason: str = ""
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"dimension": self.dimension, "status": self.status.value,
+                "left_value": _readable(self.left_value),
+                "right_value": _readable(self.right_value),
+                "reason": self.reason}
+
+
+def _readable(value: Any) -> Any:
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return value
+
+
+def _absent(value: Any) -> bool:
+    return value is None or value == ""
+
 DISCLOSURES = {
     "STRATEGY_EFFECT": (
         "Every dimension outside the investment rule was held identical — "
@@ -92,6 +139,11 @@ class ComparabilityVerdict:
     detail: str = ""
 
     isolates: str = ""
+    classifier_version: str = CLASSIFIER_VERSION
+    dimension_results: Sequence["DimensionResult"] = ()
+    """Per-dimension detail. A boolean said only whether *something* differed,
+    which cannot distinguish "checked and equal" from "never looked at"."""
+
     unchecked_dimensions: Sequence[str] = ()
     """Registered dimensions these conditions could not report on.
 
@@ -135,6 +187,8 @@ class ComparabilityVerdict:
             ],
             "isolates": self.isolates,
             "unchecked_dimensions": list(self.unchecked_dimensions),
+            "classifier_version": self.classifier_version,
+            "dimensions": [d.to_json() for d in self.dimension_results],
             "detail": self.detail,
             "required_disclosure": self.required_disclosure,
             "disclosure_version": DISCLOSURE_VERSION,
@@ -238,17 +292,56 @@ def classify(left: RunConditions, right: RunConditions) -> ComparabilityVerdict:
     outcomes would be a verdict about which answer is convenient.
     """
     a, b = left.dimension_map(), right.dimension_map()
-    checkable = [d for d in ISOLATION_DIMENSIONS if d in a and d in b]
-    unchecked = tuple(sorted(set(ISOLATION_DIMENSIONS) - set(checkable)))
-    differing = [d for d in checkable if a[d] != b[d]]
+
+    # Classifier @2. An absent value on either side is NOT_EVALUATED rather than
+    # a match: a stored verdict claims "these were checked and found
+    # equivalent", and when both hashes are empty that claim is false. @1
+    # compared two absences as equal while also listing the dimension as
+    # unchecked — honest in the record and misleading when read as a match.
+    results: List[DimensionResult] = []
+    for dimension in ISOLATION_DIMENSIONS:
+        left_value, right_value = a.get(dimension), b.get(dimension)
+        if _absent(left_value) or _absent(right_value):
+            results.append(DimensionResult(
+                dimension, DimensionStatus.NOT_EVALUATED, left_value, right_value,
+                reason=("no value was pinned on "
+                        + ("both sides" if _absent(left_value) and _absent(right_value)
+                           else "one side")
+                        + ", so nothing was compared")))
+        elif left_value != right_value:
+            results.append(DimensionResult(
+                dimension, DimensionStatus.NOT_MATCHED, left_value, right_value,
+                reason="the two runs pinned different values"))
+        else:
+            results.append(DimensionResult(
+                dimension, DimensionStatus.MATCHED, left_value, right_value,
+                reason="both runs pinned the same value"))
+
+    by_status = {r.dimension: r.status for r in results}
+    checkable = [d for d, s in by_status.items()
+                 if s is not DimensionStatus.NOT_EVALUATED]
+    unchecked = tuple(sorted(d for d, s in by_status.items()
+                             if s is DimensionStatus.NOT_EVALUATED))
+    differing = [d for d in checkable
+                 if by_status[d] is DimensionStatus.NOT_MATCHED]
 
     if not differing:
+        # Isolation requires that every dimension outside the rule was actually
+        # checked. An unevaluated one is a hole in the attribution claim, so the
+        # comparison is still shown and the claim is not made.
+        isolated = not unchecked
         return ComparabilityVerdict(
             comparison_class=ComparisonClass.STRATEGY_EFFECT,
-            comparable=True, attribution_isolated=True, differing_dimensions=(),
-            detail="every dimension outside the rule is identical",
-            isolates="the investment rule",
-            unchecked_dimensions=unchecked,
+            comparable=True, attribution_isolated=isolated,
+            differing_dimensions=(),
+            detail=("every dimension outside the rule is identical" if isolated
+                    else ("every checked dimension is identical, but "
+                          f"{', '.join(unchecked)} "
+                          + ("was" if len(unchecked) == 1 else "were")
+                          + " never evaluated, so the difference cannot be "
+                          "attributed to the rule alone")),
+            isolates="the investment rule" if isolated else "",
+            unchecked_dimensions=unchecked, dimension_results=tuple(results),
         )
 
     # A different evaluation period is the one difference that defeats even a
@@ -262,7 +355,7 @@ def classify(left: RunConditions, right: RunConditions) -> ComparabilityVerdict:
             detail=("the two were measured over different periods, so they were "
                     "exposed to different markets rather than to different rules"),
             isolates="",
-            unchecked_dimensions=unchecked,
+            unchecked_dimensions=unchecked, dimension_results=tuple(results),
         )
 
     return ComparabilityVerdict(
@@ -272,5 +365,5 @@ def classify(left: RunConditions, right: RunConditions) -> ComparabilityVerdict:
         detail=("comparable as lived outcomes; not as evidence about which rule "
                 "is better"),
         isolates="",
-        unchecked_dimensions=unchecked,
+        unchecked_dimensions=unchecked, dimension_results=tuple(results),
     )
