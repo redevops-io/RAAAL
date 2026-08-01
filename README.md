@@ -69,13 +69,16 @@ The suite runs entirely on a committed **synthetic** price fixture — invented,
 deterministic, no credentials and no network. Nothing measured on it is a claim
 about any real security.
 
-Licensed market data lives in private, versioned object storage, pinned by
-snapshot id, object version and hash in `data/manifests/`. It is used by the
-opt-in tier:
+Licensed market data lives in a private, versioned S3 bucket, pinned by snapshot
+id, object version and hash in `data/manifests/`. The bucket name is supplied by
+`.env.market-data` (gitignored) so it stays out of a published repository; the
+manifest carries everything needed to review what a result was computed against.
+It is used by the opt-in tier:
 
 ```bash
+source .env.market-data
 pytest -m market_data_integration     # requires credentials; fails, never skips
-python3 -m src.history --start 2015-01-01 --end $(date +%F) --step 5   # local snapshot
+python3 scripts/provision_market_data.py --dry-run   # plan a new snapshot upload
 ```
 
 Describing a scenario in prose uses a language model for **stage 1 of the

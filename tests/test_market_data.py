@@ -122,6 +122,28 @@ class TestIntegrity:
         b = synthetic_prices.copy(); b.iloc[5, 3] = 0.0
         assert content_digest(a) != content_digest(b)
 
+    def test_it_digests_frames_that_are_not_all_numbers(self):
+        """Weights and timelines carry labels and dates beside their numbers.
+
+        The first version of this only handled floats and raised on everything
+        else, which would have silently excluded every non-price dataset from
+        integrity checking — the ones where a wrong value is hardest to spot by
+        eye.
+        """
+        frame = pd.DataFrame(
+            {"weight": [0.25, 0.75, float("nan")],
+             "asset": ["SPY", "TLT", "GLD"],
+             "rebalanced": pd.to_datetime(["2020-01-02", "2020-01-03", None]),
+             "active": [True, False, True]},
+            index=pd.to_datetime(["2020-01-02", "2020-01-03", "2020-01-06"]))
+        assert content_digest(frame).startswith("mdv1:")
+
+    def test_a_number_and_its_string_do_not_collide(self):
+        """A column that silently changed dtype is worth catching."""
+        numeric = pd.DataFrame({"x": [1.0]}, index=pd.to_datetime(["2020-01-02"]))
+        textual = pd.DataFrame({"x": ["1.0"]}, index=pd.to_datetime(["2020-01-02"]))
+        assert content_digest(numeric) != content_digest(textual)
+
     def test_column_order_does_not_change_the_digest(self, synthetic_prices):
         shuffled = synthetic_prices[list(reversed(synthetic_prices.columns))]
         assert content_digest(shuffled) == content_digest(synthetic_prices)
@@ -195,12 +217,30 @@ class TestTheLicensedSnapshotIsNotReachableByAccident:
                 "uploading licensed data before the review is the thing this "
                 "manifest exists to prevent")
 
-    def test_the_manifest_demands_immutability(self):
+    def test_the_manifest_demands_immutability_and_records_verification(self):
+        """Required *and* verified against AWS, not merely requested at setup.
+
+        A bucket created correctly once can be reconfigured later, so a manifest
+        that only records what was asked for describes an intention. These
+        assertions are why `verified` exists beside `required`.
+        """
         requirements = production_snapshot().raw["storage_requirements"]
-        assert requirements["bucket_versioning"] == "required"
-        assert requirements["immutable_object_keys"] == "required"
-        assert requirements["sha256_verified_on_load"] == "required"
-        assert requirements["refuse_on_mismatch"] == "required"
+        for name in ("bucket_versioning", "immutable_object_keys",
+                     "object_version_id_pinned", "sha256_verified_on_load",
+                     "refuse_on_mismatch", "public_access_blocked",
+                     "encryption_at_rest", "tls_only"):
+            entry = requirements[name]
+            assert entry["required"] is True, name
+            assert entry["verified"] not in (False, None), (
+                f"{name} is required but was never verified against the "
+                "provider; an unverified requirement is a note, not a control")
+
+    def test_a_pinned_snapshot_names_a_version_and_a_hash(self):
+        """Without both, the same commit and URI can mean two different things."""
+        snapshot = production_snapshot()
+        assert snapshot.object_version_id, "an unversioned object can be replaced"
+        assert snapshot.sha256, "no way to detect a truncated or swapped object"
+        assert snapshot.content_digest, "no way to detect changed data"
 
 
 class TestWhatARunRecords:

@@ -84,3 +84,6 @@ package-lock.json
 .dockerignore
 # Claude Code local session dir
 .claude/
+
+# Provisioning output: bucket name stays out of an AGPL-published repo
+.env.market-data

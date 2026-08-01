@@ -21,8 +21,9 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
+import numpy as np
 import pandas as pd
 
 DIGEST_VERSION = "mdv1"
@@ -32,6 +33,11 @@ silently is a digest that agrees with everything."""
 _NULL = "\x00"
 """Distinct from any formatted number, so a missing value and a zero cannot
 collide. They mean different things: "not listed yet" is not "worth nothing"."""
+
+_TEXT = "\x01"
+"""Prefixes a non-numeric cell. Without it the string "1.0" and the number 1.0
+canonicalize identically, and a column that silently changed dtype would keep
+its digest — which is exactly the change worth catching."""
 
 
 class IntegrityError(ValueError):
@@ -49,11 +55,39 @@ def canonical_lines(frame: pd.DataFrame, *, places: int = 6) -> Iterable[str]:
     floats over.
     """
     yield f"{DIGEST_VERSION}\t{len(frame)}\t{frame.shape[1]}"
-    columns = sorted(frame.columns)
-    yield "\t".join(columns)
-    for timestamp, row in zip(frame.index, frame[columns].to_numpy()):
-        cells = (_NULL if pd.isna(v) else f"{v:.{places}f}" for v in row)
-        yield f"{pd.Timestamp(timestamp).date().isoformat()}\t" + "\t".join(cells)
+    columns = sorted(frame.columns, key=str)
+    yield "\t".join(str(c) for c in columns)
+    for timestamp, row in zip(frame.index, frame[columns].to_numpy(dtype=object)):
+        cells = (_cell(v, places) for v in row)
+        yield f"{_label(timestamp)}\t" + "\t".join(cells)
+
+
+def _cell(value: Any, places: int) -> str:
+    """One cell, canonically.
+
+    Not every frame here is a price matrix: weights and timelines carry labels
+    and categories alongside numbers, and a digest that only handles floats
+    silently excludes exactly those datasets from integrity checking.
+    """
+    if value is None:
+        return _NULL
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return _NULL if pd.isna(value) else f"{float(value):.{places}f}"
+    try:
+        if pd.isna(value):
+            return _NULL
+    except (TypeError, ValueError):
+        pass                      # arrays and other non-scalars are not "na"
+    return _TEXT + str(value)
+
+
+def _label(value: Any) -> str:
+    """Index labels as text. Dates render as ISO so a timezone-aware reload,
+    or a reload as object dtype, does not change the answer."""
+    try:
+        return pd.Timestamp(value).date().isoformat()
+    except (TypeError, ValueError):
+        return _TEXT + str(value)
 
 
 def content_digest(frame: pd.DataFrame, *, places: int = 6) -> str:
