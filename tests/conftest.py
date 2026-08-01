@@ -1,37 +1,90 @@
-"""Shared fixtures, and the one thing a clone cannot bring with it.
+"""Shared fixtures, and the market-data tier split.
 
-Market data is not in the repository. It is vendor-licensed and 350KB of daily
-prices, and committing it would make a licensing decision on the project's
-behalf that has not been taken — data-provider licensing is an open item for the
-pilot review.
+Two datasets, two purposes:
 
-The consequence is that five tests exercising the rendered result panel have
-nothing to render. They are skipped with a reason naming the command that
-produces the data, rather than failing: a fresh clone reporting five confusing
-failures teaches a new reader that the suite is broken, when what is true is
-that one input is absent and reproducible in one command.
+    tests/fixtures/prices_synthetic.parquet   committed, invented, no network
+    the licensed snapshot                     private, immutable, pinned by hash
+
+The default suite runs entirely on the first. It needs no credentials, reaches
+no network, and produces the same numbers on a fresh clone as on the machine
+that wrote it. That is the point: the repository, not one workstation, has to be
+able to reproduce the application.
+
+The licensed snapshot is for integration, benchmark and research runs, behind
+`-m market_data_integration`. When that marker is not requested, missing
+credentials are not a failure — nobody asked for the licensed data.
+
+Nothing measured on the synthetic fixture is a claim about any real security. It
+is shaped like market data so the evaluation stack has something realistic to
+run on, and deliberately not calibrated to anything.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
 
-PRICE_HISTORY = Path("data/history/prices.parquet")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SYNTHETIC = REPO_ROOT / "tests" / "fixtures" / "prices_synthetic.parquet"
 
-NO_PRICES = (
-    "no local price history at data/history/prices.parquet. It is vendor data "
-    "and deliberately not committed; regenerate it with "
-    "`python3 -m src.history --start 2015-01-01 --end $(date +%F) --step 5`"
-)
+#: The vendor snapshot, when a developer has produced one locally. Used only by
+#: the integration tier; the default suite ignores it even when present, so a
+#: result cannot differ between two machines because one happened to have it.
+LICENSED = REPO_ROOT / "data" / "history" / "prices.parquet"
 
-#: Apply to any test that needs a *computed result* rather than an artifact.
-#: Everything in the artifact, methodology, policy and mission layers runs from
-#: the repository alone; only the evaluated numbers need market data.
-requires_price_history = pytest.mark.skipif(
-    not PRICE_HISTORY.exists(), reason=NO_PRICES)
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "market_data_integration: runs against the licensed snapshot. Requires "
+        "credentials and network; fails rather than skips when explicitly "
+        "requested, because a silent skip in the tier that exists to check the "
+        "real data is indistinguishable from a pass.")
 
 
 @pytest.fixture(scope="session")
-def price_history_available() -> bool:
-    return PRICE_HISTORY.exists()
+def synthetic_prices():
+    """The committed fixture, loaded through the ordinary loader.
+
+    Deliberately not `pd.read_parquet` — going through the loader means the
+    integrity check runs on every suite, so a fixture edited by hand is caught
+    here rather than by a confusing assertion three layers up.
+    """
+    from src.market_data import load_prices, synthetic_snapshot
+
+    return load_prices(synthetic_snapshot())
+
+
+@pytest.fixture
+def prices_on_disk(monkeypatch, tmp_path, synthetic_prices):
+    """Point the web and workspace routes at the synthetic fixture.
+
+    Both read a module-level path at request time. Redirecting that is what
+    makes the rendered result panels — and therefore the pages asserting
+    provenance is visible — work from a clone alone.
+    """
+    import src.web.routes as web_routes
+    import src.workspace.routes as workspace_routes
+
+    monkeypatch.setattr(web_routes, "PRICES", SYNTHETIC)
+    monkeypatch.setattr(workspace_routes, "PRICES", SYNTHETIC)
+    return synthetic_prices
+
+
+@pytest.fixture(scope="session")
+def licensed_snapshot():
+    """The pinned licensed snapshot, for the integration tier only."""
+    from src.market_data import load_prices, production_snapshot
+
+    snapshot = production_snapshot()
+    return load_prices(snapshot, allow_network=True), snapshot
+
+
+def requires_licensed_data(func):
+    """Mark a test as belonging to the licensed tier."""
+    return pytest.mark.market_data_integration(func)
+
+
+#: Set by the integration tier to make absence a failure rather than a skip.
+LICENSED_REQUIRED = os.environ.get("QUANTIFY_REQUIRE_MARKET_DATA") == "1"

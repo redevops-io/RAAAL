@@ -38,7 +38,6 @@ from src.mission.templates import (
     grants_for,
 )
 from src.workspace.store import WorkspaceStore
-from tests.conftest import requires_price_history
 
 DESCRIPTION = ("My RSUs vest quarterly. I sell them as soon as I can and put the "
                "money into SPY.")
@@ -59,7 +58,7 @@ def store(tmp_path):
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch, store):
+def client(tmp_path, monkeypatch, prices_on_disk, store):
     from fastapi.testclient import TestClient
 
     import src.api as api
@@ -217,7 +216,6 @@ class TestTheWholeJourney:
         assert "NONE" in page
         assert "no execution capability" in page
 
-    @requires_price_history
     def test_10_the_counterfactual_isolates_the_constraint(self, client, store):
         self._save(store)
         common = dict(

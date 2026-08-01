@@ -29,8 +29,16 @@ venv/
 ENV/
 env/
 
-# Data and cache
-data/
+# Data and cache. Written as `data/*` rather than `data/` so git still descends
+# and the negation below can take effect — an ignored *directory* is never
+# entered, and `!data/manifests/` under `data/` would silently do nothing.
+data/*
+!data/manifests/
+
+# Dataset manifests are committed even though the datasets are not. They carry
+# the snapshot identity, version and hash, so a result can name the input it was
+# computed against without the licensed bytes ever entering the repository.
+
 
 # Reports (except the latest dashboard)
 reports/*.csv

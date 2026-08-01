@@ -18,11 +18,10 @@ import re
 import pytest
 
 from src.ledger import Ledger
-from tests.conftest import requires_price_history
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch):
+def client(tmp_path, monkeypatch, prices_on_disk):
     import src.api as api
     import src.web.routes as routes
     from fastapi.testclient import TestClient
@@ -85,7 +84,6 @@ class TestTheElevenQuestions:
         lineage = page.split("Why it exists")[1]
         assert len(lineage.strip()) > 80
 
-    @requires_price_history
     def test_q2_why_a_version_is_blocked_despite_strong_statistics(self, client):
         """The blocker must be named, next to the statistics that look fine."""
         page = text(client.get("/ui/m/hrp/1").text)

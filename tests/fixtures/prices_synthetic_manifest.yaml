@@ -1,0 +1,40 @@
+# The committed fixture. Redistributable because it is invented.
+dataset_id: market-data/prices
+snapshot_id: prices-synthetic-1
+kind: synthetic
+uri: tests/fixtures/prices_synthetic.parquet
+generator: tests/fixtures/build_prices_synthetic.py
+seed: 20260801
+
+# Content digest, not file bytes: Parquet embeds its writer version, so the same
+# data written by a different Arrow release has different bytes and identical
+# content. See src/market_data/integrity.py.
+content_digest: "mdv1:d06a6dbbc12481285a344ccc1848a166bb01f37106a26b0336e2d7978c43af9e"
+file_sha256: "4fa3ce87cad94e5c5d6f65b836bda72e4fb6d7f8e0b4278311c4a07b6fcec8ee"          # informational only; changes on an Arrow upgrade
+
+schema_version: "1"
+calendar: calendar/nyse@1
+sessions: 2488
+assets: 18
+data_as_of: 2025-11-19
+coverage: {start: 2016-01-04, end: 2025-11-19}
+
+provider: none
+license_class: redistributable
+redistributable: true
+
+# What this fixture deliberately contains, so a test can rely on it rather than
+# rediscovering it. Each is a case that broke something real, or would.
+properties:
+  factor_structure: two-factor; one common market driver plus idiosyncratic noise
+  inverse_pair: SH is built with beta -1.00 against SPY, so the universe holds a
+    genuinely diversifying asset rather than nine correlated variations
+  missing_values: BRK-B has no prices before 2017-06-15 (late inception)
+  discontinuity: MGK is scaled by 0.25 from 2021-03-15, a 4:1 split-like jump in
+    price with no matching return
+  near_riskless: BIL has 0.1% annual volatility and zero beta
+  universe_complete: every asset in the methodology universe
+    [SPY, SH, TLT, TBT, LQD, DBC, GLD, HYG, BIL] is present with no gaps
+
+# Nothing measured here is a claim about any real security.
+warning: synthetic data; not calibrated to any real instrument

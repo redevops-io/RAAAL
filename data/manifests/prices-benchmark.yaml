@@ -1,0 +1,65 @@
+# A larger dedicated snapshot for benchmark and load runs, so every concurrent
+# user measures against identical historical input.
+#
+# Separate from the production snapshot on purpose. A load test that quietly
+# retargets whatever production points at today cannot be compared against last
+# month's run, and a benchmark that is not comparable over time measures
+# nothing.
+#
+# For heavy load, download once per worker host or to a shared local cache.
+# Every virtual user fetching the object independently measures S3, not the
+# application.
+#
+# NOT YET POPULATED. The bucket, object version and hash below are placeholders.
+# Before uploading anything, the licensing questions in `licensing_review` must
+# be answered — private storage does not cure a licence that forbids
+# server-side redistribution or multi-user serving.
+
+dataset_id: market-data/prices
+snapshot_id: prices-benchmark-2026-07-30
+kind: licensed
+
+# Supplied by environment when naming the bucket is undesirable. The manifest
+# still carries the snapshot identity and hash, so a wrong object is caught
+# regardless of where the URI came from.
+uri: ${QUANTIFY_MARKET_DATA_URI}
+object_version_id: ${QUANTIFY_MARKET_DATA_VERSION_ID}
+sha256: ${QUANTIFY_MARKET_DATA_SHA256}
+content_digest: null            # fill in on first verified load
+
+schema_version: "1"
+calendar: calendar/nyse@1
+data_as_of: 2026-07-30
+coverage: {start: 2016-01-04, end: 2025-11-19}
+
+provider: TO BE RECORDED
+license_class: restricted
+redistributable: false
+
+# `restricted` is load-bearing, not descriptive. It keeps this dataset out of
+# public exports and case bundles: the boundary rules say a public artifact may
+# never cite a private one, and licensed data is private in exactly that sense.
+export_policy:
+  public_exports: forbidden
+  case_bundles: forbidden
+  derived_statistics: permitted        # subject to the review below
+
+# Immutability requirements. An ordinary object path can be overwritten, and
+# then the same commit plus the same URI yields a different result — the exact
+# failure this whole manifest exists to prevent.
+storage_requirements:
+  bucket_versioning: required
+  immutable_object_keys: required
+  object_version_id_pinned: required
+  sha256_verified_on_load: required
+  refuse_on_mismatch: required         # never fall back to the newest object
+
+# Unanswered. Each must be confirmed with the provider before upload, and
+# private storage resolves none of them.
+licensing_review:
+  cloud_storage: UNCONFIRMED
+  backend_use: UNCONFIRMED
+  derived_analytics: UNCONFIRMED
+  multi_user_serving: UNCONFIRMED
+  test_and_benchmark_use: UNCONFIRMED
+  historical_snapshot_retention: UNCONFIRMED

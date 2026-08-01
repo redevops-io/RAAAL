@@ -65,12 +65,17 @@ python3 -m pytest tests/ -q
 uvicorn src.api:app --reload           # /ui library · /workspace private scenarios
 ```
 
-Market data is **not** in the repository — it is vendor-licensed. Without it five
-tests skip with a message naming this command, and the result panels render
-empty; everything else runs from a clone alone:
+The suite runs entirely on a committed **synthetic** price fixture — invented,
+deterministic, no credentials and no network. Nothing measured on it is a claim
+about any real security.
+
+Licensed market data lives in private, versioned object storage, pinned by
+snapshot id, object version and hash in `data/manifests/`. It is used by the
+opt-in tier:
 
 ```bash
-python3 -m src.history --start 2015-01-01 --end $(date +%F) --step 5
+pytest -m market_data_integration     # requires credentials; fails, never skips
+python3 -m src.history --start 2015-01-01 --end $(date +%F) --step 5   # local snapshot
 ```
 
 Describing a scenario in prose uses a language model for **stage 1 of the
