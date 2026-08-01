@@ -152,6 +152,19 @@ _RULES: Sequence[Tuple[str, str, str]] = (
     ("contribution_day_rule", "first_session_of_period",
      r"\bfirst trading (?:day|session)\b|\bfirst market day\b"),
 
+    # Account type. `tax_treatment` has always been on the scenario and in the
+    # content hash, and nothing ever set it — so every plan compiled from prose
+    # was NONE_APPLIED and a Roth compared as identical to a taxable account,
+    # which is this project's own founding example of a defect.
+    #
+    # Ordered most specific first: "Roth 401(k)" must not be read as "401(k)",
+    # and "Roth IRA" must not be read as "IRA".
+    ("account_type", "ROTH_401K", r"\broth 401\s?\(?k\)?\b|\broth401k\b"),
+    ("account_type", "ROTH", r"\broth\b"),
+    ("account_type", "TRADITIONAL_401K", r"\b401\s?\(?k\)?\b|\b401k\b"),
+    ("account_type", "TRADITIONAL_IRA", r"\btraditional ira\b|\btraditional account\b|\bdeductible ira\b"),
+    ("account_type", "TAXABLE", r"\btaxable\b|\bbrokerage account\b|\btaxable brokerage\b"),
+
     ("sells_allowed", "false", r"\bnever sell\b|\bdo(?:n'?t| not) sell\b|\bno sell(?:ing|s)?\b"),
     ("moving_average_kind", "exponential", r"\bexponential\b|\bEMA\b"),
     ("moving_average_kind", "simple", r"\bsimple\b(?:[^.]*\b(?:moving )?average\b)|\bSMA\b"),
@@ -246,7 +259,21 @@ def parse(text: str) -> ParsedUtterance:
     lowered = text.lower()
     unrecognized = [name for name in AMBIGUOUS_NAMES if name in lowered]
 
-    reserved = {"SPY", "DMA", "EMA", "SMA", "RSU", "ESPP", "IRA"}
+    # `SPY` is reserved because it is usually the *reference* in a trend rule —
+    # "whenever SPY is below its 200 day average" names a signal, not a holding.
+    # But "I buy $500 of SPY every week" names a holding, and the reserved list
+    # made that compile to no assets at all. The model read it correctly and the
+    # rules did not; the fix belongs in the rules.
+    reserved = {"DMA", "EMA", "SMA", "RSU", "ESPP", "IRA"}
+    # Reserved only where it is the *reference in a signal* — "whenever SPY is
+    # below its 200 day average" names a condition, not a holding. Written as a
+    # signal test rather than a list of purchase verbs: the first attempt
+    # enumerated buy/put/invest and missed "goes into", which the stability
+    # benchmark caught within one run.
+    if re.search(r"\bSPY\b[^.]{0,60}?(?:below|above|cross\w*|moving average|DMA|SMA|EMA)"
+                 r"|(?:below|above|cross\w*|moving average)[^.]{0,60}?\bSPY\b",
+                 text, re.IGNORECASE):
+        reserved = reserved | {"SPY"}
     assets = [t for t in _TICKER.findall(text) if t not in reserved and len(t) >= 2]
 
     hint = next((name for name, pattern in _TEMPLATE_HINTS
@@ -297,6 +324,15 @@ _QUESTIONS: Mapping[str, Tuple[str, str]] = {
         "Which share class do you mean?",
         "The classes have different prices, voting rights and index membership, "
         "and are not interchangeable in a backtest.",
+    ),
+    "account_type": (
+        "Which account is this in — taxable, traditional IRA or 401(k), Roth "
+        "IRA or Roth 401(k)?",
+        "Tax treatment changes the result more than most rules do: the same "
+        "contributions compound tax-free in a Roth, tax-deferred in a "
+        "traditional account, and after tax on dividends and gains in a taxable "
+        "one. Guessing would let a Roth and a taxable plan compare as "
+        "identical, which is the defect this whole system exists to prevent.",
     ),
     "benchmark_set": (
         "What should this be compared against?",
@@ -475,6 +511,7 @@ def compile_scenario(
     if amount_seen and trigger:
         settle("funding_source")
 
+    account = settle("account_type")
     sells = parsed.value_of("sells_allowed")
     sells_allowed = not (sells and sells.value == "false")
 
@@ -558,6 +595,7 @@ def compile_scenario(
         ),
         benchmark_set=(BenchmarkSet(generated_by_rule=benchmark_rule)
                        if benchmark_rule else None),
+        tax_treatment=account or "NONE_APPLIED",
         intent_ref=intent_id,
         pending_template=parsed.template_hint,
     )

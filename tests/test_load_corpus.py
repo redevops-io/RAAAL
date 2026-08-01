@@ -80,11 +80,25 @@ class TestNothingBreaks:
             f"{len(ids):,} x {message}" for message, ids in problems.items())
 
     def test_a_fully_specified_description_reaches_a_saveable_plan(self, report):
-        complete = [o for o in report.outcomes if o.klass == Klass.COMPLETE.value]
-        saveable = [o for o in complete if o.can_save]
-        assert len(saveable) > len(complete) * 0.7, (
-            f"only {len(saveable)}/{len(complete)} complete descriptions saved; "
-            "the pilot journey ends at 'save the plan'")
+        """Measured against the prompts that *claim* to be complete.
+
+        The COMPLETE class also contains wordings downgraded to
+        ASKS_A_QUESTION — a row whose account the compiler cannot place, or
+        whose cadence is an event. Counting those in the denominator measures
+        the corpus rather than the compiler.
+        """
+        claims = [o for o in report.outcomes
+                  if o.klass == Klass.COMPLETE.value
+                  and o.expect == Expect.COMPILES_SAVEABLE.value]
+        # Nothing left to ask. `can_save` is additionally False while an
+        # inference is unconfirmed, which is correct and is what the
+        # confirmation screen exists for — asserting on it would report the
+        # confirmation step itself as a failure.
+        ready = [o for o in claims if not o.unresolved]
+        assert len(ready) == len(claims), (
+            f"{len(claims) - len(ready)} of {len(claims)} fully specified "
+            "descriptions still have an open question; the pilot journey ends "
+            "at 'save the plan'")
 
 
 class TestTheDefectsItFound:

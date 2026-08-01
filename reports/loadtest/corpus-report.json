@@ -2,31 +2,31 @@
   "strategies": 144,
   "per_strategy": 100,
   "prompts": 14400,
-  "elapsed_s": 0.68,
+  "elapsed_s": 0.97,
   "latency": {
     "parse_us": {
       "n": 14400,
-      "p50": 34,
-      "p95": 55,
-      "p99": 65,
-      "max": 1182,
-      "mean": 34.6
+      "p50": 42,
+      "p95": 66,
+      "p99": 77,
+      "max": 1066,
+      "mean": 42.3
     },
     "compile_us": {
       "n": 14400,
-      "p50": 9,
-      "p95": 11,
-      "p99": 12,
-      "max": 440,
-      "mean": 9.3
+      "p50": 23,
+      "p95": 27,
+      "p99": 32,
+      "max": 432,
+      "mean": 21.8
     },
     "total_us": {
       "n": 14400,
-      "p50": 45,
-      "p95": 66,
-      "p99": 80,
-      "max": 1221,
-      "mean": 45.4
+      "p50": 67,
+      "p95": 94,
+      "p99": 110,
+      "max": 1192,
+      "mean": 65.8
     }
   },
   "by_class": {
@@ -35,8 +35,8 @@
       "ok": 2304,
       "crashed": 0,
       "disagreed": 0,
-      "saveable": 1824,
-      "asked": 160,
+      "saveable": 1597,
+      "asked": 350,
       "contradicted": 0
     },
     "UNDERSPECIFIED": {
@@ -54,7 +54,7 @@
       "crashed": 0,
       "disagreed": 0,
       "saveable": 0,
-      "asked": 7,
+      "asked": 896,
       "contradicted": 1008
     },
     "ACCOUNT_OMISSION": {
@@ -63,7 +63,7 @@
       "crashed": 0,
       "disagreed": 0,
       "saveable": 0,
-      "asked": 77,
+      "asked": 896,
       "contradicted": 0
     },
     "PERSISTENT_VS_EVENT": {
@@ -81,7 +81,7 @@
       "crashed": 0,
       "disagreed": 0,
       "saveable": 0,
-      "asked": 154,
+      "asked": 1792,
       "contradicted": 0
     },
     "FUNDING_SOURCE": {

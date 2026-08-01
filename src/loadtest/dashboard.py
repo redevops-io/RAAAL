@@ -97,7 +97,29 @@ def build(report: Report, *, strategies: int = 144,
 
     latency = report.latency()
 
+    # What a user experiences, rather than what a hash comparison shows.
+    # "rule_hash exact 99.5%" answers a question nobody asks; "how often do I
+    # have to answer another question" is the one they live with.
+    # Measured over descriptions that *state* a complete plan, not over the
+    # whole corpus. Two thirds of the corpus is adversarial by construction —
+    # underspecified, contradictory, recommendation-seeking — so an acceptance
+    # rate across all of it measures the corpus, not the product.
+    realistic = [o for o in outcomes if o.klass == Klass.COMPLETE.value]
+    total = len(realistic) or 1
+    accepted_now = sum(1 for o in realistic if o.can_save)
+    needs_one = sum(1 for o in realistic if not o.can_save and o.unresolved <= 2
+                    and not o.contradictions)
+    needs_more = total - accepted_now - needs_one
+
     return [
+        Metric("accepted without a question", _rate(accepted_now, total), 60.0,
+               detail=f"{accepted_now:,} of {total:,} complete descriptions"),
+        Metric("accepted after 1-2 questions", _rate(needs_one, total), 40.0,
+               detail=f"{needs_one:,} need a short clarification",
+               higher_is_better=False),
+        Metric("needs three or more questions", _rate(needs_more, total), 10.0,
+               detail=f"{needs_more:,} are substantially underspecified",
+               higher_is_better=False),
         Metric("strategy corpus coverage", _rate(covered, strategies), 100.0,
                detail=f"{covered}/{strategies} rows exercised"),
         Metric("cadence/day-rule recognition", cadence_rate, 100.0,

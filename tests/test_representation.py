@@ -124,6 +124,89 @@ class TestTheThreeDefectsItFound:
                 != b.scenario.flow_schedule.schedule_hash)
 
 
+class TestTheAccountVocabularyGap:
+    """The largest source of friction the model evaluation found.
+
+    `tax_treatment` had always been on the scenario and in the content hash, and
+    nothing ever set it — so every plan compiled from prose was NONE_APPLIED and
+    a Roth compared as identical to a taxable account, which is this project's
+    own founding example of a defect. 80.5% of model-assisted cases raised an
+    extra question because account type mapped to nothing.
+    """
+
+    @pytest.mark.parametrize("phrase,expected", [
+        ("in my taxable brokerage account", "TAXABLE"),
+        ("in my brokerage account", "TAXABLE"),
+        ("in my Roth IRA", "ROTH"),
+        ("in my Roth 401(k)", "ROTH_401K"),
+        ("in my 401(k)", "TRADITIONAL_401K"),
+        ("in my 401k", "TRADITIONAL_401K"),
+        ("in my traditional IRA", "TRADITIONAL_IRA"),
+    ])
+    def test_the_account_reaches_the_compiled_scenario(self, phrase, expected):
+        _p, result = compiled(f"I put $500 into VTI monthly {phrase} and never sell.")
+        assert result.scenario.tax_treatment == expected
+
+    def test_roth_and_taxable_do_not_share_an_identity(self):
+        """The founding example, now actually enforced for prose."""
+        _p, roth = compiled("I put $500 into VTI monthly in my Roth IRA and never sell.")
+        _p, taxable = compiled(
+            "I put $500 into VTI monthly in my taxable account and never sell.")
+        assert roth.scenario.content_hash != taxable.scenario.content_hash
+
+    def test_an_unnamed_account_is_asked_about_not_assumed(self):
+        _p, result = compiled("I put $500 into VTI monthly and never sell.")
+        question = next(u for u in result.unresolved if u.field == "account_type")
+        assert len(question.why_it_matters) > 100, (
+            "a question without a consequence gets answered at random")
+        assert "Roth" in question.why_it_matters
+
+    def test_an_unplaceable_account_is_still_a_question(self):
+        """Donor-advised funds, inherited IRAs and "my retirement accounts" are
+        not modelled. Guessing between traditional and Roth is the defect."""
+        for phrase in ("in my inherited IRA account", "in my retirement accounts",
+                       "in my DAF account"):
+            _p, result = compiled(
+                f"I put $500 into VTI monthly {phrase} and never sell.")
+            assert any(u.field == "account_type" for u in result.unresolved), phrase
+
+
+class TestSpyIsAHoldingWhenItIsBought:
+    """The model read this correctly and the deterministic rules did not.
+
+    `SPY` is reserved because it is usually the *reference* in a trend rule.
+    "I buy $500 of SPY every week" names a holding, and the reserved list made
+    that compile to no assets at all.
+    """
+
+    @pytest.mark.parametrize("text", [
+        "I buy $500 of SPY every week and never sell.",
+        "$500 goes into SPY, weekly, in my brokerage account.",
+        "I invest $500 in SPY, weekly.",
+        "I contribute $500 to SPY every month.",
+    ])
+    def test_spy_is_read_as_a_holding(self, text):
+        assert "SPY" in parse(text).assets
+
+    @pytest.mark.parametrize("text", [
+        "Whenever SPY is below its 200 day moving average I buy $500 of VTI.",
+        "On the day SPY crosses below its average I buy VTI.",
+        "I buy VTI when SPY is above its 50 day moving average.",
+    ])
+    def test_spy_is_read_as_a_signal(self, text):
+        assert "SPY" not in parse(text).assets
+
+    def test_the_rule_is_written_as_a_signal_test(self):
+        """The first fix enumerated purchase verbs and missed "goes into",
+        which the stability benchmark caught within one run."""
+        import inspect
+
+        from src.mission import compiler
+
+        source = inspect.getsource(compiler.parse)
+        assert "moving average" in source and "below" in source
+
+
 class TestTheCheckWorks:
 
     def test_it_detects_a_value_that_does_not_travel(self, monkeypatch):

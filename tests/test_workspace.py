@@ -24,8 +24,12 @@ VAGUE = "I buy VTI every month."
 
 #: Fully specified: every material choice is stated, so nothing is inferred and
 #: nothing is left open. This is what a saveable plan looks like.
-COMPLETE = ("I buy $2000 of VTI on the first trading day of every month, "
-            "reinvest the dividends, and never sell.")
+COMPLETE = ("I buy $2000 of VTI on the first trading day of every month in my "
+            "taxable brokerage account, reinvest the dividends, and never sell.")
+#: Names the account. Without one the compiler cannot know the tax treatment,
+#: and it now asks rather than defaulting to NONE_APPLIED — which is what made a
+#: Roth and a taxable account compare as identical for every plan compiled from
+#: prose. This description was never complete; the compiler was not asking.
 
 #: Specified enough to run, but leaning on defaults the user must confirm.
 INFERRING = ("I buy $2000 of AMZN and NVDA every month. Whenever SPY is below "

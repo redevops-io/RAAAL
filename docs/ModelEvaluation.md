@@ -128,7 +128,43 @@ Cross-model comparison comes after those, on the same 205 cases.
 
 ---
 
-## 7. Reproducing
+## 7. What was fixed as a result
+
+All three, in the commit after the run.
+
+**Account type is now in the vocabulary.** `tax_treatment` had always been on
+the scenario and in the content hash, and nothing ever set it — so every plan
+compiled from prose was `NONE_APPLIED`, and a Roth compared as identical to a
+taxable account. This project's founding example of a defect was still live for
+the entire conversational path. Taxable, Roth IRA, Roth 401(k), traditional IRA
+and 401(k) are now read and represented; an account the compiler cannot place
+(a donor-advised fund, an inherited IRA, "my retirement accounts") is asked
+about rather than guessed, because guessing between traditional and Roth is
+precisely the defect.
+
+**SPY is a holding when it is bought.** Written as a signal test rather than a
+list of purchase verbs — the first attempt enumerated buy/put/invest and missed
+"goes into", which the stability benchmark caught within one run.
+
+**`funding_source` was kept model-readable.** Both false inferences landed
+there, but that is an argument that the field is economically important, not
+that it should be removed: it changes invested capital, benchmark equivalence,
+the TWR/MWR reading and the schedule hash. Better to ask one more question than
+to assume.
+
+### The metric that replaced the hash comparison
+
+    accepted without a question      69.3%   (1,597 of 2,304)
+    accepted after 1-2 questions     30.7%
+    needs three or more questions     0.0%
+    silently changed                  0.0%
+
+"rule_hash exact 99.5%" answers a question nobody asks. This one is what a user
+lives with.
+
+---
+
+## 8. Reproducing
 
 ```bash
 python3 scripts/run_model_eval.py --max-calls 215   # billable, ~21 minutes

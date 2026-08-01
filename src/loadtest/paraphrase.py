@@ -26,11 +26,12 @@ from __future__ import annotations
 
 import hashlib
 import random
+import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Sequence
 
-from ..mission.compiler import _MENTIONS_SIGNAL
+from ..mission.compiler import _CADENCE, _MENTIONS_SIGNAL, _RULES
 from .catalog import Strategy
 
 
@@ -88,6 +89,24 @@ _RECURRING = frozenset({"annual", "monthly", "weekly", "biweekly", "quarterly",
                         "payroll", "daily"})
 
 
+def text_is_complete(text: str) -> bool:
+    """Whether *this rendering* states everything the compiler needs.
+
+    Derived from the built text rather than from the row, because the account
+    and the cadence are chosen per prompt. Two rounds of seed-matching against
+    the row got 180 then 445 expectations wrong; asking the text is the only
+    version that cannot drift from what was actually written.
+    """
+    if not _ACCOUNT_RECOGNIZED.search(text):
+        return False
+    if not any(re.search(pattern, text, re.IGNORECASE)
+               for _name, pattern in _CADENCE):
+        return False
+    # A mention of a market condition with no stated semantics is an open
+    # question however completely the rest is worded.
+    return not _MENTIONS_SIGNAL.search(text)
+
+
 def fully_specifiable(strategy: Strategy) -> bool:
     """Whether a COMPLETE paraphrase of this row can actually be complete.
 
@@ -107,7 +126,15 @@ def fully_specifiable(strategy: Strategy) -> bool:
     """
     if strategy.cadence not in _RECURRING:
         return False
-    return not _MENTIONS_SIGNAL.search(strategy.universe_or_assets)
+    if _MENTIONS_SIGNAL.search(strategy.universe_or_assets):
+        return False
+    # A row whose account context the compiler cannot place — a donor-advised
+    # fund, an inherited IRA, "my retirement accounts", cash savings — cannot be
+    # stated completely either. Guessing between traditional and Roth is this
+    # project's founding example of a materially wrong result, so asking is
+    # correct and the prompt is not complete.
+    return all(_ACCOUNT_RECOGNIZED.search(phrase)
+               for phrase in _account_phrases(strategy))
 
     # A life-event template hint deliberately does *not* disqualify a row. The
     # hand-off is an offer, not a blocker: the generic compile is a valid
@@ -123,6 +150,25 @@ _CADENCE_WORDS = {
     "conditional": ["when the condition is met"],
     "event": ["when it happens"],
 }
+
+
+#: Account phrasings the compiler can place. Built from the compiler's own
+#: patterns so the two cannot drift apart.
+_ACCOUNT_RECOGNIZED = re.compile(
+    "|".join(pattern for field, _value, pattern in _RULES
+             if field == "account_type"), re.IGNORECASE)
+
+
+def _account_phrases(strategy: Strategy) -> List[str]:
+    """Every account phrase this row can produce.
+
+    All of them, not a sample: the prompt picks one at random per index, so a
+    row with a mix of placeable and unplaceable accounts produces complete
+    prompts for some indices and not others. Checking a sample got 180 of them
+    wrong.
+    """
+    return [_ACCOUNT_WORDS.get(a, f"in my {a} account")
+            for a in (strategy.accounts or ["taxable"])]
 
 
 def _assets_phrase(strategy: Strategy, rng: random.Random) -> str:
@@ -142,9 +188,7 @@ def _cadence_phrase(strategy: Strategy, rng: random.Random) -> str:
     return rng.choice(_CADENCE_WORDS.get(strategy.cadence, [strategy.cadence]))
 
 
-def _account_phrase(strategy: Strategy, rng: random.Random) -> str:
-    account = rng.choice(strategy.accounts) if strategy.accounts else "taxable"
-    return {
+_ACCOUNT_WORDS = {
         "taxable": "in my taxable brokerage account",
         "traditional": "in my traditional IRA",
         "roth": "in my Roth IRA",
@@ -153,8 +197,13 @@ def _account_phrase(strategy: Strategy, rng: random.Random) -> str:
         "ira": "in my IRA",
         "rothira": "in my Roth IRA",
         "cash": "out of my cash savings",
-        "retirement": "in my retirement accounts",
-    }.get(account, f"in my {account} account")
+    "retirement": "in my retirement accounts",
+}
+
+
+def _account_phrase(strategy: Strategy, rng: random.Random) -> str:
+    account = rng.choice(strategy.accounts) if strategy.accounts else "taxable"
+    return _ACCOUNT_WORDS.get(account, f"in my {account} account")
 
 
 # --- the nine classes ------------------------------------------------------
@@ -267,20 +316,19 @@ def paraphrases(strategy: Strategy, count: int) -> List[Prompt]:
     found in a fourteen-thousand-prompt run is reproducible from two integers.
     """
     out: List[Prompt] = []
-    specifiable = fully_specifiable(strategy)
     for index in range(count):
         klass = _ROTATION[index % len(_ROTATION)]
         builder, expect, probes = _BUILDERS[klass]
-        if klass is Klass.COMPLETE and not specifiable:
-            # The row cannot be stated completely, so the compiler owes a
+        rng = random.Random(f"{strategy.strategy_id}:{index}")
+        text = builder(strategy, rng)
+        if klass is Klass.COMPLETE and not text_is_complete(text):
+            # This wording leaves something open, so the compiler owes a
             # question rather than a saveable plan.
             expect = Expect.ASKS_A_QUESTION
-        rng = random.Random(f"{strategy.strategy_id}:{index}")
         out.append(Prompt(
             prompt_id=f"{strategy.strategy_id}#{index:03d}",
             strategy_id=strategy.strategy_id, family=strategy.family,
-            klass=klass, expect=expect, text=builder(strategy, rng),
-            probes=probes))
+            klass=klass, expect=expect, text=text, probes=probes))
     return out
 
 

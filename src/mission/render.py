@@ -80,9 +80,16 @@ _FUNDING_WORDS = {
     "contribution": "out of that contribution",
     "additional_cash": "with additional cash",
 }
+#: Every value the account recogniser can produce needs a phrase here, or a
+#: stated account is dropped on a round trip and the plan silently loses its tax
+#: treatment. Checked by a test rather than by inspection.
 _TAX_WORDS = {
-    "NONE_APPLIED": "", "ROTH": "in my Roth IRA",
-    "TRADITIONAL": "in my traditional IRA", "TAXABLE": "in my taxable account",
+    "NONE_APPLIED": "",
+    "TAXABLE": "in my taxable account",
+    "ROTH": "in my Roth IRA",
+    "ROTH_401K": "in my Roth 401(k)",
+    "TRADITIONAL_IRA": "in my traditional IRA",
+    "TRADITIONAL_401K": "in my 401(k)",
 }
 
 
@@ -143,7 +150,8 @@ def specification(scenario) -> Rendered:
     ]
     if "cadence" not in unsaid:
         clauses.append(_CADENCE_WORDS.get(flows.cadence, flows.cadence))
-    account = _TAX_WORDS.get(scenario.tax_treatment, "")
+    account = ("" if "account_type" in unsaid
+               else _TAX_WORDS.get(scenario.tax_treatment, ""))
     if account:
         clauses.append(account)
     if "contribution_day_rule" not in unsaid:

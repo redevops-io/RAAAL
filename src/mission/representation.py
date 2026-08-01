@@ -43,6 +43,7 @@ CARRIES: Mapping[str, str] = {
     "amount": "flows.amount_per_period",
     "contribution_day_rule": "flows.day_rule",
     "funding_source": "flows.funding_source",
+    "account_type": "protocol.tax_treatment",
 }
 
 @dataclass(frozen=True)
