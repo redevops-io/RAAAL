@@ -176,7 +176,51 @@ closing it:
 
 ---
 
-## 6. Reproducing
+## 6. Round-trip fidelity
+
+    stability      many texts   -> one Mission
+    round-trip     one Mission  -> text -> the same Mission
+
+Different directions, different failures. Stability catches a compiler that
+reads wording as meaning. Round-trip catches one that cannot *say* what it
+understood — a field that survives compilation with no way back into language is
+a field no user can ever correct.
+
+Three declared purposes, and only one claims losslessness:
+
+| Purpose | Exact | Rule identity | Claims lossless |
+|---|---:|---:|---|
+| SPECIFICATION | **100.0%** | 1728/1728 | yes |
+| SUMMARY | 7.8% | 428/1728 | no — reports what it drops |
+| EXPLANATION | n/a | n/a | no — disclaims itself |
+
+Identity drift over three cycles: **0/400**.
+
+The declaration is the point. A concise summary that looks like prose is exactly
+what someone will paste back in expecting identical behaviour, so it names the
+fields it omitted rather than being held to a standard it never claimed.
+
+### What it found
+
+**Values can round-trip while provenance does not.** The first renderer wrote out
+every field, including inferred ones — reproducing the values and destroying the
+record of who chose them. An inference restated is a decision the user never
+made, and the confirmation screen then asks them to confirm nothing.
+
+**A specification must be able to express an open question.** A description that
+mentions a market condition without saying how it behaves leaves
+`trigger_semantics` unresolved. Dropping the mention made the regenerated text
+stop asking — the open question answered by omission, which is the one outcome a
+specification must never produce.
+
+Four more losses followed the same shape, each a stated value with no clause to
+live in: a weighting on a single holding, an estimator, a funding source with no
+trigger, and a funding source with an unresolved one. All four changed what the
+plan would simulate.
+
+---
+
+## 7. Reproducing
 
 ```bash
 python3 scripts/run_load_corpus.py --per-strategy 100     # compiler corpus
@@ -184,6 +228,8 @@ python3 scripts/run_harnessbench.py                       # Polars crossover
 python3 scripts/run_harnessbench.py --from-dicts          # the adapter cost
 python3 scripts/compiler_dashboard.py                     # quality metrics
 python3 scripts/run_stability.py                          # semantic stability
+python3 scripts/run_roundtrip.py                          # round-trip fidelity
+python3 scripts/run_evolutionbench.py                     # compiler evolution
 ```
 
 All four run on committed synthetic data. No credentials, no network.
