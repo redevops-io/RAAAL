@@ -53,6 +53,7 @@ from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
 from .confirmation import build as build_confirmation
+from .generate import generate as generate_worksheet
 from .store import NotSaveable, WorkspaceStore
 
 #: Two search paths: the workspace's own templates, and the shared design
@@ -392,14 +393,27 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = "",
             ),
         })
 
+    saved_at = pd.Timestamp.now("UTC").isoformat()
     try:
         _store().save_plan(
             plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
-            stated_text=describe, saved_at=pd.Timestamp.now("UTC").isoformat(),
+            stated_text=describe, saved_at=saved_at,
             parse=parsed.to_json() if parsed is not None else None,
         )
     except NotSaveable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    # The run is persisted before the worksheet that cites it. A worksheet
+    # written first and back-filled would briefly name artifacts that were not
+    # there, and "briefly" is exactly when a crash happens.
+    prices = _prices()
+    if prices is not None:
+        run = _run(scenario, prices)
+        if run.get("result") is not None:
+            generate_worksheet(
+                _store(), plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
+                run=run["result"].to_json(), comparison=run.get("payload") or {},
+                ran_at=saved_at, title=plan_id)
 
     return RedirectResponse(f"/workspace/plans/{plan_id}", status_code=303)
 
