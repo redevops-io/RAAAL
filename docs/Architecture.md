@@ -487,3 +487,39 @@ a legal conclusion, and securities-counsel review gates external access.
 **network use**, so serving users over a network with AGPL code obliges offering
 the corresponding source of the combined work. This project is AGPL-3.0 for that
 reason. `CR-enterprise` is proprietary and separate.
+
+---
+
+## Recognition is not representation
+
+A compiler stage can be correct at both ends and wrong between them:
+
+```
+Recognized    the parser read the phrase             correct
+Represented   it reached the compiled scenario       MISSING
+Validated     checks ran over what was represented   vacuous
+Compiled      a scenario was produced                correct
+Confirmed     the screen quoted the phrase back      correct
+```
+
+Three defects had exactly this shape, and none was a parser bug. A user said
+"hold the dividends as cash" and the confirmation screen quoted it back under
+*you stated*, while the compiled scenario contained no trace of it. The same was
+true of "simple" versus "exponential" moving average, and of taking a conditional
+buy out of the contribution versus from additional cash — the compiler's own
+documented example of two economically different readings, whose answer it had
+asked for and never carried.
+
+Each produced an **identical content hash for two materially different
+strategies**, which is the same failure as a Roth and a taxable account
+comparing as identical.
+
+The rule that closes it: **every field stage 1 can recognise must either name
+where it lands in the compiled form, or say why it does not travel.** A field in
+neither list fails a test. Presence is checked against the canonical form rather
+than the object, because a value excluded from the canonical form is invisible
+to identity, comparison and replay whatever the object holds.
+
+This is the compiler's version of the invariant the rest of the system already
+has: *every declaration names the mechanism that realizes it.* Recognition
+without representation is declaration without behaviour.

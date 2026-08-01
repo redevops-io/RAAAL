@@ -35,6 +35,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from .defaults import DEFAULT_SET, DefaultSet
 from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpecification
+from .representation import representation_gaps
 from .spec import Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
 
 
@@ -512,10 +513,12 @@ def compile_scenario(
             "strategy is identical.",
         ))
 
+    funding = parsed.value_of("funding_source")
     flows = FlowSchedule(
         cadence=cadence_rec.value if cadence_rec else "once",
         amount=float(amount_seen.value) if amount_seen else 0.0,
         day_rule=day_rule or "first_session_of_period",
+        funding_source=funding.value if funding else "contribution",
     )
     if flows.amount <= 0 and flows.starting_capital <= 0:
         question, why = _QUESTIONS["starting_capital"]
@@ -527,8 +530,15 @@ def compile_scenario(
 
     event_program: List[Dict[str, Any]] = []
     if trigger:
+        # The estimator belongs in the program, not only in the confirmation
+        # text. A simple and an exponential moving average cross at different
+        # times, so they are different rules — and before this they produced an
+        # identical content hash. Found by the representation check below, which
+        # exists because the same omission had already happened to dividends.
+        average = parsed.value_of("moving_average_kind")
         event_program = [
-            {"observe": "signal_series"},
+            {"observe": "signal_series",
+             "estimator": (average.value if average else "simple")},
             {"condition": "below_moving_average", "semantics": trigger},
             {"action": "buy_basket"},
         ]
@@ -599,5 +609,8 @@ def compile_scenario(
         inferred=tuple(inferred), contradictions=tuple(contradictions),
         unresolved=tuple(unresolved), defaults_ref=defaults.artifact_id,
         scenario=scenario,
-        verification=tuple(f"self-conflict: {c}" for c in scenario.self_conflicts()),
+        verification=tuple(
+            [f"self-conflict: {c}" for c in scenario.self_conflicts()]
+            + [f"unrepresented: {g}" for g in representation_gaps(parsed, scenario)]
+        ),
     )

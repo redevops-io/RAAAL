@@ -177,6 +177,18 @@ class FlowSchedule:
     inflation_adjusted: bool = False
     starting_capital: float = 0.0
 
+    funding_source: str = "contribution"
+    """Where a conditional buy takes its money from: `contribution` or
+    `additional_cash`.
+
+    Part of the schedule, not the rule. Out of the contribution the plan invests
+    the same total; as additional cash it invests more, and more money in a
+    rising market always looks like a better rule. The compiler has always
+    separated these two readings in its questions — but until the representation
+    check was written it never carried the answer, so both compiled identically
+    and the distinction the question exists to draw was lost immediately after
+    the user drew it."""
+
     def canonical_form(self) -> Dict[str, Any]:
         return {
             "cadence": self.cadence,
@@ -184,6 +196,7 @@ class FlowSchedule:
             "day_rule": self.day_rule,
             "inflation_adjusted": self.inflation_adjusted,
             "starting_capital": self.starting_capital,
+            "funding_source": self.funding_source,
         }
 
     @property

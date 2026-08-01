@@ -80,7 +80,7 @@
       "detail": "1,640 wordings of 41 plans"
     },
     "compiler p95 latency": {
-      "value": 66,
+      "value": 83,
       "target": 100.0,
       "unit": "us",
       "meets_target": true,
