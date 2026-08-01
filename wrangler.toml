@@ -1,2 +1,7 @@
 name = "raaal-dashboard"
-pages_build_output_dir = "/tmp/raaal-deploy"
+
+# Must match what CI publishes. The GitHub Actions workflow deploys `reports/`
+# (see .github/workflows/daily-deploy.yml, `directory: reports`). This previously
+# pointed at /tmp/raaal-deploy, so a local `wrangler pages deploy` and the CI
+# deploy shipped from different directories.
+pages_build_output_dir = "reports"

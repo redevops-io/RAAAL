@@ -1,50 +1,33 @@
-# MIT License
+# License
 
-Copyright (c) 2025 RAAAL Contributors
+RAAAL / Quantify is licensed under the **GNU Affero General Public License v3.0
+or later (AGPL-3.0-or-later)**. The full license text is in [LICENSE](LICENSE).
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Copyright (c) 2025-2026 RedevOps.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Relicensing note
 
-**Attribution Requirements:**
+This project was previously distributed under the MIT License. It was relicensed to
+AGPL-3.0-or-later on **2026-07-30** to align with the ReDevOps open-core split: the
+OSS runtime engine (`redevops-io/context-runtime`, `redevops-io/redevops-rag`) is
+AGPL, and this project builds on it. MIT is compatible with AGPL, so relicensing the
+existing code is permitted; `git log` records a single author to date.
 
-Any use, modification, or distribution of this software must include attribution
-to the following researchers and their work:
+Contributions published before 2026-07-30 under MIT remain available under MIT from
+the commits in which they were published.
 
-1. **Dr. Milena Vuletić** - Core multi-asset modeling framework:
-   > Vuletić, M. (2025). *Multi-asset financial markets: mathematical modelling and 
-   > data-driven approaches*. DPhil thesis, University of Oxford.
+## What AGPL §13 means here
 
-2. **CFA Institute Research Foundation** - AI/ML enhancement methodologies:
-   > Simonian, J. (Ed.). (2025). *AI in Asset Management: Tools, Applications, and Frontiers*. 
-   > CFA Institute Research Foundation. Contributors: Paul Bilokon, Francesco A. Fabozzi, 
-   > Maxim Golts, Tony Guida, Igor Halperin, Petter N. Kolm, Gueorgui S. Konstantinov, 
-   > Anna Martirosyan, Mona Naqvi, Gordon Ritter, Agathe Sadeghi, Alireza Yazdani, 
-   > Oswaldo Zapata.
-   > Available at: https://rpc.cfainstitute.org/sites/default/files/docs/research-reports/rf_aiinassetmanagement_full-monograph_online.pdf
+AGPL extends copyleft to **network use**. If you run a modified version of this
+software and let users interact with it over a network, you must offer those users
+the corresponding source of your modified version.
 
-3. **Marcos López de Prado** - Hierarchical Risk Parity methodology:
-   > López de Prado, M. (2016). "Building Diversified Portfolios That Outperform Out of Sample." 
-   > *Journal of Portfolio Management*, 42(4), 59-69.
-   > Available at: https://doi.org/10.3905/jpm.2016.42.4.59
+Any deployment of this project — including the hosted dashboard — must therefore
+present a visible offer of source, not merely keep the repository public.
 
-4. **Jiaqi Guo & Youwei Li** - Salience theory metrics and risk-return analysis:
-   > Guo, J., & Li, Y. (2026). *Salience Theory and Risk Anomalies* (SSRN preprint).
-   > Available at: https://ssrn.com/abstract=4603171
+## What must not be combined with this code
 
-These attributions should appear prominently in documentation, publications, or
-derivative works that build upon this codebase.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+`redevops-io/CR-enterprise` is **proprietary** and must not be linked into or
+distributed with this AGPL work. Where an enterprise pattern is wanted here
+(Policy-Constrained Planning, the TrustLedger), it must be reimplemented rather than
+imported.

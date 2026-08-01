@@ -22,6 +22,9 @@ wheels/
 
 # Virtual environments
 .venv/
+.venv-*/
+**/.venv/
+**/.venv-*/
 venv/
 ENV/
 env/
@@ -36,6 +39,19 @@ reports/allocation_*.csv
 reports/allocation_*.json
 reports/state.json
 reports/index.html
+
+# Test and type-checker caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local AI tooling. Chat transcripts and a symbol cache are one developer's
+# working state, and the transcripts can carry pasted secrets and private
+# scenario text — neither belongs in a repository whose boundary rules exist to
+# keep personal data out of public artifacts.
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v4/
 
 # IDE
 .vscode/

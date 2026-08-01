@@ -15,3 +15,8 @@ networkx>=3.1
 matplotlib>=3.7.0
 joblib>=1.3.0
 requests>=2.31
+# Methodology registry (YAML) + the investment-agent API surface.
+pyyaml>=6.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+httpx>=0.27
