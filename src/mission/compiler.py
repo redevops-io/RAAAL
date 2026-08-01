@@ -465,7 +465,7 @@ def compile_scenario(
     weighting = (settle("weighting")
                  if states_weighting or len(parsed.assets) > 1 else None)
 
-    settle("dividends")
+    settled_dividends = settle("dividends")
     day_rule = settle("contribution_day_rule")
 
     # Funding source only matters once there is both a contribution and a buy
@@ -542,6 +542,7 @@ def compile_scenario(
             weighting=weighting or "equal_weight_at_purchase",
         ),
         holdings_policy=HoldingsPolicy(
+            dividend_policy=(settled_dividends or "reinvested"),
             sells_allowed=sells_allowed,
             rebalancing_allowed=sells_allowed,
         ),

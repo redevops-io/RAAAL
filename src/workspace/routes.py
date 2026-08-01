@@ -48,6 +48,7 @@ from ..mission.parse_model import (
     parse_from_stored,
     parse_with_model,
 )
+from ..mission.scenario import UNSIMULATED
 from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
@@ -194,6 +195,28 @@ def _benchmark_specs(prices: pd.DataFrame, assets) -> List[Dict[str, Any]]:
     return specs
 
 
+def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
+                        ) -> Dict[str, Any]:
+    """Add every declared-but-unsimulated behaviour to the modelling scope.
+
+    Derived from the scenario rather than hardcoded, so a behaviour that becomes
+    simulatable stops being disclosed by deleting one entry in `UNSIMULATED`,
+    and one that is added starts being disclosed without anyone remembering to
+    edit this function.
+    """
+    scope = dict(scope or {})
+    declared = {
+        "dividend_policy": scenario.holdings_policy.dividend_policy,
+    }
+    not_modelled = {
+        field: {"declared": value, "why": UNSIMULATED[field]}
+        for field, value in declared.items() if field in UNSIMULATED
+    }
+    if not_modelled:
+        scope["declared_but_not_simulated"] = not_modelled
+    return scope
+
+
 def _run(scenario, prices: pd.DataFrame,
          scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Simulate a scenario and its benchmarks under identical conditions."""
@@ -212,6 +235,12 @@ def _run(scenario, prices: pd.DataFrame,
                     "period, so the scenario cannot be replayed. This is a data "
                     "gap, not a result."
                 )}
+
+    # Every declared behaviour the engine cannot honour must reach the result's
+    # modelling scope. Representing `dividend_policy` without saying it is not
+    # simulated would move the defect one layer up rather than closing it: the
+    # scenario would look enforced and the figure would silently ignore it.
+    scope = declare_unsimulated(scenario, scope)
 
     result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
                       cash_policy=policy, modelling_scope=scope)

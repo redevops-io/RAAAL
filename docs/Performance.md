@@ -134,13 +134,56 @@ validation scans · fleet monitoring · Mission evolution
 
 ---
 
-## 5. Reproducing
+## 5. Semantic stability
+
+Different from recognition accuracy, and a stronger property. Accuracy asks
+whether the compiler understood; stability asks whether it understood **the same
+thing every time**. A parser can be perfectly accurate on a benchmark and still
+be unusable if a synonym changes the answer.
+
+    one meaning -> 40 wordings -> compile each -> one rule_hash
+
+41 families x 40 wordings = 1,640 descriptions, varying the verb, the ordering
+of holdings, the cadence phrase, the day-rule phrase, the dividend phrase, the
+no-selling phrase and the account phrase.
+
+**Stability: 100%.** Every wording of a plan compiles to the same market rule.
+
+This is the harness a language model in stage 1 must be measured against. The
+interesting claim is not that a model reads more wordings — it is that different
+models, or the same model on different days, still land on one canonical
+Mission.
+
+### What it found on its first run
+
+A choice that was **recognised, confirmed to the user, and never represented**.
+
+The compiler read "hold the dividends as cash", the confirmation screen quoted
+it back under "you stated", and the compiled scenario contained no trace of it.
+Reinvesting and holding as cash produced an identical `content_hash` — two
+materially different strategies sharing one identity, the same shape as the
+earlier defect where a Roth and a taxable account compared as identical.
+
+Fixed in two parts, because one without the other moves the defect rather than
+closing it:
+
+- `dividend_policy` now reaches `HoldingsPolicy` and therefore the rule hash, so
+  the two strategies are distinguishable;
+- the engine runs on price series only and cannot honour it, so every result
+  declares it under `declared_but_not_simulated`. Representing a choice without
+  saying it is not simulated would leave the scenario looking enforced while the
+  figure ignored it.
+
+---
+
+## 6. Reproducing
 
 ```bash
 python3 scripts/run_load_corpus.py --per-strategy 100     # compiler corpus
 python3 scripts/run_harnessbench.py                       # Polars crossover
 python3 scripts/run_harnessbench.py --from-dicts          # the adapter cost
 python3 scripts/compiler_dashboard.py                     # quality metrics
+python3 scripts/run_stability.py                          # semantic stability
 ```
 
 All four run on committed synthetic data. No credentials, no network.

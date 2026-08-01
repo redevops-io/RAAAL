@@ -55,9 +55,37 @@ class HoldingsPolicy:
     sells_allowed: bool = True
     rebalancing_allowed: bool = True
 
+    dividend_policy: str = "reinvested"
+    """`reinvested` or `held_as_cash`. Part of the *rule*, not the money path:
+    reinvesting compounds the position while holding as cash does not, and over
+    a long horizon the two are materially different strategies.
+
+    It reached the scenario only after the stability benchmark found it missing.
+    The compiler recognised the phrase, the confirmation screen quoted it back
+    under "you stated", and the compiled scenario contained no trace of it — so
+    "reinvest the dividends" and "hold the dividends as cash" produced an
+    identical `content_hash`. Recognised, confirmed, and unrepresented.
+
+    See `UNSIMULATED` below: representing it is not the same as honouring it."""
+
     def canonical_form(self) -> Dict[str, Any]:
         return {"sells_allowed": self.sells_allowed,
-                "rebalancing_allowed": self.rebalancing_allowed}
+                "rebalancing_allowed": self.rebalancing_allowed,
+                "dividend_policy": self.dividend_policy}
+
+
+#: Declared behaviours the engine records but does not simulate, and why. A
+#: declaration with no realization is the failure this project exists to close,
+#: so where one cannot be honoured yet it is named here rather than left to look
+#: enforced. Every entry must appear in a result's modelling scope.
+UNSIMULATED = {
+    "dividend_policy": (
+        "The engine runs on price series only, so dividends are neither paid "
+        "nor reinvested. The choice is recorded and distinguishes two "
+        "strategies from each other; it does not yet change a simulated "
+        "figure, and any result reading as though it did would be wrong."
+    ),
+}
 
 
 @dataclass(frozen=True)

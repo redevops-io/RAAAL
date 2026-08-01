@@ -1,0 +1,30 @@
+{
+  "stage1": "deterministic",
+  "families": 41,
+  "wordings": 1640,
+  "stable": 41,
+  "unstable": [],
+  "stability_rate": 100.0,
+  "worst": [
+    [
+      1,
+      "WM-0133"
+    ],
+    [
+      1,
+      "WM-0132"
+    ],
+    [
+      1,
+      "WM-0131"
+    ],
+    [
+      1,
+      "WM-0129"
+    ],
+    [
+      1,
+      "WM-0124"
+    ]
+  ]
+}

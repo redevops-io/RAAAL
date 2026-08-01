@@ -34,7 +34,36 @@ SYNTHETIC = REPO_ROOT / "tests" / "fixtures" / "prices_synthetic.parquet"
 LICENSED = REPO_ROOT / "data" / "history" / "prices.parquet"
 
 
+@pytest.fixture(autouse=True)
+def no_model_calls(request, monkeypatch):
+    """The default suite never calls a language model.
+
+    Stage 1 may use one, and the moment `anthropic` was installed alongside an
+    `ANTHROPIC_API_KEY` the workspace tests started making live API calls — they
+    became nondeterministic, network-dependent, billable, and dependent on which
+    machine ran them. One promptly failed because the model raised a question
+    the deterministic rules do not.
+
+    Same rule as the licensed market data: reaching outside is opt-in, and a
+    test that silently acquires a network dependency passes locally, fails in
+    CI, and gets diagnosed as flaky for a week. Opt in with
+    `@pytest.mark.model_stage1`.
+    """
+    if request.node.get_closest_marker("model_stage1"):
+        return
+    try:
+        import src.workspace.routes as routes
+    except Exception:                                           # pragma: no cover
+        return
+    monkeypatch.setattr(routes, "_parser_client", lambda: None, raising=False)
+
+
 def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "model_stage1: exercises model-assisted compiler stage 1 against a live "
+        "API. Requires ANTHROPIC_API_KEY and network; opt-in, because the "
+        "default suite must produce the same result on every machine.")
     config.addinivalue_line(
         "markers",
         "market_data_integration: runs against the licensed snapshot. Requires "

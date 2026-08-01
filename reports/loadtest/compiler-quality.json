@@ -1,0 +1,90 @@
+{
+  "stage1": "deterministic",
+  "prompts": 14400,
+  "metrics": {
+    "strategy corpus coverage": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "144/144 rows exercised"
+    },
+    "cadence/day-rule recognition": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "2,016 prompts state it"
+    },
+    "weighting rule recognition": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "2,016 prompts state it"
+    },
+    "funding source recognition": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "2,016 prompts state it"
+    },
+    "trigger semantics recognition": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "2,016 prompts state it"
+    },
+    "contradiction detection": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "1,008 contradictory prompts"
+    },
+    "refuses to recommend": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "1,008 recommendation requests"
+    },
+    "save-blocking correctness": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "0 disagreements"
+    },
+    "false inference rate": {
+      "value": 0.0,
+      "target": 0.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "0/2,192 answered a question the text never settled"
+    },
+    "crash rate": {
+      "value": 0.0,
+      "target": 0.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "0 of 14,400"
+    },
+    "canonical stability": {
+      "value": 100.0,
+      "target": 100.0,
+      "unit": "%",
+      "meets_target": true,
+      "detail": "1,640 wordings of 41 plans"
+    },
+    "compiler p95 latency": {
+      "value": 66,
+      "target": 100.0,
+      "unit": "us",
+      "meets_target": true,
+      "detail": "parse + compile, per description"
+    }
+  }
+}

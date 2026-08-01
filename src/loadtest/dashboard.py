@@ -56,7 +56,26 @@ def _probe_rate(outcomes: Sequence[Outcome], field: str) -> tuple:
     return _rate(sum(1 for o in probed if o.probe_recognized), len(probed)), len(probed)
 
 
-def build(report: Report, *, strategies: int = 144) -> List[Metric]:
+def stability_metric() -> Metric:
+    """Do paraphrases of one plan compile to one plan?
+
+    Placed alongside recognition because they measure different things.
+    Recognition asks whether the compiler understood; stability asks whether it
+    understood the same thing every time. A parser can be perfectly accurate and
+    still be unusable if a synonym changes the answer.
+    """
+    from .catalog import load_strategies
+    from .stability import facts_for, run, summarize
+
+    families = [s for s in load_strategies() if facts_for(s)]
+    summary = summarize(run(families, 40))
+    return Metric("canonical stability", summary["stability_rate"], 100.0,
+                  detail=f"{summary['wordings']:,} wordings of "
+                         f"{summary['families']} plans")
+
+
+def build(report: Report, *, strategies: int = 144,
+          include_stability: bool = True) -> List[Metric]:
     outcomes = report.outcomes
     by_class = report.by_class()
 
@@ -107,6 +126,7 @@ def build(report: Report, *, strategies: int = 144) -> List[Metric]:
         Metric("crash rate", _rate(len(report.crashes), len(outcomes)), 0.0,
                detail=f"{len(report.crashes)} of {len(outcomes):,}",
                higher_is_better=False),
+        *([stability_metric()] if include_stability else []),
         Metric("compiler p95 latency", latency["total_us"]["p95"], 100.0,
                unit="us", detail="parse + compile, per description",
                higher_is_better=False),
