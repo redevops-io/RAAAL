@@ -250,3 +250,68 @@ class TestReadAndReinterpretAreDifferentEndpoints:
         from src.workspace import routes
 
         assert hasattr(routes, "rerun_worksheet")
+
+
+class TestRenderingIsPresentationalOnly:
+    """No new financial semantics, no hidden calculations, no ranking.
+
+    A template that decides which result is better has made an argument the
+    engine did not, and it is the argument nobody reviewed.
+    """
+
+    BLOCKS = "src/workspace/templates/_worksheet_blocks.html"
+    PAGE = "src/workspace/templates/worksheet.html"
+
+    def test_no_template_performs_a_financial_calculation(self):
+        body = open(self.BLOCKS).read()
+        for pattern in (r"\{\{[^}]*\*\s*100[^}]*\}\}(?!.*macro)",
+                        r"\{\{[^}]*\bsum\b", r"\{\{[^}]*\|\s*sort"):
+            offending = [m for m in re.findall(pattern, body)
+                         if "macro" not in m]
+            assert not offending, f"{pattern}: {offending}"
+
+    def test_no_result_is_sorted_or_ranked(self):
+        """Sorting by outcome is ranking with extra steps."""
+        body = open(self.BLOCKS).read()
+        assert "sort(" not in body and "|sort" not in body
+
+    @pytest.mark.parametrize("word", [
+        "beats", "wins", "winner", "optimal", "superior", "recommended",
+        "best", "outperform",
+    ])
+    def test_no_recommendation_language(self, word):
+        for path in (self.BLOCKS, self.PAGE):
+            assert word not in open(path).read().lower(), f"{word} in {path}"
+
+    def test_comparability_renders_before_performance(self):
+        """A reader who sees two numbers side by side has already compared
+        them, whatever a caption says afterwards."""
+        body = open(self.BLOCKS).read()
+        assert body.index("BenchmarkComparisonBlock") < \
+            body.index("PerformanceSummaryBlock")
+
+    def test_both_return_bases_appear_together(self):
+        body = open(self.BLOCKS).read()
+        assert "time_weighted_annualized" in body and "money_weighted" in body
+
+    def test_state_is_never_carried_by_colour_alone(self):
+        """Every state carries a word as well as a class."""
+        body = open(self.BLOCKS).read()
+        assert "'matched' if" in body
+        assert "not matched" in body
+
+    def test_a_data_gap_renders_as_a_named_gap(self, client, no_compiling):
+        api_client, store = client
+        store.save_worksheet(create(worksheet_id="ws-gap", owner_id=OWNER,
+                                    scenario_ref="plan-missing",
+                                    created_at="2026-08-01T00:00:00Z"))
+        page = text(api_client.get("/workspace/research/ws-gap").text)
+        assert "could not be resolved" in page.lower()
+
+    def test_an_old_revision_renders(self, client, saved, no_compiling):
+        api_client, store = client
+        store.save_worksheet(revise(saved, reason="second",
+                                    created_at="2026-09-01T00:00:00Z"))
+        first = api_client.get("/workspace/research/ws-1?revision=1")
+        assert first.status_code == 200
+        assert "Revision 1" in text(first.text)

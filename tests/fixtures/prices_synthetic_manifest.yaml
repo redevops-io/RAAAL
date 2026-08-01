@@ -9,13 +9,13 @@ seed: 20260801
 # Content digest, not file bytes: Parquet embeds its writer version, so the same
 # data written by a different Arrow release has different bytes and identical
 # content. See src/market_data/integrity.py.
-content_digest: "mdv1:d06a6dbbc12481285a344ccc1848a166bb01f37106a26b0336e2d7978c43af9e"
-file_sha256: "4fa3ce87cad94e5c5d6f65b836bda72e4fb6d7f8e0b4278311c4a07b6fcec8ee"          # informational only; changes on an Arrow upgrade
+content_digest: "mdv1:a6af2dae24827061c03111e7dced3879d669d8d18a65eb5864ede14e96d82831"
+file_sha256: "5e1cc466f1fef74a1fedf1e8b99cd6af6e1bc79599c31ec27fd7272ba0da2caf"          # informational only; changes on an Arrow upgrade
 
 schema_version: "1"
 calendar: calendar/nyse@1
 sessions: 2488
-assets: 18
+assets: 20
 data_as_of: 2025-11-19
 coverage: {start: 2016-01-04, end: 2025-11-19}
 
@@ -46,6 +46,8 @@ properties:
   near_riskless: BIL has 0.1% annual volatility and zero beta
   universe_complete: every asset in the methodology universe
     [SPY, SH, TLT, TBT, LQD, DBC, GLD, HYG, BIL] is present with no gaps
+  common_tickers: VTI and BND are present because they are what users write
+    most often; without them a journey test measures the data gap instead
 
 # Nothing measured here is a claim about any real security.
 warning: synthetic data; not calibrated to any real instrument

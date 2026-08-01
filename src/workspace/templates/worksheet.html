@@ -30,13 +30,7 @@
 {% if not block.available %}
 <div class="panel muted small">{{ block.unavailable_because }}</div>
 {% else %}
-<div class="panel">
-  <table class="plan">
-    {% for key, value in block.payload.items() %}
-    <tr><th>{{ key.replace('_', ' ') }}</th><td class="mono small">{{ value }}</td></tr>
-    {% endfor %}
-  </table>
-</div>
+<div class="panel">{% include "_worksheet_blocks.html" %}</div>
 {% endif %}
 {% endfor %}
 

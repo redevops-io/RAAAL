@@ -67,6 +67,11 @@ ASSETS = {
     "MGK":  ( 80.0,  1.12, 0.14,  0.11),
     "IWM":  (110.0,  1.05, 0.15,  0.06),
     "BRK-B":(130.0,  0.85, 0.12,  0.08),
+    # The two tickers users write most often. Absent at first, so a journey test
+    # described against VTI measured the data gap rather than the journey — and
+    # a UI cannot prove multi-asset rendering against a universe nobody names.
+    "VTI":  (105.0,  0.99, 0.11,  0.08),
+    "BND":  ( 82.0, -0.15, 0.04,  0.02),
     "BTC-USD": (430.0, 0.60, 0.60, 0.25),
     "^VIX":  ( 20.0, -3.00, 0.80,  0.00),
     "^VVIX": ( 90.0, -1.50, 0.45,  0.00),

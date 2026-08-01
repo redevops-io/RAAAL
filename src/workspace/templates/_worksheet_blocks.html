@@ -1,0 +1,136 @@
+{# Seven blocks, rendered. Every value was decided in worksheet_view.py; this
+   file has no arithmetic, no comparisons of figures and no ranking. A template
+   that decides which result is better has made an argument the engine did not.
+
+   Accessibility: every state carries a word as well as a class. Colour alone
+   cannot be the difference between "comparable" and "not comparable". #}
+
+{% macro percent(value) %}{% if value is none %}—{% else %}{{ "%+.2f%%"|format(value * 100) }}{% endif %}{% endmacro %}
+{% macro money(value) %}{% if value is none %}—{% else %}${{ "{:,.0f}".format(value) }}{% endif %}{% endmacro %}
+
+{% if block.block == "StrategyDefinitionBlock" %}
+  <table class="plan">
+    <tr><th>Holdings</th><td>{{ block.payload.assets|join(', ') or '—' }}</td></tr>
+    <tr><th>Amount</th><td>{{ money(block.payload.amount) }} {{ block.payload.cadence or '' }}</td></tr>
+    <tr><th>Account</th><td>{{ block.payload.account or 'not stated' }}</td></tr>
+    <tr><th>Funding</th><td>{{ block.payload.funding_source or '—' }}</td></tr>
+    <tr><th>Dividends</th><td>{{ block.payload.holdings_policy.dividend_policy or '—' }}</td></tr>
+    <tr><th>Weighting</th><td>{{ block.payload.weighting or '—' }}</td></tr>
+    <tr><th>Execution</th><td>{{ block.payload.day_rule or '—' }}</td></tr>
+    <tr><th>Selling</th><td>{{ 'allowed' if block.payload.holdings_policy.sells_allowed else 'never' }}</td></tr>
+  </table>
+  {% if block.payload.event_program %}
+  <p class="small muted">Rule: {{ block.payload.event_program|length }} step(s),
+    {{ block.payload.event_program[0].estimator or 'simple' }} moving average.</p>
+  {% endif %}
+
+{% elif block.block == "InterpretationSummaryBlock" %}
+  <p class="small">
+    Confirmed on the <strong>{{ block.payload.path }}</strong> path ·
+    {{ block.payload.confirmed_count }} inference(s) confirmed
+  </p>
+  {% if block.payload.confirmed_inferences %}
+  <ul>{% for entry in block.payload.confirmed_inferences %}
+    <li class="small">{{ entry.field.replace('_', ' ') }}: {{ entry.value }}</li>
+  {% endfor %}</ul>
+  {% endif %}
+  <p class="small muted">
+    This records what was confirmed. Changing it happens through a new
+    worksheet revision, not by editing this panel.
+  </p>
+
+{% elif block.block == "BenchmarkComparisonBlock" %}
+  {# Comparability first, always. A reader who sees two numbers side by side
+     has already compared them, whatever a caption says afterwards. #}
+  <p class="small">
+    <strong>Comparability: {{ block.payload.comparability or 'not assessed' }}</strong>
+  </p>
+  {% if block.payload.members %}
+  <table class="plan">
+    <tr><th>Benchmark</th><th>Flows</th><th>Period</th><th>Account</th><th>Class</th></tr>
+    {% for member in block.payload.members %}
+    <tr>
+      <td>{{ member.name }}</td>
+      <td class="small">{{ 'matched' if member.flows_match else 'not matched' }}</td>
+      <td class="small">{{ 'matched' if member.period_match else 'not matched' }}</td>
+      <td class="small">{{ 'matched' if member.account_match else 'not matched' }}</td>
+      <td class="small">{{ member.class or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="small muted">Listed in declaration order, never by outcome.</p>
+  {% endif %}
+  {% if block.payload.unchecked %}
+  <div class="disclosure small">
+    Not checked: {{ block.payload.unchecked|join(', ') }}. An unchecked
+    dimension is not a matched one.
+  </div>
+  {% endif %}
+
+{% elif block.block == "PerformanceSummaryBlock" %}
+  <table class="plan">
+    <tr><th></th><th>Final value</th><th>Contributed</th>
+        <th>Time-weighted</th><th>Money-weighted</th><th>Max drawdown</th></tr>
+    {% for row in block.payload.rows %}
+    <tr>
+      <td>{{ row.name }}</td>
+      <td class="num">{{ money(row.final_value) }}</td>
+      <td class="num">{{ money(row.contributed) }}</td>
+      <td class="num">{{ percent(row.time_weighted_annualized) }}</td>
+      <td class="num">{{ percent(row.money_weighted) }}</td>
+      <td class="num">{{ percent(row.max_drawdown) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="small muted">
+    Time-weighted says whether the rule is any good, independent of when money
+    arrived. Money-weighted says how you actually did. Neither substitutes for
+    the other, so neither appears alone.
+  </p>
+
+{% elif block.block == "ModelingScopeBlock" %}
+  <div class="two-column">
+    <div>
+      <div class="small muted">Modelled</div>
+      <ul>{% for item in block.payload.modelled %}<li class="small">{{ item }}</li>{% else %}<li class="small muted">—</li>{% endfor %}</ul>
+    </div>
+    <div>
+      <div class="small muted">Not modelled</div>
+      <ul>
+        {% for entry in block.payload.not_modelled %}
+        <li class="small">{{ entry.field.replace('_', ' ') }}: {{ entry.declared }}
+          {% if entry.owner %}<span class="mono">({{ entry.owner }})</span>{% endif %}
+          <div class="muted">{{ entry.why }}</div>
+        </li>
+        {% else %}<li class="small muted">—</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+
+{% elif block.block == "TrialAccountingBlock" %}
+  <table class="plan">
+    {% for line in block.payload.lines %}
+    <tr><th class="num">{{ line.count }}</th><td>{{ line.what }}</td></tr>
+    {% endfor %}
+    <tr><th class="num">{{ block.payload.countable_trials }}</th>
+        <td><strong>counted toward the result</strong></td></tr>
+  </table>
+  <p class="small muted">{{ block.payload.why_it_matters }}</p>
+
+{% elif block.block == "ArtifactChainBlock" %}
+  <details>
+    <summary class="small">Provenance · revision {{ block.payload.revision }}</summary>
+    <table class="plan">
+      {% for key, value in block.payload.items() %}
+      <tr><th>{{ key.replace('_', ' ') }}</th><td class="mono small">{{ value }}</td></tr>
+      {% endfor %}
+    </table>
+  </details>
+
+{% else %}
+  <table class="plan">
+    {% for key, value in block.payload.items() %}
+    <tr><th>{{ key.replace('_', ' ') }}</th><td class="mono small">{{ value }}</td></tr>
+    {% endfor %}
+  </table>
+{% endif %}

@@ -330,7 +330,7 @@ class TestTheDigestVersionIsRecorded:
         to signal a change that cannot affect them.
         """
         assert content_digest(synthetic_prices) == (
-            "mdv1:d06a6dbbc12481285a344ccc1848a166bb01f37106a26b0336e2d7978c43af9e")
+            "mdv1:a6af2dae24827061c03111e7dced3879d669d8d18a65eb5864ede14e96d82831")
 
 
 class TestWhatARunRecords:

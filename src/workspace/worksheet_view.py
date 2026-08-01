@@ -144,31 +144,92 @@ def _payload(block: Block, scenario: Mapping[str, Any],
                 "account": protocol.get("tax_treatment")}
 
     if block is Block.INTERPRETATION_SUMMARY:
-        return {"inferred": scenario.get("inferred") or [],
-                "stated_text": None}
+        # Preserves the confirmation result; it does not recreate it. The
+        # screen that asked the questions is the authority on what was asked.
+        inferred = scenario.get("inferred") or []
+        return {"confirmed_inferences": inferred,
+                "confirmed_count": len(inferred),
+                "path": "CLARIFY" if inferred else "FAST",
+                "defaults_ref": scenario.get("defaults_ref")}
 
     if block is Block.BENCHMARK_COMPARISON:
         comparison = (run or {}).get("comparison") or {}
-        return {"comparability": comparison.get("comparability"),
-                "members": comparison.get("members", []),
-                "benchmark_runs": [b["run_id"] for b in benchmark_runs],
-                # Comparability is shown before any side-by-side figure, so a
-                # reader cannot rank two results before learning whether they
-                # are comparable at all.
-                "verdict_first": True}
+        members = comparison.get("members") or []
+        # Comparability is decided here and rendered before any side-by-side
+        # figure, so a reader cannot rank two results before learning whether
+        # they are comparable at all. Order is declaration order, never
+        # outcome order — sorting by result is ranking with extra steps.
+        return {
+            "comparability": comparison.get("comparability"),
+            "members": [
+                {"name": name,
+                 "why_included": (comparison.get("reasons") or {}).get(name, ""),
+                 "flows_match": (comparison.get("flows_match") or {}).get(name),
+                 "period_match": (comparison.get("period_match") or {}).get(name),
+                 "account_match": (comparison.get("account_match") or {}).get(name),
+                 "class": (comparison.get("classes") or {}).get(name)}
+                for name in members],
+            "unchecked": comparison.get("unchecked") or [],
+            "limitations": comparison.get("limitations") or [],
+        }
 
     if block is Block.PERFORMANCE_SUMMARY:
-        return {"time_weighted_annualized": result.get("time_weighted_annualized"),
-                "money_weighted": result.get("money_weighted"),
+        # Symmetric rows. The user's strategy is one row among the benchmarks
+        # rather than the row the others are measured against, because a layout
+        # that centres one series has already made an argument.
+        path = result.get("path") or {}
+        return {
+            "rows": [{
+                "name": "Your strategy",
                 "final_value": result.get("final_value"),
-                "ran_at": (run or {}).get("ran_at")}
+                "contributed": path.get("contributed"),
+                "time_weighted_annualized": result.get("time_weighted_annualized"),
+                "money_weighted": result.get("money_weighted"),
+                "max_drawdown": result.get("max_drawdown"),
+            }],
+            "ran_at": (run or {}).get("ran_at"),
+            # Both bases travel together. Neither substitutes for the other:
+            # one says whether the rule is any good, the other how the person
+            # actually did.
+            "both_bases_present": (
+                result.get("time_weighted_annualized") is not None
+                and result.get("money_weighted") is not None),
+        }
 
     if block is Block.MODELING_SCOPE:
-        return {"scope": _scope_of(run)}
+        scope = _scope_of(run)
+        not_modelled = scope.get("declared_but_not_simulated") or {}
+        return {
+            "modelled": scope.get("includes") or [],
+            "not_applicable": scope.get("not_applicable") or [],
+            "not_modelled": [
+                {"field": field, "declared": entry.get("declared"),
+                 "why": entry.get("why"),
+                 # Names the runtime responsible where one is known, so an
+                 # omission has an owner rather than being a fact of life.
+                 "owner": entry.get("owner")}
+                for field, entry in sorted(not_modelled.items())],
+            "excludes": scope.get("excludes") or [],
+        }
 
     if block is Block.TRIAL_ACCOUNTING:
-        return {"variants_evaluated": len(worksheet.benchmark_run_refs),
-                "selection_basis": "STATED_PREFERENCE"}
+        # Counted in plain language. "DSR-countable trials" means nothing to a
+        # reader, and a number nobody understands is a number nobody checks.
+        benchmarks = len(worksheet.benchmark_run_refs)
+        return {
+            "lines": [
+                {"count": 1, "what": "strategy definition"},
+                {"count": benchmarks, "what": "benchmark comparison"
+                                              + ("" if benchmarks == 1 else "s")},
+                {"count": 0, "what": "variants reviewed after seeing results"},
+            ],
+            "countable_trials": 1 + benchmarks,
+            "why_it_matters": (
+                "Every alternative looked at before choosing counts. Trying "
+                "many and reporting the best one makes an ordinary result look "
+                "remarkable, so the count travels with the figure."),
+            "selection_basis": "STATED_PREFERENCE",
+        }
 
     if block is Block.ARTIFACT_CHAIN:
         return {"scenario_ref": worksheet.scenario_ref,
