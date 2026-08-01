@@ -22,6 +22,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
@@ -43,8 +44,48 @@ DEFAULT_CACHE = Path(
 _ENV_REF = re.compile(r"^\$\{([A-Z0-9_]+)\}$")
 
 
+
 class SnapshotUnavailable(RuntimeError):
     """A pinned snapshot could not be produced. Never downgraded to a fallback."""
+
+
+class EgressDenied(PermissionError):
+    """Data was about to leave the system by a route its licence does not permit.
+
+    Raised, not logged. The failure mode this closes is a developer who knows
+    the dataset is restricted, and a code path six months later written by
+    someone who does not.
+    """
+
+
+class Egress(str, Enum):
+    """What downstream code is about to do with the data."""
+
+    PUBLIC_EXPORT = "public_export"
+    CASE_BUNDLE = "case_bundle"
+    MODEL_PROVIDER_UPLOAD = "model_provider_upload"
+    DERIVED_AGGREGATE = "derived_aggregate"
+    INTERNAL_BENCHMARK = "internal_benchmark"
+    CUSTOMER_RESULT = "customer_result"
+
+
+class Decision(str, Enum):
+    ALLOW = "ALLOW"
+    DENY = "DENY"
+    REVIEW = "REVIEW"
+    """Not yet decided. Treated as a refusal at the call site — an undecided
+    question answered by whoever happens to be running the code is a decision
+    nobody made."""
+
+    @property
+    def permits(self) -> bool:
+        return self is Decision.ALLOW
+
+
+#: Routes that stay inside the system. While a licence review is open these
+#: still follow the declared policy; everything else is forced to REVIEW,
+#: because the difference that matters is whether a person outside sees it.
+_INTERNAL_ONLY = frozenset({Egress.INTERNAL_BENCHMARK})
 
 
 def _resolve(value: Any) -> Optional[str]:
@@ -74,6 +115,9 @@ class Snapshot:
     content_digest: Optional[str] = None
     license_class: str = "restricted"
     redistributable: bool = False
+    license_review_status: str = "UNCONFIRMED"
+    content_digest_version: str = "mdv1"
+    egress_policy: Mapping[str, str] = field(default_factory=dict)
     raw: Mapping[str, Any] = field(default_factory=dict)
 
     @property
@@ -85,10 +129,45 @@ class Snapshot:
         """Whether this data may leave the system in a public artifact.
 
         Read by the export path rather than assumed. A licensed snapshot that
-        reached a public case bundle is a licence breach that no later review
-        can undo.
+        reached a public case bundle is a licence breach no later review undoes.
         """
         return self.redistributable and self.license_class != "restricted"
+
+    @property
+    def review_complete(self) -> bool:
+        return self.license_review_status == "CONFIRMED"
+
+    def decision_for(self, egress: "Egress") -> Decision:
+        """What the policy says about one route out of the system.
+
+        An unlisted route is DENY rather than ALLOW. A policy that permits what
+        it forgot to mention grows permissions by omission.
+
+        While the licence review is open, everything a pilot user could see is
+        refused regardless of the policy — the policy describes what the
+        agreement would allow, and nobody has read the agreement yet.
+        """
+        declared = Decision(self.egress_policy.get(egress.value, "DENY"))
+        if self.review_complete or declared is Decision.DENY:
+            return declared
+        if egress in _INTERNAL_ONLY:
+            return declared
+        return Decision.REVIEW
+
+    def check_egress(self, egress: "Egress", *, context: str = "") -> None:
+        """Ask before data leaves. Raises unless the answer is ALLOW."""
+        decision = self.decision_for(egress)
+        if decision.permits:
+            return
+        where = f" ({context})" if context else ""
+        raise EgressDenied(
+            f"{self.snapshot_id} may not be used for {egress.value}{where}: "
+            f"{decision.value}. license_class={self.license_class}, "
+            f"review={self.license_review_status}. "
+            + ("The licence review is still open, so nothing derived from this "
+               "snapshot may reach anyone outside the system."
+               if not self.review_complete else
+               "The dataset policy forbids this route."))
 
     def describe(self) -> Dict[str, Any]:
         """What a Run records about its input. Identity, never bytes."""
@@ -101,7 +180,12 @@ class Snapshot:
             "data_as_of": self.data_as_of,
             "object_version_id": self.object_version_id,
             "content_digest": self.content_digest,
+            # The normalization rules that produced the digest, not only the
+            # digest. A future reader who has the hash but not the rules cannot
+            # reproduce it.
+            "content_digest_version": self.content_digest_version,
             "license_class": self.license_class,
+            "license_review_status": self.license_review_status,
         }
 
 
@@ -121,6 +205,9 @@ def load_manifest(path: Path | str) -> Snapshot:
         content_digest=body.get("content_digest"),
         license_class=body.get("license_class", "restricted"),
         redistributable=bool(body.get("redistributable", False)),
+        license_review_status=str(body.get("license_review_status", "UNCONFIRMED")),
+        content_digest_version=str(body.get("content_digest_version", "mdv1")),
+        egress_policy=dict(body.get("egress_policy") or {}),
         raw={**body, "coverage": coverage},
     )
 

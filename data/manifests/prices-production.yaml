@@ -36,6 +36,29 @@ provider: TO BE RECORDED          # part of the review below
 license_class: restricted
 redistributable: false
 
+# Queried by exports and model-context construction rather than remembered by
+# developers. An unlisted route is DENY: a policy that permits what it forgot to
+# mention grows permissions by omission.
+#
+# REVIEW is a refusal at the call site. An undecided question answered by
+# whoever happens to be running the code is a decision nobody made.
+egress_policy:
+  public_export: DENY
+  case_bundle: DENY
+  model_provider_upload: REVIEW
+  derived_aggregate: REVIEW
+  internal_benchmark: ALLOW
+  customer_result: REVIEW
+
+# While this is UNCONFIRMED, every route that could reach someone outside the
+# system is forced to REVIEW regardless of the policy above. The policy says
+# what the agreement would allow; nobody has read the agreement yet.
+license_review_status: UNCONFIRMED
+
+# The normalization rules behind `content_digest`, not only the digest. A reader
+# who has the hash but not the rules cannot reproduce it.
+content_digest_version: mdv1
+
 # `restricted` is load-bearing, not descriptive. It keeps this dataset out of
 # public exports and case bundles: the boundary rules say a public artifact may
 # never cite a private one, and licensed data is private in exactly that sense.

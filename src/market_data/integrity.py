@@ -27,8 +27,19 @@ import numpy as np
 import pandas as pd
 
 DIGEST_VERSION = "mdv1"
-"""Bumped only when the canonical form below changes. A digest whose rules moved
-silently is a digest that agrees with everything."""
+"""Bumped when the canonical form changes in a way that alters an existing
+digest. A digest whose rules moved silently is a digest that agrees with
+everything.
+
+Deliberately **not** bumped when mixed-type support was added. The old rules
+*raised* on a non-numeric cell rather than producing a value, so no digest can
+exist that the new rules would compute differently — every input the old version
+accepted, this one canonicalizes identically. Bumping would invalidate correct
+pins to signal a change that cannot affect them, and would make two compatible
+digests look incompatible.
+
+Verified rather than assumed: `test_the_numeric_digest_did_not_move` pins the
+all-float fixture's digest across that change."""
 
 _NULL = "\x00"
 """Distinct from any formatted number, so a missing value and a zero cannot

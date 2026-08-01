@@ -17,6 +17,9 @@ import pandas as pd
 import pytest
 
 from src.market_data import (
+    Decision,
+    Egress,
+    EgressDenied,
     IntegrityError,
     Snapshot,
     SnapshotUnavailable,
@@ -241,6 +244,93 @@ class TestTheLicensedSnapshotIsNotReachableByAccident:
         assert snapshot.object_version_id, "an unversioned object can be replaced"
         assert snapshot.sha256, "no way to detect a truncated or swapped object"
         assert snapshot.content_digest, "no way to detect changed data"
+
+
+class TestEgressPolicy:
+    """What downstream code may do with the data, asked rather than remembered.
+
+    The failure this closes is a developer who knows the dataset is restricted,
+    and a code path six months later written by someone who does not.
+    """
+
+    def test_a_restricted_snapshot_refuses_public_routes(self):
+        snapshot = production_snapshot()
+        for route in (Egress.PUBLIC_EXPORT, Egress.CASE_BUNDLE):
+            with pytest.raises(EgressDenied) as exc:
+                snapshot.check_egress(route, context="pilot report")
+            assert "may not be used for" in str(exc.value)
+
+    def test_an_unlisted_route_is_denied_not_allowed(self):
+        """A policy that permits what it forgot to mention grows by omission."""
+        snapshot = Snapshot(
+            dataset_id="d", snapshot_id="s", kind="licensed", uri=None,
+            schema_version="1", egress_policy={"internal_benchmark": "ALLOW"})
+        assert snapshot.decision_for(Egress.PUBLIC_EXPORT) is Decision.DENY
+
+    def test_review_is_a_refusal_at_the_call_site(self):
+        """An undecided question answered by whoever runs the code is a
+        decision nobody made."""
+        assert Decision.REVIEW.permits is False
+        with pytest.raises(EgressDenied):
+            production_snapshot().check_egress(Egress.CUSTOMER_RESULT)
+
+    def test_an_open_review_blocks_everything_a_person_outside_could_see(self):
+        """Even routes the policy would permit, while nobody has read the terms."""
+        snapshot = Snapshot(
+            dataset_id="d", snapshot_id="s", kind="licensed", uri=None,
+            schema_version="1", license_review_status="UNCONFIRMED",
+            egress_policy={"customer_result": "ALLOW",
+                           "derived_aggregate": "ALLOW",
+                           "internal_benchmark": "ALLOW"})
+        assert snapshot.decision_for(Egress.CUSTOMER_RESULT) is Decision.REVIEW
+        assert snapshot.decision_for(Egress.DERIVED_AGGREGATE) is Decision.REVIEW
+        # Internal work is not blocked; the review is about who sees the result.
+        assert snapshot.decision_for(Egress.INTERNAL_BENCHMARK) is Decision.ALLOW
+
+    def test_a_confirmed_review_lets_the_policy_speak(self):
+        snapshot = Snapshot(
+            dataset_id="d", snapshot_id="s", kind="licensed", uri=None,
+            schema_version="1", license_review_status="CONFIRMED",
+            egress_policy={"customer_result": "ALLOW", "public_export": "DENY"})
+        assert snapshot.decision_for(Egress.CUSTOMER_RESULT) is Decision.ALLOW
+        assert snapshot.decision_for(Egress.PUBLIC_EXPORT) is Decision.DENY
+
+    def test_the_synthetic_fixture_permits_everything(self):
+        """Nothing here is anyone's data, so nothing needs withholding."""
+        snapshot = synthetic_snapshot()
+        assert snapshot.review_complete
+        for route in Egress:
+            snapshot.check_egress(route)     # raises if any route is refused
+
+    def test_the_licensed_manifest_declares_a_policy(self):
+        policy = production_snapshot().egress_policy
+        assert policy["public_export"] == "DENY"
+        assert policy["case_bundle"] == "DENY"
+        assert policy["internal_benchmark"] == "ALLOW"
+
+
+class TestTheDigestVersionIsRecorded:
+
+    def test_the_manifest_names_the_normalization_rules(self):
+        """A reader with the hash but not the rules cannot reproduce it."""
+        assert production_snapshot().content_digest_version == "mdv1"
+        assert synthetic_snapshot().content_digest_version == "mdv1"
+
+    def test_the_run_record_carries_it(self, synthetic_prices):
+        record = describe_for_run(synthetic_snapshot(), synthetic_prices)
+        assert record["content_digest_version"] == "mdv1"
+        assert record["content_digest"].startswith("mdv1:")
+
+    def test_the_numeric_digest_did_not_move(self, synthetic_prices):
+        """Mixed-type support extended the rules without changing any result.
+
+        The old version *raised* on a non-numeric cell rather than producing a
+        value, so no digest can exist that the new rules compute differently.
+        This pins that claim: bumping the version would invalidate correct pins
+        to signal a change that cannot affect them.
+        """
+        assert content_digest(synthetic_prices) == (
+            "mdv1:d06a6dbbc12481285a344ccc1848a166bb01f37106a26b0336e2d7978c43af9e")
 
 
 class TestWhatARunRecords:
