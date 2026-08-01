@@ -181,8 +181,11 @@ Nothing else is required for v1.
 2. **Make the UI one product.** Scenario entry, interpretation checklist, result
    summary, benchmark comparison, modelling scope, plan page, forward timeline.
    No further backend ontology until these are usable.
-3. **Load-test the main journey** using the strategy catalog and the Polars plan,
-   against real user flows rather than harness primitives.
+3. ~~**Load-test the main journey.**~~ **Partly done.** The 144-strategy corpus
+   runs 14,400 compiles as a test and found five compiler defects on its first
+   pass; HarnessBench measures the Polars crossover per workload. See
+   [Performance.md](Performance.md). Remaining: the Mission Evolution workload
+   and the concurrent scenarios L01-L08.
 4. **Tax and account depth for three launch scenarios only:** taxable investing,
    401(k)/Roth accumulation, RSU vesting and diversification.
 5. **Recruit pilot users.** Five real users will expose more than another two
