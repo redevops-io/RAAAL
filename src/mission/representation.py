@@ -45,19 +45,63 @@ CARRIES: Mapping[str, str] = {
     "funding_source": "flows.funding_source",
 }
 
+@dataclass(frozen=True)
+class Exemption:
+    """A recognised field deliberately not carried, and who owes it.
+
+    `owner` and `blocked_by` are what make an exemption expire. Without them
+    "deliberately uncarried" is a permanent hiding place: nothing can find the
+    entries that became obsolete when the responsible artifact finally shipped.
+    """
+
+    status: str                      # "delegated" | "unsupported"
+    reason: str
+    owner: Optional[str] = None      # the artifact that realizes it instead
+    blocked_by: Optional[str] = None  # the capability that would unblock it
+
+    def __post_init__(self) -> None:
+        if self.status == "delegated" and not self.owner:
+            raise ValueError(
+                "a delegated field must name the artifact that realizes it, or "
+                "nothing can tell whether the delegation is still true")
+        if self.status == "unsupported" and not self.blocked_by:
+            raise ValueError(
+                "an unsupported field must name what would unblock it, or the "
+                "exemption cannot expire when that arrives")
+
+
 #: Recognised, deliberately not carried into the scenario, and why. An entry
 #: here is a decision someone wrote down; the absence of one is a defect.
-UNCARRIED: Mapping[str, str] = {
-    "earnings_timing": (
-        "The engine has no earnings calendar, so an earnings-relative rule "
-        "cannot be executed. Recognised so the confirmation screen can say the "
-        "description mentions one and it is not being simulated."
+UNCARRIED: Mapping[str, Exemption] = {
+    "earnings_timing": Exemption(
+        status="unsupported",
+        blocked_by="EarningsCalendarRuntime",
+        reason=(
+            "The engine has no earnings calendar, so an earnings-relative rule "
+            "cannot be executed. Recognised so the confirmation screen can say "
+            "the description mentions one and it is not being simulated."),
     ),
-    "vesting_action": (
-        "Vesting is owned by the RSU life-event template, which states cited "
-        "rules. The generic scenario deliberately does not paraphrase them."
+    "vesting_action": Exemption(
+        status="delegated",
+        owner="template/rsu-vesting@1",
+        reason=(
+            "Vesting is owned by the RSU life-event template, which states "
+            "cited rules. The generic scenario deliberately does not paraphrase "
+            "them."),
     ),
 }
+
+
+def obsolete_exemptions(available: Sequence[str]) -> List[str]:
+    """Exemptions whose blocker or owner now exists.
+
+    Queried by a migration check rather than remembered. The reason an
+    exemption was written is the reason it should stop being one.
+    """
+    present = set(available)
+    return sorted(
+        field for field, exemption in UNCARRIED.items()
+        if (exemption.blocked_by in present) or (exemption.owner in present))
 
 
 @dataclass(frozen=True)

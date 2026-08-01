@@ -50,8 +50,39 @@ class TestEveryRecogniserNamesADestination:
     def test_a_field_declared_as_uncarried_says_why(self):
         """An entry there is a decision someone wrote down. A bare exemption
         list is a place for defects to hide."""
-        for field, reason in UNCARRIED.items():
-            assert len(reason) > 60, f"{field} is exempted without an explanation"
+        for field, exemption in UNCARRIED.items():
+            assert len(exemption.reason) > 60, (
+                f"{field} is exempted without an explanation")
+
+    def test_every_exemption_names_an_owner_or_a_blocker(self):
+        """What makes an exemption expire.
+
+        Without it, "deliberately uncarried" is permanent: nothing can find the
+        entries that stopped being true when the responsible artifact shipped.
+        """
+        for field, exemption in UNCARRIED.items():
+            assert exemption.status in {"delegated", "unsupported"}, field
+            if exemption.status == "delegated":
+                assert exemption.owner, f"{field} delegates to nobody"
+            else:
+                assert exemption.blocked_by, f"{field} is blocked by nothing"
+
+    def test_an_exemption_expires_when_its_blocker_arrives(self):
+        from src.mission.representation import obsolete_exemptions
+
+        assert obsolete_exemptions(["EarningsCalendarRuntime"]) == \
+            ["earnings_timing"]
+        assert obsolete_exemptions(["template/rsu-vesting@1"]) == \
+            ["vesting_action"]
+        assert obsolete_exemptions([]) == []
+
+    def test_an_exemption_cannot_be_written_without_one(self):
+        from src.mission.representation import Exemption
+
+        with pytest.raises(ValueError, match="must name the artifact"):
+            Exemption(status="delegated", reason="x" * 70)
+        with pytest.raises(ValueError, match="must name what would unblock"):
+            Exemption(status="unsupported", reason="x" * 70)
 
     def test_the_two_lists_do_not_overlap(self):
         assert not (set(CARRIES) & set(UNCARRIED))

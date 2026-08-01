@@ -195,6 +195,37 @@ def _benchmark_specs(prices: pd.DataFrame, assets) -> List[Dict[str, Any]]:
     return specs
 
 
+def scenario_from_stored(stored: Dict[str, Any], fallback):
+    """The scenario as it was saved, rebuilt from its stored canonical body.
+
+    Falls back to the freshly compiled one only for plans saved before the
+    stored body carried enough to rebuild — and says so rather than pretending
+    the replay was faithful.
+    """
+    from ..mission.evolution import rebuild_scenario
+
+    rebuilt = rebuild_scenario(stored)
+    return rebuilt if rebuilt is not None else fallback
+
+
+def migration_for(plan_id: str, stored: Dict[str, Any], compiled):
+    """What today's compiler would make of the same words, and whether to offer
+    it. Explained and never performed: adopting a new interpretation changes
+    what a saved plan means, and only its owner can agree to that."""
+    from ..mission.evolution import (
+        COMPILER_VERSION, diff_stored_against, propose_migration)
+
+    if not stored or compiled.scenario is None:
+        return None
+    diff = diff_stored_against(
+        stored, compiled.scenario,
+        stored_compiler=str(stored.get("compiler_version", "1")),
+        current_compiler=COMPILER_VERSION,
+        current_unresolved=[u.field for u in compiled.unresolved])
+    proposal = propose_migration(plan_id, diff)
+    return proposal.to_json() if proposal else None
+
+
 def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
                         ) -> Dict[str, Any]:
     """Add every declared-but-unsimulated behaviour to the modelling scope.
@@ -378,19 +409,30 @@ def plan_detail(request: Request, plan_id: str):
     if record is None:
         raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
 
+    # Opening a saved plan is a *replay*, not a reinterpretation. This route
+    # used to recompile the stored text and simulate the result, while showing
+    # the stored scenario beside it — so after any compiler change the page
+    # displayed one plan and the figures came from another.
+    #
+    # The stored scenario is what the user read and confirmed. It is what runs.
     compiled = compile_scenario(record["stated_text"], name=plan_id, version=1,
                                 benchmark_rule=BENCHMARK_RULE,
                                 parsed=_pinned_parse(record))
+    stored = record["scenario"]
+    migration = migration_for(plan_id, stored, compiled)
+
     prices = _prices()
     scope = (TEMPLATES_BY_HINT[compiled.template_hint].modelling_scope()
              if compiled.template_hint in TEMPLATES_BY_HINT else None)
-    run = _run(compiled.scenario, prices, scope) if prices is not None else None
+    run = (_run(scenario_from_stored(stored, compiled.scenario), prices, scope)
+           if prices is not None else None)
 
     return TEMPLATES.TemplateResponse(
         request, "plan.html",
         {
             "record": record,
             "scenario": record["scenario"],
+            "migration": migration,
             "run": run,
             "runs": store.runs_for(plan_id, PILOT_OWNER),
             "proposals": [p["payload"] for p in

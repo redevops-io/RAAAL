@@ -1,0 +1,158 @@
+{
+  "compiler_version": "3",
+  "checkpoints": [
+    {
+      "at": "2021-01-04",
+      "what": "opens a plan",
+      "revisions": 1,
+      "replay_us": 9,
+      "reinterpret_us": 102,
+      "replay_hash": "4123ff7c1d33fec5",
+      "reinterpret_hash": "b3aaf9338b8fe1b7",
+      "reinterpretation_differs": true,
+      "migration_recommended": true,
+      "pinned_runtimes": {
+        "tax": "tax/none@1",
+        "calendar": "calendar/nyse@1",
+        "market_data": "prices-2021-01-04",
+        "compiler": "1"
+      },
+      "changes": [
+        "flows.funding_source: now represented as 'contribution'",
+        "methodology.holdings_policy.dividend_policy: now represented as 'reinvested'"
+      ]
+    },
+    {
+      "at": "2021-07-01",
+      "what": "raises the contribution",
+      "revisions": 2,
+      "replay_us": 7,
+      "reinterpret_us": 99,
+      "replay_hash": "c9c2613d0eb79ecf",
+      "reinterpret_hash": "c3647519719528f8",
+      "reinterpretation_differs": true,
+      "migration_recommended": true,
+      "pinned_runtimes": {
+        "tax": "tax/none@1",
+        "calendar": "calendar/nyse@1",
+        "market_data": "prices-2021-07-01",
+        "compiler": "1"
+      },
+      "changes": [
+        "flows.funding_source: now represented as 'contribution'",
+        "methodology.holdings_policy.dividend_policy: now represented as 'reinvested'"
+      ]
+    },
+    {
+      "at": "2022-03-15",
+      "what": "adds a second holding",
+      "revisions": 3,
+      "replay_us": 7,
+      "reinterpret_us": 98,
+      "replay_hash": "194dcce4273c09e8",
+      "reinterpret_hash": "c9c163aa108f1f04",
+      "reinterpretation_differs": true,
+      "migration_recommended": true,
+      "pinned_runtimes": {
+        "tax": "tax/none@1",
+        "calendar": "calendar/nyse@1",
+        "market_data": "prices-2022-03-15",
+        "compiler": "1"
+      },
+      "changes": [
+        "flows.funding_source: now represented as 'contribution'",
+        "methodology.holdings_policy.dividend_policy: now represented as 'reinvested'"
+      ]
+    },
+    {
+      "at": "2022-11-01",
+      "what": "moves to a retirement account",
+      "revisions": 4,
+      "replay_us": 6,
+      "reinterpret_us": 96,
+      "replay_hash": "194dcce4273c09e8",
+      "reinterpret_hash": "c9c163aa108f1f04",
+      "reinterpretation_differs": true,
+      "migration_recommended": true,
+      "pinned_runtimes": {
+        "tax": "tax/roth@1",
+        "calendar": "calendar/nyse@1",
+        "market_data": "prices-2022-11-01",
+        "compiler": "1"
+      },
+      "changes": [
+        "flows.funding_source: now represented as 'contribution'",
+        "methodology.holdings_policy.dividend_policy: now represented as 'reinvested'"
+      ]
+    },
+    {
+      "at": "2023-04-01",
+      "what": "starts holding dividends as cash",
+      "revisions": 5,
+      "replay_us": 6,
+      "reinterpret_us": 94,
+      "replay_hash": "194dcce4273c09e8",
+      "reinterpret_hash": "aad3a2bee01e4586",
+      "reinterpretation_differs": true,
+      "migration_recommended": true,
+      "pinned_runtimes": {
+        "tax": "tax/roth@1",
+        "calendar": "calendar/nyse@1",
+        "market_data": "prices-2023-04-01",
+        "compiler": "1"
+      },
+      "changes": [
+        "flows.funding_source: now represented as 'contribution'",
+        "methodology.holdings_policy.dividend_policy: now represented as 'held_as_cash'"
+      ]
+    },
+    {
+      "at": "2024-02-01",
+      "what": "adds a dip-buying rule",
+      "revisions": 6,
+      "replay_us": 8,
+      "reinterpret_us": 134,
+      "replay_hash": "d8257c8822e59d34",
+      "reinterpret_hash": "db66533d6f1772e8",
+      "reinterpretation_differs": true,
+      "migration_recommended": true,
+      "pinned_runtimes": {
+        "tax": "tax/roth@2",
+        "calendar": "calendar/nyse@1",
+        "market_data": "prices-2024-02-01",
+        "compiler": "1"
+      },
+      "changes": [
+        "flows.funding_source: now represented as 'additional_cash'",
+        "methodology.event_program: [{'observe': 'signal_series'}, {'condition': 'below_moving_average', 'semantics': 'persistent_condition'}, {'action': 'buy_basket'}] -> [{'observe': 'signal_series', 'estimator': 'exponential'}, {'condition': 'below_moving_average', 'semantics': 'persistent_condition'}, {'action': 'buy_basket'}]",
+        "methodology.holdings_policy.dividend_policy: now represented as 'held_as_cash'"
+      ]
+    },
+    {
+      "at": "2025-06-02",
+      "what": "restated market data",
+      "revisions": 7,
+      "replay_us": 7,
+      "reinterpret_us": 126,
+      "replay_hash": "d8257c8822e59d34",
+      "reinterpret_hash": "db66533d6f1772e8",
+      "reinterpretation_differs": true,
+      "migration_recommended": true,
+      "pinned_runtimes": {
+        "tax": "tax/roth@2",
+        "calendar": "calendar/nyse@2",
+        "market_data": "prices-2025-06-02",
+        "compiler": "1"
+      },
+      "changes": [
+        "flows.funding_source: now represented as 'additional_cash'",
+        "methodology.event_program: [{'observe': 'signal_series'}, {'condition': 'below_moving_average', 'semantics': 'persistent_condition'}, {'action': 'buy_basket'}] -> [{'observe': 'signal_series', 'estimator': 'exponential'}, {'condition': 'below_moving_average', 'semantics': 'persistent_condition'}, {'action': 'buy_basket'}]",
+        "methodology.holdings_policy.dividend_policy: now represented as 'held_as_cash'"
+      ]
+    }
+  ],
+  "reinterpretations_differing": 7,
+  "migrations_recommended": 7,
+  "replay_us_max": 9,
+  "reinterpret_us_max": 134
+}
