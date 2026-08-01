@@ -237,12 +237,19 @@ def verify_proposals(
             rejections.append(Rejection(field_name, value, span,
                                         "not a field stage 1 recognises"))
             continue
-        if value not in VOCABULARY[field_name]:
+        # Case-insensitive on the value. The vocabulary is lowercase and the
+        # model returns a JSON boolean, which serializes as "False" — so the
+        # quarantine was rejecting a *correct* reading of "I don't sell
+        # anything" on capitalization alone, 14 times in a 205-case run. The
+        # field name stays exact; only the value is normalized.
+        canonical = {v.lower(): v for v in VOCABULARY[field_name]}
+        if value.lower() not in canonical:
             rejections.append(Rejection(
                 field_name, value, span,
                 f"{value!r} is not one of "
                 f"{sorted(VOCABULARY[field_name])} for {field_name}"))
             continue
+        value = canonical[value.lower()]
         if not span or _normalized(span) not in haystack:
             rejections.append(Rejection(
                 field_name, value, span,
@@ -464,9 +471,23 @@ class AnthropicClient:
                                                timeout=self._timeout)
         return self._client
 
+    #: Metadata from the last call. An alias like "claude-sonnet-5" is not an
+    #: identifier — the provider resolves it, and a run that records only the
+    #: alias cannot be reproduced once it moves. The concrete id the API
+    #: returned is captured here alongside token counts.
+    last_response: Dict[str, Any] = None
+
     def complete(self, *, system: str, user: str) -> str:
         response = self._ensure().messages.create(
             model=self.model, max_tokens=self.max_tokens,
             system=system, messages=[{"role": "user", "content": user}])
+        usage = getattr(response, "usage", None)
+        self.last_response = {
+            "requested_model": self.model,
+            "resolved_model": getattr(response, "model", None),
+            "stop_reason": getattr(response, "stop_reason", None),
+            "input_tokens": getattr(usage, "input_tokens", None),
+            "output_tokens": getattr(usage, "output_tokens", None),
+        }
         return "".join(block.text for block in response.content
                        if getattr(block, "type", None) == "text")

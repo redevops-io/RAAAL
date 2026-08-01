@@ -1,0 +1,47 @@
+{
+  "pins": {
+    "provider": "anthropic",
+    "requested_model": "claude-sonnet-5",
+    "resolved_models": [
+      "claude-sonnet-5"
+    ],
+    "system_prompt_sha256": "b76c03088f9dbfdf5fc7c36318edea7a714669f9217f8604ed21b6430fd3a509",
+    "system_prompt_chars": 1742,
+    "compiler_commit": "7b3f9f9",
+    "compiler_version": "3",
+    "canonicalization_version": "not-installed",
+    "sampling": "provider defaults; temperature is rejected by this model",
+    "max_tokens": 4096
+  },
+  "summary": {
+    "cases": 205,
+    "model_available": 205,
+    "schema_failure_rate": 0.0,
+    "retry_rate": 0.0,
+    "content_exact": 98.0,
+    "rule_exact": 99.5,
+    "schedule_exact": 99.0,
+    "provenance_exact": 19.0,
+    "false_inference_rate": 0.0,
+    "contradiction_cases": 82,
+    "contradiction_recall": 100.0,
+    "families": 41,
+    "families_converged": 0,
+    "family_convergence_rate": 0.0,
+    "latency_p50_ms": 5679.5,
+    "latency_p95_ms": 12069.9,
+    "latency_p99_ms": 15470.4,
+    "input_tokens": 135568,
+    "output_tokens": 118283,
+    "failure_classes": {
+      "MISSED_RECOGNITION": 165,
+      "PROVENANCE_ERROR": 163,
+      "NONE": 39
+    },
+    "saveable_with_open_questions": 0,
+    "calls_made": 205,
+    "cases_run": 205,
+    "cases_planned": 205,
+    "elapsed_s": 1248.7
+  }
+}
