@@ -19,4 +19,13 @@ requests>=2.31
 pyyaml>=6.0
 fastapi>=0.115
 uvicorn[standard]>=0.30
+# Form posts. The confirmation screen returns the parse it showed,
+# and a query string is not a reliable place to put it.
+python-multipart>=0.0.9
+
+# Stage 1 of the scenario compiler, optionally. Without it — or without
+# ANTHROPIC_API_KEY — the compiler falls back to its deterministic phrase rules
+# and asks more questions, which is the correct direction to fail in. Nothing
+# below stage 1 depends on it.
+anthropic>=0.40
 httpx>=0.27

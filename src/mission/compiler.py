@@ -71,6 +71,15 @@ class ParsedUtterance:
     recognitions: Sequence[Recognition] = ()
     assets: Sequence[str] = ()
     unrecognized: Sequence[str] = ()
+    """Names that map to more than one instrument. Every entry is a key of
+    `AMBIGUOUS_NAMES`, so the question can offer the actual choices."""
+
+    unclear: Sequence[str] = ()
+    """Phrases stage 1 could not place at all. Free text, and deliberately kept
+    apart from `unrecognized`: "which share class?" offers options, "I could not
+    read this" does not, and a screen that renders them the same way is asking
+    the user to tell the two apart themselves."""
+
     template_hint: Optional[str] = None
     """A life-event template that covers this, if one does. The compiler hands
     off rather than paraphrasing rules the template states with citations."""
@@ -80,6 +89,22 @@ class ParsedUtterance:
             if r.field == field_name:
                 return r
         return None
+
+    def to_json(self) -> Dict[str, Any]:
+        """Serialized so a saved plan can pin the parse it was compiled from.
+
+        Revisiting a plan recompiles from this, never by asking a model again: a
+        model that has changed since would silently alter a plan the user
+        already confirmed and saved.
+        """
+        return {
+            "text": self.text,
+            "recognitions": [r.to_json() for r in self.recognitions],
+            "assets": list(self.assets),
+            "unrecognized": list(self.unrecognized),
+            "unclear": list(self.unclear),
+            "template_hint": self.template_hint,
+        }
 
 
 # --- stage 1: recognisers -------------------------------------------------
@@ -353,9 +378,23 @@ def compile_scenario(
     defaults: DefaultSet = DEFAULT_SET,
     objective: Objective = Objective.REPLAY,
     benchmark_rule: Optional[str] = None,
+    parsed: Optional[ParsedUtterance] = None,
 ) -> CompilerResult:
-    """Stages 1–8. Deterministic from the parse onward."""
-    parsed = parse(text)
+    """Stages 1–8. Deterministic from the parse onward.
+
+    `parsed` is the injection point for stage 1. Pass one produced by
+    `parse_model.parse_with_model` to widen recognition with a language model, or
+    leave it out for the deterministic rules alone. Everything below this line
+    behaves identically either way — which is the property that lets a model sit
+    in stage 1 at all, and the reason a saved plan recompiles from its stored
+    parse rather than by asking a model again.
+    """
+    if parsed is None:
+        parsed = parse(text)
+    elif parsed.text != text:
+        raise ValueError(
+            "the supplied parse is of different text than the one being "
+            "compiled; stages 2-10 would then describe a scenario nobody wrote")
 
     stated: List[str] = [r.span for r in parsed.recognitions]
     inferred: List[Inference] = []
@@ -405,11 +444,26 @@ def compile_scenario(
 
     for ambiguous in parsed.unrecognized:
         question, why = _QUESTIONS["asset_identity"]
+        options = AMBIGUOUS_NAMES.get(ambiguous)
         unresolved.append(Unresolved(
             field=f"asset_identity:{ambiguous}",
-            question=f"{question} You wrote '{ambiguous}' — "
-                     f"{' or '.join(AMBIGUOUS_NAMES[ambiguous])}?",
+            question=(f"{question} You wrote '{ambiguous}' — "
+                      f"{' or '.join(options)}?" if options
+                      else f"{question} You wrote '{ambiguous}'."),
             why_it_matters=why,
+        ))
+
+    # Phrases stage 1 could not place. Each becomes a question rather than a
+    # default — the rule the whole compiler rests on, applied to whatever a
+    # model hands back that the vocabulary has no home for.
+    for phrase in parsed.unclear:
+        unresolved.append(Unresolved(
+            field=f"unclear:{phrase}",
+            question=f"What did you mean by '{phrase}'?",
+            why_it_matters=(
+                "This part of your description did not map onto anything the "
+                "compiler can simulate, so it is currently having no effect on "
+                "the result."),
         ))
 
     cadence_rec = parsed.value_of("cadence")

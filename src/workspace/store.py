@@ -32,7 +32,12 @@ CREATE TABLE IF NOT EXISTS plan (
     stated_text  TEXT NOT NULL,
     saved_at     TEXT NOT NULL,
     rule_hash    TEXT NOT NULL,
-    content_hash TEXT NOT NULL
+    content_hash TEXT NOT NULL,
+    -- The stage 1 parse this plan was compiled from. Pinned rather than
+    -- re-derived: stage 1 may involve a language model, and recompiling a saved
+    -- plan against a model that has since changed would silently alter a plan
+    -- the user already read and confirmed.
+    parse        TEXT
 );
 CREATE TABLE IF NOT EXISTS proposal (
     proposal_id TEXT PRIMARY KEY,
@@ -60,6 +65,12 @@ CREATE TABLE IF NOT EXISTS plan_run (
 """
 
 
+#: Columns added after the first release. Applied on open, in order.
+_ADDED_COLUMNS = (
+    ("plan", "parse", "parse TEXT"),
+)
+
+
 class NotSaveable(ValueError):
     """A plan with unconfirmed choices cannot be saved.
 
@@ -74,6 +85,21 @@ class WorkspaceStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as conn:
             conn.executescript(_SCHEMA)
+            self._add_missing_columns(conn)
+
+    @staticmethod
+    def _add_missing_columns(conn: sqlite3.Connection) -> None:
+        """`CREATE TABLE IF NOT EXISTS` does nothing to a table that exists.
+
+        An existing workspace database would keep its old shape and every insert
+        naming a new column would fail at runtime — a deployment failure that
+        cannot reproduce on a fresh checkout, which is the worst kind.
+        """
+        for table, column, ddl in _ADDED_COLUMNS:
+            present = {row["name"] for row in
+                       conn.execute(f"PRAGMA table_info({table})")}
+            if column not in present:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
@@ -86,7 +112,8 @@ class WorkspaceStore:
             conn.close()
 
     def save_plan(self, *, plan_id: str, owner: str, scenario, stated_text: str,
-                  saved_at: str, intent_id: Optional[str] = None) -> str:
+                  saved_at: str, intent_id: Optional[str] = None,
+                  parse: Optional[Dict[str, Any]] = None) -> str:
         if not scenario.is_runnable:
             raise NotSaveable(
                 f"{scenario.artifact_id} contradicts itself: "
@@ -104,10 +131,11 @@ class WorkspaceStore:
             conn.execute(
                 """INSERT OR REPLACE INTO plan
                    (plan_id, owner, title, scenario, intent, stated_text,
-                    saved_at, rule_hash, content_hash)
-                   VALUES (?,?,?,?,?,?,?,?,?)""",
+                    saved_at, rule_hash, content_hash, parse)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
                 (plan_id, owner, scenario.name, json.dumps(payload), intent_id,
-                 stated_text, saved_at, scenario.rule_hash, scenario.content_hash),
+                 stated_text, saved_at, scenario.rule_hash, scenario.content_hash,
+                 json.dumps(parse) if parse is not None else None),
             )
         return plan_id
 
@@ -222,4 +250,8 @@ class WorkspaceStore:
     def _hydrate(row: sqlite3.Row) -> Dict[str, Any]:
         record = dict(row)
         record["scenario"] = json.loads(record["scenario"])
+        # Absent for plans saved before stage 1 could involve a model. Those
+        # recompile deterministically, which is what they always did.
+        stored = record.get("parse")
+        record["parse"] = json.loads(stored) if stored else None
         return record

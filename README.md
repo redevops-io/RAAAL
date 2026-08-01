@@ -65,6 +65,12 @@ python3 -m pytest tests/ -q
 uvicorn src.api:app --reload         # /ui library · /workspace private scenarios
 ```
 
+Describing a scenario in prose uses a language model for **stage 1 of the
+compiler only** — recognising phrases, never deciding anything. Set
+`ANTHROPIC_API_KEY` to enable it, and `QUANTIFY_PARSER_MODEL` to choose a model.
+Without a key the compiler uses its deterministic phrase rules, recognises less,
+and asks more questions; it never guesses to fill the gap.
+
 ```bash
 python3 scripts/run_methodology.py   # execute a methodology under a protocol
 python3 scripts/evaluate.py          # assessment → policy → publication

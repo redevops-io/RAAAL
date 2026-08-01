@@ -339,3 +339,110 @@ class TestNothingRecommends:
 
         assert "Money-weighted return" in page
         assert "Time-weighted return" in page
+
+
+class TestStageOneIsPinnedToTheSavedPlan:
+    """The whole point of pinning, exercised through the HTTP surface.
+
+    The workspace recompiles a plan from its stated text on every view. With a
+    model in stage 1 and nothing pinned, a plan would be reinterpreted each time
+    it was opened, against a model that may have changed since — so a user could
+    confirm one thing and find another later, with no record that anything moved.
+    """
+
+    @staticmethod
+    def _saved(tmp_path):
+        """The store the client actually writes to."""
+        return WorkspaceStore(tmp_path / "workspace.db")
+
+    def test_saving_stores_the_parse_that_was_confirmed(self, client, tmp_path):
+        import json as _json
+
+        from src.mission.compiler import parse
+
+        page = client.get("/workspace/new", params={"describe": COMPLETE})
+        assert page.status_code == 200
+
+        response = client.post(
+            "/workspace/save",
+            params={"describe": COMPLETE, "plan_id": "pinned",
+                    "confirm_all": "yes"},
+            data={"parse": _json.dumps(parse(COMPLETE).to_json())},
+            follow_redirects=False)
+        assert response.status_code == 303, response.text
+
+        record = self._saved(tmp_path).get_plan("pinned", "pilot")
+        assert record is not None
+        assert record["parse"]["text"] == COMPLETE
+        assert record["parse"]["recognitions"]
+
+    def test_reopening_shows_what_was_saved(self, client, tmp_path):
+        """The user-visible half: revisit a plan, see the same interpretation."""
+        import json as _json
+
+        from src.mission.compiler import parse
+
+        client.post("/workspace/save",
+                    params={"describe": COMPLETE, "plan_id": "revisit",
+                            "confirm_all": "yes"},
+                    data={"parse": _json.dumps(parse(COMPLETE).to_json())},
+                    follow_redirects=False)
+
+        first = client.get("/workspace/plans/revisit")
+        second = client.get("/workspace/plans/revisit")
+        assert first.status_code == 200
+        assert text(first.text) == text(second.text)
+
+    def test_a_tampered_parse_cannot_inject_a_setting(self, client, tmp_path):
+        """The hidden field travels through a browser and is not trusted."""
+        import json as _json
+
+        client.post("/workspace/save",
+                    params={"describe": COMPLETE, "plan_id": "tampered",
+                            "confirm_all": "yes"},
+                    data={"parse": _json.dumps({
+                        "text": COMPLETE,
+                        "recognitions": [{"field": "trigger_semantics",
+                                          "value": "crossing_event",
+                                          "span": "whenever it dips below"}],
+                        "assets": [], "unrecognized": [],
+                    })},
+                    follow_redirects=False)
+
+        record = self._saved(tmp_path).get_plan("tampered", "pilot")
+        assert record is not None
+        fields = {r["field"] for r in record["parse"]["recognitions"]}
+        assert "trigger_semantics" not in fields, (
+            "a span the description does not contain must not become a setting, "
+            "whatever route it arrived by")
+
+    def test_a_parse_of_different_text_is_rejected_with_422(self, client):
+        import json as _json
+
+        response = client.post(
+            "/workspace/save",
+            params={"describe": COMPLETE, "plan_id": "mismatch",
+                    "confirm_all": "yes"},
+            data={"parse": _json.dumps({"text": "a different description",
+                                        "recognitions": [], "assets": [],
+                                        "unrecognized": []})})
+        assert response.status_code == 422
+        assert "does not match the description" in response.json()["detail"]
+
+    def test_the_front_door_survives_an_unavailable_model(self, client,
+                                                          monkeypatch):
+        """No key, no network, a timeout — the page still compiles and renders.
+
+        A conversational front door that stops working when an API does is not a
+        front door.
+        """
+        import src.workspace.routes as routes
+
+        class Broken:
+            def complete(self, *, system, user):
+                raise TimeoutError("upstream timed out")
+
+        monkeypatch.setattr(routes, "_parser_client", lambda: Broken())
+        page = client.get("/workspace/new", params={"describe": COMPLETE})
+        assert page.status_code == 200
+        assert "Before this runs" in text(page.text)

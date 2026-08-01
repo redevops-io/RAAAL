@@ -10,11 +10,12 @@ plan may cite public artifacts while nothing public may cite a plan.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -42,6 +43,11 @@ from ..mission import (
     hold_cash,
     simulate,
 )
+from ..mission.parse_model import (
+    AnthropicClient,
+    parse_from_stored,
+    parse_with_model,
+)
 from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
@@ -58,6 +64,37 @@ router = APIRouter(prefix="/workspace", tags=["workspace"])
 PRICES = Path("data/history/prices.parquet")
 BENCHMARK_RULE = "benchmark-policy/public-default@1"
 
+
+def _parser_client():
+    """A model for stage 1, when one is configured.
+
+    Absent by default. Without a key the compiler falls back to its
+    deterministic rules and asks more questions, which is the correct direction
+    to fail in: narrower recognition, never a confident wrong reading.
+    """
+    import os
+
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+    return AnthropicClient(model=os.environ.get("QUANTIFY_PARSER_MODEL",
+                                                "claude-sonnet-5"))
+
+
+def _pinned_parse(record):
+    """The parse a saved plan was compiled from, re-verified against its text.
+
+    Revisiting a plan must show what the user confirmed. Re-running stage 1
+    against a model that has changed since would quietly recompile it into
+    something else, so the stored parse is the input and the model is not
+    consulted here at all.
+
+    Plans saved before parses were pinned carry none, and recompile
+    deterministically — which is exactly what they did when they were saved.
+    """
+    stored = record.get("parse")
+    if not stored:
+        return None
+    return parse_from_stored(stored, record["stated_text"])
 
 #: Single-user pilot. Real authentication replaces this before the workspace is
 #: exposed to anyone; naming it here keeps the substitution obvious rather than
@@ -221,8 +258,10 @@ def new_plan(request: Request, describe: str = ""):
     if not describe.strip():
         return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
 
+    stage1 = parse_with_model(describe, client=_parser_client())
     compiled = compile_scenario(describe, name="draft", version=1,
-                                benchmark_rule=BENCHMARK_RULE)
+                                benchmark_rule=BENCHMARK_RULE,
+                                parsed=stage1.parsed)
     prices = _prices()
     run = (_run(compiled.scenario, prices)
            if compiled.can_simulate and prices is not None else None)
@@ -233,6 +272,8 @@ def new_plan(request: Request, describe: str = ""):
             "describe": describe,
             "result": compiled,
             "confirmation": compiled.confirmation(),
+            "parse": json.dumps(stage1.parsed.to_json()),
+            "parse_provenance": stage1.provenance,
             "chain": build_scenario_chain(
                 subject="draft", scenario=compiled.scenario,
                 result=run["result"] if run else None,
@@ -246,10 +287,28 @@ def new_plan(request: Request, describe: str = ""):
 
 
 @router.post("/save")
-def save_plan(describe: str, plan_id: str, confirm_all: str = ""):
-    """Commit. Refuses anything the user has not actually confirmed."""
+def save_plan(describe: str, plan_id: str, confirm_all: str = "",
+              parse: str = Form(default="")):
+    """Commit. Refuses anything the user has not actually confirmed.
+
+    The parse comes back from the confirmation screen so that what is saved is
+    the interpretation the user actually read. It arrives via a browser and is
+    therefore not trusted: `parse_from_stored` re-checks every recognition
+    against the description, so a tampered field cannot inject a reading the
+    text does not support.
+    """
+    parsed = None
+    if parse.strip():
+        try:
+            parsed = parse_from_stored(json.loads(parse), describe)
+        except (ValueError, json.JSONDecodeError) as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"the submitted interpretation does not match the "
+                       f"description: {exc}") from exc
+
     compiled = compile_scenario(describe, name=plan_id, version=1,
-                                benchmark_rule=BENCHMARK_RULE)
+                                benchmark_rule=BENCHMARK_RULE, parsed=parsed)
     scenario = compiled.scenario
 
     if confirm_all == "yes":
@@ -275,6 +334,7 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = ""):
         _store().save_plan(
             plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
             stated_text=describe, saved_at=pd.Timestamp.now("UTC").isoformat(),
+            parse=parsed.to_json() if parsed is not None else None,
         )
     except NotSaveable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -290,7 +350,8 @@ def plan_detail(request: Request, plan_id: str):
         raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
 
     compiled = compile_scenario(record["stated_text"], name=plan_id, version=1,
-                                benchmark_rule=BENCHMARK_RULE)
+                                benchmark_rule=BENCHMARK_RULE,
+                                parsed=_pinned_parse(record))
     prices = _prices()
     scope = (TEMPLATES_BY_HINT[compiled.template_hint].modelling_scope()
              if compiled.template_hint in TEMPLATES_BY_HINT else None)
@@ -375,7 +436,8 @@ def counterfactual(request: Request, plan_id: str, constraint: str = "a blackout
 
     prices = _prices()
     compiled = compile_scenario(record["stated_text"], name=plan_id, version=1,
-                                benchmark_rule=BENCHMARK_RULE)
+                                benchmark_rule=BENCHMARK_RULE,
+                                parsed=_pinned_parse(record))
     scenario = compiled.scenario
     if prices is None or prices.empty:
         return TEMPLATES.TemplateResponse(

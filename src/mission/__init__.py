@@ -56,6 +56,18 @@ from .compiler import (
     compile_scenario,
     parse,
 )
+from .parse_model import (
+    VOCABULARY,
+    AnthropicClient,
+    Disagreement,
+    ModelClient,
+    ParseProvenance,
+    Rejection,
+    VerifiedParse,
+    build_system_prompt,
+    parse_with_model,
+    verify_proposals,
+)
 from .defaults import DEFAULT_SET, Default, DefaultSet
 from .intent import (
     GENERATION_CONSTRAINTS,
@@ -123,6 +135,16 @@ __all__ = [
     "Recognition",
     "compile_scenario",
     "parse",
+    "VOCABULARY",
+    "AnthropicClient",
+    "Disagreement",
+    "ModelClient",
+    "ParseProvenance",
+    "Rejection",
+    "VerifiedParse",
+    "build_system_prompt",
+    "parse_with_model",
+    "verify_proposals",
     "ISOLATION_DIMENSIONS",
     "MISSION_SPEC_VERSION",
     "PROHIBITED_KEYS",

@@ -170,9 +170,14 @@ Nothing else is required for v1.
 
 ### Implementation order
 
-1. **Wire the model into compiler stage 1.** The highest-value missing feature —
-   without it the conversational front door is still conceptual. Stages 2–10
-   stay deterministic and confirmation stays required before save.
+1. ~~**Wire the model into compiler stage 1.**~~ **Done.** A model proposes
+   readings; a deterministic quarantine checks every one against the text and a
+   vocabulary derived from the phrase rules. Fabricated quotations, invented
+   tickers, values outside the vocabulary and figures absent from the
+   description are all refused, and anything it cannot place becomes a question
+   rather than a default. The parse is **pinned to the saved plan**, so
+   revisiting never re-derives it against a model that has changed. No key, no
+   network or a bad response falls back to the phrase rules.
 2. **Make the UI one product.** Scenario entry, interpretation checklist, result
    summary, benchmark comparison, modelling scope, plan page, forward timeline.
    No further backend ontology until these are usable.

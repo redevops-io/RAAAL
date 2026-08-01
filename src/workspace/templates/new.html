@@ -55,6 +55,26 @@
 </div>
 {% endif %}
 
+{% if parse_provenance and (parse_provenance.rejected or parse_provenance.disagreements) %}
+<div class="group inferred">
+  <h3>We could not use</h3>
+  {% for r in parse_provenance.rejected %}
+  <div class="small"><strong>{{ r.field }}</strong> — {{ r.why }}</div>
+  {% endfor %}
+  {% for d in parse_provenance.disagreements %}
+  <div class="small">
+    <strong>{{ d.field }}</strong> — two readings of your description
+    (<span class="mono">{{ d.deterministic }}</span> vs
+    <span class="mono">{{ d.model }}</span>). The first is what will run; say
+    which you meant if it is wrong.
+  </div>
+  {% endfor %}
+  <p class="small muted" style="margin:10px 0 0">
+    Nothing here became a setting. Anything we could not read stays a question.
+  </p>
+</div>
+{% endif %}
+
 {% if confirmation.these_conflict %}
 <div class="group conflict">
   <h3>These conflict</h3>
@@ -136,7 +156,11 @@
 {% endif %}
 
 {% if confirmation.can_save %}
+{# The parse travels with the save so the plan stores the interpretation you
+   actually read, rather than one re-derived later against a model that may have
+   changed. It is re-verified against your description on the way in. #}
 <form action="/workspace/save?describe={{ describe|urlencode }}&plan_id=my-plan" method="post">
+  <input type="hidden" name="parse" value="{{ parse }}">
   <button type="submit">Save this plan</button>
 </form>
 {% endif %}
