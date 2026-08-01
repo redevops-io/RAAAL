@@ -1,0 +1,76 @@
+spec_version: '0.1'
+name: nyse
+version: 1
+title: New York Stock Exchange regular sessions
+source: >-
+  https://www.nyse.com/markets/hours-calendars — holiday rules as published for
+  2016 onward. Half-day sessions (day after Thanksgiving, Christmas Eve) are full
+  sessions for return purposes and are not excluded.
+
+covers_from: '2000-01-01'
+covers_to: '2035-12-31'
+timezone: America/New_York
+periods_per_year: 252
+weekmask: [0, 1, 2, 3, 4]
+
+holidays:
+  - name: New Year's Day
+    kind: fixed
+    month: 1
+    day: 1
+    observed: nearest_weekday
+
+  - name: Martin Luther King Jr. Day
+    kind: nth_weekday
+    month: 1
+    weekday: 0
+    nth: 3
+
+  - name: Washington's Birthday
+    kind: nth_weekday
+    month: 2
+    weekday: 0
+    nth: 3
+
+  - name: Good Friday
+    kind: easter_offset
+    offset: -2
+
+  - name: Memorial Day
+    kind: nth_weekday
+    month: 5
+    weekday: 0
+    nth: -1
+
+  # Became a market holiday in 2022; the rule records that rather than
+  # retroactively closing the exchange in earlier years.
+  - name: Juneteenth National Independence Day
+    kind: fixed
+    month: 6
+    day: 19
+    observed: nearest_weekday
+    first_year: 2022
+
+  - name: Independence Day
+    kind: fixed
+    month: 7
+    day: 4
+    observed: nearest_weekday
+
+  - name: Labor Day
+    kind: nth_weekday
+    month: 9
+    weekday: 0
+    nth: 1
+
+  - name: Thanksgiving Day
+    kind: nth_weekday
+    month: 11
+    weekday: 3
+    nth: 4
+
+  - name: Christmas Day
+    kind: fixed
+    month: 12
+    day: 25
+    observed: nearest_weekday

@@ -1,0 +1,101 @@
+spec_version: '0.1'
+concept: hrp
+version: 1
+title: Hierarchical Risk Parity
+objective: >-
+  Allocate across a fixed multi-asset ETF universe using correlation-based
+  hierarchical clustering, avoiding the estimation error of explicit
+  mean-variance optimization by never inverting the covariance matrix.
+
+grounded_in:
+  - identifier: doi:10.3905/jpm.2016.42.4.59
+    title: Building Diversified Portfolios That Outperform Out of Sample
+    claim_used: >-
+      Quasi-diagonalization of the correlation matrix followed by recursive
+      bisection produces out-of-sample performance superior to mean-variance
+      optimization, because it does not require inverting an ill-conditioned
+      covariance matrix.
+
+claims_ref:
+  - claim/hrp-outperforms-mvo-out-of-sample@1
+  - claim/hrp-diversifies-without-constraints@1
+
+assumptions_ref:
+  - assumption/sample-covariance@1
+  - assumption/one-session-execution-lag@1
+  - assumption/adjusted-close-is-restated@1
+
+contract:
+  universe: [SPY, SH, TLT, TBT, LQD, DBC, GLD, HYG, BIL]
+  rebalance_frequency: 5B
+  weight_bounds:
+    min: 0.0
+    max: 1.0
+  gross_leverage_max: 1.0
+  requires_cost_model: true
+
+params:
+  lookback:
+    value: 252
+    unit: trading_days
+    description: Window used to estimate the correlation matrix.
+  linkage_method:
+    value: single
+    unit: ''
+    description: Hierarchical clustering linkage.
+  correlation_distance:
+    value: sqrt_half_one_minus_rho
+    unit: ''
+    description: >-
+      Distance metric d = sqrt(0.5 * (1 - rho)), as specified in the source
+      paper.
+  covariance_estimator:
+    value: sample
+    unit: ''
+    description: >-
+      Equal-weighted sample covariance over the lookback window. Declared
+      explicitly because the source paper does not specify an estimator, and two
+      faithful implementations differing only on this point produce different
+      allocations — the choice must be data, not an implementation detail.
+
+pipeline:
+  - estimate_correlation
+  - cluster_assets
+  - quasi_diagonalize
+  - recursive_bisection
+  - apply_bounds
+
+fallback_chain:
+  - inverse_volatility
+  - equal_weight
+
+universe_filters:
+  - id: has_full_lookback_history
+    enforced_by: pipeline.estimate_correlation
+    description: >-
+      Assets without a full estimation window are excluded rather than imputed.
+      Realized by estimate_correlation raising on a short window.
+
+rules:
+  - id: min_history
+    enforced_by: params.lookback
+    expected: '>= 252'
+    description: >-
+      Asserts the estimation window is at least a year. Realized by
+      estimate_correlation, which raises when fewer observations are available
+      than lookback declares.
+
+assumptions:
+  - Close-to-close execution at the next session's price.
+  - Correlations estimated over the trailing window are informative for the next rebalance.
+  - No borrow constraints or short availability limits (the universe is long-only ETFs).
+
+limitations:
+  - Long-only; expresses bearish views solely through inverse ETFs already in the universe.
+  - No regime conditioning — allocation responds to correlation structure alone.
+  - Estimated on daily Adj Close, which is restated over time by the data vendor.
+  - Ignores capacity and market impact.
+
+cost_model: flat_bps
+risk_classification: medium
+change_rationale: Initial publication.

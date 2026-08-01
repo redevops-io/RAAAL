@@ -1,0 +1,132 @@
+spec_version: '0.1'
+concept: hrp
+version: 3
+title: Hierarchical Risk Parity (capped)
+derived_from: methodology/hrp@2
+change_rationale: >-
+  Evaluation under protocol/standard@1 flagged hrp@1 and hrp@2 as degenerate: BIL,
+  the cash proxy, took 99.6% of the portfolio on average, effective breadth was
+  1.01 assets, and the reported Sharpe of 6.59 was cash return divided by cash
+  volatility rather than risk-adjusted performance.
+
+  This is inherent to HRP, not an implementation error. Recursive bisection
+  allocates inverse-variance, so an instrument with near-zero variance dominates
+  any universe it is in. Lopez de Prado (2016) demonstrates HRP on a universe of
+  comparable-risk assets and does not address a cash proxy.
+
+  v3 imposes a 25% per-asset ceiling via the output contract, which is the
+  smallest change that makes the allocation describe the methodology rather than
+  describing BIL. The ceiling is applied by the existing apply_bounds step, which
+  iterates clip-and-renormalize to a fixed point.
+
+  Comparability: this changes weight_bounds in the contract, so results published
+  against v1 and v2 describe a different strategy and must not be linked to v3's.
+
+objective: >-
+  Allocate across a fixed multi-asset ETF universe using correlation-based
+  hierarchical clustering, subject to a per-asset ceiling that prevents a
+  near-zero-variance instrument from absorbing the portfolio.
+
+grounded_in:
+  - identifier: doi:10.3905/jpm.2016.42.4.59
+    title: Building Diversified Portfolios That Outperform Out of Sample
+    claim_used: >-
+      Quasi-diagonalization of the correlation matrix followed by recursive
+      bisection produces out-of-sample performance superior to mean-variance
+      optimization, because it does not require inverting an ill-conditioned
+      covariance matrix.
+
+claims_ref:
+  - claim/hrp-outperforms-mvo-out-of-sample@1
+
+assumptions_ref:
+  - assumption/sample-covariance@1
+  - assumption/nyse-sessions@1
+  - assumption/one-session-execution-lag@1
+  - assumption/hard-bounds-beat-soft-turnover@1
+  - assumption/adjusted-close-is-restated@1
+
+contract:
+  universe: [SPY, SH, TLT, TBT, LQD, DBC, GLD, HYG, BIL]
+  rebalance_frequency: 21B
+  weight_bounds:
+    min: 0.0
+    max: 0.25
+  gross_leverage_max: 1.0
+  requires_cost_model: true
+
+params:
+  lookback:
+    value: 504
+    unit: trading_days
+    description: Correlation estimation window.
+  linkage_method:
+    value: single
+    unit: ''
+    description: Hierarchical clustering linkage.
+  correlation_distance:
+    value: sqrt_half_one_minus_rho
+    unit: ''
+    description: Distance metric d = sqrt(0.5 * (1 - rho)), per the source paper.
+  covariance_estimator:
+    value: sample
+    unit: ''
+    description: >-
+      Equal-weighted sample covariance over the lookback window. Declared
+      explicitly because the source paper does not specify an estimator.
+  max_turnover:
+    value: 0.25
+    unit: fraction_of_notional
+    description: Per-rebalance turnover cap; trades scale back proportionally.
+
+pipeline:
+  - estimate_correlation
+  - cluster_assets
+  - quasi_diagonalize
+  - recursive_bisection
+  - apply_bounds
+  - apply_turnover_cap
+
+fallback_chain:
+  - inverse_volatility
+  - equal_weight
+
+universe_filters:
+  - id: has_full_lookback_history
+    enforced_by: pipeline.estimate_correlation
+    description: Realized by estimate_correlation raising on a short window.
+
+rules:
+  - id: min_history
+    enforced_by: params.lookback
+    expected: '>= 504'
+    description: Asserts the estimation window, realized by estimate_correlation.
+  - id: turnover_cap
+    enforced_by: pipeline.apply_turnover_cap
+    expected: present
+    description: Asserts the turnover cap stage runs.
+  - id: concentration_cap
+    enforced_by: contract.weight_bounds.max
+    expected: '<= 0.25'
+    description: >-
+      Asserts no single asset may exceed a quarter of the portfolio. Realized by
+      the output contract and applied by apply_bounds — the rule verifies that
+      declared ceiling rather than imposing a second, independent one.
+
+assumptions:
+  - Close-to-close execution at the next session's price.
+  - Correlations estimated over the trailing window are informative for the next rebalance.
+  - No borrow constraints or short availability limits (the universe is long-only ETFs).
+  - A 25% ceiling is binding often enough to diversify without overriding the method.
+
+limitations:
+  - Long-only; expresses bearish views solely through inverse ETFs already in the universe.
+  - No regime conditioning — allocation responds to correlation structure alone.
+  - Estimated on daily Adj Close, which is restated over time by the data vendor.
+  - Ignores capacity and market impact.
+  - The 504-day lookback needs two years of history before the first allocation.
+  - The per-asset ceiling is an imposed constraint, not part of Lopez de Prado's
+    published method; results are therefore not a replication of that paper.
+
+cost_model: flat_bps
+risk_classification: medium

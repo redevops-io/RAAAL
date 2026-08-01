@@ -1,0 +1,52 @@
+spec_version: '0.1'
+name: standard
+version: 1
+title: Standard multi-asset ETF evaluation
+
+change_rationale: >-
+  Initial publication. Codifies the evaluation settings that were previously
+  ambient: transaction costs and execution lag lived in src/config.py as module
+  constants, and the walk-forward grid was implied by CLI flags. Both shape every
+  published return, so both belong in an identified, hashable artifact that the
+  result can cite.
+
+data_snapshot:
+  source: yfinance
+  start: '2016-01-01'
+  end: '2025-11-20'
+  content_hash: null        # bound by the runner to the panel actually loaded
+  as_of: null
+  notes: >-
+    Adjusted close only. The vendor restates history for splits and dividends, so
+    a date range does not identify the data — the content hash does.
+
+walk_forward:
+  scheme: expanding
+  warmup: 252
+  step: 5
+  purge: 0
+  embargo: 0
+  train_window: null
+  calendar: nyse@1
+
+transaction_costs:
+  model: flat_bps
+  bps: 10.0
+  execution_lag_days: 1
+  notes: >-
+    Conservative placeholder for liquid US ETFs (spread + commission + slippage).
+    Not a calibrated microstructure model; no market impact, no capacity limit.
+
+risk_model:
+  covariance: sample
+  covariance_span: null
+  factor_model: null
+  factors: []
+
+holdout:
+  start: null
+  end: null
+  sealed: false
+  unlock_event: null
+
+benchmark: SPY
