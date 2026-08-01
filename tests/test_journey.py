@@ -118,9 +118,21 @@ class TestTheWholeJourney:
         compiled = compile_scenario(DESCRIPTION)
         confirmation = compiled.confirmation()
 
-        assert confirmation["we_still_need"], "an RSU plan needs its specifics"
-        assert any(u["controls"].startswith("template:")
-                   for u in confirmation["we_still_need"])
+        offer = confirmation["a_better_route"]
+        assert offer and offer["controls"].startswith("template:"), (
+            "an RSU description must surface the template rather than let the "
+            "compiler improvise vesting rules from prose")
+
+        # The offer is *not* in the blocking list, and that separation is the
+        # point. It used to be appended to `unresolved` after the scenario
+        # provenance was built, so this screen listed it under "we still need"
+        # while the Save button stayed enabled — the screen and the button
+        # disagreed about whether anything was outstanding. Found by the
+        # strategy corpus, which flagged a plan that saved with an open
+        # question against it.
+        assert all(not u["controls"].startswith("template:")
+                   for u in confirmation["we_still_need"]), (
+            "a non-blocking offer must not sit in the list of things that block")
         # An RSU description with no specifics is incomplete, not contradictory:
         # the template will supply the flows, so the blocker is the missing
         # template input rather than an imagined absence of money.

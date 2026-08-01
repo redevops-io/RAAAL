@@ -127,7 +127,7 @@ _RULES: Sequence[Tuple[str, str, str]] = (
      r"\bequal(?:ly)?[- ]?weight\w*\b[^.]*\b(?:each|every|at) purchase\b|\bequal dollars\b|\bbuy\b[^.]*\bequally\b"),
 
     ("funding_source", "contribution",
-     r"\b(?:use|invest|with) (?:the |my )?(?:monthly )?contribution\b|\bout of (?:the |my )?(?:monthly )?(?:contribution|paycheck|paycheque)\b"),
+     r"\b(?:use|invest|with|from) (?:the |my |that |this )?(?:monthly )?contribution\b|\bout of (?:the |my |that |this )?(?:monthly |usual )?(?:contribution|paycheck|paycheque|transfer)\b"),
     ("funding_source", "additional_cash",
      r"\badditional cash\b|\bextra cash\b|\bseparate(?:ly)? from (?:the |my )?contribution\b|\bon top of\b"),
 
@@ -156,11 +156,24 @@ _RULES: Sequence[Tuple[str, str, str]] = (
     ("moving_average_kind", "simple", r"\bsimple\b(?:[^.]*\b(?:moving )?average\b)|\bSMA\b"),
 )
 
+#: Ordered most specific first: "every other week" must not be read as "week",
+#: and "every year" must not be read as "ear". The corpus found this list
+#: covering four of the nine cadences its catalog actually uses — a user writing
+#: "annually", the single most common cadence in the corpus, was asked how often
+#: their contribution arrives immediately after saying so.
 _CADENCE = (
+    ("biweekly", r"\b(?:every|each) (?:two weeks|fortnight)\b|\bbiweekly\b|\bevery other week\b|\bsemi-?monthly\b"),
     ("monthly", r"\b(?:every|each) month\b|\bmonthly\b"),
-    ("biweekly", r"\b(?:every|each) (?:two weeks|fortnight)\b|\bbiweekly\b|\bevery other week\b"),
     ("weekly", r"\b(?:every|each) week\b|\bweekly\b"),
-    ("once", r"\blump sum\b|\ball at once\b"),
+    ("quarterly", r"\b(?:every|each) quarter\b|\bquarterly\b"),
+    # No bare `\bannual\b`: it is an adjective, and it matched "annual
+    # rebalance" in a *benchmark* clause, so the compiler read the user's
+    # contribution cadence out of a sentence about what to compare against.
+    # Found by the corpus immediately after this cadence was added.
+    ("annual", r"\b(?:every|each) year\b|\bannually\b|\bonce a year\b|\byearly\b"),
+    ("payroll", r"\bevery pay ?day\b|\beach pay ?day\b|\bout of (?:each|every|my) pay ?che(?:ck|que)\b|\bwith each pay ?che(?:ck|que)\b|\bper pay period\b"),
+    ("daily", r"\b(?:every|each) day\b|\bdaily\b"),
+    ("once", r"\blump sum\b|\ball at once\b|\bone ?-?off\b"),
 )
 
 _AMOUNT = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)")
@@ -305,6 +318,10 @@ class CompilerResult:
     scenario: Optional[ScenarioSpecification]
     verification: Sequence[str] = ()
     template_hint: Optional[str] = None
+    template_offer: Optional[Unresolved] = None
+    """A better route exists for this description. An offer, deliberately not an
+    `unresolved` entry: it does not block, and the blocking list is the one a
+    reader has to be able to trust."""
 
     @property
     def can_simulate(self) -> bool:
@@ -348,6 +365,11 @@ class CompilerResult:
                  "controls": u.field}
                 for u in self.unresolved
             ],
+            "a_better_route": (
+                {"question": self.template_offer.question,
+                 "why_it_matters": self.template_offer.why_it_matters,
+                 "controls": self.template_offer.field}
+                if self.template_offer else None),
             "defaults_ref": self.defaults_ref,
             "can_simulate": self.can_simulate,
             "can_save": self.can_save,
@@ -361,6 +383,8 @@ class CompilerResult:
             "inferred": [i.to_json() for i in self.inferred],
             "contradictions": [c.to_json() for c in self.contradictions],
             "unresolved": [u.to_json() for u in self.unresolved],
+            "template_offer": (self.template_offer.to_json()
+                               if self.template_offer else None),
             "defaults_applied": self.defaults_ref,
             "scenario_preview": self.scenario.to_json() if self.scenario else None,
             "verification": list(self.verification),
@@ -427,8 +451,19 @@ def compile_scenario(
     if has_signal:
         settle("execution_timing")
 
-    # "Equally" only means something across more than one holding.
-    weighting = settle("weighting") if len(parsed.assets) > 1 else None
+    # "Equally" only means something across more than one holding — so the
+    # question is not *asked* for a single recognised asset. But a weighting the
+    # user actually stated is settled either way: the guard exists to avoid
+    # inventing a question, not to discard an answer.
+    #
+    # Found by the strategy corpus. 94% of deliberately contradictory prompts
+    # went unreported because the parser recognised no ticker in phrases like
+    # "invest only above floor", so a stated "rebalance to equal weights"
+    # alongside "never sell" was dropped before the contradiction check ran.
+    # That is declaration without behaviour, in the compiler itself.
+    states_weighting = parsed.value_of("weighting") is not None
+    weighting = (settle("weighting")
+                 if states_weighting or len(parsed.assets) > 1 else None)
 
     settle("dividends")
     day_rule = settle("contribution_day_rule")
@@ -533,8 +568,17 @@ def compile_scenario(
     status = ("BLOCKED" if contradictions else
               "NEEDS_INPUT" if unresolved or inferred else "READY")
 
+    # An *offer*, not an open question. It was appended to `unresolved` after
+    # the scenario provenance was built, so the confirmation screen listed it
+    # under "we still need" while the Save button stayed enabled — the screen
+    # and the button disagreed about whether anything was outstanding.
+    #
+    # Kept non-blocking, because the generic compile is a valid plan and the
+    # template is a better one the user chooses. But it no longer sits in the
+    # list of things that block, because that list is the one a reader trusts.
+    template_offer = None
     if parsed.template_hint:
-        unresolved.append(Unresolved(
+        template_offer = (Unresolved(
             field=f"template:{parsed.template_hint}",
             question=(
                 f"This looks like a {parsed.template_hint.replace('-', ' ')} "
@@ -550,7 +594,7 @@ def compile_scenario(
 
     return CompilerResult(
         intent_id=intent_id, status=status, stated=tuple(stated),
-        template_hint=parsed.template_hint,
+        template_hint=parsed.template_hint, template_offer=template_offer,
         inferred=tuple(inferred), contradictions=tuple(contradictions),
         unresolved=tuple(unresolved), defaults_ref=defaults.artifact_id,
         scenario=scenario,

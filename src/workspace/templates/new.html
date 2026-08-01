@@ -155,6 +155,18 @@
 {% include "_comparison.html" %}
 {% endif %}
 
+{% if confirmation.a_better_route %}
+<div class="group inferred">
+  <h3>A better route exists</h3>
+  <div class="small"><strong>{{ confirmation.a_better_route.question }}</strong></div>
+  <div class="small muted">{{ confirmation.a_better_route.why_it_matters }}</div>
+  <p class="small muted" style="margin:10px 0 0">
+    This does not block saving. The plan below is a valid interpretation of what
+    you wrote; the template is a more precise one.
+  </p>
+</div>
+{% endif %}
+
 {% if confirmation.can_save %}
 {# The parse travels with the save so the plan stores the interpretation you
    actually read, rather than one re-derived later against a model that may have

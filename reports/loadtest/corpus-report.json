@@ -1,0 +1,191 @@
+{
+  "strategies": 144,
+  "per_strategy": 100,
+  "prompts": 14400,
+  "elapsed_s": 0.68,
+  "latency": {
+    "parse_us": {
+      "n": 14400,
+      "p50": 34,
+      "p95": 55,
+      "p99": 65,
+      "max": 1182,
+      "mean": 34.6
+    },
+    "compile_us": {
+      "n": 14400,
+      "p50": 9,
+      "p95": 11,
+      "p99": 12,
+      "max": 440,
+      "mean": 9.3
+    },
+    "total_us": {
+      "n": 14400,
+      "p50": 45,
+      "p95": 66,
+      "p99": 80,
+      "max": 1221,
+      "mean": 45.4
+    }
+  },
+  "by_class": {
+    "COMPLETE": {
+      "n": 2304,
+      "ok": 2304,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 1824,
+      "asked": 160,
+      "contradicted": 0
+    },
+    "UNDERSPECIFIED": {
+      "n": 1008,
+      "ok": 1008,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 1008,
+      "contradicted": 952
+    },
+    "CONTRADICTORY": {
+      "n": 1008,
+      "ok": 1008,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 7,
+      "contradicted": 1008
+    },
+    "ACCOUNT_OMISSION": {
+      "n": 1008,
+      "ok": 1008,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 77,
+      "contradicted": 0
+    },
+    "PERSISTENT_VS_EVENT": {
+      "n": 2016,
+      "ok": 2016,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 2016,
+      "contradicted": 0
+    },
+    "EQUAL_WEIGHT": {
+      "n": 2016,
+      "ok": 2016,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 154,
+      "contradicted": 0
+    },
+    "FUNDING_SOURCE": {
+      "n": 2016,
+      "ok": 2016,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 1960,
+      "contradicted": 0
+    },
+    "CALENDAR_VS_SESSION": {
+      "n": 2016,
+      "ok": 2016,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 2016,
+      "contradicted": 0
+    },
+    "RECOMMENDATION_BAIT": {
+      "n": 1008,
+      "ok": 1008,
+      "crashed": 0,
+      "disagreed": 0,
+      "saveable": 0,
+      "asked": 1008,
+      "contradicted": 972
+    }
+  },
+  "by_family": {
+    "Broad index allocation": {
+      "n": 800,
+      "problems": 0
+    },
+    "Dollar-cost averaging": {
+      "n": 800,
+      "problems": 0
+    },
+    "Rebalancing": {
+      "n": 800,
+      "problems": 0
+    },
+    "Factor tilts": {
+      "n": 800,
+      "problems": 0
+    },
+    "Risk-based allocation": {
+      "n": 800,
+      "problems": 0
+    },
+    "Trend and moving-average": {
+      "n": 800,
+      "problems": 0
+    },
+    "Tax-loss harvesting": {
+      "n": 800,
+      "problems": 0
+    },
+    "Direct indexing": {
+      "n": 800,
+      "problems": 0
+    },
+    "Asset location": {
+      "n": 800,
+      "problems": 0
+    },
+    "Roth conversion": {
+      "n": 800,
+      "problems": 0
+    },
+    "Retirement withdrawal": {
+      "n": 800,
+      "problems": 0
+    },
+    "Retirement contribution accounts": {
+      "n": 800,
+      "problems": 0
+    },
+    "RMD and beneficiary withdrawals": {
+      "n": 800,
+      "problems": 0
+    },
+    "RSU and concentrated stock": {
+      "n": 800,
+      "problems": 0
+    },
+    "Debt payoff versus investing": {
+      "n": 800,
+      "problems": 0
+    },
+    "Charitable and legacy": {
+      "n": 800,
+      "problems": 0
+    },
+    "Municipal and taxable fixed income": {
+      "n": 800,
+      "problems": 0
+    },
+    "Liquidity and cash reserve": {
+      "n": 800,
+      "problems": 0
+    }
+  },
+  "problems": {},
+  "crashes": []
+}
