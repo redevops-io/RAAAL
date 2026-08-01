@@ -295,10 +295,46 @@ class TestRenderingIsPresentationalOnly:
         assert "time_weighted_annualized" in body and "money_weighted" in body
 
     def test_state_is_never_carried_by_colour_alone(self):
-        """Every state carries a word as well as a class."""
+        """Every state carries a word as well as a class.
+
+        The state is printed verbatim next to the class, so a reader who cannot
+        distinguish the colours reads "not evaluated" rather than inferring it.
+        """
         body = open(self.BLOCKS).read()
-        assert "'matched' if" in body
-        assert "not matched" in body
+        assert 'class="small state-' in body
+        assert "NOT_EVALUATED" in body
+        assert ".replace('_', ' ')|lower" in body
+
+    def test_an_absent_verdict_cannot_render_as_a_negative_one(self):
+        """`false` is checked and different. `null` is not checked.
+
+        A page showing the second as the first looks cautious while being
+        wrong, and a reader takes it for an actual verdict.
+        """
+        from src.workspace.comparability_record import DISPLAYED, from_payload
+
+        restored = from_payload({"benchmarks": [{"name": "stored before "
+                                                          "verdicts existed"}]})
+        assert restored, "a legacy benchmark must still render"
+        assert set(restored[0]["dimensions"].values()) == {"NOT_EVALUATED"}
+        assert set(restored[0]["dimensions"]) == set(DISPLAYED)
+
+    def test_equality_by_absence_is_not_a_match(self):
+        """Two empty account hashes compare equal in the engine. Rendering that
+        as "matched" would say the account treatment was compared when neither
+        run recorded one."""
+        from src.mission.comparability import RunConditions
+        from src.workspace.comparability_record import record
+
+        common = dict(flow_schedule_hash="f1", starting_capital=0.0,
+                      cash_policy_rate=0.0, tax_treatment="ROTH", cost_bps=10.0,
+                      execution_lag=1, period_start="2016-01-04",
+                      period_end="2025-11-19", data_snapshot="prices@x")
+        verdict = record(RunConditions(**common, allocation_rule_hash="a"),
+                         {"passive": RunConditions(**common,
+                                                   allocation_rule_hash="b")})[0]
+        assert verdict.dimensions["account"] == "NOT_EVALUATED"
+        assert verdict.dimensions["flow_schedule"] == "MATCHED"
 
     def test_a_data_gap_renders_as_a_named_gap(self, client, no_compiling):
         api_client, store = client

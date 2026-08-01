@@ -46,19 +46,32 @@
     <strong>Comparability: {{ block.payload.comparability or 'not assessed' }}</strong>
   </p>
   {% if block.payload.members %}
+  {# Three states, never two. `not matched` means checked and different;
+     `not evaluated` means nobody checked. Showing the second as the first is
+     misleading in the opposite direction from the usual failure — it looks
+     cautious while being wrong. #}
   <table class="plan">
-    <tr><th>Benchmark</th><th>Flows</th><th>Period</th><th>Account</th><th>Class</th></tr>
+    <tr><th>Benchmark</th>
+      {% for dimension in block.payload.displayed_dimensions %}
+      <th class="small">{{ dimension.replace('_', ' ') }}</th>
+      {% endfor %}
+      <th>Class</th></tr>
     {% for member in block.payload.members %}
     <tr>
       <td>{{ member.name }}</td>
-      <td class="small">{{ 'matched' if member.flows_match else 'not matched' }}</td>
-      <td class="small">{{ 'matched' if member.period_match else 'not matched' }}</td>
-      <td class="small">{{ 'matched' if member.account_match else 'not matched' }}</td>
-      <td class="small">{{ member.class or '—' }}</td>
+      {% for dimension in block.payload.displayed_dimensions %}
+      <td class="small state-{{ (member.dimensions[dimension] or 'NOT_EVALUATED')|lower }}">
+        {{ (member.dimensions[dimension] or 'NOT_EVALUATED').replace('_', ' ')|lower }}
+      </td>
+      {% endfor %}
+      <td class="small">{{ member.comparison_class or '—' }}</td>
     </tr>
     {% endfor %}
   </table>
-  <p class="small muted">Listed in declaration order, never by outcome.</p>
+  <p class="small muted">
+    Listed in declaration order, never by outcome. “Not evaluated” means the
+    dimension was not checked — it is not a statement that it differs.
+  </p>
   {% endif %}
   {% if block.payload.unchecked %}
   <div class="disclosure small">

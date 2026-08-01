@@ -53,6 +53,8 @@ from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
 from .confirmation import build as build_confirmation
+from .comparability_record import as_payload as comparability_payload
+from .comparability_record import record as comparability_records
 from .generate import generate as generate_worksheet
 from .store import NotSaveable, WorkspaceStore
 
@@ -290,10 +292,24 @@ def _run(scenario, prices: pd.DataFrame,
         allocation_rule_hash=scenario.rule_hash,
         data_snapshot=f"prices@{sessions[-1].date()}",
     )
+    # One verdict per benchmark, computed here and stored with the run. The
+    # worksheet reads them; it never recomputes. Every benchmark shares the
+    # strategy's flows, period and account treatment by construction — `compare`
+    # runs them under identical conditions — so only the allocation rule differs.
+    benchmark_conditions = {
+        spec["name"]: RunConditions(
+            **{k: v for k, v in conditions.__dict__.items()
+               if k != "allocation_rule_hash"},
+            allocation_rule_hash=f"benchmark:{spec['name']}")
+        for spec in specs
+    }
+    verdicts = comparability_records(conditions, benchmark_conditions)
+
     return {
         "result": result,
         "benchmarks": benchmarks,
         "comparability": classify(conditions, conditions),
+        "comparability_records": comparability_payload(verdicts),
         "payload": comparison_payload(
             result, benchmarks,
             declared_order=[s["name"] for s in specs],
@@ -412,7 +428,9 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = "",
         if run.get("result") is not None:
             generate_worksheet(
                 _store(), plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
-                run=run["result"].to_json(), comparison=run.get("payload") or {},
+                run=run["result"].to_json(),
+                comparison={**(run.get("payload") or {}),
+                            **(run.get("comparability_records") or {})},
                 ran_at=saved_at, title=plan_id)
 
     return RedirectResponse(f"/workspace/plans/{plan_id}", status_code=303)

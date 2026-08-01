@@ -154,6 +154,19 @@ def _payload(block: Block, scenario: Mapping[str, Any],
 
     if block is Block.BENCHMARK_COMPARISON:
         comparison = (run or {}).get("comparison") or {}
+        from .comparability_record import from_payload
+
+        # Read back with every unknown dimension defaulting to NOT_EVALUATED. A
+        # benchmark stored before verdicts existed has none, and rendering those
+        # as differences would invent a finding.
+        stored = from_payload(comparison)
+        if stored:
+            return {"comparability": comparison.get("comparability"),
+                    "members": stored,
+                    "displayed_dimensions": comparison.get(
+                        "displayed_dimensions") or [],
+                    "unchecked": comparison.get("unchecked") or [],
+                    "limitations": comparison.get("limitations") or []}
         members = comparison.get("members") or []
         # Comparability is decided here and rendered before any side-by-side
         # figure, so a reader cannot rank two results before learning whether
