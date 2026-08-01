@@ -1,0 +1,10 @@
+{# Claim status as a chip. One mapping, three pages.
+
+   Status is *derived from evidence* and never stored, so the chip must follow
+   the derivation exactly. It lived in three templates, which is three chances
+   for CONTESTED to mean something different depending on where you read it. #}
+{% macro status_chip(status) -%}
+  {%- set cls = {"SUPPORTED": "ok", "QUALIFIED": "warn", "CONTESTED": "warn",
+                 "REFUTED": "block", "SUPERSEDED": "block"}.get(status, "") -%}
+  <span class="chip {{ cls }}">{{ status|lower|replace("_", " ")|capitalize }}</span>
+{%- endmacro %}

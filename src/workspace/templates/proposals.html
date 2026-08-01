@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Proposals — {{ plan_id }}{% endblock %}
+{% block content %}
+
+<h1>Proposals</h1>
+<p class="lede">
+  What your plan would have done next, at each point it had something to do.
+  Nothing here was placed: this platform has no execution capability, and
+  “accepted” records that <em>you</em> acted, never that it did.
+</p>
+
+{% if proposals %}
+<div class="panel">
+  <div class="scroll"><table>
+    <tr>
+      <th>Generated</th><th>From</th><th>Event</th><th>Status</th>
+      <th>Eligibility</th><th>Expires</th><th>Execution</th>
+    </tr>
+    {% for p in proposals %}
+    <tr>
+      <td class="small mono">{{ p.generated_at }}</td>
+      <td class="small">{{ p.generated_from }}
+        <div class="muted">{{ p.reason }}</div></td>
+      <td class="small">{{ p.event or "—" }}</td>
+      <td>
+        {% if p.status == "ACCEPTED" %}<span class="chip ok">accepted</span>
+        {% elif p.status == "OPEN" %}<span class="chip">open</span>
+        {% elif p.status == "EXPIRED" %}<span class="chip warn">expired</span>
+        {% elif p.status == "IGNORED" %}<span class="chip">ignored</span>
+        {% else %}<span class="chip">superseded</span>{% endif %}
+      </td>
+      <td class="small">{{ p.eligibility|lower|replace("_", " ") }}
+        {% if p.detail %}<div class="muted">{{ p.detail }}</div>{% endif %}</td>
+      <td class="small mono">{{ p.expires or "—" }}</td>
+      <td class="small mono">{{ p.execution_mode }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p class="small muted" style="margin:12px 0 0">
+    Expired and ignored proposals are shown alongside accepted ones. Neither is
+    a failed record — an expiry is the evidence that a constraint prevented
+    something, and it only exists if it was kept.
+  </p>
+</div>
+{% else %}
+<div class="panel"><p class="muted small" style="margin:0">No proposals yet.</p></div>
+{% endif %}
+
+<p style="margin-top:22px"><a href="/workspace/plans/{{ plan_id }}">← back to plan</a></p>
+{% endblock %}

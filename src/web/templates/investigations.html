@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Investigations — Quantify{% endblock %}
+{% block content %}
+
+<h1>Investigations</h1>
+<p class="lede">
+  A finding is an answer. An investigation is the question, and the work — which
+  means it exists before there is anything to conclude, and it can close without
+  ever producing an answer. Recording only the inquiries that found something
+  would report a filtered history, and the filter runs in exactly the direction
+  that flatters the platform.
+</p>
+
+<div class="panel">
+  <div class="scroll"><table>
+    <tr><th class="num">Open</th><th class="num">Concluded with a finding</th>
+        <th class="num">Closed with none</th><th class="num">Trials spent, no conclusion</th></tr>
+    <tr>
+      <td class="num">{{ open|length }}</td>
+      <td class="num">{{ investigations|length - open|length - null_results|length }}</td>
+      <td class="num">{{ null_results|length }}</td>
+      <td class="num">{{ trials_without_conclusion }}</td>
+    </tr>
+  </table></div>
+  <p class="small muted" style="margin:10px 0 0">
+    The last column is the one that matters arithmetically. Deflation counts every
+    configuration that was tried, not every configuration that worked, so trials
+    spent on an inquiry that concluded nothing still raise the bar every later
+    result in that lineage has to clear. An unrecorded search does not remove
+    those trials — it only removes the platform's knowledge of them.
+  </p>
+</div>
+
+{% if unattributed %}
+<div class="disclosure">
+  <strong>{{ unattributed|length }} finding{{ "s" if unattributed|length != 1 }} with no recorded inquiry.</strong>
+  A conclusion whose investigation was never recorded asserts that someone did
+  the work without saying what work.
+</div>
+{% endif %}
+
+{% for p in provenance %}
+{% set i = p.investigation %}
+<div class="panel" id="{{ i.name }}">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><span class="mono">{{ i.artifact_id }}</span></h3>
+    {% if i.outcome == "PENDING" %}<span class="chip warn">Open</span>
+    {% elif i.outcome == "FINDING_RECORDED" %}<span class="chip ok">Concluded with a finding</span>
+    {% elif i.outcome == "NO_EFFECT_FOUND" %}<span class="chip">Null result</span>
+    {% elif i.outcome == "INCONCLUSIVE" %}<span class="chip">Inconclusive</span>
+    {% else %}<span class="chip">Abandoned</span>{% endif %}
+    {% if i.trials_examined %}
+      <span class="chip">{{ i.trials_examined }} trial{{ "s" if i.trials_examined != 1 }}</span>
+    {% endif %}
+    <span class="small muted">
+      {{ i.opened_at }}{% if i.closed_at %} … {{ i.closed_at }}{% else %} — still open{% endif %}
+    </span>
+  </div>
+
+  <h3 style="margin:14px 0 4px">Question</h3>
+  <p style="margin:0">{{ i.question }}</p>
+
+  {% if i.motivation %}
+  <h3 style="margin:14px 0 4px">Why it was opened</h3>
+  <p class="small" style="margin:0">{{ i.motivation }}</p>
+  {% endif %}
+
+  <h3 style="margin:14px 0 4px">What it examined</h3>
+  {% if i.examined %}
+  <p class="small mono" style="margin:0">{{ i.examined|join(" · ") }}</p>
+  {% else %}
+  <p class="small muted" style="margin:0">Nothing recorded.</p>
+  {% endif %}
+
+  {% if p.findings %}
+  <h3 style="margin:14px 0 4px">What it concluded</h3>
+  {% for f in p.findings %}
+    <div class="small" style="margin-bottom:8px">
+      <a href="/ui/findings#{{ f.name }}" class="mono">{{ f.artifact_id }}</a>
+      <div>{{ f.statement|truncate(240) }}</div>
+    </div>
+  {% endfor %}
+  {% elif i.outcome != "PENDING" %}
+  <h3 style="margin:14px 0 4px">What it concluded</h3>
+  <p class="small" style="margin:0">
+    No finding.
+    {% if i.outcome == "NO_EFFECT_FOUND" %}
+      The effect looked for is not there — a result, not an absence of one.
+    {% elif i.outcome == "INCONCLUSIVE" %}
+      The evidence available could not settle the question, which is different
+      from concluding there is nothing there.
+    {% else %}
+      The work stopped before a conclusion was reached.
+    {% endif %}
+  </p>
+  {% endif %}
+
+  {% if i.resolution %}
+  <h3 style="margin:14px 0 4px">Resolution</h3>
+  <p class="small" style="margin:0">{{ i.resolution }}</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+<h2>Why this is separate from findings</h2>
+<div class="panel small">
+  <p style="margin-bottom:10px">
+    Every other artifact here describes something that happened. An investigation
+    is the only one that can describe something that was tried and did not work
+    out, which is why it had to be its own type rather than a status on a
+    finding: a finding can record that something <em>was</em> concluded, but has
+    no way to say an inquiry ran carefully and concluded the effect is not there.
+  </p>
+  <p style="margin:0">
+    Two failure modes become visible as a result. <strong>Silent abandonment</strong>
+    — configurations tried and dropped without record, each one still a trial for
+    deflation purposes. And <strong>conclusions with no inquiry</strong> — a
+    finding asserting that work was done without saying what work. The first
+    inflates every Sharpe ratio in a lineage; the second is a declaration with no
+    realization, which this platform treats as a defect everywhere else.
+  </p>
+</div>
+
+{% endblock %}

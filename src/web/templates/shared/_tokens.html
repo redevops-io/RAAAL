@@ -1,0 +1,93 @@
+{# The shared design system: tokens only, never layout.
+
+   Two surfaces had independently chosen what "ok" looks like — #1f7a4d in the
+   library, #4ba36b in the workspace — which is the same defect the visual
+   semantics registry exists to prevent, expressed in CSS. A reader who learns
+   that a colour means "clear" in one half of the product and then sees a
+   different green in the other half has to learn it twice, and will eventually
+   conclude the two mean different things.
+
+   What is shared: typography, spacing scale, colour, status colour, chips,
+   buttons, links, hierarchy.
+
+   What is NOT shared: layout. A dense analytical surface and a decision surface
+   should not resemble each other in structure — researchers expect a Bloomberg
+   terminal, a person planning their savings does not. Sharing tokens is what
+   makes them feel related; sharing layouts is what would make them both wrong
+   for one of the two audiences. #}
+<style>
+:root {
+  /* Surface */
+  --bg: #fbfbfa; --panel: #fff; --line: #e3e4e8; --chip: #f1f2f4;
+
+  /* Ink */
+  --ink: #16181d; --muted: #61656e;
+
+  /* Status. One definition, both surfaces. */
+  --ok: #1f7a4d; --warn: #8a5a00; --block: #a12d2d; --accent: #2b5c8a;
+
+  /* The private workspace's own accent. The single deliberate difference:
+     "this is yours and not published" is a distinction the library has no need
+     to express, so it is an addition rather than an override. */
+  --private: #6b4bbd;
+
+  /* Type */
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --step--1: 12px; --step-0: 15px; --step-1: 18px; --step-2: 22px; --step-3: 27px;
+
+  /* Spacing scale. Used by both; applied differently by each. */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 18px;
+  --space-5: 26px; --space-6: 40px;
+
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a; --panel: #1b1e24; --line: #2b2f37; --chip: #252932;
+    --ink: #e7e9ec; --muted: #9aa0aa;
+    --ok: #5fbf8f; --warn: #d9a441; --block: #e08585; --accent: #78aede;
+    --private: #a892e8;
+  }
+}
+
+/* --- primitives both surfaces render identically ---------------------- */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: var(--step-0)/1.55 var(--sans); }
+a { color: var(--accent); }
+.small { font-size: var(--step--1); }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); font-size: var(--step--1); }
+.num { text-align: right; font-family: var(--mono); }
+
+.chip { display: inline-block; font-size: 11px; border: 1px solid var(--line);
+        border-radius: 99px; padding: 1px 9px; background: var(--chip); }
+.chip.ok { border-color: var(--ok); color: var(--ok); background: transparent; }
+.chip.warn { border-color: var(--warn); color: var(--warn); background: transparent; }
+.chip.block { border-color: var(--block); color: var(--block); background: transparent; }
+
+.dot { font-family: var(--mono); }
+.dot-ok { color: var(--ok); } .dot-warn { color: var(--warn); }
+.dot-block { color: var(--block); }
+.dot-absent, .dot-unknown { color: var(--muted); }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 11px; text-transform: uppercase;
+     letter-spacing: .06em; color: var(--muted); font-weight: 600;
+     border-bottom: 1px solid var(--line);
+     padding: var(--space-2) var(--space-3) var(--space-2) 0; }
+td { padding: 7px var(--space-3) 7px 0; border-bottom: 1px solid var(--line);
+     vertical-align: top; }
+.scroll { overflow-x: auto; }
+
+.disclosure { border-left: 3px solid var(--warn);
+              background: color-mix(in srgb, var(--warn) 6%, var(--panel));
+              padding: 11px 14px; border-radius: 0 8px 8px 0;
+              margin: var(--space-3) 0; font-size: var(--step--1); }
+.blocked { border-left: 3px solid var(--block);
+           background: color-mix(in srgb, var(--block) 7%, var(--panel));
+           padding: 11px 14px; border-radius: 0 8px 8px 0;
+           margin: var(--space-3) 0; font-size: var(--step--1); }
+</style>

@@ -1,0 +1,34 @@
+{# Rendered straight from the result's own scope. The page reconstructs nothing:
+   the exact statement attached to the figure is what the reader sees. #}
+{% if scope %}
+<div class="panel">
+  <h3 style="margin-top:0">What this simulation models</h3>
+  <div class="split">
+    <div>
+      <h3 style="margin-top:0; color:var(--ok)">Modelled</h3>
+      <ul class="small" style="margin:0; padding-left:18px">
+        {% for m in scope.modelled %}
+        <li style="margin-bottom:7px">{{ m.statement }}
+          {% if m.risk %}<div class="muted" style="margin-top:3px"><strong>Note:</strong> {{ m.risk }}</div>{% endif %}
+          {% if m.citation %}<div class="mono muted">{{ m.citation }}</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top:0; color:var(--warn)">Not modelled</h3>
+      <ul class="small" style="margin:0; padding-left:18px">
+        {% for n in scope.not_modelled %}
+        <li style="margin-bottom:7px">{{ n.reason }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <p class="small muted" style="margin:12px 0 0">{{ scope.note }}</p>
+</div>
+{% else %}
+<div class="disclosure">
+  No modelling scope is attached to this figure. A recorded figure without a
+  statement of what it excludes will be read as excluding nothing.
+</div>
+{% endif %}

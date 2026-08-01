@@ -1,0 +1,408 @@
+"""The private scenario workspace.
+
+A separate router with its own templates, mounted at its own prefix, so the
+boundary decision is visible in the file tree rather than only in a document.
+The intent is that this can be served from a different hostname without moving
+any code.
+
+Nothing here is public. Every page is scoped to one owner at the query, and a
+plan may cite public artifacts while nothing public may cite a plan.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+
+from ..mission import (
+    ISOLATION_DIMENSIONS,
+    CashFlow,
+    ComparisonClass,
+    ExpectedEvent,
+    ObservedEvent,
+    PlanObservation,
+    Proposal,
+    ProposalStatus,
+    classify_counterfactual,
+    expire_overdue,
+    lifecycle_summary,
+    reconcile,
+    CashPolicy,
+    ComparisonClass,
+    RunConditions,
+    buy_and_hold,
+    classify,
+    compare,
+    comparison_payload,
+    compile_scenario,
+    hold_cash,
+    simulate,
+)
+from ..mission.templates import RSU_TEMPLATE
+from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
+from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
+from .store import NotSaveable, WorkspaceStore
+
+#: Two search paths: the workspace's own templates, and the shared design
+#: system. Layout stays separate; tokens are one file.
+TEMPLATES = Jinja2Templates(directory=[
+    str(Path(__file__).parent / "templates"),
+    str(Path(__file__).resolve().parents[1] / "web" / "templates"),
+])
+router = APIRouter(prefix="/workspace", tags=["workspace"])
+
+PRICES = Path("data/history/prices.parquet")
+BENCHMARK_RULE = "benchmark-policy/public-default@1"
+
+
+#: Single-user pilot. Real authentication replaces this before the workspace is
+#: exposed to anyone; naming it here keeps the substitution obvious rather than
+#: letting an implicit "current user" spread through the handlers.
+PILOT_OWNER = "pilot"
+
+#: Life-event templates the compiler may hand off to, keyed by the hint it
+#: emits. Named apart from the Jinja environment above, which is a different
+#: kind of template entirely.
+TEMPLATES_BY_HINT = dict(LIFE_EVENT_TEMPLATES)
+
+
+def _disclosures(compiled, run) -> Dict[str, Any]:
+    """Trial accounting and the recommendation verdict, prepared for the page.
+
+    Above the fold because a conversational interface makes trying variants
+    nearly free, and a reader who sees the result first will have formed a
+    conclusion before learning how many attempts produced it.
+    """
+    payload = (run or {}).get("payload") or {}
+    assessment = payload.get("recommendation_assessment")
+    return {
+        "selection_basis": "STATED_DIRECTLY",
+        "selection_note": (
+            "You described this plan yourself, so no alternatives were "
+            "measured and discarded on your behalf."
+        ),
+        "evaluated": 0,
+        "trials": 1,
+        "hidden_selection": False,
+        "is_recommendation": bool(assessment and assessment["is_recommendation"]),
+        "recommendation_headline": (assessment["headline"] if assessment
+                                    else "not assessed — nothing was rendered"),
+        "derivation_complete": bool(assessment and assessment["derivation_complete"]),
+    }
+
+
+def _store() -> WorkspaceStore:
+    return WorkspaceStore()
+
+
+def _prices() -> Optional[pd.DataFrame]:
+    if not PRICES.exists():
+        return None
+    frame = pd.read_parquet(PRICES)
+    return frame.sort_index()
+
+
+def _flows_from(schedule, sessions: pd.DatetimeIndex) -> List[CashFlow]:
+    """Turn a declared schedule into dated contributions.
+
+    The day rule is applied here rather than assumed, because "monthly" does not
+    name a day and the day moves the money-weighted return.
+    """
+    if schedule.amount <= 0:
+        return ([CashFlow(sessions[0], schedule.starting_capital, "starting capital")]
+                if schedule.starting_capital > 0 else [])
+
+    series = sessions.to_series()
+    if schedule.cadence == "monthly":
+        groups = series.groupby([sessions.year, sessions.month])
+    elif schedule.cadence == "weekly":
+        iso = sessions.isocalendar()
+        groups = series.groupby([iso.year.values, iso.week.values])
+    elif schedule.cadence == "biweekly":
+        iso = sessions.isocalendar()
+        groups = series.groupby([iso.year.values, (iso.week.values // 2)])
+    else:
+        return [CashFlow(sessions[0], schedule.amount, "one-off")]
+
+    dates = (groups.max() if schedule.day_rule == "last_session_of_period"
+             else groups.min())
+    return [CashFlow(d, schedule.amount, "contribution") for d in dates]
+
+
+def _benchmark_specs(prices: pd.DataFrame, assets) -> List[Dict[str, Any]]:
+    """The set, declared before anything runs and generated by a named rule.
+
+    Cash is always present. It is the comparison nobody asks for and the one that
+    answers "was any of this worth doing?".
+    """
+    universe = [a for a in assets if a in prices.columns]
+    specs: List[Dict[str, Any]] = []
+    if universe:
+        specs.append({"name": "Your basket, bought and held",
+                      "tickers": universe, "program": buy_and_hold(universe),
+                      "description": "the same instruments, with no timing rule"})
+    for ticker, label in (("SPY", "S&P 500"), ("QQQ", "Nasdaq 100"),
+                          ("AGG", "Aggregate bonds")):
+        specs.append({
+            "name": f"Contribute to {label}", "tickers": [ticker],
+            "program": buy_and_hold([ticker]),
+            "description": f"the same contributions into {ticker}",
+        })
+    specs.append({"name": "Hold cash", "tickers": [], "program": hold_cash(),
+                  "description": "contribute and never invest"})
+    return specs
+
+
+def _run(scenario, prices: pd.DataFrame,
+         scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Simulate a scenario and its benchmarks under identical conditions."""
+    sessions = prices.index
+    flows = _flows_from(scenario.flow_schedule, sessions)
+    policy = CashPolicy.idle()
+    assets = list(scenario.allocation_rule.assets)
+    tradeable = [a for a in assets if a in prices.columns]
+
+    if not tradeable or not flows:
+        return {"result": None, "benchmarks": [], "payload": None,
+                "comparability": None,
+                "unavailable": (
+                    "No price history for "
+                    f"{', '.join(assets) or 'the instruments named'} over this "
+                    "period, so the scenario cannot be replayed. This is a data "
+                    "gap, not a result."
+                )}
+
+    result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
+                      cash_policy=policy, modelling_scope=scope)
+    specs = _benchmark_specs(prices, tradeable)
+    benchmarks = compare(prices, flows=flows, cash_policy=policy, benchmarks=specs)
+
+    conditions = RunConditions(
+        flow_schedule_hash=scenario.flow_schedule.schedule_hash,
+        starting_capital=scenario.flow_schedule.starting_capital,
+        cash_policy_rate=policy.annual_rate,
+        tax_treatment=scenario.tax_treatment,
+        cost_bps=10.0, execution_lag=1,
+        period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
+        allocation_rule_hash=scenario.rule_hash,
+        data_snapshot=f"prices@{sessions[-1].date()}",
+    )
+    return {
+        "result": result,
+        "benchmarks": benchmarks,
+        "comparability": classify(conditions, conditions),
+        "payload": comparison_payload(
+            result, benchmarks,
+            declared_order=[s["name"] for s in specs],
+            rendered_text="",
+            user_originated_rule=True,
+            platform_generated_action=False,
+            portfolio_selection_performed=False,
+        ),
+        "unavailable": None,
+    }
+
+
+@router.get("/", response_class=HTMLResponse)
+def index(request: Request):
+    return TEMPLATES.TemplateResponse(
+        request, "index.html",
+        {"plans": _store().list_plans(PILOT_OWNER), "owner": PILOT_OWNER},
+    )
+
+
+@router.get("/new", response_class=HTMLResponse)
+def new_plan(request: Request, describe: str = ""):
+    """The confirmation screen. Nothing is saved and nothing is committed."""
+    if not describe.strip():
+        return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
+
+    compiled = compile_scenario(describe, name="draft", version=1,
+                                benchmark_rule=BENCHMARK_RULE)
+    prices = _prices()
+    run = (_run(compiled.scenario, prices)
+           if compiled.can_simulate and prices is not None else None)
+
+    return TEMPLATES.TemplateResponse(
+        request, "new.html",
+        {
+            "describe": describe,
+            "result": compiled,
+            "confirmation": compiled.confirmation(),
+            "chain": build_scenario_chain(
+                subject="draft", scenario=compiled.scenario,
+                result=run["result"] if run else None,
+                benchmarks=run["benchmarks"] if run else (),
+                comparability=run["comparability"] if run else None,
+            ),
+            "run": run,
+            "chain_order": SCENARIO_CHAIN_ORDER,
+        },
+    )
+
+
+@router.post("/save")
+def save_plan(describe: str, plan_id: str, confirm_all: str = ""):
+    """Commit. Refuses anything the user has not actually confirmed."""
+    compiled = compile_scenario(describe, name=plan_id, version=1,
+                                benchmark_rule=BENCHMARK_RULE)
+    scenario = compiled.scenario
+
+    if confirm_all == "yes":
+        # Confirming is an act the user performs on each inference. Doing it in
+        # bulk is allowed, and recording that it was bulk keeps the difference
+        # from a considered confirmation visible later.
+        from ..mission.spec import Inference, Provenance
+        from ..mission.scenario import ScenarioSpecification
+
+        p = scenario.provenance
+        scenario = ScenarioSpecification(**{
+            **scenario.__dict__,
+            "provenance": Provenance(
+                stated=p.stated,
+                inferred=tuple(Inference(i.field, i.value, i.why, confirmed=True)
+                               for i in p.inferred),
+                contradictions=p.contradictions,
+                unresolved=p.unresolved,
+            ),
+        })
+
+    try:
+        _store().save_plan(
+            plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
+            stated_text=describe, saved_at=pd.Timestamp.now("UTC").isoformat(),
+        )
+    except NotSaveable as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return RedirectResponse(f"/workspace/plans/{plan_id}", status_code=303)
+
+
+@router.get("/plans/{plan_id}", response_class=HTMLResponse)
+def plan_detail(request: Request, plan_id: str):
+    store = _store()
+    record = store.get_plan(plan_id, PILOT_OWNER)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
+
+    compiled = compile_scenario(record["stated_text"], name=plan_id, version=1,
+                                benchmark_rule=BENCHMARK_RULE)
+    prices = _prices()
+    scope = (TEMPLATES_BY_HINT[compiled.template_hint].modelling_scope()
+             if compiled.template_hint in TEMPLATES_BY_HINT else None)
+    run = _run(compiled.scenario, prices, scope) if prices is not None else None
+
+    return TEMPLATES.TemplateResponse(
+        request, "plan.html",
+        {
+            "record": record,
+            "scenario": record["scenario"],
+            "run": run,
+            "runs": store.runs_for(plan_id, PILOT_OWNER),
+            "proposals": [p["payload"] for p in
+                          store.list_proposals(plan_id, PILOT_OWNER)],
+            "observations": [o["payload"] for o in
+                             store.list_observations(plan_id, PILOT_OWNER)],
+            "scope": (run.get("result").to_json()["modelling_scope"]
+                      if run and run.get("result") else scope),
+            "disclosures": _disclosures(compiled, run),
+            "chain": build_scenario_chain(
+                subject=plan_id, scenario=compiled.scenario,
+                result=run["result"] if run else None,
+                benchmarks=run["benchmarks"] if run else (),
+                comparability=run["comparability"] if run else None,
+                saved=True,
+            ),
+        },
+    )
+
+
+@router.get("/plans/{plan_id}/proposals", response_class=HTMLResponse)
+def proposals(request: Request, plan_id: str, as_of: str = ""):
+    """Every proposal this plan produced, whatever became of it.
+
+    Expired and ignored proposals stay as visible as accepted ones. Neither is a
+    failed record — an expiry is the only evidence that a constraint cost
+    something, and hiding it would make the platform look more effective than it
+    was.
+    """
+    store = _store()
+    if store.get_plan(plan_id, PILOT_OWNER) is None:
+        raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
+
+    stored = store.list_proposals(plan_id, PILOT_OWNER)
+    return TEMPLATES.TemplateResponse(
+        request, "proposals.html",
+        {"plan_id": plan_id, "proposals": [p["payload"] for p in stored],
+         "as_of": as_of},
+    )
+
+
+@router.get("/plans/{plan_id}/observations", response_class=HTMLResponse)
+def observations(request: Request, plan_id: str):
+    """Planned, observed and reconciled — three lanes, never merged.
+
+    A delayed vest reads as a missing expectation *and* an unexpected arrival,
+    because that is what it is. One shifted row would hide the fact that the
+    plan's assumption failed.
+    """
+    store = _store()
+    if store.get_plan(plan_id, PILOT_OWNER) is None:
+        raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
+
+    stored = store.list_observations(plan_id, PILOT_OWNER)
+    return TEMPLATES.TemplateResponse(
+        request, "observations.html",
+        {"plan_id": plan_id, "observations": [o["payload"] for o in stored]},
+    )
+
+
+@router.get("/plans/{plan_id}/counterfactual", response_class=HTMLResponse)
+def counterfactual(request: Request, plan_id: str, constraint: str = "a blackout window"):
+    """What a constraint cost, with the isolation stated before any figure.
+
+    The view leads with what is isolated rather than with the difference,
+    because a number shown first will be read as a verdict on the strategy.
+    """
+    store = _store()
+    record = store.get_plan(plan_id, PILOT_OWNER)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
+
+    prices = _prices()
+    compiled = compile_scenario(record["stated_text"], name=plan_id, version=1,
+                                benchmark_rule=BENCHMARK_RULE)
+    scenario = compiled.scenario
+    if prices is None or prices.empty:
+        return TEMPLATES.TemplateResponse(
+            request, "counterfactual.html",
+            {"plan_id": plan_id, "verdict": None, "constraint": constraint,
+             "unavailable": "No price history is available to replay against."},
+        )
+
+    sessions = prices.index
+    common = dict(
+        flow_schedule_hash=scenario.flow_schedule.schedule_hash,
+        starting_capital=scenario.flow_schedule.starting_capital,
+        cash_policy_rate=0.0, tax_treatment=scenario.tax_treatment,
+        cost_bps=10.0,
+        period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
+        allocation_rule_hash=scenario.rule_hash,
+        data_snapshot=f"prices@{sessions[-1].date()}",
+    )
+    verdict = classify_counterfactual(
+        RunConditions(**common, execution_lag=1),
+        RunConditions(**common, execution_lag=0),
+        constraint=constraint,
+    )
+    return TEMPLATES.TemplateResponse(
+        request, "counterfactual.html",
+        {"plan_id": plan_id, "verdict": verdict, "constraint": constraint,
+         "held_identical": [d for d in ISOLATION_DIMENSIONS
+                            if d not in verdict.differing_dimensions],
+         "unavailable": None},
+    )

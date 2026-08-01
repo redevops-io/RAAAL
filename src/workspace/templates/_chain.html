@@ -1,0 +1,26 @@
+{# The scenario chain. Same payload, same symbols as the public library —
+   a private plan showing a differently-shaped status row would teach users
+   that the two halves of the product mean different things by the same marks. #}
+<div class="panel">
+  <div style="display:flex; gap:14px; align-items:baseline; flex-wrap:wrap">
+    <span class="glyph" role="img" aria-label="{{ chain.subject }}: {{ chain.headline }}">
+      {%- for domain, links in chain.by_domain() -%}
+        {%- if not loop.first %}<span class="glyph-div" aria-hidden="true">│</span>{% endif -%}
+        {%- for link in links -%}
+          <span class="dot dot-{{ link.state.value }}" title="{{ link.aria }}">{{ link.state.symbol }}</span>
+        {%- endfor -%}
+      {%- endfor -%}
+    </span>
+    <strong class="small">{{ chain.headline }}</strong>
+  </div>
+  <div class="scroll" style="margin-top:12px"><table class="small">
+    {% for link in chain.links %}
+    <tr>
+      <td style="width:1.6em"><span class="dot dot-{{ link.state.value }}">{{ link.state.symbol }}</span></td>
+      <td style="width:9em">{{ link.step }}</td>
+      <td class="mono">{{ link.value }}</td>
+      <td class="muted">{{ link.summary }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+</div>

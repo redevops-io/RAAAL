@@ -1,0 +1,71 @@
+<title>{% block title %}Scenarios{% endblock %}</title>
+{% include "shared/_tokens.html" %}
+<style>
+header { border-bottom:1px solid var(--line); padding:14px 22px;
+         display:flex; gap:16px; align-items:baseline; flex-wrap:wrap;
+         background: color-mix(in srgb, var(--private) 6%, var(--panel)); }
+.brand { font-weight:650; }
+.private-badge { font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+                 border:1px solid var(--private); color:var(--private);
+                 border-radius:99px; padding:2px 9px; }
+nav a { margin-right:14px; font-size:14px; }
+.wrap { max-width:1080px; margin:0 auto; padding:26px 22px 80px; }
+h1 { font-size:26px; margin:0 0 6px; }
+h2 { font-size:18px; margin:30px 0 10px; }
+h3 { font-size:14px; margin:16px 0 6px; text-transform:uppercase;
+     letter-spacing:.06em; color:var(--muted); }
+.lede { color:var(--muted); max-width:62ch; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:10px;
+         padding:16px 18px; margin-bottom:14px; }
+th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+     color:var(--muted); font-weight:600; border-bottom:1px solid var(--line);
+     padding:6px 10px 6px 0; }
+td { padding:7px 10px 7px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+.chip { display:inline-block; font-size:11px; border:1px solid var(--line);
+        border-radius:99px; padding:1px 9px; }
+.chip.ok { border-color:var(--ok); color:var(--ok); }
+.chip.warn { border-color:var(--warn); color:var(--warn); }
+.chip.block { border-color:var(--block); color:var(--block); }
+.dot { font-family:var(--mono); }
+.dot-ok{color:var(--ok);} .dot-warn{color:var(--warn);} .dot-block{color:var(--block);}
+.dot-absent,.dot-unknown{color:var(--muted);}
+.glyph-div { color:var(--line); margin:0 6px; }
+.disclosure { border-left:3px solid var(--warn); background:
+              color-mix(in srgb, var(--warn) 6%, var(--panel));
+              padding:11px 14px; border-radius:0 8px 8px 0; margin:12px 0;
+              font-size:13px; }
+.blocked { border-left:3px solid var(--block); background:
+           color-mix(in srgb, var(--block) 7%, var(--panel));
+           padding:11px 14px; border-radius:0 8px 8px 0; margin:12px 0;
+           font-size:13px; }
+.group { border-left:3px solid var(--line); padding:2px 0 2px 14px; margin:14px 0; }
+.group.stated { border-color: var(--accent); }
+.group.inferred { border-color: var(--warn); }
+.group.conflict { border-color: var(--block); }
+.group.needed { border-color: var(--private); }
+.group li { margin-bottom:9px; }
+.controls { font-family:var(--mono); font-size:11px; color:var(--muted); }
+input[type=text] { width:100%; padding:11px 13px; border-radius:8px;
+                   border:1px solid var(--line); background:var(--bg);
+                   color:var(--ink); font-size:15px; }
+textarea { width:100%; min-height:110px; padding:11px 13px; border-radius:8px;
+           border:1px solid var(--line); background:var(--bg); color:var(--ink);
+           font: inherit; }
+button, .btn { display:inline-block; margin-top:10px; padding:9px 16px;
+               border-radius:8px; border:1px solid var(--accent);
+               background:var(--accent); color:#fff; font-size:14px;
+               cursor:pointer; text-decoration:none; }
+.btn.secondary { background:transparent; color:var(--accent); }
+.chain li { list-style:none; }
+.split { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+@media (max-width:760px){ .split { grid-template-columns:1fr; } }
+</style>
+<header>
+  <span class="brand"><a href="/workspace/">Scenarios</a></span>
+  <span class="private-badge">Private</span>
+  <nav>
+    <a href="/workspace/new">New plan</a>
+    <a href="/ui/">Research library ↗</a>
+  </nav>
+</header>
+<div class="wrap">{% block content %}{% endblock %}</div>

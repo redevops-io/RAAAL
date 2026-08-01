@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Findings — Quantify{% endblock %}
+{% block content %}
+
+<h1>Findings</h1>
+<p class="lede">
+  A finding is the conclusion of an investigation — neither a claim nor a piece of
+  evidence. A claim asserts something about the world; evidence bears on one
+  claim; a finding is what someone concluded after synthesising several pieces of
+  evidence, and it usually touches several claims, methodologies and assumptions
+  at once. Before findings were artifacts, that synthesis lived in prose scattered
+  across change rationales and erratum documents, where it could be read but not
+  queried, reviewed as a unit, or routed.
+</p>
+
+{% if unevidenced %}
+<div class="disclosure">
+  <strong>{{ unevidenced|length }} finding{{ "s" if unevidenced|length != 1 }} with no supporting evidence.</strong>
+  A finding that cites nothing is an opinion.
+</div>
+{% endif %}
+
+{% for p in provenance %}
+{% set f = p.finding %}
+<div class="panel" id="{{ f.name }}">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><span class="mono">{{ f.artifact_id }}</span></h3>
+    {% if f.status == "CONCLUDED" %}<span class="chip ok">Concluded</span>
+    {% elif f.status == "OPEN" %}<span class="chip warn">Open investigation</span>
+    {% elif f.status == "SUPERSEDED" %}<span class="chip block">Superseded</span>
+    {% else %}<span class="chip block">Withdrawn</span>{% endif %}
+    {% if f.concluded_at %}<span class="small muted">{{ f.concluded_at }}</span>{% endif %}
+  </div>
+
+  {% set g = projections[f.artifact_id] %}
+  {% include "_graph.html" %}
+
+  <p style="margin:12px 0">{{ f.statement }}</p>
+
+  <h3>Synthesised from</h3>
+  <div class="scroll"><table>
+    <tr><th>Evidence</th><th>Kind</th><th>Stance</th><th>Finding</th></tr>
+    {% for e in p.evidence %}
+    <tr>
+      <td class="mono small">{{ e.identifier or e.artifact_id }}</td>
+      <td class="small">{{ e.kind.replace("_", " ")|lower }}</td>
+      <td>
+        {% if e.stance == "SUPPORTS" %}<span class="chip ok">supports</span>
+        {% elif e.stance == "CONTRADICTS" %}<span class="chip block">contradicts</span>
+        {% else %}<span class="chip warn">qualifies</span>{% endif %}
+      </td>
+      <td class="small">{{ e.summary|truncate(160) }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+
+  <h3>What it changed</h3>
+  <div class="scroll"><table>
+    <tr><th>Artifact</th><th>Relation</th><th>Detail</th></tr>
+    {% for i in f.impacts %}
+    <tr>
+      <td class="mono small">{{ i.target }}</td>
+      <td>
+        {% set rel = relation(i.relation.value if i.relation.value is defined else i.relation) %}
+        <span class="chip chip-{{ rel.effect.value }}">{{ rel.label }}</span>
+      </td>
+      <td class="small">{{ i.detail }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+
+  {% if f.resolution %}
+  <h3>Resolution</h3>
+  <p class="small" style="margin:0">{{ f.resolution }}</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if not provenance %}
+<div class="panel"><p class="muted">No findings recorded.</p></div>
+{% endif %}
+
+<h2>Why this is separate from claims and evidence</h2>
+<div class="panel small">
+  <p style="margin-bottom:10px">
+    Both findings here came out of ordinary engineering work, and each touched
+    more than one thing at once. The cash-proxy finding refuted one claim,
+    qualified another, invalidated the results of two methodology versions,
+    motivated a third, and forced a constraint-precedence assumption to be
+    declared. Recording that as five separate edits would have lost the fact that
+    they were one conclusion.
+  </p>
+  <p style="margin:0">
+    Findings are also what an investigation produces and what a review consumes —
+    which is what makes them the natural unit for Discovery to emit and Mission
+    to route, without either needing to infer intent from prose.
+  </p>
+</div>
+
+{% endblock %}

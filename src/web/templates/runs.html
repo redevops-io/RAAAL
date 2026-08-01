@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Runs — Quantify{% endblock %}
+{% block content %}
+<h1>Runs</h1>
+<p class="lede">
+  Each run persists its own diagnostics, assessment, policy verdict and
+  publication decision at execution time. A run evaluated under an older policy
+  still shows the verdict it actually received, rather than what today's policy
+  would say.
+</p>
+<div class="panel">
+  <div class="scroll"><table>
+    <tr><th>Run</th><th>Methodology</th><th>Protocol</th><th class="num">Trial</th><th>Outcome</th></tr>
+    {% for r in runs %}
+    <tr>
+      <td><a href="/ui/runs/{{ r.run_id }}" class="mono small">{{ r.run_id }}</a></td>
+      <td class="mono small">{{ r.version_id }}</td>
+      <td class="mono small">{{ r.protocol_id }}</td>
+      <td class="num">{{ r.trial_ordinal }}</td>
+      <td class="small">{{ r.outcome }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% if not runs %}<p class="muted small" style="margin:0">No runs recorded.</p>{% endif %}
+</div>
+{% endblock %}

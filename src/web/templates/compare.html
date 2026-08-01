@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ v.left_id }} vs {{ v.right_id }} — Quantify{% endblock %}
+{% block content %}
+
+{# Fixed order: verdict, boundary, blockers, why, restoration, then and only
+   then whether a chart may be drawn. Leading with the chart would invite the
+   reader to compare numbers and discover afterwards they were never comparable.
+   Every value below is prepared in ComparabilityView; this page arranges. #}
+
+<h1>{{ v.left_id }} vs {{ v.right_id }}</h1>
+
+{# 1 — verdict #}
+<div class="panel">
+  <p class="verdict {{ 'yes' if v.comparable else 'no' }}">{{ v.verdict }}</p>
+  <p class="small muted" style="margin:0">{{ v.verdict_detail }}</p>
+</div>
+
+{# 2 — where the boundary falls #}
+<h2>Where the boundary falls</h2>
+<div class="panel">{% include "_timeline.html" %}</div>
+
+{# 3 and 4 — what blocks it, and why each blocker matters #}
+<h2>Blocking differences</h2>
+<div class="panel">
+  {% if v.blocking %}
+  <div class="scroll"><table>
+    <tr><th>Field</th><th>{{ v.left_id.split('@')[-1] }}</th><th>{{ v.right_id.split('@')[-1] }}</th><th>Why it matters</th></tr>
+    {% for b in v.blocking %}
+    <tr>
+      <td class="small mono">{{ b.field }}</td>
+      <td class="small mono">{{ b.before or "—" }}</td>
+      <td class="small mono">{{ b.after or "—" }}</td>
+      <td class="small">{{ b.why }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}
+  <p class="muted small" style="margin:0">
+    Nothing in the output contract prevents these figures being read together.
+  </p>
+  {% endif %}
+</div>
+
+{% if v.non_blocking %}
+<h2>Differences that do not block</h2>
+<div class="panel">
+  <div class="scroll"><table>
+    <tr><th>Field</th><th>{{ v.left_id.split('@')[-1] }}</th><th>{{ v.right_id.split('@')[-1] }}</th></tr>
+    {% for d in v.non_blocking %}
+    <tr><td class="mono small">{{ d.field }}</td>
+        <td class="mono small">{{ d.a|truncate(70) }}</td>
+        <td class="mono small">{{ d.b|truncate(70) }}</td></tr>
+    {% endfor %}
+  </table></div>
+  <p class="small muted" style="margin:10px 0 0">
+    These changed without changing what the methodology promises its consumers.
+  </p>
+</div>
+{% endif %}
+
+{# 5 — how comparability could be restored #}
+{% if v.restoration %}
+<h2>How comparability could be restored</h2>
+<div class="panel small">
+  <ul style="margin:0; padding-left:20px">
+    {% for step in v.restoration %}<li style="margin-bottom:6px">{{ step }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{# 6 — only now, whether a performance visual may be drawn #}
+<h2>Performance comparison</h2>
+{% set el = v.eligibility %}
+{% include "_eligibility.html" %}
+
+<h2>Why {{ v.right_id }} exists</h2>
+<div class="panel small"><p style="margin:0">{{ b.change_rationale or "—" }}</p></div>
+
+<p style="margin-top:22px"><a href="/ui/m/{{ a.concept }}">← back to {{ a.concept }}</a></p>
+{% endblock %}
