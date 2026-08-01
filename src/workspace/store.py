@@ -54,6 +54,35 @@ CREATE TABLE IF NOT EXISTS observation (
     observed_at TEXT NOT NULL,
     payload     TEXT NOT NULL
 );
+-- One row per worksheet *revision*. Revisions are never edited, so the primary
+-- key spans the id and the revision: an UPDATE that lost a revision would erase
+-- the history that revisions exist to keep.
+CREATE TABLE IF NOT EXISTS worksheet (
+    worksheet_id  TEXT NOT NULL,
+    revision      INTEGER NOT NULL,
+    owner         TEXT NOT NULL,
+    payload       TEXT NOT NULL,
+    canonical_hash TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    PRIMARY KEY (worksheet_id, revision)
+);
+-- Confirmation-screen telemetry. Structure now, conclusions later: intent
+-- cannot be inferred without users, but the first sessions are the ones worth
+-- measuring and they only happen once.
+CREATE TABLE IF NOT EXISTS confirmation_event (
+    event_id   TEXT PRIMARY KEY,
+    owner      TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    path       TEXT,
+    field      TEXT,
+    provenance TEXT,
+    original_value TEXT,
+    final_value TEXT,
+    reason     TEXT,
+    compiler_version TEXT,
+    defaults_ref TEXT
+);
 CREATE TABLE IF NOT EXISTS plan_run (
     run_id     TEXT PRIMARY KEY,
     plan_id    TEXT NOT NULL,
@@ -163,6 +192,90 @@ class WorkspaceStore:
                 (run_id, plan_id, ran_at, json.dumps(result), json.dumps(comparison)),
             )
         return run_id
+
+    # ---- worksheets ------------------------------------------------------
+
+    def save_worksheet(self, worksheet) -> str:
+        """Write one revision. Never updates an existing one.
+
+        `INSERT OR REPLACE` would let a second write at the same revision
+        silently overwrite the first, which is exactly the history a revision
+        exists to preserve.
+        """
+        payload = worksheet.to_json()
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT canonical_hash FROM worksheet "
+                "WHERE worksheet_id = ? AND revision = ?",
+                (worksheet.worksheet_id, worksheet.revision)).fetchone()
+            if existing is not None:
+                if existing["canonical_hash"] == worksheet.canonical_hash:
+                    return worksheet.worksheet_id      # idempotent redelivery
+                raise NotSaveable(
+                    f"{worksheet.worksheet_id} revision {worksheet.revision} is "
+                    "already stored with different contents. Revisions are "
+                    "immutable; make a new one rather than moving this")
+            conn.execute(
+                """INSERT INTO worksheet (worksheet_id, revision, owner, payload,
+                                          canonical_hash, created_at)
+                   VALUES (?,?,?,?,?,?)""",
+                (worksheet.worksheet_id, worksheet.revision, worksheet.owner_id,
+                 json.dumps(payload), worksheet.canonical_hash,
+                 worksheet.created_at or ""))
+        return worksheet.worksheet_id
+
+    def get_worksheet(self, worksheet_id: str, owner: str,
+                      revision: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """The named revision, or the latest. Scoped by owner in the query."""
+        with self._conn() as conn:
+            if revision is None:
+                row = conn.execute(
+                    "SELECT * FROM worksheet WHERE worksheet_id = ? AND owner = ?"
+                    " ORDER BY revision DESC LIMIT 1",
+                    (worksheet_id, owner)).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT * FROM worksheet WHERE worksheet_id = ? AND owner = ?"
+                    " AND revision = ?", (worksheet_id, owner, revision)).fetchone()
+        return {**dict(row), "payload": json.loads(row["payload"])} if row else None
+
+    def worksheet_revisions(self, worksheet_id: str,
+                            owner: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM worksheet WHERE worksheet_id = ? AND owner = ?"
+                " ORDER BY revision", (worksheet_id, owner)).fetchall()
+        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+
+    def record_confirmation_event(self, *, event_id: str, owner: str,
+                                  occurred_at: str, kind: str, **fields) -> str:
+        """Structure now, conclusions later.
+
+        Deliberately records *what changed*, never why. Intent cannot be
+        inferred from a value edit — "you misunderstood me", "I changed my mind"
+        and "I had not said" are different product signals and look identical
+        here. `reason` is filled only when a user is explicitly asked.
+        """
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO confirmation_event
+                   (event_id, owner, occurred_at, kind, path, field, provenance,
+                    original_value, final_value, reason, compiler_version,
+                    defaults_ref)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (event_id, owner, occurred_at, kind, fields.get("path"),
+                 fields.get("field"), fields.get("provenance"),
+                 fields.get("original_value"), fields.get("final_value"),
+                 fields.get("reason"), fields.get("compiler_version"),
+                 fields.get("defaults_ref")))
+        return event_id
+
+    def confirmation_events(self, owner: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM confirmation_event WHERE owner = ?"
+                " ORDER BY occurred_at", (owner,)).fetchall()
+        return [dict(r) for r in rows]
 
     def list_plans(self, owner: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:
