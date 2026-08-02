@@ -1,7 +1,8 @@
 # Repository and deployment inventory
 
-**Date:** 2026-07-31 · **Purpose:** establish what is real and running before any
-contract work begins.
+**Date:** 2026-07-31 · **Updated:** 2026-08-01 (Mission SDK reconciliation, §2)
+· **Purpose:** establish what is real and running before any contract work
+begins.
 
 Everything below is observed from the filesystem and git metadata, not inferred
 from architecture documents. Where a fact could not be established from a source,
@@ -21,6 +22,7 @@ The three runtime components named in the contract plan resolve as follows:
 | `mission-runtime` | **Does not exist.** Zero occurrences in code, docs or config |
 | `discovery-runtime` | **Does not exist.** Zero occurrences in code, docs or config |
 | `agentic-os` | **Not located** anywhere on this machine |
+| `mission-sdk` | **A real remote repository**, `redevops-io/mission-sdk` — not cloned here. Its execution `MissionProgram` is a different type from the lifecycle one in `runtime-contracts` (§2) |
 
 `mission_runtime`, `MissionRuntime`, `discovery_runtime` and `DiscoveryRuntime`
 return **zero matches** across `rag-saas-platform` in `.py`, `.go`, `.ts`, `.md`,
@@ -108,9 +110,65 @@ components:
     contract_status: NOT_LOCATED
 
   agentic-os:
-    repository: not-located
+    repository: not-located-on-this-machine
+    pinned_as: mission-sdk dependency runtime @ d261825
+    source: reported 2026-08-01, not observed here
     contract_status: NOT_LOCATED
+
+  mission-sdk:
+    repository: redevops-io/mission-sdk
+    branch: main
+    tested_commit: 6aeb4e6
+    dependency_runtime: agentic-os@d261825
+    local_path: null
+    source: reported 2026-08-01, not observed here
+    integration_state: NOT_STARTED
+    intended_mode: advisory shadow compilation
+    contract_status: NOT_CLONED
 ```
+
+### Two different `MissionProgram` types
+
+They are not interchangeable, and conflating them produces confident wrong
+conclusions about what the SDK can represent:
+
+| | `runtime-contracts` | `mission-sdk` |
+|---|---|---|
+| Orientation | **lifecycle** | **execution** |
+| Models | Investigation state transitions | candidate step chains |
+| Entry point | constructed directly | `MissionProgram.from_proposal()` |
+| Proposal type | none — no `MissionProposal` exists | `MissionProposal` |
+| Located here | yes, `/projects/runtime-contracts` | no |
+
+> The existing `runtime-contracts` Quantify adapter
+> (`adapters/quantify/adapter.py`) **is not** the Mission SDK adapter, and its
+> lifecycle `MissionProgram` **is not** the execution program targeted by this
+> integration.
+
+A third, unrelated `MissionProposal` appears in `src/api.py` (`discoveries()`),
+naming the last stage of the Context Runtime v8 Discovery chain — Signal →
+Detection → Correlation → Hypothesis → MissionProposal. It is a docstring
+describing a shape that surface follows, not a type Quantify imports. Three
+distinct things share this name; none of them is a synonym for another.
+
+The lifecycle program validates that terminal states carry outcomes and that
+transitions do not leave terminal states; it has no candidate fan-out because
+fan-out is not what it is for. Reading a fan-out limitation from it and
+attributing that limitation to the SDK — as this repository's notes did until
+this commit — compares Quantify against the wrong package.
+
+`src/workspace/execution.py` stays Quantify's authoritative execution
+declaration either way. It is deliberately neutral, so it is the input an
+adapter would translate rather than something an adapter would replace.
+
+**Resume the integration when** discovery must emit executable Quantify
+missions; or the pilot needs portable case bundles or cross-process replay; or
+Go/Kotlin portability becomes active; or Quantify's orchestration logic starts
+duplicating generic SDK functionality. The order is then: clone/install
+`mission-sdk` → optional `quantify[missions]` extra → execution-declaration
+adapter → `MissionProposal` → shadow validate/profile/ci → graph-equivalence
+gate. The plan is valid and retained; it is simply not the next highest-value
+Quantify task.
 
 ---
 
@@ -222,6 +280,12 @@ implementations:
   discovery-runtime:   {status: NOT_LOCATED}
   sidekick:            {status: NOT_LOCATED}
   agentic-os:          {status: NOT_LOCATED}
+
+# A separate axis. Adoption above is of runtime-contracts; this is of the
+# execution SDK, and the two share a type name but not a type.
+mission_sdk_integration:
+  quantify: {status: NOT_STARTED, mode: advisory shadow compilation,
+             seam: src/workspace/execution.py, deferred_for: closed-pilot-v1}
 
 release_gate:
   quantify:        {minimum: CONFORMANT}
