@@ -865,6 +865,54 @@ def accept_worksheet_proposal(worksheet_id: str, proposal_id: str):
     return {"worksheet_id": worksheet_id, "applied": True, **result.to_json()}
 
 
+def _reconciliation_view(store, worksheet_id: str, *, as_of: str):
+    """The three lanes, from persisted records.
+
+    Verification is best-effort by design. The page shows history whatever
+    happens: a re-derivation that cannot run leaves every row NOT_VERIFIABLE
+    rather than taking the page down, because a record the user wrote is not
+    less real because this build cannot re-judge it.
+    """
+    from ..mission.rsu_reconcile import ObservedEvent, PlannedEvent, reconcile
+    from .reconciliation_view import RSUReconciliationView, verify
+
+    planned = store.planned_events(worksheet_id, PILOT_OWNER)
+    observed = store.observed_events(worksheet_id, PILOT_OWNER)
+    stored = store.reconciliations(worksheet_id, PILOT_OWNER)
+
+    verification = {}
+    try:
+        fresh = reconcile(
+            [PlannedEvent(**one["payload"]) for one in planned],
+            [ObservedEvent(**one["payload"]) for one in observed],
+            as_of=as_of)
+        verification = verify(stored, fresh)
+    except Exception:                                          # noqa: BLE001
+        verification = {}
+
+    return RSUReconciliationView.from_records(
+        planned, observed, stored, verification=verification)
+
+
+@router.get("/research/{worksheet_id}/tracking", response_class=HTMLResponse)
+def worksheet_tracking(request: Request, worksheet_id: str):
+    """Planned, observed and reconciliation, side by side.
+
+    Resolves stored records and arranges them. It matches nothing, computes no
+    dates and decides no statuses — those were decided when the reconciliation
+    was derived, and deciding them again here would produce a second answer.
+    """
+    store = _store()
+    if store.get_worksheet(worksheet_id, PILOT_OWNER) is None:
+        raise HTTPException(status_code=404,
+                            detail=f"no worksheet {worksheet_id!r}")
+
+    view = _reconciliation_view(store, worksheet_id, as_of=_now()[:10])
+    return TEMPLATES.TemplateResponse(
+        request, "tracking.html",
+        {"worksheet_id": worksheet_id, "view": view.to_json()})
+
+
 @router.post("/research/{worksheet_id}/rerun")
 def rerun_worksheet(worksheet_id: str):
     """Simulate the stored scenario again, against today's data.

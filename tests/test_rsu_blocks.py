@@ -222,9 +222,9 @@ class TestNoRecommendationLanguage:
         matching "vest" inside "uninvested" — prose legitimately contains the
         vocabulary the output forbids.
         """
-        source = open(f"src/workspace/templates/{TEMPLATE}").read()
-        emitted = re.sub(r"\{#.*?#\}", "", source, flags=re.S).lower()
-        assert word not in emitted
+        from tests.template_source import emitted
+
+        assert word not in emitted(TEMPLATE).lower()
 
     def test_the_rendered_page_never_advises(self, messy):
         body = flat(render(messy)).lower()
