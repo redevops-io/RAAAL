@@ -561,3 +561,51 @@ tested.
 The corollary shapes how new work is judged: it should either create a visible
 user capability, or turn an existing claim into something mechanically
 falsifiable. Adding an assertion that cannot fail adds nothing but confidence.
+
+
+## Ownership reachability
+
+Every persistent record must have a mechanically provable ownership path, or be
+explicitly global. There is no third option, and "obviously it belongs to the
+user" is not a path.
+
+```text
+GLOBAL                    no owner; survives every deletion
+
+DIRECT_OWNER(owner)       carries the column
+
+INDIRECT_OWNER(
+    plan_run.plan_id  ->  plan.plan_id  ->  plan.owner
+)
+```
+
+The third case is why this is an invariant rather than a convention. `plan_run`
+holds every simulated result a user has produced and carries no `owner` column;
+it is user-owned entirely through the graph. A deletion written the obvious way
+— `WHERE owner = ?` — removes nothing from it and reports success. Export misses
+it. Tenant-isolation checks pass because they never look.
+
+**The path is executable metadata, not documentation.** `OwnershipPath` is a
+declaration that emits its own SQL, and deletion, export and verification all
+consume the same object. An ownership rule written in a comment and hand-coded
+in one function is a rule the other consumers will each get subtly wrong.
+
+    every table is classified          checked against sqlite_master
+    every indirect table has a path    checked against the classification
+    the path actually reaches rows     checked by deleting and re-reading
+
+This is the fourth instance of one shape. A control is not implemented until the
+production caller cannot bypass it:
+
+| Declared | Bypassed by |
+|---|---|
+| account contribution rules | `ACCOUNT_IMPLEMENTED` was empty; nothing enforced them |
+| history-aware planning | `intent.plan` had no live caller |
+| corporate-action pinning | `corporate_action_ref` was required and never resolved |
+| market-data egress policy | `_prices()` read an unmanifested file directly |
+| record ownership | deletion reached only tables with an `owner` column |
+
+Each was found the same way: by asking what the live path actually calls, rather
+than what the module declares. The generalisation is **reachability of
+enforcement** — every declared control needs one end-to-end test proving the
+live path reaches it, and one mutation proving that bypassing it fails.

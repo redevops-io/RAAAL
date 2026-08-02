@@ -69,19 +69,22 @@ def owner_reference(owner: str) -> str:
 
 
 def _rows_for(conn: sqlite3.Connection, record, owner: str) -> List[Dict]:
+    """Rows this owner holds, by the declared ownership path.
+
+    No table is special-cased here. The join comes from the classification, so
+    a new indirectly-owned table is reached correctly by declaring its path
+    rather than by editing this function — which is the edit everyone forgets.
+    """
     if record.owner_scope is OwnerScope.DIRECT:
         return [dict(r) for r in conn.execute(
             f"SELECT * FROM {record.table} WHERE {record.owner_column} = ?",
             (owner,))]
-    if record.table == "plan_run":
-        # Reached through its plan, never by an owner column it does not have.
+    if record.ownership_path is not None:
         return [dict(r) for r in conn.execute(
-            "SELECT plan_run.* FROM plan_run JOIN plan "
-            "ON plan.plan_id = plan_run.plan_id WHERE plan.owner = ?", (owner,))]
+            record.ownership_path.select(record.table), (owner,))]
     raise DeletionIncomplete(
-        f"{record.table} is indirectly scoped and this module does not know how "
-        f"to reach it ({record.reached_through}). Deleting around it would "
-        "leave rows behind and report success")
+        f"{record.table} is indirectly scoped and declares no ownership path. "
+        "Deleting around it would leave rows behind and report success")
 
 
 def export_workspace(store, owner: str) -> Dict[str, Any]:
@@ -127,9 +130,8 @@ def delete_workspace(store, owner: str, *, requested_at: str,
                     f"DELETE FROM {record.table} "
                     f"WHERE {record.owner_column} = ?", (owner,))
             else:
-                conn.execute(
-                    "DELETE FROM plan_run WHERE plan_id IN "
-                    "(SELECT plan_id FROM plan WHERE owner = ?)", (owner,))
+                conn.execute(record.ownership_path.delete(record.table),
+                             (owner,))
 
     remaining = verify_deleted(store, owner)
     if remaining:

@@ -149,6 +149,42 @@ class TestTheInventoryIsCheckedAgainstTheSchema:
             assert isinstance(record.contains_sensitive_financial_data, bool)
             assert isinstance(record.contains_model_content, bool)
 
+    def test_every_indirect_table_declares_an_executable_path(self):
+        """Executable metadata, not prose. An ownership rule written in a
+        comment is one every consumer re-derives differently."""
+        for record in WORKSPACE_RECORDS.values():
+            if record.owner_scope is OwnerScope.INDIRECT:
+                assert record.ownership_path is not None, record.table
+                assert "?" in record.ownership_path.select(record.table)
+                assert "?" in record.ownership_path.delete(record.table)
+
+    def test_every_direct_table_names_its_owner_column(self):
+        for record in WORKSPACE_RECORDS.values():
+            if record.owner_scope is OwnerScope.DIRECT:
+                assert record.owner_column, record.table
+
+    def test_no_table_is_scoped_by_assumption(self):
+        """Global, direct, or indirect with a path. There is no fourth."""
+        for record in WORKSPACE_RECORDS.values():
+            if record.owner_scope is OwnerScope.DIRECT:
+                assert record.owner_column
+            elif record.owner_scope is OwnerScope.INDIRECT:
+                assert record.ownership_path
+            else:
+                assert record.deletion_behaviour is not \
+                    DeletionBehaviour.DELETE_WITH_OWNER
+
+    def test_the_deletion_code_special_cases_no_table(self):
+        """A new indirectly-owned table must be reached by declaring its path,
+        not by editing the deletion function — which is the edit everyone
+        forgets."""
+        import inspect
+
+        from src.workspace import erasure
+
+        source = inspect.getsource(erasure._rows_for)
+        assert "plan_run" not in source
+
     def test_indirect_scope_names_how_it_is_reached(self):
         """A cascade that assumes a foreign key deletes nothing and reports
         success."""

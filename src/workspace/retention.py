@@ -64,6 +64,44 @@ class DeletionBehaviour(str, Enum):
 
 
 @dataclass(frozen=True)
+class OwnershipPath:
+    """How to reach an owner from a table, as data rather than prose.
+
+    Executable metadata, not documentation. Deletion, export, tenant isolation
+    and any later auditing consume the same graph, so a table whose ownership is
+    described in a comment and special-cased in one function is a table the
+    other three will get wrong.
+
+        plan_run.plan_id -> plan.plan_id -> plan.owner
+    """
+
+    local_key: str
+    parent_table: str
+    parent_key: str
+    parent_owner_column: str
+
+    def describe(self) -> str:
+        return (f"{self.local_key} -> {self.parent_table}.{self.parent_key} "
+                f"-> {self.parent_table}.{self.parent_owner_column}")
+
+    def select(self, table: str) -> str:
+        return (f"SELECT {table}.* FROM {table} JOIN {self.parent_table} "
+                f"ON {self.parent_table}.{self.parent_key} = {table}.{self.local_key} "
+                f"WHERE {self.parent_table}.{self.parent_owner_column} = ?")
+
+    def delete(self, table: str) -> str:
+        return (f"DELETE FROM {table} WHERE {self.local_key} IN "
+                f"(SELECT {self.parent_key} FROM {self.parent_table} "
+                f"WHERE {self.parent_owner_column} = ?)")
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"local_key": self.local_key, "parent_table": self.parent_table,
+                "parent_key": self.parent_key,
+                "parent_owner_column": self.parent_owner_column,
+                "describes": self.describe()}
+
+
+@dataclass(frozen=True)
 class RecordClass:
     """One table's classification. Every field is required to be stated."""
 
@@ -76,11 +114,18 @@ class RecordClass:
     contains_sensitive_financial_data: bool
     contains_model_content: bool
     owner_column: Optional[str] = None
-    reached_through: Optional[str] = None
-    """For INDIRECT scope: the join that finds these rows. Named because a
-    deletion that assumes a cascade deletes nothing and reports success."""
+    ownership_path: Optional[OwnershipPath] = None
+    """For INDIRECT scope: the join that finds these rows, as data.
+
+    A deletion that assumes a cascade deletes nothing and reports success, and
+    an ownership path written in a comment is one every consumer re-derives
+    differently."""
 
     sensitive_fields: Sequence[str] = ()
+
+    @property
+    def reached_through(self) -> Optional[str]:
+        return self.ownership_path.describe() if self.ownership_path else None
 
     def to_json(self) -> Dict[str, Any]:
         return {"table": self.table, "data_class": self.data_class.value,
@@ -93,6 +138,8 @@ class RecordClass:
                 "contains_model_content": self.contains_model_content,
                 "owner_column": self.owner_column,
                 "reached_through": self.reached_through,
+                "ownership_path": (self.ownership_path.to_json()
+                                   if self.ownership_path else None),
                 "sensitive_fields": list(self.sensitive_fields)}
 
 
@@ -114,7 +161,9 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
         RecordClass(
             table="plan_run", data_class=DataClass.PERSONAL_RECORD,
             owner_scope=OwnerScope.INDIRECT,
-            reached_through="plan_run.plan_id -> plan.plan_id -> plan.owner",
+            ownership_path=OwnershipPath(
+                local_key="plan_id", parent_table="plan",
+                parent_key="plan_id", parent_owner_column="owner"),
             retention_policy=ACTIVE_ACCOUNT,
             deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
             export_behaviour="included in a workspace export",
