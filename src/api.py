@@ -73,8 +73,30 @@ def _bootstrap() -> None:
         _ledger.publish_protocol(p)
 
 
+def _check_schema() -> None:
+    """Refuse to serve a database at a different schema than this code expects.
+
+    At startup, not at first use. A service that starts happily and fails on the
+    first request touching a column the database has not grown yet has moved the
+    failure onto a user, and onto whichever code path reached it first.
+
+    Skipped for SQLite, which is tests, local development and the standalone
+    demo — those databases are created by `create_all` and have no migration
+    history to be at odds with. A deployed pilot is PostgreSQL, and
+    `src.db.guard` is what refuses to let it be anything else.
+    """
+    from .db.engine import Database, Dialect
+    from .db.migrate import require_migration_head
+
+    database = Database()
+    if database.dialect is Dialect.SQLITE:
+        return
+    require_migration_head(database)
+
+
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
+    _check_schema()
     _bootstrap()
     yield
 

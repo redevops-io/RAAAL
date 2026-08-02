@@ -21,9 +21,14 @@ REQUIRED_DEPLOYMENT_FACTS: Sequence[str] = (
     "QUANTIFY_COMMIT",
     "QUANTIFY_RELEASE_REF",
     "QUANTIFY_IMAGE_DIGEST",
-    "QUANTIFY_MIGRATION_HEAD",
     "QUANTIFY_SNAPSHOT_ID",
 )
+# `QUANTIFY_MIGRATION_HEAD` was here, and nothing produced it. It is now read
+# from the migration scripts in this image — see `code_versions` — because a
+# hand-set variable can disagree with the migrations it claims to describe,
+# and a schema version that can be wrong is worse than none. What the *database*
+# is at is a separate question, checked against this at startup by
+# `src.db.migrate.require_migration_head`.
 
 #: Reported alongside, and not required: a deployment can run without the
 #: optional integrations and must still be able to describe itself.
@@ -44,6 +49,8 @@ PUBLIC_FIELDS: Sequence[str] = (
 def code_versions() -> Dict[str, str]:
     """Versions the code declares, imported rather than restated."""
     from ..comparison.rsu_profile import PROFILE_VERSION
+    from ..db.migrate import code_head
+    from ..db.schema import SCHEMA_VERSION
     from ..market_data.integrity import DIGEST_VERSION
     from ..mission.comparability import CLASSIFIER_VERSION
     from ..mission.evolution import COMPILER_VERSION
@@ -58,6 +65,10 @@ def code_versions() -> Dict[str, str]:
 
     return {
         "api_version": API_VERSION,
+        # From the migration scripts in this image, not from a variable someone
+        # set by hand. The database is checked against it at startup.
+        "migration_head": code_head(),
+        "schema_version": SCHEMA_VERSION,
         "compiler_version": COMPILER_VERSION,
         "parser_version": PARSER_VERSION,
         "classifier_version": CLASSIFIER_VERSION,
