@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from typing import Dict, Mapping, Sequence, Tuple
 
+from .types import JsonText
 from sqlalchemy import (
     Column,
     Float,
@@ -47,7 +48,7 @@ plan = Table(
     Column("plan_id", Text, primary_key=True),
     Column("owner", Text, nullable=False),
     Column("title", Text, nullable=False),
-    Column("scenario", Text, nullable=False),
+    Column("scenario", JsonText, nullable=False),
     Column("intent", Text),
     Column("stated_text", Text, nullable=False),
     Column("saved_at", Text, nullable=False),
@@ -57,7 +58,7 @@ plan = Table(
     # re-derived: stage 1 may involve a language model, and recompiling a saved
     # plan against a model that has since changed would silently alter a plan
     # the user already read and confirmed.
-    Column("parse", Text),
+    Column("parse", JsonText),
 )
 
 proposal = Table(
@@ -65,7 +66,7 @@ proposal = Table(
     Column("proposal_id", Text, primary_key=True),
     Column("plan_id", Text, nullable=False),
     Column("owner", Text, nullable=False),
-    Column("payload", Text, nullable=False),
+    Column("payload", JsonText, nullable=False),
     Column("generated_at", Text, nullable=False),
     Column("status", Text, nullable=False),
 )
@@ -76,7 +77,7 @@ observation = Table(
     Column("plan_id", Text, nullable=False),
     Column("owner", Text, nullable=False),
     Column("observed_at", Text, nullable=False),
-    Column("payload", Text, nullable=False),
+    Column("payload", JsonText, nullable=False),
 )
 
 # What was asked, before anything changed. Durable on its own, not folded into
@@ -102,11 +103,11 @@ worksheet_intent = Table(
     # classification derived from it.
     Column("instruction", Text),
     Column("instruction_hash", Text, nullable=False),
-    Column("structured_request", Text, nullable=False),
+    Column("structured_request", JsonText, nullable=False),
     Column("edit_effect", Text, nullable=False),
     Column("selection_basis", Text, nullable=False),
     Column("repetition_signature", Text, nullable=False),
-    Column("related_prior", Text, nullable=False),
+    Column("related_prior", JsonText, nullable=False),
     Column("results_visible", Integer, nullable=False),
     Column("alternatives", Integer, nullable=False),
     # Nullable deliberately. NULL means the planner could not read the
@@ -147,12 +148,12 @@ worksheet_proposal = Table(
     Column("worksheet_id", Text, nullable=False),
     Column("source_revision", Integer, nullable=False),
     Column("status", Text, nullable=False),
-    Column("payload", Text, nullable=False),
+    Column("payload", JsonText, nullable=False),
     Column("created_at", Text, nullable=False),
     Column("resolved_at", Text),
     Column("actor", Text),
     Column("result_revision", Integer),
-    Column("result_runs", Text),
+    Column("result_runs", JsonText),
     Column("trace_id", Text),
 )
 
@@ -171,7 +172,7 @@ worksheet = Table(
     Column("owner", Text, primary_key=True),
     Column("worksheet_id", Text, primary_key=True),
     Column("revision", Integer, primary_key=True),
-    Column("payload", Text, nullable=False),
+    Column("payload", JsonText, nullable=False),
     Column("canonical_hash", Text, nullable=False),
     Column("created_at", Text, nullable=False),
 )
@@ -195,7 +196,7 @@ planned_event = Table(
     Column("asset", Text),
     Column("expected_quantity", Float),
     Column("expected_value", Float),
-    Column("payload", Text, nullable=False),
+    Column("payload", JsonText, nullable=False),
     Column("matching_policy_version", Text, nullable=False),
     Column("source_ref", Text),
     Column("content_hash", Text, nullable=False),
@@ -216,8 +217,8 @@ observed_event = Table(
     Column("asset", Text),
     Column("quantity", Float),
     Column("value", Float),
-    Column("payload", Text, nullable=False),
-    Column("evidence_refs", Text, nullable=False, server_default=text("'[]'")),
+    Column("payload", JsonText, nullable=False),
+    Column("evidence_refs", JsonText, nullable=False, server_default=text("'[]'")),
     Column("source", Text, nullable=False),
     Column("supersedes", Text),
     Column("content_hash", Text, nullable=False),
@@ -234,7 +235,7 @@ event_reconciliation = Table(
     # observation, and a placeholder would read as one.
     Column("observed_event_id", Text),
     Column("status", Text, nullable=False),
-    Column("payload", Text, nullable=False),
+    Column("payload", JsonText, nullable=False),
     Column("matching_policy_version", Text, nullable=False),
     Column("superseded_by", Text),
     Column("content_hash", Text, nullable=False),
@@ -268,8 +269,8 @@ plan_run = Table(
     Column("run_id", Text, primary_key=True),
     Column("plan_id", Text, nullable=False),
     Column("ran_at", Text, nullable=False),
-    Column("result", Text, nullable=False),
-    Column("comparison", Text, nullable=False),
+    Column("result", JsonText, nullable=False),
+    Column("comparison", JsonText, nullable=False),
     # `plan_run` carries no owner column and is reachable only through its
     # plan. `src/workspace/retention.py` declares that ownership path so
     # deletion and export both find these rows; the foreign key is what makes

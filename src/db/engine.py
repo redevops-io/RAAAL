@@ -32,6 +32,7 @@ from typing import Any, Iterator, Optional, Sequence, Tuple, Union
 from sqlalchemy import create_engine, inspect
 
 from .schema import metadata, primary_key_columns
+from .types import adapt
 
 #: Where a deployed instance finds its database. Absent, the target falls back
 #: to a local SQLite file — correct for tests and a developer checkout, and
@@ -158,9 +159,10 @@ class Connection:
         self.dialect = dialect
 
     def execute(self, sql: str, params: Sequence[Any] = ()) -> _Cursor:
+        bound = tuple(adapt(value, self.dialect.value) for value in params)
         if self.dialect is Dialect.POSTGRESQL:
-            return _Cursor(self._raw.execute(to_postgres(sql), tuple(params)))
-        return _Cursor(self._raw.execute(sql, tuple(params)))
+            return _Cursor(self._raw.execute(to_postgres(sql), bound))
+        return _Cursor(self._raw.execute(sql, bound))
 
     def commit(self) -> None:
         self._raw.commit()

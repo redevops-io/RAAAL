@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence
 
 from ..db.engine import Database, Dialect
+from ..db.types import Json, loads
 from ..mission.boundary import scan_for_personal_data
 from ..runtime.base import canonical_hash
 from .intent_chain import chain_link
@@ -404,9 +405,9 @@ class WorkspaceStore:
                    (plan_id, owner, title, scenario, intent, stated_text,
                     saved_at, rule_hash, content_hash, parse)
                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                (plan_id, owner, scenario.name, json.dumps(payload), intent_id,
+                (plan_id, owner, scenario.name, Json(payload), intent_id,
                  stated_text, saved_at, scenario.rule_hash, scenario.content_hash,
-                 json.dumps(parse) if parse is not None else None),
+                 Json(parse) if parse is not None else None),
             )
         return plan_id
 
@@ -445,7 +446,7 @@ class WorkspaceStore:
             conn.execute(
                 """INSERT OR REPLACE INTO plan_run
                    (run_id, plan_id, ran_at, result, comparison) VALUES (?,?,?,?,?)""",
-                (run_id, plan_id, ran_at, json.dumps(result), json.dumps(comparison)),
+                (run_id, plan_id, ran_at, Json(result), Json(comparison)),
             )
         return run_id
 
@@ -477,7 +478,7 @@ class WorkspaceStore:
                                           canonical_hash, created_at)
                    VALUES (?,?,?,?,?,?)""",
                 (worksheet.worksheet_id, worksheet.revision, worksheet.owner_id,
-                 json.dumps(payload), worksheet.canonical_hash,
+                 Json(payload), worksheet.canonical_hash,
                  worksheet.created_at or ""))
         return worksheet.worksheet_id
 
@@ -494,7 +495,7 @@ class WorkspaceStore:
                 "AND json_extract(payload, '$.scenario_ref') = ? "
                 "ORDER BY revision DESC LIMIT 1",
                 (owner, scenario_ref)).fetchone()
-        return {**dict(row), "payload": json.loads(row["payload"])} if row else None
+        return {**dict(row), "payload": loads(row["payload"])} if row else None
 
     def get_worksheet(self, worksheet_id: str, owner: str,
                       revision: Optional[int] = None) -> Optional[Dict[str, Any]]:
@@ -509,7 +510,7 @@ class WorkspaceStore:
                 row = conn.execute(
                     "SELECT * FROM worksheet WHERE worksheet_id = ? AND owner = ?"
                     " AND revision = ?", (worksheet_id, owner, revision)).fetchone()
-        return {**dict(row), "payload": json.loads(row["payload"])} if row else None
+        return {**dict(row), "payload": loads(row["payload"])} if row else None
 
     def worksheet_revisions(self, worksheet_id: str,
                             owner: str) -> List[Dict[str, Any]]:
@@ -517,7 +518,7 @@ class WorkspaceStore:
             rows = conn.execute(
                 "SELECT * FROM worksheet WHERE worksheet_id = ? AND owner = ?"
                 " ORDER BY revision", (worksheet_id, owner)).fetchall()
-        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+        return [{**dict(r), "payload": loads(r["payload"])} for r in rows]
 
     def record_confirmation_event(self, *, event_id: str, owner: str,
                                   occurred_at: str, kind: str, **fields) -> str:
@@ -595,10 +596,10 @@ class WorkspaceStore:
                  sequence,
                  intent.instruction if store_instruction else None,
                  instruction_hash,
-                 json.dumps(intent.to_json()),
+                 Json(intent.to_json()),
                  intent.edit_effect.value, intent.selection_basis.value,
                  intent.repetition_signature.key(),
-                 json.dumps(list(intent.related_prior_intents)),
+                 Json(list(intent.related_prior_intents)),
                  int(intent.results_visible), intent.alternatives_generated,
                  intent.trial_effect, planner_version, chain_hash, created_at,
                  proposal_id, "PLANNED", trace_id))
@@ -622,8 +623,8 @@ class WorkspaceStore:
                 f"SELECT * FROM worksheet_intent {clause} ORDER BY sequence",
                 params).fetchall()
         return [{**dict(row),
-                 "structured_request": json.loads(row["structured_request"]),
-                 "related_prior": json.loads(row["related_prior"] or "[]")}
+                 "structured_request": loads(row["structured_request"]),
+                 "related_prior": loads(row["related_prior"], [])}
                 for row in rows]
 
     def link_intent_proposal(self, intent_id: str, owner: str, *,
@@ -670,7 +671,7 @@ class WorkspaceStore:
                 (owner, worksheet_id, event.event_id, plan_revision,
                  event.grant_ref, event.kind, event.expected_date,
                  event.employer_asset, event.expected_gross_shares,
-                 event.expected_value, json.dumps(payload),
+                 event.expected_value, Json(payload),
                  matching_policy_version, event.source_declaration, digest,
                  created_at))
         return event.event_id
@@ -707,8 +708,8 @@ class WorkspaceStore:
                 (owner, worksheet_id, event.observation_id, event.kind,
                  event.effective_date, event.observed_date,
                  event.employer_asset, event.gross_shares, event.value,
-                 json.dumps(payload),
-                 json.dumps([event.evidence_ref] if event.evidence_ref else []),
+                 Json(payload),
+                 Json([event.evidence_ref] if event.evidence_ref else []),
                  event.source, supersedes, digest, created_at))
         return event.observation_id
 
@@ -725,7 +726,7 @@ class WorkspaceStore:
                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
                 (owner, worksheet_id, reconciliation.reconciliation_id,
                  reconciliation.planned_ref, reconciliation.observed_ref,
-                 reconciliation.status.value, json.dumps(payload),
+                 reconciliation.status.value, Json(payload),
                  reconciliation.matching_policy_version, digest,
                  reconciliation.derived_at))
         return reconciliation.reconciliation_id
@@ -736,7 +737,7 @@ class WorkspaceStore:
                 "SELECT * FROM planned_event WHERE owner = ? AND "
                 "worksheet_id = ? ORDER BY expected_effective_date",
                 (owner, worksheet_id)).fetchall()
-        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+        return [{**dict(r), "payload": loads(r["payload"])} for r in rows]
 
     def observed_events(self, worksheet_id: str, owner: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:
@@ -744,8 +745,8 @@ class WorkspaceStore:
                 "SELECT * FROM observed_event WHERE owner = ? AND "
                 "worksheet_id = ? ORDER BY effective_date, created_at",
                 (owner, worksheet_id)).fetchall()
-        return [{**dict(r), "payload": json.loads(r["payload"]),
-                 "evidence_refs": json.loads(r["evidence_refs"] or "[]")}
+        return [{**dict(r), "payload": loads(r["payload"]),
+                 "evidence_refs": loads(r["evidence_refs"], [])}
                 for r in rows]
 
     def reconciliations(self, worksheet_id: str, owner: str) -> List[Dict[str, Any]]:
@@ -754,7 +755,7 @@ class WorkspaceStore:
                 "SELECT * FROM event_reconciliation WHERE owner = ? AND "
                 "worksheet_id = ? ORDER BY derived_at",
                 (owner, worksheet_id)).fetchall()
-        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+        return [{**dict(r), "payload": loads(r["payload"])} for r in rows]
 
     def save_worksheet_proposal(self, *, proposal_id: str, owner: str,
                                 worksheet_id: str, proposal,
@@ -768,7 +769,7 @@ class WorkspaceStore:
                     payload, created_at, trace_id)
                    VALUES (?,?,?,?,?,?,?,?)""",
                 (proposal_id, owner, worksheet_id, proposal.source_revision,
-                 "PROPOSED", json.dumps(proposal.to_json()), created_at,
+                 "PROPOSED", Json(proposal.to_json()), created_at,
                  trace_id))
         return proposal_id
 
@@ -781,8 +782,8 @@ class WorkspaceStore:
                 (proposal_id, owner)).fetchone()
         if row is None:
             return None
-        return {**dict(row), "payload": json.loads(row["payload"]),
-                "result_runs": json.loads(row["result_runs"] or "[]")}
+        return {**dict(row), "payload": loads(row["payload"]),
+                "result_runs": loads(row["result_runs"], [])}
 
     def resolve_worksheet_proposal(self, proposal_id: str, owner: str, *,
                                    status: str, resolved_at: str,
@@ -797,7 +798,7 @@ class WorkspaceStore:
                        result_revision = ?, result_runs = ?
                    WHERE proposal_id = ? AND owner = ? AND status = 'PROPOSED'""",
                 (status, resolved_at, actor, result_revision,
-                 json.dumps(list(result_runs)), proposal_id, owner))
+                 Json(list(result_runs)), proposal_id, owner))
 
     def list_plans(self, owner: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:
@@ -851,8 +852,8 @@ class WorkspaceStore:
                 (run_id, owner)).fetchone()
         if row is None:
             return None
-        return {**dict(row), "result": json.loads(row["result"]),
-                "comparison": json.loads(row["comparison"])}
+        return {**dict(row), "result": loads(row["result"]),
+                "comparison": loads(row["comparison"])}
 
     def runs_for(self, plan_id: str, owner: str) -> List[Dict[str, Any]]:
         if self.get_plan(plan_id, owner) is None:
@@ -863,8 +864,8 @@ class WorkspaceStore:
                 (plan_id,),
             ).fetchall()
         return [
-            {**dict(r), "result": json.loads(r["result"]),
-             "comparison": json.loads(r["comparison"])}
+            {**dict(r), "result": loads(r["result"]),
+             "comparison": loads(r["comparison"])}
             for r in rows
         ]
 
@@ -884,7 +885,7 @@ class WorkspaceStore:
                    (proposal_id, plan_id, owner, payload, generated_at, status)
                    VALUES (?,?,?,?,?,?)""",
                 (proposal.proposal_id, proposal.plan_id, owner,
-                 json.dumps(proposal.to_json()), proposal.generated_at,
+                 Json(proposal.to_json()), proposal.generated_at,
                  proposal.status.value),
             )
         return proposal.proposal_id
@@ -894,7 +895,7 @@ class WorkspaceStore:
             rows = conn.execute(
                 """SELECT * FROM proposal WHERE plan_id = ? AND owner = ?
                    ORDER BY generated_at DESC""", (plan_id, owner)).fetchall()
-        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+        return [{**dict(r), "payload": loads(r["payload"])} for r in rows]
 
     # ---- observations -----------------------------------------------------
 
@@ -905,7 +906,7 @@ class WorkspaceStore:
                    (observation_id, plan_id, owner, observed_at, payload)
                    VALUES (?,?,?,?,?)""",
                 (observation.artifact_id, observation.plan_id, owner,
-                 observation.observed_at, json.dumps(observation.to_json())),
+                 observation.observed_at, Json(observation.to_json())),
             )
         return observation.artifact_id
 
@@ -914,14 +915,13 @@ class WorkspaceStore:
             rows = conn.execute(
                 """SELECT * FROM observation WHERE plan_id = ? AND owner = ?
                    ORDER BY observed_at DESC""", (plan_id, owner)).fetchall()
-        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+        return [{**dict(r), "payload": loads(r["payload"])} for r in rows]
 
     @staticmethod
     def _hydrate(row: Mapping[str, Any]) -> Dict[str, Any]:
         record = dict(row)
-        record["scenario"] = json.loads(record["scenario"])
+        record["scenario"] = loads(record["scenario"])
         # Absent for plans saved before stage 1 could involve a model. Those
         # recompile deterministically, which is what they always did.
-        stored = record.get("parse")
-        record["parse"] = json.loads(stored) if stored else None
+        record["parse"] = loads(record.get("parse"))
         return record

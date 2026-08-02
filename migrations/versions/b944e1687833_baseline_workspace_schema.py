@@ -1,18 +1,19 @@
 """baseline workspace schema
 
-Revision ID: 5c59568b8cd2
+Revision ID: b944e1687833
 Revises: 
-Create Date: 2026-08-02 19:15:36.648638
+Create Date: 2026-08-02 19:27:26.037885
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
+import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = '5c59568b8cd2'
+revision: str = 'b944e1687833'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -43,7 +44,7 @@ def upgrade() -> None:
     sa.Column('planned_event_id', sa.Text(), nullable=True),
     sa.Column('observed_event_id', sa.Text(), nullable=True),
     sa.Column('status', sa.Text(), nullable=False),
-    sa.Column('payload', sa.Text(), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('matching_policy_version', sa.Text(), nullable=False),
     sa.Column('superseded_by', sa.Text(), nullable=True),
     sa.Column('content_hash', sa.Text(), nullable=False),
@@ -56,7 +57,7 @@ def upgrade() -> None:
     sa.Column('plan_id', sa.Text(), nullable=False),
     sa.Column('owner', sa.Text(), nullable=False),
     sa.Column('observed_at', sa.Text(), nullable=False),
-    sa.Column('payload', sa.Text(), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.PrimaryKeyConstraint('observation_id')
     )
     op.create_table('observed_event',
@@ -69,8 +70,8 @@ def upgrade() -> None:
     sa.Column('asset', sa.Text(), nullable=True),
     sa.Column('quantity', sa.Float(), nullable=True),
     sa.Column('value', sa.Float(), nullable=True),
-    sa.Column('payload', sa.Text(), nullable=False),
-    sa.Column('evidence_refs', sa.Text(), server_default=sa.text("'[]'"), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
+    sa.Column('evidence_refs', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), server_default=sa.text("'[]'"), nullable=False),
     sa.Column('source', sa.Text(), nullable=False),
     sa.Column('supersedes', sa.Text(), nullable=True),
     sa.Column('content_hash', sa.Text(), nullable=False),
@@ -81,21 +82,21 @@ def upgrade() -> None:
     sa.Column('plan_id', sa.Text(), nullable=False),
     sa.Column('owner', sa.Text(), nullable=False),
     sa.Column('title', sa.Text(), nullable=False),
-    sa.Column('scenario', sa.Text(), nullable=False),
+    sa.Column('scenario', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('intent', sa.Text(), nullable=True),
     sa.Column('stated_text', sa.Text(), nullable=False),
     sa.Column('saved_at', sa.Text(), nullable=False),
     sa.Column('rule_hash', sa.Text(), nullable=False),
     sa.Column('content_hash', sa.Text(), nullable=False),
-    sa.Column('parse', sa.Text(), nullable=True),
+    sa.Column('parse', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=True),
     sa.PrimaryKeyConstraint('plan_id')
     )
     op.create_table('plan_run',
     sa.Column('run_id', sa.Text(), nullable=False),
     sa.Column('plan_id', sa.Text(), nullable=False),
     sa.Column('ran_at', sa.Text(), nullable=False),
-    sa.Column('result', sa.Text(), nullable=False),
-    sa.Column('comparison', sa.Text(), nullable=False),
+    sa.Column('result', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
+    sa.Column('comparison', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.PrimaryKeyConstraint('run_id')
     )
     op.create_table('planned_event',
@@ -109,7 +110,7 @@ def upgrade() -> None:
     sa.Column('asset', sa.Text(), nullable=True),
     sa.Column('expected_quantity', sa.Float(), nullable=True),
     sa.Column('expected_value', sa.Float(), nullable=True),
-    sa.Column('payload', sa.Text(), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('matching_policy_version', sa.Text(), nullable=False),
     sa.Column('source_ref', sa.Text(), nullable=True),
     sa.Column('content_hash', sa.Text(), nullable=False),
@@ -120,7 +121,7 @@ def upgrade() -> None:
     sa.Column('proposal_id', sa.Text(), nullable=False),
     sa.Column('plan_id', sa.Text(), nullable=False),
     sa.Column('owner', sa.Text(), nullable=False),
-    sa.Column('payload', sa.Text(), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('generated_at', sa.Text(), nullable=False),
     sa.Column('status', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('proposal_id')
@@ -129,7 +130,7 @@ def upgrade() -> None:
     sa.Column('owner', sa.Text(), nullable=False),
     sa.Column('worksheet_id', sa.Text(), nullable=False),
     sa.Column('revision', sa.Integer(), nullable=False),
-    sa.Column('payload', sa.Text(), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('canonical_hash', sa.Text(), nullable=False),
     sa.Column('created_at', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('owner', 'worksheet_id', 'revision')
@@ -142,11 +143,11 @@ def upgrade() -> None:
     sa.Column('sequence', sa.Integer(), nullable=False),
     sa.Column('instruction', sa.Text(), nullable=True),
     sa.Column('instruction_hash', sa.Text(), nullable=False),
-    sa.Column('structured_request', sa.Text(), nullable=False),
+    sa.Column('structured_request', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('edit_effect', sa.Text(), nullable=False),
     sa.Column('selection_basis', sa.Text(), nullable=False),
     sa.Column('repetition_signature', sa.Text(), nullable=False),
-    sa.Column('related_prior', sa.Text(), nullable=False),
+    sa.Column('related_prior', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('results_visible', sa.Integer(), nullable=False),
     sa.Column('alternatives', sa.Integer(), nullable=False),
     sa.Column('trial_effect', sa.Integer(), nullable=True),
@@ -165,12 +166,12 @@ def upgrade() -> None:
     sa.Column('worksheet_id', sa.Text(), nullable=False),
     sa.Column('source_revision', sa.Integer(), nullable=False),
     sa.Column('status', sa.Text(), nullable=False),
-    sa.Column('payload', sa.Text(), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('created_at', sa.Text(), nullable=False),
     sa.Column('resolved_at', sa.Text(), nullable=True),
     sa.Column('actor', sa.Text(), nullable=True),
     sa.Column('result_revision', sa.Integer(), nullable=True),
-    sa.Column('result_runs', sa.Text(), nullable=True),
+    sa.Column('result_runs', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=True),
     sa.Column('trace_id', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('proposal_id')
     )

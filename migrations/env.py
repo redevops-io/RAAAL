@@ -53,11 +53,34 @@ def _url() -> str:
     return url
 
 
+def render_item(type_, obj, autogen_context):
+    """Render `JsonText` as a concrete type rather than as an import.
+
+    A migration is a historical record of what was done. Referring to
+    `src.db.types.JsonText` would make every past migration mean whatever that
+    class means today — so a later change to the type would silently rewrite
+    history, and a fresh migrate would produce a different schema than the one
+    that actually shipped.
+
+    `Text().with_variant(JSONB(), "postgresql")` says the same thing in terms
+    that cannot drift: JSONB where it exists, TEXT where it does not.
+    """
+    from src.db.types import JsonText
+
+    if type_ == "type" and isinstance(obj, JsonText):
+        autogen_context.imports.add("import sqlalchemy as sa")
+        autogen_context.imports.add(
+            "from sqlalchemy.dialects import postgresql")
+        return ('sa.Text().with_variant('
+                'postgresql.JSONB(astext_type=sa.Text()), "postgresql")')
+    return False
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=_url(), target_metadata=target_metadata, literal_binds=True,
         dialect_opts={"paramstyle": "named"}, compare_type=True,
-        render_as_batch=True)
+        render_item=render_item, render_as_batch=True)
     with context.begin_transaction():
         context.run_migrations()
 
@@ -71,7 +94,7 @@ def run_migrations_online() -> None:
     with connectable.connect() as connection:
         context.configure(
             connection=connection, target_metadata=target_metadata,
-            compare_type=True,
+            compare_type=True, render_item=render_item,
             # SQLite cannot ALTER most things in place. Batch mode rebuilds the
             # table instead, which is what the three repair routines in
             # `store.py` were hand-rolling before this existed.
