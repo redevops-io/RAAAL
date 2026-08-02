@@ -13,6 +13,11 @@
     <tr><th>Holdings</th><td>{{ block.payload.assets|join(', ') or '—' }}</td></tr>
     <tr><th>Amount</th><td>{{ money(block.payload.amount) }} {{ block.payload.cadence or '' }}</td></tr>
     <tr><th>Account</th><td>{{ block.payload.account or 'not stated' }}</td></tr>
+    <tr><th>Account claims</th><td class="small">
+      identified {{ block.payload.account_support.recognized|lower }} ·
+      pinned {{ block.payload.account_support.comparable|lower }} ·
+      rules enforced {{ block.payload.account_support.enforced|lower }}
+    </td></tr>
     <tr><th>Funding</th><td>{{ block.payload.funding_source or '—' }}</td></tr>
     <tr><th>Dividends</th><td>{{ block.payload.holdings_policy.dividend_policy or '—' }}</td></tr>
     <tr><th>Weighting</th><td>{{ block.payload.weighting or '—' }}</td></tr>

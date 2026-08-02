@@ -341,9 +341,14 @@ def build(result, *, text: str = "") -> ConfirmationView:
 
     account = None
     if scenario is not None:
-        account = ACCOUNT_CONTEXT.get(scenario.tax_treatment)
-        if account:
-            account = {**account, "value": scenario.tax_treatment}
+        from .account_support import support_for
+
+        context = ACCOUNT_CONTEXT.get(scenario.tax_treatment)
+        if context:
+            # Three claims, never one. "Account matched" read as "account
+            # modelled completely" is the assumption a single badge invites.
+            account = {**context, "value": scenario.tax_treatment,
+                       "support": support_for(scenario.tax_treatment).to_json()}
 
     return ConfirmationView(
         headline=("Here is what we understood" if not conflicts

@@ -58,6 +58,12 @@ class WorksheetView:
                 "unresolved_references": list(self.unresolved_references)}
 
 
+def _account_support(declared: Optional[str]) -> Dict[str, Any]:
+    from .account_support import support_for
+
+    return support_for(declared or "").to_json()
+
+
 def _scope_of(run: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     return (run or {}).get("result", {}).get("modelling_scope") or {}
 
@@ -141,7 +147,11 @@ def _payload(block: Block, scenario: Mapping[str, Any],
                 "cadence": flows.get("cadence"), "amount": flows.get("amount"),
                 "funding_source": flows.get("funding_source"),
                 "day_rule": flows.get("day_rule"),
-                "account": protocol.get("tax_treatment")}
+                "account": protocol.get("tax_treatment"),
+                # Carried on the block rather than derived in the template, so
+                # the page cannot disagree with the runtime about what is
+                # enforced.
+                "account_support": _account_support(protocol.get("tax_treatment"))}
 
     if block is Block.INTERPRETATION_SUMMARY:
         # Preserves the confirmation result; it does not recreate it. The

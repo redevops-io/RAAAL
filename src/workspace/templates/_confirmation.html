@@ -97,6 +97,21 @@
   {% if view.account %}
   <div class="group account">
     <h3>{{ view.account.label }}</h3>
+    {# Three claims rendered apart. A single "supported" badge would collapse
+       identification, comparability and enforcement into one word, and the
+       third is the one a reader assumes from the first two. #}
+    <table class="plan">
+      <tr><th>Account identified</th>
+          <td>{{ view.account.support.recognized|lower }}</td></tr>
+      <tr><th>Pinned across comparisons</th>
+          <td>{{ view.account.support.comparable|lower }}</td></tr>
+      <tr><th>Rules fully enforced</th>
+          <td>{{ view.account.support.enforced|lower }}</td></tr>
+    </table>
+    {% if view.account.support.unenforced_behaviours %}
+    <div class="small muted">Not enforced:
+      {{ view.account.support.unenforced_behaviours|join(', ') }}</div>
+    {% endif %}
     <div class="two-column">
       <div>
         <div class="small muted">Modelled</div>
