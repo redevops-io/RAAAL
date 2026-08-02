@@ -100,8 +100,11 @@ class TestHistoryChangesTheAnswer:
         """"Try 21, 63 and 126 day windows" names no metric and no instrument.
         Read alone it looks like nothing; read after the request it continues it
         is obviously more of the same."""
+        # Alone it is UNCLASSIFIED, not LAYOUT_ONLY. Reading an unrecognised
+        # instruction as "presentation, zero trials" is a claim, and it is the
+        # most permissive one available.
         assert classify_effect("Try 21, 63 and 126 day windows") is \
-            EditEffect.LAYOUT_ONLY
+            EditEffect.UNCLASSIFIED
 
         history = sequence(["Add 63-day rolling volatility",
                             "Try 21, 63 and 126 day windows"])

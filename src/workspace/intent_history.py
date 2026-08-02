@@ -96,9 +96,12 @@ def rehydrate(payload: Mapping[str, Any]) -> WorksheetIntent:
         results_visible=bool(payload.get("results_visible", False)),
         related_prior_intents=tuple(payload.get("related_prior_intents") or ()),
         rerun_required=bool(payload.get("rerun_required", False)),
-        trial_effect=int(payload.get("trial_effect", 0)),
+        trial_effect=(None if payload.get("trial_effect") is None
+                      else int(payload["trial_effect"])),
         comparability_impact=payload.get("comparability_impact", ""),
-        presentation_only=bool(payload.get("presentation_only", False)))
+        presentation_only=bool(payload.get("presentation_only", False)),
+        requires_user_confirmation=bool(
+            payload.get("requires_user_confirmation", False)))
 
 
 @dataclass(frozen=True)
@@ -147,9 +150,27 @@ class IntentHistory:
             families.setdefault(one.repetition_signature.key(), []).append(one)
         return families
 
+    @property
+    def unclassified_count(self) -> int:
+        """Instructions the planner could not read.
+
+        Reported beside the total rather than folded into it. None of them
+        applied — `propose` refuses an unclassified intent — so none added a
+        trial; but each was a request whose trial cost is genuinely unknown, and
+        a total that absorbed them would look complete."""
+        return sum(1 for one in self.intents if not one.classified)
+
+    @property
+    def total_is_complete(self) -> bool:
+        return self.unclassified_count == 0
+
     @staticmethod
     def _family_trials(members: Sequence[WorksheetIntent]) -> int:
-        declared = sum(one.trial_effect for one in members)
+        # `None` means unknown, and unknown contributes nothing to an *executed*
+        # trial count: an unclassified instruction is refused before it runs.
+        # It is surfaced separately by `unclassified_count`, so the uncertainty
+        # is visible rather than absorbed into a number that looks whole.
+        declared = sum(one.trial_effect or 0 for one in members)
         searching = any(one.selection_basis in _SEARCH for one in members)
         if not searching:
             # Nothing in this family was ever a search, so each intent's own
@@ -173,6 +194,8 @@ class IntentHistory:
         return {"worksheet_id": self.worksheet_id,
                 "intents": [i.to_json() for i in self.intents],
                 "trial_total": self.trial_total,
+                "unclassified_count": self.unclassified_count,
+                "total_is_complete": self.total_is_complete,
                 "verdict": self.verdict.to_json()}
 
 

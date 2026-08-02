@@ -46,6 +46,16 @@ class EditEffect(str, Enum):
     SCENARIO_CHANGE = "SCENARIO_CHANGE"
     """Changes an input to the simulation. Requires a run, and counts."""
 
+    UNCLASSIFIED = "UNCLASSIFIED"
+    """The planner did not recognise this instruction.
+
+    A distinct state, not a fallback to `LAYOUT_ONLY`. Reading "we did not
+    understand this" as "presentation, zero trials" is a semantic claim, and the
+    most permissive one available. It never applied — `propose` refuses it — but
+    it did reach telemetry, where a parser failure became indistinguishable from
+    a genuine layout edit. Those are different product problems, and only one of
+    them is fixed by improving the recognisers."""
+
 
 class SelectionBasis(str, Enum):
     STATED_PREFERENCE = "STATED_PREFERENCE"
@@ -59,6 +69,10 @@ class SelectionBasis(str, Enum):
 
     AFTER_RESULTS = "AFTER_RESULTS"
     """Chosen having seen the outcomes. The reading that inflates a result."""
+
+    UNKNOWN = "UNKNOWN"
+    """Why this was chosen cannot be read, because what it asks for cannot be
+    read. Paired with `EditEffect.UNCLASSIFIED`, never on its own."""
 
 
 @dataclass(frozen=True)
@@ -105,9 +119,23 @@ class WorksheetIntent:
     related_prior_intents: Sequence[str] = ()
 
     rerun_required: bool = False
-    trial_effect: int = 0
+
+    trial_effect: Optional[int] = 0
+    """`None` means unknown, which is not the same as zero.
+
+    An unrecognised instruction may have been asking for a single chart or for a
+    sweep of forty parameters. Recording zero would answer a question nobody
+    could answer, and the totals built on it would look complete."""
+
     comparability_impact: str = ""
     presentation_only: bool = False
+
+    requires_user_confirmation: bool = False
+    """The planner cannot proceed without the user restating what they meant."""
+
+    @property
+    def classified(self) -> bool:
+        return self.edit_effect is not EditEffect.UNCLASSIFIED
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -126,6 +154,8 @@ class WorksheetIntent:
             "trial_effect": self.trial_effect,
             "comparability_impact": self.comparability_impact,
             "presentation_only": self.presentation_only,
+            "requires_user_confirmation": self.requires_user_confirmation,
+            "classified": self.classified,
         }
 
 
@@ -240,7 +270,8 @@ def classify_effect(instruction: str,
         return EditEffect.DERIVED_ANALYSIS
     if previous is not None and _FOLLOW_UP.search(instruction):
         return previous.edit_effect
-    return EditEffect.LAYOUT_ONLY
+    # Nothing matched. Deliberately not LAYOUT_ONLY: see EditEffect.UNCLASSIFIED.
+    return EditEffect.UNCLASSIFIED
 
 
 def signature_for(instruction: str, *, effect: EditEffect,
@@ -307,6 +338,37 @@ def plan(instruction: str, *, intent_id: str, source_revision: int,
     """
     previous = history[-1] if history else None
     effect = classify_effect(instruction, previous)
+
+    if effect is EditEffect.UNCLASSIFIED:
+        # Returned before anything is derived. Running the basis and trial
+        # arithmetic over an instruction nobody could read would produce
+        # confident numbers from no evidence — and they would be the numbers
+        # most likely to be believed, because nothing about them looks uncertain.
+        # The basis recognisers still run. Failing to read *what* an instruction
+        # edits is no reason to discard evidence about *why* it was chosen:
+        # "keep 63 because it looks smoothest" names no metric and no
+        # instrument, and it is still plainly a choice made having seen the
+        # outcomes. Unknown is the honest answer only where nothing is legible,
+        # and a protective signal must never be lost to an unreadable target.
+        declared = SelectionBasis.UNKNOWN
+        if _AFTER_RESULTS.search(instruction):
+            declared = SelectionBasis.AFTER_RESULTS
+        elif _STATED.search(instruction):
+            declared = SelectionBasis.STATED_PREFERENCE
+        elif _BEFORE_RESULTS.search(instruction):
+            declared = SelectionBasis.BEFORE_RESULTS
+
+        return WorksheetIntent(
+            intent_id=intent_id, source_revision=source_revision,
+            instruction=instruction, edit_effect=EditEffect.UNCLASSIFIED,
+            selection_basis=declared,
+            repetition_signature=RepetitionSignature(target_run=target_run),
+            results_visible=results_visible,
+            trial_effect=None, requires_user_confirmation=True,
+            comparability_impact=(
+                "unknown: this instruction was not recognised, so its effect on "
+                "the rule identity cannot be stated"))
+
     signature = signature_for(instruction, effect=effect, target_run=target_run,
                               previous=previous)
 

@@ -85,7 +85,10 @@ CREATE TABLE IF NOT EXISTS worksheet_intent (
     related_prior        TEXT NOT NULL,
     results_visible      INTEGER NOT NULL,
     alternatives         INTEGER NOT NULL,
-    trial_effect         INTEGER NOT NULL,
+    -- Nullable deliberately. NULL means the planner could not read the
+    -- instruction, which is not the same as it costing nothing: an
+    -- unclassified request may have asked for one chart or for forty.
+    trial_effect         INTEGER,
     planner_version      TEXT NOT NULL,
     -- Each row chains to its predecessor. Editing a prior intent's
     -- classification, or deleting one from the middle, breaks every successor's
@@ -165,6 +168,15 @@ _ADDED_COLUMNS = (
     ("plan", "parse", "parse TEXT"),
 )
 
+#: Constraints relaxed after the table shipped. SQLite cannot ALTER a NOT NULL
+#: away, so the table is rebuilt. Listed as (table, column) pairs that must be
+#: nullable; a database created before the change would otherwise raise on the
+#: first unclassified instruction — a failure that cannot reproduce on a fresh
+#: checkout, which is the worst kind.
+_RELAXED_NOT_NULL = (
+    ("worksheet_intent", "trial_effect"),
+)
+
 
 class NotSaveable(ValueError):
     """A plan with unconfirmed choices cannot be saved.
@@ -181,6 +193,24 @@ class WorkspaceStore:
         with self._conn() as conn:
             conn.executescript(_SCHEMA)
             self._add_missing_columns(conn)
+            self._relax_not_null(conn)
+
+    @staticmethod
+    def _relax_not_null(conn: sqlite3.Connection) -> None:
+        """Rebuild any table whose column must now accept NULL."""
+        for table, column in _RELAXED_NOT_NULL:
+            columns = conn.execute(f"PRAGMA table_info({table})").fetchall()
+            if not any(c["name"] == column and c["notnull"] for c in columns):
+                continue
+
+            names = ", ".join(c["name"] for c in columns)
+            ddl = next(iter(_SCHEMA.split(f"CREATE TABLE IF NOT EXISTS {table} (")[1]
+                            .split(");")))
+            conn.execute(f"ALTER TABLE {table} RENAME TO {table}__old")
+            conn.execute(f"CREATE TABLE {table} ({ddl})")
+            conn.execute(f"INSERT INTO {table} ({names}) "
+                         f"SELECT {names} FROM {table}__old")
+            conn.execute(f"DROP TABLE {table}__old")
 
     @staticmethod
     def _add_missing_columns(conn: sqlite3.Connection) -> None:

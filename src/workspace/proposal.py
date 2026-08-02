@@ -304,7 +304,16 @@ def propose(intent: WorksheetIntent,
     patch: Optional[Mapping[str, Any]] = None
     warnings: List[str] = []
 
-    if intent.edit_effect is EditEffect.LAYOUT_ONLY:
+    if intent.edit_effect is EditEffect.UNCLASSIFIED:
+        # Refused by its own branch rather than falling into the scenario one,
+        # which described it as a "'' change" — a message derived from a
+        # parameter family that was never populated, for a request nobody read.
+        unsupported = [Unsupported(
+            what=intent.instruction,
+            why=("this instruction was not recognised, so there is nothing to "
+                 "propose. Nothing was assumed about what it would have "
+                 "changed or how many trials it would have counted"))]
+    elif intent.edit_effect is EditEffect.LAYOUT_ONLY:
         changes, unsupported, layout = _layout_change(intent, worksheet)
     elif intent.edit_effect is EditEffect.DERIVED_ANALYSIS:
         changes, unsupported = _analysis_changes(intent)

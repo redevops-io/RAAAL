@@ -187,7 +187,7 @@ class TestItRefusesWhatItCannotType:
     def test_a_refusal_says_what_it_could_not_express(self, worksheet):
         proposal = propose(plan("Move the sparkline widget", intent_id="x",
                                 source_revision=1), worksheet)
-        assert "no block in the registry matches" in proposal.unsupported[0].why
+        assert "was not recognised" in proposal.unsupported[0].why
 
     def test_naming_the_nearest_block_is_refused_on_purpose(self, worksheet):
         """Approximating would move a panel the request never mentioned."""
