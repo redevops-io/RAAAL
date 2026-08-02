@@ -380,19 +380,37 @@ class TestWorkspaceRunsPinTheirRuntimes:
         assert pins.account_hash and pins.calendar_hash and pins.market_data_hash
         assert pins.unpinned == ()
 
-    def test_an_account_outside_the_runtime_vocabulary_is_declared(self):
+    def test_an_account_the_compiler_cannot_place_is_declared(self):
         """Pinning the nearest available kind would record a tax treatment the
-        user did not describe."""
+        user did not describe.
+
+        Roth 401(k) used to be this example and is now a first-class kind. What
+        remains are accounts the compiler recognises as *phrases* and cannot
+        place at all — an inherited IRA has its own distribution schedule, a
+        donor-advised fund its own contribution and grant rules.
+        """
         from src.mission.compiler import compile_scenario
         from src.workspace.environment import pins_for
 
         compiled = compile_scenario(
-            "I put $500 into SPY monthly in my Roth 401(k) and never sell.",
-            name="p", version=1, benchmark_rule="benchmark-policy/public-default@1")
+            "I put $500 into SPY monthly in my inherited IRA account and never "
+            "sell.", name="p", version=1,
+            benchmark_rule="benchmark-policy/public-default@1")
         pins = pins_for(compiled.scenario, snapshot="prices@2025-11-19")
         assert pins.account_hash == ""
         assert "account" in pins.unpinned
         assert pins.limitations()[0]["dimension"] == "account"
+
+    def test_every_account_the_compiler_reads_can_now_be_pinned(self):
+        """The mapping and the recogniser must not drift apart: a vocabulary
+        the compiler can read and the runtime cannot represent is a plan that
+        silently loses its tax treatment."""
+        from src.mission.compiler import _RULES
+        from src.workspace.environment import ACCOUNT_KINDS
+
+        readable = {value for field, value, _ in _RULES
+                    if field == "account_type"}
+        assert readable <= set(ACCOUNT_KINDS), readable - set(ACCOUNT_KINDS)
 
     def test_a_missing_snapshot_is_declared_not_defaulted(self):
         """A default filled in at read time describes the current setup rather

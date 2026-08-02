@@ -523,3 +523,41 @@ to identity, comparison and replay whatever the object holds.
 This is the compiler's version of the invariant the rest of the system already
 has: *every declaration names the mechanism that realizes it.* Recognition
 without representation is declaration without behaviour.
+
+---
+
+## Mechanically falsifiable claims
+
+> Every material claim made by a runtime, benchmark, test, worksheet or
+> publication must have a mechanical check capable of disproving **that exact
+> claim**.
+
+This is stronger than coverage, and it is not the same as having a test. A test
+asserting a claim is itself a claim, and it earns nothing by passing — it earns
+credibility only when it can fail for the specific defect it says it detects.
+
+Most of the defects found in this system were being asserted *correct* by a
+passing test at the time. A comparison that isolated nothing passed a test named
+for isolation. A fixture called "a full comparison reports nothing unchecked"
+pinned neither account, calendar nor market data. The tests were not weak; they
+were unfalsifiable.
+
+So each claim below names the mutation that must break it:
+
+| Claim | The check that can disprove it |
+|---|---|
+| This comparison isolates one dimension | Leave a required runtime unpinned; isolation must be refused |
+| This plan replays unchanged | Edit the persisted body; replay must fail |
+| Every recognised field affects canonical meaning | Add a recogniser with no destination; the test must fail |
+| Opening a worksheet does not reinterpret it | Inject compilation into the read path; the suite must go red |
+| Polars and canonical execution are equivalent | Seed a divergent implementation; the equivalence check must catch it |
+| The evidence record is intact | Edit a stored field and leave its hash; replay must report `HASH_MISMATCH` |
+| The corpus measures the compiler | Remove an import; the coverage test must fail |
+
+Each of those mutations was performed, and each produced the failure it was
+supposed to. A check that has never been seen to fail is a check nobody has
+tested.
+
+The corollary shapes how new work is judged: it should either create a visible
+user capability, or turn an existing claim into something mechanically
+falsifiable. Adding an assertion that cannot fail adds nothing but confidence.

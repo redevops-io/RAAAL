@@ -18,11 +18,37 @@ from .base import RuntimeArtifact, RuntimeAssumption, RuntimeLimitation
 class AccountKind(str, Enum):
     TAXABLE = "TAXABLE"
     TRADITIONAL_401K = "TRADITIONAL_401K"
+    ROTH_401K = "ROTH_401K"
+    """First-class, and deliberately not an alias.
+
+    Aliased to `TRADITIONAL_401K` it would report tax-deferred contributions and
+    taxable withdrawals, which is the opposite of what it does. Aliased to
+    `ROTH_IRA` it would report an IRA's contribution limit, no employer match,
+    and IRA withdrawal mechanics — none of which apply to an employer plan.
+
+    Either substitution records a tax treatment the user did not describe, which
+    is this project's founding defect. Until this existed, a Roth 401(k) plan
+    was left unpinned and could not claim isolated attribution — correct, and
+    now unnecessary."""
+
     ROTH_IRA = "ROTH_IRA"
     TRADITIONAL_IRA = "TRADITIONAL_IRA"
     HSA = "HSA"
     PLAN_529 = "PLAN_529"
     TRUST = "TRUST"
+
+
+#: Employer plans share one employee elective-deferral limit across their
+#: traditional and Roth halves. Declared here because the constraint belongs to
+#: the pair, not to either account alone — a limit stated twice is a limit that
+#: gets applied twice.
+SHARES_DEFERRAL_LIMIT = frozenset(
+    {AccountKind.TRADITIONAL_401K, AccountKind.ROTH_401K})
+
+#: Contributions made after tax, so qualified growth and withdrawals are not
+#: taxed again.
+AFTER_TAX_CONTRIBUTIONS = frozenset(
+    {AccountKind.ROTH_IRA, AccountKind.ROTH_401K, AccountKind.TAXABLE})
 
 
 @dataclass(frozen=True)
@@ -57,9 +83,41 @@ class AccountRuntime(RuntimeArtifact):
         Asked of the account rather than inferred by the environment, because the
         account is the thing that knows."""
         return self.account_kind in {
-            AccountKind.TRADITIONAL_401K, AccountKind.ROTH_IRA,
-            AccountKind.TRADITIONAL_IRA, AccountKind.HSA, AccountKind.PLAN_529,
+            AccountKind.TRADITIONAL_401K, AccountKind.ROTH_401K,
+            AccountKind.ROTH_IRA, AccountKind.TRADITIONAL_IRA, AccountKind.HSA,
+            AccountKind.PLAN_529,
         }
+
+    @property
+    def after_tax_contributions(self) -> bool:
+        """Whether money enters having already been taxed.
+
+        The difference between a Roth 401(k) and a traditional one, and the
+        reason they cannot share an identity: the same contribution produces a
+        different balance and a different withdrawal.
+        """
+        return self.account_kind in AFTER_TAX_CONTRIBUTIONS
+
+    @property
+    def shares_employee_deferral_limit(self) -> bool:
+        """Whether the employee limit is shared with the plan's other half.
+
+        A Roth 401(k) and a traditional 401(k) do not each get the annual
+        limit; they share one. Modelling them as independent would let a
+        scenario contribute twice what the law permits.
+        """
+        return self.account_kind in SHARES_DEFERRAL_LIMIT
+
+    @property
+    def employer_contributions_are_pre_tax(self) -> bool:
+        """Employer money into a Roth 401(k) is still pre-tax.
+
+        It lands in a traditional sub-account and is taxed on withdrawal, so a
+        Roth 401(k) with a match holds two differently-taxed balances. Declared
+        because a plan that reports one balance has already lost the
+        distinction.
+        """
+        return self.account_kind in SHARES_DEFERRAL_LIMIT
 
     def declared_form(self) -> Dict[str, Any]:
         return {
@@ -83,6 +141,22 @@ class AccountRuntime(RuntimeArtifact):
     @property
     def assumptions(self) -> Sequence[RuntimeAssumption]:
         out = []
+        if self.shares_employee_deferral_limit:
+            out.append(RuntimeAssumption(
+                name="shared-deferral-limit",
+                statement=("The employee deferral limit is shared with the "
+                           "plan's other half; contributions to both together "
+                           "are capped once, not twice."),
+                realized_by="cap_contribution",
+            ))
+        if self.employer_contributions_are_pre_tax and self.employer_match_rate:
+            out.append(RuntimeAssumption(
+                name="employer-match-tax-treatment",
+                statement=("Employer contributions are pre-tax and are taxed on "
+                           "withdrawal even in a Roth plan, so the account holds "
+                           "two differently-taxed balances."),
+                realized_by="apply_match",
+            ))
         if self.annual_contribution_limit is not None:
             out.append(RuntimeAssumption(
                 name="contribution-limit",

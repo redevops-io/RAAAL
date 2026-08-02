@@ -764,3 +764,87 @@ class TestTheCalendarSharesTheLifecycle:
         from src.runtime import RUNTIME_TYPES
 
         assert "calendar" in RUNTIME_TYPES
+
+
+class TestRothFourOhOneKIsFirstClass:
+    """Deliberately not an alias.
+
+    Aliased to `TRADITIONAL_401K` it would report tax-deferred contributions and
+    taxable withdrawals, which is the opposite of what it does. Aliased to
+    `ROTH_IRA` it would report an IRA's limit, no employer match, and IRA
+    withdrawal mechanics — none of which apply to an employer plan. Either
+    substitution records a tax treatment the user did not describe.
+    """
+
+    def kind(self, name):
+        from src.runtime import AccountKind, AccountRuntime
+
+        return AccountRuntime(name=f"account/{name}", version=1,
+                              account_kind=AccountKind[name.upper()])
+
+    def test_it_exists(self):
+        from src.runtime import AccountKind
+
+        assert AccountKind.ROTH_401K.value == "ROTH_401K"
+
+    def test_it_does_not_share_an_identity_with_either_neighbour(self):
+        roth_plan = self.kind("roth_401k")
+        assert roth_plan.compatibility_hash != self.kind("traditional_401k").compatibility_hash
+        assert roth_plan.compatibility_hash != self.kind("roth_ira").compatibility_hash
+
+    def test_contributions_are_after_tax(self):
+        """The difference from a traditional 401(k): the same contribution
+        produces a different balance and a different withdrawal."""
+        assert self.kind("roth_401k").after_tax_contributions
+        assert not self.kind("traditional_401k").after_tax_contributions
+
+    def test_the_employee_deferral_limit_is_shared_with_the_plan(self):
+        """Modelling them as independent would let a scenario contribute twice
+        what the law permits."""
+        assert self.kind("roth_401k").shares_employee_deferral_limit
+        assert self.kind("traditional_401k").shares_employee_deferral_limit
+        assert not self.kind("roth_ira").shares_employee_deferral_limit
+
+    def test_employer_money_is_pre_tax_even_in_a_roth_plan(self):
+        """It lands in a traditional sub-account and is taxed on withdrawal, so
+        the account holds two differently-taxed balances."""
+        assert self.kind("roth_401k").employer_contributions_are_pre_tax
+        assert not self.kind("roth_ira").employer_contributions_are_pre_tax
+
+    def test_growth_is_untaxed_inside_the_account(self):
+        assert self.kind("roth_401k").tax_deferred
+
+    def test_it_declares_what_it_does_not_yet_enforce(self):
+        """Pinning an account is not simulating one. `ACCOUNT_IMPLEMENTED` is
+        empty, so every declared behaviour is recorded and unenforced — and the
+        runtime says so rather than looking enforced."""
+        from src.runtime import ACCOUNT_IMPLEMENTED
+
+        unrealized = self.kind("roth_401k").unrealized(ACCOUNT_IMPLEMENTED)
+        assert "shared-deferral-limit" in unrealized
+
+    def test_a_plan_in_one_can_now_be_pinned(self):
+        """Before this kind existed the account was left unpinned, and the
+        comparison could not claim isolated attribution. That was correct, and
+        is now unnecessary."""
+        from src.mission.compiler import compile_scenario
+        from src.workspace.environment import pins_for
+
+        compiled = compile_scenario(
+            "I put $500 into SPY monthly in my Roth 401(k) and never sell.",
+            name="p", version=1, benchmark_rule="benchmark-policy/public-default@1")
+        pins = pins_for(compiled.scenario, snapshot="prices@x")
+        assert pins.account_hash
+        assert pins.unpinned == ()
+        assert pins.unrealized, (
+            "pinned is not enforced, and the run must say which is which")
+
+    def test_the_unenforced_rules_reach_the_run_limitations(self):
+        from src.mission.compiler import compile_scenario
+        from src.workspace.environment import pins_for
+
+        compiled = compile_scenario(
+            "I put $500 into SPY monthly in my Roth 401(k) and never sell.",
+            name="p", version=1, benchmark_rule="benchmark-policy/public-default@1")
+        limitations = pins_for(compiled.scenario, snapshot="prices@x").limitations()
+        assert any(entry["dimension"].startswith("account:") for entry in limitations)

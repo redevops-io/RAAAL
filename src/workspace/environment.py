@@ -37,6 +37,7 @@ ACCOUNT_KINDS: Mapping[str, AccountKind] = {
     "ROTH": AccountKind.ROTH_IRA,
     "TRADITIONAL_IRA": AccountKind.TRADITIONAL_IRA,
     "TRADITIONAL_401K": AccountKind.TRADITIONAL_401K,
+    "ROTH_401K": AccountKind.ROTH_401K,
 }
 
 
@@ -56,29 +57,53 @@ class EnvironmentPins:
                 "calendar_hash": self.calendar_hash,
                 "market_data_hash": self.market_data_hash}
 
+    unrealized: tuple = ()
+    """Behaviours the pinned runtimes declare and nothing enforces.
+
+    A pinned account makes the dimension comparable. It does not make the
+    contribution limit apply. Keeping the two apart is the difference between
+    "we compared the account" and "we enforced its rules", and only the first
+    is currently true.
+    """
+
     def limitations(self) -> List[Dict[str, str]]:
-        return [{"dimension": name,
-                 "why": ("no runtime was pinned for this run, so comparisons "
-                         "cannot establish whether it matched")}
-                for name in self.unpinned]
+        out = [{"dimension": name,
+                "why": ("no runtime was pinned for this run, so comparisons "
+                        "cannot establish whether it matched")}
+               for name in self.unpinned]
+        out += [{"dimension": f"account:{name}",
+                 "why": ("the account runtime declares this and nothing "
+                         "enforces it yet, so it is recorded and not applied")}
+                for name in self.unrealized]
+        return out
 
 
 def pins_for(scenario, *, calendar_ref: str = "nyse@1",
              snapshot: str = "") -> EnvironmentPins:
     """Pin the runtimes this run used.
 
-    `ROTH_401K` and anything else outside the account runtime's vocabulary is
-    deliberately left unpinned: pinning the nearest available kind would record
-    a tax treatment the user did not describe.
+    An account kind outside the runtime's vocabulary is deliberately left
+    unpinned: pinning the nearest available kind would record a tax treatment
+    the user did not describe.
+
+    Pinning an account is not the same as simulating one. The account runtime
+    declares contribution limits, employer matching, the shared employee
+    deferral limit and the tax treatment of employer money — and
+    `ACCOUNT_IMPLEMENTED` is empty, so none of it is enforced yet. The pin makes
+    comparisons able to *evaluate* the dimension; `unrealized_declarations()`
+    below is what stops that being mistaken for enforcement.
     """
     unpinned: List[str] = []
 
-    account_hash = ""
+    account_hash, unrealized = "", ()
     kind = ACCOUNT_KINDS.get(getattr(scenario, "tax_treatment", ""))
     if kind is not None:
-        account_hash = AccountRuntime(
-            name=f"account/{kind.value.lower()}", version=1,
-            account_kind=kind).compatibility_hash
+        from ..runtime import ACCOUNT_IMPLEMENTED
+
+        runtime = AccountRuntime(name=f"account/{kind.value.lower()}", version=1,
+                                 account_kind=kind)
+        account_hash = runtime.compatibility_hash
+        unrealized = tuple(runtime.unrealized(ACCOUNT_IMPLEMENTED))
     else:
         unpinned.append("account")
 
@@ -101,4 +126,4 @@ def pins_for(scenario, *, calendar_ref: str = "nyse@1",
 
     return EnvironmentPins(account_hash=account_hash, calendar_hash=calendar_hash,
                            market_data_hash=market_data_hash,
-                           unpinned=tuple(unpinned))
+                           unpinned=tuple(unpinned), unrealized=unrealized)
