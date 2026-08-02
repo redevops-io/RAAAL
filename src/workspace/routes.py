@@ -399,6 +399,58 @@ def index(request: Request):
     )
 
 
+#: Runtime references a template declaration needs and the text cannot supply.
+#: Read from configuration rather than inferred, and absent ones stay absent so
+#: the card asks rather than defaulting.
+def _template_runtime_refs() -> Dict[str, str]:
+    return {"tax_runtime_ref": "tax/us-federal@1",
+            "account_runtime_ref": "account/taxable@1",
+            "market_data_ref": f"prices@{_now()[:10]}"}
+
+
+def _declaration_versions():
+    from ..mission.rsu_declaration import DeclarationVersions
+    from ..runtime.rsu import US_SHARE_WITHHOLDING
+
+    return DeclarationVersions(
+        template_version="template/rsu-vesting@1",
+        rsu_runtime_version=US_SHARE_WITHHOLDING.name + "@1",
+        account_runtime_version="account/taxable@1",
+        tax_runtime_version="tax/us-federal@1",
+        corporate_action_runtime_version="",
+        scope_schema_version="rsu-result-context@1")
+
+
+def _template_confirmation(request: Request, describe: str, stage1):
+    """Render the confirmation surface a template hint dispatches to.
+
+    The route dispatches; it does not build. Duplicating the builder here would
+    create a second reading of the same words, and the two would diverge on
+    exactly the descriptions that are hard to read.
+    """
+    from ..mission.rsu_declaration import TemplateHandlerMissing, handler_for
+    from ..runtime.rsu import US_SHARE_WITHHOLDING
+    from .rsu_confirmation import build as build_rsu_card
+
+    try:
+        handler = handler_for(stage1.parsed.template_hint)
+    except TemplateHandlerMissing as missing:
+        # 501, never a fallback. Falling back to generic compilation would read
+        # a vest as cash arriving and then a purchase, silently.
+        raise HTTPException(status_code=501, detail=str(missing)) from missing
+
+    declaration = handler(stage1.parsed, versions=_declaration_versions(),
+                          runtime_refs=_template_runtime_refs())
+    card = build_rsu_card(declaration, runtime=US_SHARE_WITHHOLDING)
+
+    return TEMPLATES.TemplateResponse(
+        request, "rsu_confirm.html",
+        {"describe": describe, "declaration": declaration.to_json(),
+         "card": card.to_json(), "template_hint": stage1.parsed.template_hint,
+         "parse": json.dumps(stage1.parsed.to_json())},
+    )
+
+
 @router.get("/new", response_class=HTMLResponse)
 def new_plan(request: Request, describe: str = ""):
     """The confirmation screen. Nothing is saved and nothing is committed."""
@@ -406,6 +458,14 @@ def new_plan(request: Request, describe: str = ""):
         return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
 
     stage1 = parse_with_model(describe, client=_parser_client())
+
+    # Dispatch *before* generic compilation, not after. Compiled first and
+    # branched afterwards, a vest would already have been read as cash arriving
+    # and then a purchase, and the RSU surface would be describing a scenario
+    # built by the wrong semantics.
+    if stage1.parsed.template_hint:
+        return _template_confirmation(request, describe, stage1)
+
     compiled = compile_scenario(describe, name="draft", version=1,
                                 benchmark_rule=BENCHMARK_RULE,
                                 parsed=stage1.parsed)

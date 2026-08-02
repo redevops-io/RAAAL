@@ -1,0 +1,102 @@
+{# The RSU confirmation surface. Every decision on this page was made in
+   rsu_confirmation.py; this file arranges and calculates nothing.
+
+   Deliberately a separate template from the generic card. Folding RSU into it
+   with conditional fields would put two sets of semantics in one screen, and
+   the template exists precisely because they differ. #}
+
+<div class="confirm confirm-{{ 'fast' if card.can_run else 'blocked' }}">
+
+  <h2>{{ "Here is what we understood" if card.can_run
+        else "We need a little more before this can run" }}</h2>
+
+  {# 1. What you described. Read straight from the words. #}
+  {% if card.described %}
+  <div class="panel summary">
+    <table class="plan">
+      {% for row in card.described %}
+      <tr><th>{{ row.label }}</th><td>{{ row.value }}</td>
+          <td class="controls">{{ row.destination|lower|replace('_',' ') }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  {# 2. Blocking questions first. A card that showed the plan as ready above an
+     unanswered question would read as though the question were optional. #}
+  {% if card.blocking %}
+  <div class="group conflict">
+    <h3>These decide what the numbers mean</h3>
+    {% for row in card.unresolved if row.field in card.blocking %}
+    <div class="question">
+      <div><strong>{{ row.label }}</strong></div>
+      <div class="small muted">{{ row.why }}</div>
+      <div class="controls">controls {{ row.field }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# 3. What we inferred. The only category where something was decided for
+     the user, so it is a confirmation target rather than a note. #}
+  {% if card.inferred %}
+  <div class="group inferred">
+    <h3>Please confirm</h3>
+    {% for row in card.inferred %}
+    <div class="inference">
+      <div><strong>{{ row.label }}</strong> — {{ row.value }}</div>
+      <div class="small muted">{{ row.why }}</div>
+      <div class="controls">controls {{ row.field }}</div>
+    </div>
+    {% endfor %}
+    <p class="small muted" style="margin:10px 0 0">
+      Supplied by <span class="mono">{{ card.inferred[0].defaults_ref }}</span>.
+      None is saved until you confirm it.
+    </p>
+  </div>
+  {% endif %}
+
+  {# 4. Everything still open, blocking or not. #}
+  {% set optional = card.unresolved | rejectattr('field', 'in', card.blocking) | list %}
+  {% if optional %}
+  <div class="group ask">
+    <h3>Still open</h3>
+    {% for row in optional %}
+    <div class="question">
+      <div><strong>{{ row.label }}</strong></div>
+      <div class="small muted">{{ row.why }}</div>
+      <div class="controls">controls {{ row.field }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# 5. What will and will not be modelled, before any figure exists. Read from
+     the runtime's own declarations — the same source the result's modelling
+     scope comes from — so the page cannot promise something the result then
+     does not carry. #}
+  <div class="group scope two-column">
+    <div>
+      <div class="small muted">This run will model</div>
+      <ul>{% for line in card.will_model %}<li class="small">{{ line }}</li>{% endfor %}</ul>
+    </div>
+    <div>
+      <div class="small muted">This run will not model</div>
+      <ul>{% for line in card.will_not_model %}<li class="small">{{ line }}</li>{% endfor %}</ul>
+    </div>
+  </div>
+
+  {# 6. The rules this was confirmed under. If they move before it runs, the
+     run is refused and reconfirmation is required rather than the plan being
+     quietly re-read. #}
+  <details class="group stated">
+    <summary class="small">Confirmed under
+      <span class="mono">{{ card.version_pin[:12] }}</span></summary>
+    <table class="plan">
+      {% for name, value in card.versions.items() %}
+      <tr><th>{{ name.replace('_',' ') }}</th><td class="mono">{{ value or '—' }}</td></tr>
+      {% endfor %}
+    </table>
+  </details>
+
+</div>
