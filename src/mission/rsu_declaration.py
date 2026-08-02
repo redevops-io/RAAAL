@@ -125,3 +125,100 @@ def check_versions(confirmed: DeclarationVersions,
             "DECLARATION_VERSION_MISMATCH: this plan was confirmed under a "
             f"different rule set ({', '.join(moved)} changed). Re-confirm it "
             "rather than running an interpretation nobody agreed to")
+
+
+class TemplateHandlerMissing(RuntimeError):
+    """A template hint with no builder.
+
+    Never falls back to generic scenario compilation. That fallback would read
+    a vest as cash arriving and then a purchase — the exact reinterpretation the
+    template exists to prevent, and it would happen silently.
+    """
+
+
+class UnrepresentedRecognition(ValueError):
+    """The parse recognised something the declaration cannot hold.
+
+    The live form of recognition without representation: a field read from the
+    user's words, shown back to them, and reaching nothing. Raised rather than
+    dropped.
+    """
+
+
+#: Recognitions that inform the declaration without being fields on it. Named
+#: so an unrepresented recognition is a failure rather than a silent omission.
+INFORMS_WITHOUT_FIELD = {
+    "cadence": "vest_schedule",
+    "blackout_declared": "blackout_schedule",
+}
+
+
+def build_rsu_declaration(parsed, *, recognitions=None,
+                          versions: Optional[DeclarationVersions] = None,
+                          runtime_refs: Optional[Mapping[str, str]] = None
+                          ) -> RSUDeclaration:
+    """Turn a parse into a declaration. Reads; computes nothing.
+
+    Consumes parser output and versioned references only. Nothing here
+    simulates, prices, withholds, sizes a disposition or measures
+    concentration — those are execution, and a declaration that carried their
+    results would be showing answers before the questions were agreed.
+    """
+    from .rsu_recognize import recognize
+
+    if parsed.template_hint != TEMPLATE_HINT:
+        raise TemplateHandlerMissing(
+            f"TEMPLATE_HANDLER_MISSING: no builder for template hint "
+            f"{parsed.template_hint!r}. Compiling it as a generic scenario "
+            "would read a vest as cash arriving and then a purchase")
+
+    read = list(recognitions if recognitions is not None
+                else recognize(parsed.text, assets=parsed.assets))
+    values = {one.field: one.value for one in read}
+
+    refs = dict(runtime_refs or {})
+    declaration = RSUDeclaration(
+        grant_identity=refs.get("grant_identity"),
+        employer_ticker=values.get("employer_ticker"),
+        vest_schedule=((values["cadence"],) if "cadence" in values else None),
+        gross_shares=values.get("gross_shares"),
+        gross_value=values.get("gross_value"),
+        withholding_method=values.get("withholding_method"),
+        withholding_rate=values.get("withholding_rate"),
+        corporate_action_ref=refs.get("corporate_action_ref"),
+        disposition_policy=values.get("disposition_policy"),
+        # Recognised as "there is one" and deliberately not resolved to dates:
+        # "after earnings" names a window whose dates the text does not give.
+        blackout_schedule=(() if values.get("blackout_declared") else None),
+        allocation_policy=values.get("allocation_policy"),
+        concentration_cap=values.get("concentration_cap"),
+        account_destination=refs.get("account_destination"),
+        tax_runtime_ref=refs.get("tax_runtime_ref"),
+        account_runtime_ref=refs.get("account_runtime_ref"),
+        market_data_ref=refs.get("market_data_ref"),
+        versions=versions or DeclarationVersions())
+
+    # Every recognition must land somewhere. One that does not is a field the
+    # user was shown and which reaches nothing.
+    holds = {f.name for f in fields(RSUDeclaration)}
+    for one in read:
+        if one.field in holds or one.field in INFORMS_WITHOUT_FIELD:
+            continue
+        raise UnrepresentedRecognition(
+            f"the parse recognised {one.field!r} from {one.span!r} and the "
+            "declaration has nowhere to put it, so it would be read from the "
+            "user's words and reach nothing")
+    return declaration
+
+
+#: Template hint -> builder. A hint absent here fails closed.
+TEMPLATE_HANDLERS = {TEMPLATE_HINT: build_rsu_declaration}
+
+
+def handler_for(template_hint: Optional[str]):
+    handler = TEMPLATE_HANDLERS.get(template_hint or "")
+    if handler is None:
+        raise TemplateHandlerMissing(
+            f"TEMPLATE_HANDLER_MISSING: {template_hint!r} has no registered "
+            "builder, and generic compilation is not a fallback")
+    return handler
