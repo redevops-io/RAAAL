@@ -119,6 +119,78 @@ class AccountRuntime(RuntimeArtifact):
         """
         return self.account_kind in SHARES_DEFERRAL_LIMIT
 
+    # ---- mechanisms -------------------------------------------------------
+    #
+    # These are what `realized_by` names. Until they existed, every account
+    # assumption pointed at a mechanism that did not, and `IMPLEMENTED` was
+    # empty because that was the only honest thing it could be.
+
+    def cap_contribution(self, annual_amount: float, *, year: int,
+                         table=None, age: Optional[int] = None):
+        """What this account permits of a stated annual contribution.
+
+        Refuses rather than silently capping. The assumption text promises
+        contributions above the limit are "refused rather than silently
+        accepted", and quietly reducing $24,000 to $7,500 would produce a
+        balance the user never described while every displayed figure looked
+        deliberate.
+
+        A limit this table does not carry permits the full amount and says so.
+        Refusing on an absent figure would invent a restriction, which is the
+        same defect pointed the other way.
+        """
+        from .account_limits import ContributionDecision, load
+
+        table = load() if table is None else table
+        limit = table.limit_for(self.account_kind.value, year)
+
+        allowance = limit.amount
+        if allowance is not None and age is not None and age >= 50 \
+                and limit.catch_up_50:
+            allowance += limit.catch_up_50
+
+        if allowance is None:
+            permitted, refused = annual_amount, 0.0
+        else:
+            permitted = min(annual_amount, allowance)
+            refused = max(0.0, annual_amount - allowance)
+
+        return ContributionDecision(
+            requested=annual_amount, permitted=permitted, refused=refused,
+            limit=limit, year=year)
+
+    def apply_match(self, employee_contribution: float):
+        """Employer money on top of an employee contribution.
+
+        Returns the match and where it lands. In a Roth 401(k) the match is
+        pre-tax and sits in a traditional sub-account, so this returns two
+        balances rather than one total — a plan reporting a single Roth balance
+        has already lost the distinction that makes the withdrawal different.
+        """
+        if not self.employer_match_rate:
+            return {"match": 0.0, "after_tax_balance": employee_contribution,
+                    "pre_tax_balance": 0.0, "matched": False}
+
+        match = employee_contribution * self.employer_match_rate
+        if self.employer_match_cap is not None:
+            match = min(match, self.employer_match_cap)
+
+        employee_after_tax = (employee_contribution
+                              if self.after_tax_contributions else 0.0)
+        employee_pre_tax = (0.0 if self.after_tax_contributions
+                            else employee_contribution)
+        # The match itself is pre-tax whenever the plan is an employer plan,
+        # including the Roth half.
+        match_pre_tax = match if self.employer_contributions_are_pre_tax else 0.0
+        match_after_tax = match - match_pre_tax
+
+        return {
+            "match": match,
+            "after_tax_balance": employee_after_tax + match_after_tax,
+            "pre_tax_balance": employee_pre_tax + match_pre_tax,
+            "matched": True,
+        }
+
     def declared_form(self) -> Dict[str, Any]:
         return {
             "kind": self.kind, "name": self.name, "version": self.version,
@@ -147,7 +219,13 @@ class AccountRuntime(RuntimeArtifact):
                 statement=("The employee deferral limit is shared with the "
                            "plan's other half; contributions to both together "
                            "are capped once, not twice."),
-                realized_by="cap_contribution",
+                # Deliberately NOT `cap_contribution`. That method caps one
+                # account against the limit; it never sees the plan's other
+                # half, so it cannot enforce a limit shared between them.
+                # Naming it here would report a rule as enforced on the strength
+                # of a mechanism that cannot perform it — a scenario splitting
+                # $24,500 across both halves would pass twice.
+                realized_by="cap_shared_deferral",
             ))
         if self.employer_contributions_are_pre_tax and self.employer_match_rate:
             out.append(RuntimeAssumption(
@@ -198,4 +276,8 @@ TAXABLE_BROKERAGE = AccountRuntime(
     title="Ordinary taxable brokerage account",
 )
 
-IMPLEMENTED = ()
+#: Both name methods on `AccountRuntime` above. `tests/test_account_limits.py`
+#: resolves every entry to a real callable, so this tuple cannot claim a
+#: mechanism into existence — the failure it would otherwise invite is a display
+#: that reads ENFORCED because someone added a string.
+IMPLEMENTED = ("cap_contribution", "apply_match")

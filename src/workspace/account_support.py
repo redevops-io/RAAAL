@@ -86,14 +86,20 @@ LABELS: Mapping[str, str] = {
 
 
 def support_for(declared: str,
-                implemented: Sequence[str] = ACCOUNT_IMPLEMENTED
-                ) -> AccountSupport:
+                implemented: Sequence[str] = ACCOUNT_IMPLEMENTED,
+                *, year: Optional[int] = None) -> AccountSupport:
     """The three states for one declared account, all derived.
 
     `implemented` is injected so a test can assert the states move when
     realizations arrive — a derivation nobody has seen change is a derivation
     nobody has tested.
     """
+    import datetime as _dt
+
+    from ..runtime.account_limits import LimitState
+    from ..runtime.account_limits import load as load_limits
+
+    year = year or _dt.date.today().year
     if not declared or declared == "NONE_APPLIED":
         return AccountSupport(declared=declared or "", label="none stated",
                               recognized=Support.NO, comparable=Support.NO,
@@ -108,10 +114,27 @@ def support_for(declared: str,
                               recognized=Support.YES, comparable=Support.NO,
                               enforced=Support.NO)
 
+    # The governing limit comes from the versioned table, so an account whose
+    # limit this system actually applies declares it. Constructing the runtime
+    # without one made every account look as though it had no contribution rule
+    # to enforce, which is why nothing here ever moved off NO.
+    limit = load_limits().limit_for(kind.value, year)
     runtime = AccountRuntime(name=f"account/{kind.value.lower()}", version=1,
-                             account_kind=kind)
+                             account_kind=kind,
+                             annual_contribution_limit=limit.amount)
     declared_behaviours = tuple(a.name for a in runtime.assumptions)
-    unenforced = tuple(runtime.unrealized(implemented))
+    unenforced = list(runtime.unrealized(implemented))
+
+    # A mechanism that runs correctly against an unchecked number is not
+    # enforcement. It is enforcement-shaped, which is worse: the display says
+    # the limit is applied and nothing says the limit may be wrong.
+    unverified_figure = (limit.state is LimitState.UNVERIFIED
+                         and "contribution-limit" in declared_behaviours
+                         and "contribution-limit" not in unenforced)
+    missing_mechanisms = len(unenforced)
+    if unverified_figure:
+        unenforced.append(limit.why_not_enforced)
+    unenforced = tuple(unenforced)
 
     if not declared_behaviours:
         # Nothing declared is not the same as nothing to declare. A Roth IRA has
@@ -124,9 +147,13 @@ def support_for(declared: str,
             declared_behaviours=(),
             unenforced_behaviours=("no account rules are declared for this kind "
                                    "yet, so none can be enforced",))
-    if not unenforced:
-        enforced = Support.YES
-    elif len(unenforced) < len(declared_behaviours):
+    # Derived from missing *mechanisms* only. An unchecked figure is a separate
+    # objection: it cannot make a working mechanism absent, and it must not be
+    # counted as one, or an account with a single rule would report NO when that
+    # rule runs.
+    if missing_mechanisms == 0:
+        enforced = Support.PARTIAL if unverified_figure else Support.YES
+    elif missing_mechanisms < len(declared_behaviours):
         enforced = Support.PARTIAL
     else:
         enforced = Support.NO

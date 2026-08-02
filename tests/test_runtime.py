@@ -155,7 +155,11 @@ class TestAccountRulesAreNotTaxRules:
         [limit] = [a for a in roth.assumptions if a.name == "contribution-limit"]
 
         assert limit.realized_by == "cap_contribution"
-        assert roth.unrealized(ACCOUNT_IMPLEMENTED) == ["contribution-limit"]
+        # The mechanism now exists, so the assumption is realized. It says
+        # nothing about whether the *figure* is right — that is a separate
+        # claim, checked in tests/test_account_limits.py.
+        assert roth.unrealized(ACCOUNT_IMPLEMENTED) == []
+        assert callable(getattr(roth, "cap_contribution"))
 
     def test_two_accounts_differing_only_in_kind_are_incomparable(self):
         roth = AccountRuntime(name="a", version=1, account_kind=AccountKind.ROTH_IRA)

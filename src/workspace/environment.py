@@ -100,8 +100,18 @@ def pins_for(scenario, *, calendar_ref: str = "nyse@1",
     if kind is not None:
         from ..runtime import ACCOUNT_IMPLEMENTED
 
+        # Built with the governing limit, exactly as `account_support` builds
+        # it. Constructed without one, a run would report no account rules while
+        # the confirmation card for the same plan reported a contribution limit
+        # — two answers to one question, from two constructions of one runtime.
+        import datetime as _dt
+
+        from ..runtime.account_limits import load as _load_limits
+
+        _limit = _load_limits().limit_for(kind.value, _dt.date.today().year)
         runtime = AccountRuntime(name=f"account/{kind.value.lower()}", version=1,
-                                 account_kind=kind)
+                                 account_kind=kind,
+                                 annual_contribution_limit=_limit.amount)
         account_hash = runtime.compatibility_hash
         unrealized = tuple(runtime.unrealized(ACCOUNT_IMPLEMENTED))
     else:

@@ -17,11 +17,14 @@ from src.workspace.account_support import LABELS, Support, support_for
 
 class TestTheThreeStatesAreIndependent:
 
-    def test_roth_401k_is_recognised_comparable_and_unenforced(self):
+    def test_roth_401k_is_recognised_comparable_and_partly_enforced(self):
+        """Its contribution limit is applied; the limit it *shares* with the
+        plan's traditional half is not, because `cap_contribution` caps one
+        account and never sees the other."""
         support = support_for("ROTH_401K")
         assert support.recognized is Support.YES
         assert support.comparable is Support.YES
-        assert support.enforced is Support.NO
+        assert support.enforced is Support.PARTIAL
         assert "shared-deferral-limit" in support.unenforced_behaviours
 
     def test_an_unrepresentable_account_is_recognised_and_nothing_more(self):
@@ -40,7 +43,7 @@ class TestTheThreeStatesAreIndependent:
         summary = support_for("ROTH_401K").summary
         assert "identified as Roth 401(k)" in summary
         assert "pinned across comparisons" in summary
-        assert "not yet enforced" in summary
+        assert "some of its rules are enforced" in summary
 
 
 class TestEnforcementIsDerived:
@@ -50,9 +53,13 @@ class TestEnforcementIsDerived:
     def test_it_moves_when_a_realization_arrives(self):
         """A derivation nobody has seen change is a derivation nobody has
         tested."""
-        assert support_for("ROTH_401K").enforced is Support.NO
-        assert support_for("ROTH_401K",
-                           implemented=("cap_contribution",)).enforced is Support.YES
+        assert support_for("ROTH_401K", implemented=()).enforced is Support.NO
+        assert support_for(
+            "ROTH_401K", implemented=("cap_contribution",)
+        ).enforced is Support.PARTIAL
+        # YES additionally requires the limit figure to be verified against the
+        # published source, which the shipped table is not. See
+        # tests/test_account_limits.py::TestAnUncheckedFigureIsNotEnforcement.
 
     def test_partial_enforcement_is_distinguishable_from_none(self):
         """"Nothing works" and "half of it works" lead somewhere different."""
@@ -70,10 +77,10 @@ class TestEnforcementIsDerived:
         assert partial and len(partial) < len(declared)
 
     def test_no_declared_rules_is_not_full_enforcement(self):
-        """A Roth IRA has a contribution limit whether or not this runtime
-        instance names one. Reporting YES would derive certainty from an
-        absence."""
-        support = support_for("ROTH")
+        """A taxable brokerage account has no contribution rule to enforce.
+        Nothing declared is still not the same as everything enforced, so this
+        reports NO rather than deriving certainty from an absence."""
+        support = support_for("TAXABLE")
         assert support.declared_behaviours == ()
         assert support.enforced is Support.NO
         assert "none can be enforced" in support.unenforced_behaviours[0]
@@ -102,7 +109,7 @@ class TestItReachesTheScreens:
         card = build(compiled, text="").account
         assert card["support"]["recognized"] == "YES"
         assert card["support"]["comparable"] == "YES"
-        assert card["support"]["enforced"] == "NO"
+        assert card["support"]["enforced"] == "PARTIAL"
 
     def test_the_template_reads_three_fields_not_one(self):
         import re
