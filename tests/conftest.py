@@ -117,3 +117,15 @@ def requires_licensed_data(func):
 
 #: Set by the integration tier to make absence a failure rather than a skip.
 LICENSED_REQUIRED = os.environ.get("QUANTIFY_REQUIRE_MARKET_DATA") == "1"
+
+
+@pytest.fixture(autouse=True)
+def _pilot_data_policy(monkeypatch):
+    """Run the suite under the closed-pilot boundary, stated rather than
+    inherited.
+
+    `_prices()` fails closed without this, so a suite that did not declare a
+    policy would quietly stop exercising every run path — and the journey tests
+    would pass by producing nothing.
+    """
+    monkeypatch.setenv("PILOT_DATA_POLICY", "SYNTHETIC_ONLY")

@@ -143,10 +143,58 @@ def _store() -> WorkspaceStore:
 
 
 def _prices() -> Optional[pd.DataFrame]:
-    if not PRICES.exists():
+    """Prices for a pilot request, through the pilot data gate.
+
+    This used to read `data/history/prices.parquet` directly — an unmanifested
+    file with no snapshot identity, no licence class and no egress check. A
+    pilot user describing a scenario received figures from it by an ordinary
+    code path, which is precisely the route a licence breach takes.
+
+    Now the snapshot is resolved, authorised, and loaded by identity. There is
+    no fallback: a denied snapshot yields no prices rather than quietly becoming
+    the synthetic one, because a figure from data the plan did not name is worse
+    than no figure at all.
+    """
+    from ..market_data.loader import load_prices, synthetic_snapshot
+    from ..market_data.pilot_policy import (
+        PilotDataDenied,
+        PilotDataPolicy,
+        PilotPolicyMissing,
+        authorise,
+        configured_policy,
+    )
+
+    try:
+        policy = configured_policy()
+    except PilotPolicyMissing:
+        # Fails closed. Guidance in a runbook is not a gate.
         return None
-    frame = pd.read_parquet(PRICES)
-    return frame.sort_index()
+
+    snapshot = (synthetic_snapshot()
+                if policy is PilotDataPolicy.SYNTHETIC_ONLY
+                else _approved_snapshot())
+    if snapshot is None:
+        return None
+
+    try:
+        authorise(snapshot, context="pilot scenario run")
+    except PilotDataDenied:
+        return None
+
+    try:
+        return load_prices(snapshot).sort_index()
+    except Exception:                                          # noqa: BLE001
+        return None
+
+
+def _approved_snapshot():
+    """The snapshot an approved policy names. Absent until one is recorded."""
+    from ..market_data.loader import production_snapshot
+
+    try:
+        return production_snapshot()
+    except Exception:                                          # noqa: BLE001
+        return None
 
 
 def _flows_from(schedule, sessions: pd.DatetimeIndex) -> List[CashFlow]:
