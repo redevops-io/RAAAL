@@ -241,6 +241,134 @@ def apply_vest_delivery(vest: VestEvent, *, vest_price: float,
                          f"{split['withheld_shares']:.4f} shares withheld")), split
 
 
+#: Tolerance for the conservation identity, in currency units. Fractional share
+#: arithmetic is binary floating point; anything larger than this is a real
+#: discrepancy rather than representation error.
+CONSERVATION_TOLERANCE = 1e-6
+
+
+def vest_accounting(vest: VestEvent, *, vest_price: float,
+                    cumulative_supplemental: float = 0.0) -> Dict[str, Any]:
+    """The full accounting of one vest, with the three values kept apart.
+
+        gross vest value = withheld value + delivered value + rounding remainder
+
+    Gross, withheld and delivered are separate answers to separate questions and
+    collapsing them is how "78 shares arrived" becomes "your after-tax position
+    is X". `external_flow_value` is the *delivered* value, because withheld
+    shares never enter the account — crediting the gross would give the
+    portfolio money it does not hold.
+
+    The money-weighted return therefore describes the investment account after
+    share withholding. It is not total compensation economics and not final tax
+    liability, and the scope says so.
+    """
+    if not vest.modellable:
+        raise UnpinnedVest(
+            f"vest {vest.grant_id} is missing: {', '.join(vest.unresolved())}")
+    if vest.withholding_rate is None:
+        raise UnpinnedVest(
+            f"vest {vest.grant_id} states no withholding rate")
+
+    split = apply_share_withholding(
+        vest.gross_shares, vest_price, rate=vest.withholding_rate,
+        method=vest.withholding_method,
+        cumulative_supplemental=cumulative_supplemental)
+
+    delivered_value = split["delivered_shares"] * vest_price
+    # Exact fractional withholding leaves nothing over. A whole-share policy
+    # would, and the remainder is stated rather than folded into the delivered
+    # shares — rounding in the account's favour is still rounding nobody chose.
+    remainder = (split["vest_value"] - split["withheld_value"]
+                 - delivered_value)
+
+    return {
+        "grant_id": vest.grant_id,
+        "gross_shares": split["gross_shares"],
+        "shares_withheld": split["withheld_shares"],
+        "shares_delivered": split["delivered_shares"],
+        "vest_price": vest_price,
+        "gross_vest_value": split["vest_value"],
+        "withheld_value": split["withheld_value"],
+        "external_flow_value": delivered_value,
+        "cash_remainder": remainder,
+        "basis": ("account value after share withholding; not total "
+                  "compensation economics and not final tax liability"),
+    }
+
+
+def in_kind_flow_for(vest: VestEvent, *, vest_price: float,
+                     cumulative_supplemental: float = 0.0):
+    """The engine event a vest produces.
+
+    Carries the value it was computed at, so the external flow cannot disagree
+    with the withholding. A vest dated on a holiday lands on the next session,
+    and letting the engine re-price it there would break conservation by an
+    amount nobody could see.
+    """
+    import pandas as pd
+
+    from ..mission.accounting import InKindFlow
+
+    accounting = vest_accounting(
+        vest, vest_price=vest_price,
+        cumulative_supplemental=cumulative_supplemental)
+    return InKindFlow(
+        date=pd.Timestamp(vest.vest_date), asset=vest.employer_ticker,
+        quantity=accounting["shares_delivered"],
+        valuation_price=vest_price,
+        external_value=accounting["external_flow_value"],
+        source_ref=f"vest:{vest.grant_id}"), accounting
+
+
+class BenchmarkFlowMode(str, Enum):
+    """How a benchmark receives the same vest. Two different questions.
+
+    Naming them separately because they are not interchangeable and the wrong
+    one silently answers something nobody asked.
+    """
+
+    VALUE_MATCHED = "VALUE_MATCHED"
+    """The benchmark receives the same dollar value on the same date and
+    allocates it by its own methodology. Isolates what happened *after*
+    compensation entered the portfolio, so it compares allocation strategies."""
+
+    IN_KIND_HOLD = "IN_KIND_HOLD"
+    """The benchmark receives the same employer shares and holds them. Answers
+    the diversification counterfactual — what happened relative to keeping the
+    company stock — so it compares dispositions of one asset."""
+
+
+def benchmark_flows_for(arrivals, *, mode: BenchmarkFlowMode):
+    """The flows a benchmark must receive to be comparable with the strategy.
+
+    Every benchmark gets the same dated external economic value, or it is not
+    comparable and must say so rather than being quietly left out.
+    """
+    from ..mission.accounting import CashFlow
+
+    if mode is BenchmarkFlowMode.IN_KIND_HOLD:
+        # The same shares, at the same valuation. The benchmark holds what the
+        # strategy was given.
+        return list(arrivals)
+
+    # The same value, as an external contribution the benchmark allocates
+    # itself. Delivered value, not gross: the benchmark cannot receive shares
+    # the account never held.
+    return [CashFlow(date=one.date, amount=one.external_value,
+                     label=f"value-matched {one.source_ref}")
+            for one in arrivals]
+
+
+def conserved(accounting: Mapping[str, float],
+              tolerance: float = CONSERVATION_TOLERANCE) -> bool:
+    """Whether the three values still account for the gross."""
+    return abs(accounting["gross_vest_value"]
+               - accounting["withheld_value"]
+               - accounting["external_flow_value"]
+               - accounting["cash_remainder"]) <= tolerance
+
+
 def next_eligible_disposition_session(session, sessions, blackouts):
     """First tradeable session on or after `session`, outside any blackout.
 
@@ -288,6 +416,7 @@ def compute_employer_concentration(holdings: Mapping[str, float],
 #: Mechanisms that exist as callables in this module. The realization verifier
 #: resolves every name here, so the tuple cannot claim one into existence.
 IMPLEMENTED = ("apply_vest_delivery", "apply_share_withholding",
+               "vest_accounting", "in_kind_flow_for",
                "apply_supplemental_wage_threshold",
                "next_eligible_disposition_session",
                "allocate_disposition_proceeds",

@@ -26,6 +26,7 @@ import pandas as pd
 
 from .accounting import (
     CashFlow,
+    InKindFlow,
     CashPolicy,
     CashPolicyError,
     Fill,
@@ -115,6 +116,7 @@ def simulate(
     flows: Sequence[CashFlow],
     program: EventProgram,
     grants: Sequence[Grant] = (),
+    in_kind: Sequence[InKindFlow] = (),
     cash_policy: Optional[CashPolicy] = None,
     execution_lag: int = 1,
     cost_bps: float = 10.0,
@@ -142,17 +144,42 @@ def simulate(
     sessions = prices.index
     daily_cash_rate = cash_policy.daily_rate(periods_per_year)
 
+    # Two series, deliberately. `cash_series` is money that becomes spendable
+    # cash; `flow_series` is every dated external contribution, cash or in kind,
+    # and is what the money-weighted return sees.
+    #
+    # Held as one series this worked only because the in-kind addition happened
+    # to sit after the line that read cash for the same session. Reordering two
+    # steps in the loop would have turned every vest into cash and funded a
+    # purchase with it — the exact defect the in-kind model exists to prevent.
+    cash_series = pd.Series(0.0, index=sessions)
     flow_series = pd.Series(0.0, index=sessions)
     for flow in flows:
         session = _next_session(sessions, flow.date)
         if session is not None:
+            cash_series.loc[session] += flow.amount
             flow_series.loc[session] += flow.amount
 
-    grants_by_session: Dict[pd.Timestamp, List[Grant]] = {}
+    # A `Grant` is an in-kind flow whose value the engine still resolves at the
+    # landing session. Converted here so the engine has one primitive; callers
+    # that pin the valuation supply `InKindFlow` directly and keep their value.
+    arrivals: Dict[pd.Timestamp, List[InKindFlow]] = {}
+    deferred: List[InKindFlow] = list(in_kind)
     for grant in grants:
-        session = _next_session(sessions, grant.date)
-        if session is not None:
-            grants_by_session.setdefault(session, []).append(grant)
+        deferred.append(InKindFlow(
+            date=grant.date, asset=grant.ticker, quantity=grant.shares,
+            valuation_price=float("nan"), external_value=float("nan"),
+            source_ref=grant.reason))
+
+    unpriced: List[Dict[str, Any]] = []
+    for arriving in deferred:
+        session = _next_session(sessions, arriving.date)
+        if session is None:
+            unpriced.append({"asset": arriving.asset,
+                             "quantity": arriving.quantity,
+                             "why": "no trading session on or after this date"})
+            continue
+        arrivals.setdefault(session, []).append(arriving)
 
     holdings: Dict[str, float] = {}
     cash = 0.0
@@ -168,18 +195,33 @@ def simulate(
         # 1. Cash earns its declared rate on the balance carried in.
         cash *= 1.0 + daily_cash_rate
 
-        # 2. External money lands, uninvested for this session.
-        cash += float(flow_series.iloc[position])
+        # 2. External money lands, uninvested for this session. Only cash
+        #    flows — in-kind arrivals are not cash and never fund a purchase.
+        cash += float(cash_series.iloc[position])
 
-        # 3. Vested shares arrive in kind, valued at today's price. No order is
-        #    placed and no cash is spent — the delivery is not a trade.
-        for grant in grants_by_session.get(session, ()):
-            price = float(prices.at[session, grant.ticker]) \
-                if grant.ticker in prices.columns else float("nan")
-            if not np.isfinite(price) or price <= 0:
+        # 3. Assets arrive in kind. No order is placed and no cash is spent:
+        #    the delivery is not a trade, so it carries no fill, no cost and no
+        #    execution lag. The shares are owned on arrival.
+        for arriving in arrivals.get(session, ()):
+            value = arriving.external_value
+            if not np.isfinite(value):
+                # Unpinned: resolve at the landing session, as before.
+                price = float(prices.at[session, arriving.asset]) \
+                    if arriving.asset in prices.columns else float("nan")
+                value = arriving.quantity * price if np.isfinite(price) else \
+                    float("nan")
+            if not np.isfinite(value) or arriving.quantity == 0:
+                # A named gap, not a silent skip. An arrival that vanishes
+                # quietly leaves a portfolio missing shares the user believes
+                # it holds, and nothing on the result says why.
+                unpriced.append({"asset": arriving.asset,
+                                 "quantity": arriving.quantity,
+                                 "source_ref": arriving.source_ref,
+                                 "why": "no usable price at the arrival session"})
                 continue
-            holdings[grant.ticker] = holdings.get(grant.ticker, 0.0) + grant.shares
-            flow_series.iloc[position] += grant.shares * price
+            holdings[arriving.asset] = holdings.get(arriving.asset, 0.0) \
+                + arriving.quantity
+            flow_series.iloc[position] += value
 
         # 4. Orders submitted `execution_lag` sessions ago fill now, at today's
         #    price — the first price available after the decision was made.
@@ -224,6 +266,15 @@ def simulate(
         unfilled=tuple(unfilled),
         cash_policy=cash_policy,
     )
+    # An arrival that could not be priced is a data gap on the result, not a
+    # silent omission. Left unsaid, a portfolio is simply missing shares the
+    # user believes it holds and every figure below is quietly smaller.
+    if unpriced:
+        modelling_scope = {
+            **(modelling_scope or {}),
+            "unpriced_in_kind_arrivals": unpriced,
+        }
+
     return MissionResult(
         path=path,
         time_weighted=time_weighted_returns(path.value, path.flows),

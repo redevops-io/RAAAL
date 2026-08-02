@@ -78,6 +78,44 @@ class Grant:
 
 
 @dataclass(frozen=True)
+class InKindFlow:
+    """Assets arriving from outside the account, already owned on arrival.
+
+    The generic form of what a vest does. Deliberately not RSU-specific: an
+    inherited security, a stock gift, a transfer in kind and an employer stock
+    contribution are the same event to an account, and only their *semantics*
+    differ. RSU rules live in `RSUVestingRuntime`; the engine understands this.
+
+    Both the quantity and the value it entered at are carried, rather than the
+    engine recomputing value from whichever session the event lands on. A vest
+    whose date falls on a holiday lands on the next session, and valuing it at
+    that session's price would make the external flow disagree with the
+    withholding computed at the vest price — the conservation identity would
+    then fail by an amount nobody could see.
+    """
+
+    date: pd.Timestamp
+    asset: str
+    quantity: float
+    valuation_price: float
+    external_value: float
+    """What entered the account. Pinned, not derived.
+
+    For a vest this is the *delivered* value, not the gross: withheld shares
+    never arrive, so counting them would credit the account with something it
+    does not hold."""
+
+    source_ref: str = ""
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"date": str(pd.Timestamp(self.date).date()), "asset": self.asset,
+                "quantity": self.quantity,
+                "valuation_price": self.valuation_price,
+                "external_value": self.external_value,
+                "source_ref": self.source_ref}
+
+
+@dataclass(frozen=True)
 class Order:
     """An instruction to trade a notional amount, submitted on `date`.
 
