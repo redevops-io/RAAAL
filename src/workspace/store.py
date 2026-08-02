@@ -97,7 +97,11 @@ CREATE TABLE IF NOT EXISTS worksheet_intent (
     chain_hash           TEXT NOT NULL,
     created_at           TEXT NOT NULL,
     proposal_id          TEXT,
-    status               TEXT NOT NULL
+    status               TEXT NOT NULL,
+    -- A reference into operational telemetry, which expires on its own
+    -- schedule. Nullable, and nothing may require it to resolve: a trace that
+    -- has aged out must not make a stored intent unreadable.
+    trace_id             TEXT
 );
 -- Ordering within a worksheet must be unique and gapless. Two intents claiming
 -- one position make the chain ambiguous, and an ambiguous chain cannot support
@@ -124,7 +128,8 @@ CREATE TABLE IF NOT EXISTS worksheet_proposal (
     resolved_at     TEXT,
     actor           TEXT,
     result_revision INTEGER,
-    result_runs     TEXT
+    result_runs     TEXT,
+    trace_id        TEXT
 );
 CREATE TABLE IF NOT EXISTS worksheet (
     worksheet_id  TEXT NOT NULL,
@@ -173,6 +178,8 @@ CREATE TABLE IF NOT EXISTS plan_run (
 #: Columns added after the first release. Applied on open, in order.
 _ADDED_COLUMNS = (
     ("plan", "parse", "parse TEXT"),
+    ("worksheet_intent", "trace_id", "trace_id TEXT"),
+    ("worksheet_proposal", "trace_id", "trace_id TEXT"),
 )
 
 #: Constraints relaxed after the table shipped. SQLite cannot ALTER a NOT NULL
@@ -461,7 +468,8 @@ class WorkspaceStore:
                                 planner_version: str,
                                 instruction_hash: str,
                                 store_instruction: bool = False,
-                                proposal_id: Optional[str] = None) -> int:
+                                proposal_id: Optional[str] = None,
+                                trace_id: Optional[str] = None) -> int:
         """Add one intent to a worksheet's chain and return its position.
 
         The position is derived here, inside the write, rather than supplied by
@@ -490,8 +498,9 @@ class WorkspaceStore:
                     instruction, instruction_hash, structured_request,
                     edit_effect, selection_basis, repetition_signature,
                     related_prior, results_visible, alternatives, trial_effect,
-                    planner_version, chain_hash, created_at, proposal_id, status)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    planner_version, chain_hash, created_at, proposal_id,
+                    status, trace_id)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (intent.intent_id, worksheet_id, owner, intent.source_revision,
                  sequence,
                  intent.instruction if store_instruction else None,
@@ -502,7 +511,7 @@ class WorkspaceStore:
                  json.dumps(list(intent.related_prior_intents)),
                  int(intent.results_visible), intent.alternatives_generated,
                  intent.trial_effect, planner_version, chain_hash, created_at,
-                 proposal_id, "PLANNED"))
+                 proposal_id, "PLANNED", trace_id))
         return sequence
 
     def worksheet_intents(self, worksheet_id: str, owner: str, *,
@@ -537,16 +546,18 @@ class WorkspaceStore:
 
     def save_worksheet_proposal(self, *, proposal_id: str, owner: str,
                                 worksheet_id: str, proposal,
-                                created_at: str) -> str:
+                                created_at: str,
+                                trace_id: Optional[str] = None) -> str:
         """Record a worksheet proposal as PROPOSED. Immutable from here."""
         with self._conn() as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO worksheet_proposal
                    (proposal_id, owner, worksheet_id, source_revision, status,
-                    payload, created_at)
-                   VALUES (?,?,?,?,?,?,?)""",
+                    payload, created_at, trace_id)
+                   VALUES (?,?,?,?,?,?,?,?)""",
                 (proposal_id, owner, worksheet_id, proposal.source_revision,
-                 "PROPOSED", json.dumps(proposal.to_json()), created_at))
+                 "PROPOSED", json.dumps(proposal.to_json()), created_at,
+                 trace_id))
         return proposal_id
 
     def get_worksheet_proposal(self, proposal_id: str,
