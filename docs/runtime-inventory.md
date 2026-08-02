@@ -268,6 +268,26 @@ plane (`rag-saas-platform/backend`) or in Quantify, provided:
 Repository boundaries should follow deployment and ownership, not nouns from a
 whitepaper.
 
+### Known defect: generic forward reconciliation
+
+`src/mission/observation.py::reconcile` matches expected against observed on
+`(date, kind)` exactly and has no pending state. Two consequences, both of the
+"unknown silently becomes absent" kind:
+
+- An event whose date has not arrived reports `MISSING`. A plan examined before
+  its first milestone looks like a plan going wrong.
+- An event that happens a few days late reports `MISSING` *and* `UNEXPECTED` —
+  two deviations describing one event that happened once.
+
+`src/mission/rsu_reconcile.py` solves both for the RSU domain with nine typed
+states, a declared and versioned matching tolerance, and `effective_date` kept
+apart from `observed_date`. The generic tracker was deliberately left alone
+rather than widened during that work.
+
+It should eventually adopt the same temporal vocabulary or be deprecated in
+favour of a generic primitive extracted from the RSU one. Until then, any plan
+using generic forward tracking carries the defect above.
+
 ### Adoption status
 
 ```yaml

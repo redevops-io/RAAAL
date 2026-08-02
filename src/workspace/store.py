@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence
 
 from ..mission.boundary import scan_for_personal_data
+from ..runtime.base import canonical_hash
 from .intent_chain import chain_link
 
 DEFAULT_PATH = Path("data/workspace.db")
@@ -150,6 +151,70 @@ CREATE TABLE IF NOT EXISTS worksheet (
 -- Confirmation-screen telemetry. Structure now, conclusions later: intent
 -- cannot be inferred without users, but the first sessions are the ones worth
 -- measuring and they only happen once.
+-- Forward tracking, as three independent records. Inputs and conclusions are
+-- stored separately so the conclusion can be re-derived and compared, the same
+-- two-layer check the result context uses for presentability.
+--
+-- Owner is in every key from the start. These rows carry employer names, grant
+-- references and compensation quantities, so a cross-tenant existence leak here
+-- is more sensitive than the worksheet-id one that prompted the rule.
+CREATE TABLE IF NOT EXISTS planned_event (
+    owner            TEXT NOT NULL,
+    worksheet_id     TEXT NOT NULL,
+    planned_event_id TEXT NOT NULL,
+    plan_revision    INTEGER NOT NULL,
+    grant_ref        TEXT NOT NULL,
+    kind             TEXT NOT NULL,
+    expected_effective_date TEXT NOT NULL,
+    asset            TEXT,
+    expected_quantity REAL,
+    expected_value   REAL,
+    payload          TEXT NOT NULL,
+    matching_policy_version TEXT NOT NULL,
+    source_ref       TEXT,
+    content_hash     TEXT NOT NULL,
+    created_at       TEXT NOT NULL,
+    PRIMARY KEY (owner, worksheet_id, planned_event_id)
+);
+-- `effective_date` and `observed_at` stay apart all the way through storage. A
+-- vest reported in July may have settled in June, and collapsing them would
+-- make an on-time vest look late for as long as the record survives.
+CREATE TABLE IF NOT EXISTS observed_event (
+    owner             TEXT NOT NULL,
+    worksheet_id      TEXT NOT NULL,
+    observed_event_id TEXT NOT NULL,
+    kind              TEXT NOT NULL,
+    effective_date    TEXT NOT NULL,
+    observed_at       TEXT NOT NULL,
+    asset             TEXT,
+    quantity          REAL,
+    value             REAL,
+    payload           TEXT NOT NULL,
+    evidence_refs     TEXT NOT NULL DEFAULT '[]',
+    source            TEXT NOT NULL,
+    supersedes        TEXT,
+    content_hash      TEXT NOT NULL,
+    created_at        TEXT NOT NULL,
+    PRIMARY KEY (owner, worksheet_id, observed_event_id)
+);
+CREATE TABLE IF NOT EXISTS event_reconciliation (
+    owner             TEXT NOT NULL,
+    worksheet_id      TEXT NOT NULL,
+    reconciliation_id TEXT NOT NULL,
+    planned_event_id  TEXT,
+    -- Nullable: pending, overdue and confirmed-missing rows have no
+    -- observation, and a placeholder would read as one.
+    observed_event_id TEXT,
+    status            TEXT NOT NULL,
+    payload           TEXT NOT NULL,
+    matching_policy_version TEXT NOT NULL,
+    superseded_by     TEXT,
+    content_hash      TEXT NOT NULL,
+    derived_at        TEXT NOT NULL,
+    PRIMARY KEY (owner, worksheet_id, reconciliation_id)
+);
+CREATE INDEX IF NOT EXISTS reconciliation_worksheet
+    ON event_reconciliation (owner, worksheet_id, derived_at);
 CREATE TABLE IF NOT EXISTS confirmation_event (
     event_id   TEXT PRIMARY KEY,
     owner      TEXT NOT NULL,
@@ -557,6 +622,128 @@ class WorkspaceStore:
                 "UPDATE worksheet_intent SET proposal_id = ?, status = ? "
                 "WHERE intent_id = ? AND owner = ?",
                 (proposal_id, "PROPOSED", intent_id, owner))
+
+    # ---- forward tracking -------------------------------------------------
+
+    def record_planned_event(self, *, owner: str, worksheet_id: str,
+                             event, plan_revision: int, created_at: str,
+                             matching_policy_version: str) -> str:
+        """Store one expectation, tied to the plan revision that produced it.
+
+        Immutable. An identical write is redelivery; the same id with a
+        different body is a conflict, because a prediction that changed after
+        the fact is not a prediction.
+        """
+        payload = event.to_json()
+        digest = canonical_hash(payload)
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT content_hash FROM planned_event WHERE owner = ? "
+                "AND worksheet_id = ? AND planned_event_id = ?",
+                (owner, worksheet_id, event.event_id)).fetchone()
+            if existing is not None:
+                if existing["content_hash"] == digest:
+                    return event.event_id
+                raise NotSaveable(
+                    f"planned event {event.event_id} already exists with a "
+                    "different body. An expectation that changed after the "
+                    "fact is not an expectation; record a new plan revision")
+            conn.execute(
+                """INSERT INTO planned_event
+                   (owner, worksheet_id, planned_event_id, plan_revision,
+                    grant_ref, kind, expected_effective_date, asset,
+                    expected_quantity, expected_value, payload,
+                    matching_policy_version, source_ref, content_hash,
+                    created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (owner, worksheet_id, event.event_id, plan_revision,
+                 event.grant_ref, event.kind, event.expected_date,
+                 event.employer_asset, event.expected_gross_shares,
+                 event.expected_value, json.dumps(payload),
+                 matching_policy_version, event.source_declaration, digest,
+                 created_at))
+        return event.event_id
+
+    def record_observed_event(self, *, owner: str, worksheet_id: str,
+                              event, created_at: str,
+                              supersedes: Optional[str] = None) -> str:
+        """Store one report. A correction is a new row, never an overwrite.
+
+        Overwriting the first would erase the fact that a correction happened,
+        which is part of the audit trail rather than noise in it.
+        """
+        payload = event.to_json()
+        digest = canonical_hash(payload)
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT content_hash FROM observed_event WHERE owner = ? "
+                "AND worksheet_id = ? AND observed_event_id = ?",
+                (owner, worksheet_id, event.observation_id)).fetchone()
+            if existing is not None:
+                if existing["content_hash"] == digest:
+                    return event.observation_id
+                raise NotSaveable(
+                    f"observation {event.observation_id} already exists with a "
+                    "different body. Record a correcting observation that "
+                    "supersedes it rather than rewriting what was reported")
+            conn.execute(
+                """INSERT INTO observed_event
+                   (owner, worksheet_id, observed_event_id, kind,
+                    effective_date, observed_at, asset, quantity, value,
+                    payload, evidence_refs, source, supersedes, content_hash,
+                    created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (owner, worksheet_id, event.observation_id, event.kind,
+                 event.effective_date, event.observed_date,
+                 event.employer_asset, event.gross_shares, event.value,
+                 json.dumps(payload),
+                 json.dumps([event.evidence_ref] if event.evidence_ref else []),
+                 event.source, supersedes, digest, created_at))
+        return event.observation_id
+
+    def record_reconciliation(self, *, owner: str, worksheet_id: str,
+                              reconciliation) -> str:
+        payload = reconciliation.to_json()
+        digest = canonical_hash(payload)
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO event_reconciliation
+                   (owner, worksheet_id, reconciliation_id, planned_event_id,
+                    observed_event_id, status, payload,
+                    matching_policy_version, content_hash, derived_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (owner, worksheet_id, reconciliation.reconciliation_id,
+                 reconciliation.planned_ref, reconciliation.observed_ref,
+                 reconciliation.status.value, json.dumps(payload),
+                 reconciliation.matching_policy_version, digest,
+                 reconciliation.derived_at))
+        return reconciliation.reconciliation_id
+
+    def planned_events(self, worksheet_id: str, owner: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM planned_event WHERE owner = ? AND "
+                "worksheet_id = ? ORDER BY expected_effective_date",
+                (owner, worksheet_id)).fetchall()
+        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+
+    def observed_events(self, worksheet_id: str, owner: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM observed_event WHERE owner = ? AND "
+                "worksheet_id = ? ORDER BY effective_date, created_at",
+                (owner, worksheet_id)).fetchall()
+        return [{**dict(r), "payload": json.loads(r["payload"]),
+                 "evidence_refs": json.loads(r["evidence_refs"] or "[]")}
+                for r in rows]
+
+    def reconciliations(self, worksheet_id: str, owner: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM event_reconciliation WHERE owner = ? AND "
+                "worksheet_id = ? ORDER BY derived_at",
+                (owner, worksheet_id)).fetchall()
+        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
 
     def save_worksheet_proposal(self, *, proposal_id: str, owner: str,
                                 worksheet_id: str, proposal,
