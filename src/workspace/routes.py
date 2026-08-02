@@ -200,6 +200,62 @@ def _benchmark_specs(prices: pd.DataFrame, assets) -> List[Dict[str, Any]]:
     return specs
 
 
+def _now() -> str:
+    """One timestamp format for everything this module writes."""
+    import datetime as _dt
+
+    return _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
+
+
+def _candidate_runner(prices: pd.DataFrame, store, worksheet_id: str):
+    """Simulate one candidate from an accepted proposal.
+
+    Injected into `apply.accept` rather than imported by it, so the apply path
+    can be tested against a failing run without a price file and so a caller
+    cannot get a scenario change applied without supplying one.
+
+    Each candidate is simulated as the stored scenario with its instruments
+    replaced. Rebuilding from the *stored* scenario rather than recompiling the
+    original text matters: the stored one is what the user read and confirmed,
+    and recompiling would let a compiler change alter what a candidate means.
+    """
+    from dataclasses import replace
+
+    from .worksheet import from_json as worksheet_from_json
+
+    record = store.get_worksheet(worksheet_id, PILOT_OWNER)
+    worksheet = worksheet_from_json(record["payload"])
+    plan = store.get_plan(worksheet.scenario_ref, PILOT_OWNER)
+    if plan is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"worksheet {worksheet_id} cites scenario "
+                    f"{worksheet.scenario_ref}, which is not in this workspace"))
+
+    compiled = compile_scenario(plan["stated_text"], name=worksheet.scenario_ref,
+                                version=1, benchmark_rule=BENCHMARK_RULE,
+                                parsed=_pinned_parse(plan))
+    base = scenario_from_stored(plan["scenario"], compiled.scenario)
+
+    def run_one(candidate) -> Dict[str, Any]:
+        assets = tuple(candidate) if isinstance(candidate, (list, tuple)) \
+            else (candidate,)
+        scenario = replace(
+            base, allocation_rule=replace(base.allocation_rule, assets=assets))
+        outcome = _run(scenario, prices)
+        if outcome.get("result") is None:
+            # A candidate with no price history is a data gap, not a result.
+            # Returning an empty payload would let the revision cite a run that
+            # simulated nothing.
+            raise HTTPException(
+                status_code=422,
+                detail=outcome.get("unavailable")
+                or f"candidate {assets} could not be simulated")
+        return outcome["result"]
+
+    return run_one
+
+
 def scenario_from_stored(stored: Dict[str, Any], fallback):
     """The scenario as it was saved, rebuilt from its stored canonical body.
 
@@ -665,6 +721,88 @@ def reinterpret_worksheet(worksheet_id: str):
             "migration": migration_for(worksheet.scenario_ref, plan["scenario"],
                                        compiled),
             "applied": False}
+
+
+@router.post("/research/{worksheet_id}/intent")
+def plan_worksheet_intent(worksheet_id: str, instruction: str = Form(...),
+                          source_revision: Optional[int] = Form(None)):
+    """Plan one instruction against this worksheet's persisted intent chain.
+
+    Returns a proposal awaiting confirmation. **It never applies anything.**
+    Acceptance is the separate endpoint below, on the transaction that was
+    already proven, because a route that planned and applied in one call would
+    decide on the user's behalf exactly where their judgement is the point.
+
+    The history comes from the store, not the request. That is the whole reason
+    this endpoint exists: `intent.plan` has always taken history and the live
+    application never had any to give it, so every instruction arrived looking
+    like the first one and repeated tuning counted as nothing.
+    """
+    from .intent_service import (
+        IntentRefused,
+        StaleInstruction,
+        UntrustworthyHistory,
+        plan_and_record,
+    )
+
+    store = _store()
+    stamp = _now()
+    try:
+        planned = plan_and_record(
+            store, worksheet_id=worksheet_id, owner=PILOT_OWNER,
+            instruction=instruction,
+            intent_id=f"{worksheet_id}-intent-{stamp}",
+            proposal_id=f"{worksheet_id}-proposal-{stamp}",
+            at=stamp, source_revision=source_revision)
+    except StaleInstruction as stale:
+        raise HTTPException(status_code=409, detail=str(stale)) from stale
+    except UntrustworthyHistory as broken:
+        # 409 rather than 500. The request is well-formed; the stored history
+        # is not, and that is a conflict with durable state rather than a bug in
+        # handling this call.
+        raise HTTPException(status_code=409, detail=str(broken)) from broken
+    except IntentRefused as refused:
+        raise HTTPException(status_code=404, detail=str(refused)) from refused
+
+    return {"worksheet_id": worksheet_id, "applied": False, **planned.to_json()}
+
+
+@router.post("/research/{worksheet_id}/proposals/{proposal_id}/accept")
+def accept_worksheet_proposal(worksheet_id: str, proposal_id: str):
+    """Apply a reviewed proposal through the existing transaction.
+
+    This adds no application logic. `apply.accept` already orders the writes so
+    nothing can be orphaned, refuses a stale proposal rather than rebasing it,
+    and commits the runs and the revision together — none of which is worth
+    reimplementing at the edge.
+    """
+    from .apply import ApplyRefused, StaleProposal, accept
+    from .proposal import from_json as proposal_from_json
+
+    store = _store()
+    record = store.get_worksheet_proposal(proposal_id, PILOT_OWNER)
+    if record is None:
+        raise HTTPException(status_code=404,
+                            detail=f"no proposal {proposal_id!r}")
+
+    proposal = proposal_from_json(record["payload"])
+    prices = _prices()
+    try:
+        result = accept(
+            store, proposal_id=proposal_id, owner=PILOT_OWNER,
+            worksheet_id=worksheet_id, proposal=proposal, at=_now(),
+            # A scenario change needs a runner, and there is no price history
+            # here to give it one. Passing None is what makes the apply path
+            # refuse rather than write a revision citing runs that never
+            # happened.
+            run_candidate=(_candidate_runner(prices, store, worksheet_id)
+                           if prices is not None else None))
+    except StaleProposal as stale:
+        raise HTTPException(status_code=409, detail=str(stale)) from stale
+    except ApplyRefused as refused:
+        raise HTTPException(status_code=422, detail=str(refused)) from refused
+
+    return {"worksheet_id": worksheet_id, "applied": True, **result.to_json()}
 
 
 @router.post("/research/{worksheet_id}/rerun")

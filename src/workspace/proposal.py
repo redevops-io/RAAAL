@@ -121,6 +121,42 @@ class WorksheetProposal:
         }
 
 
+def from_json(payload: Mapping[str, Any]) -> WorksheetProposal:
+    """A stored proposal, back as its own type.
+
+    Rebuilt rather than re-derived from the intent. Re-planning would let a
+    later planner restate a diff the user already reviewed, and the reviewed
+    diff is the one acceptance is entitled to apply.
+
+    `applicable` and `touches_money` are deliberately not read from the payload.
+    They are derived properties, and a stored `applicable: true` beside an
+    unsupported entry would be a second, older answer to a question the object
+    can still answer for itself.
+    """
+    return WorksheetProposal(
+        intent_ref=payload["intent_ref"],
+        source_revision=int(payload["source_revision"]),
+        edit_effect=payload["edit_effect"],
+        selection_basis=payload["selection_basis"],
+        repetition_signature=dict(payload.get("repetition_signature") or {}),
+        changes=tuple(Change(target=c["target"], operation=c["operation"],
+                             value=c.get("value"), previous=c.get("previous"))
+                      for c in payload.get("changes") or ()),
+        unsupported=tuple(Unsupported(what=u["what"], why=u["why"])
+                          for u in payload.get("unsupported") or ()),
+        affected_blocks=tuple(payload.get("affected_blocks") or ()),
+        affected_artifacts=tuple(payload.get("affected_artifacts") or ()),
+        rerun_required=bool(payload.get("rerun_required", False)),
+        trial_effect=int(payload.get("trial_effect", 0)),
+        comparability_impact=payload.get("comparability_impact", ""),
+        warnings=tuple(payload.get("warnings") or ()),
+        proposed_layout=(tuple(payload["proposed_layout"])
+                         if payload.get("proposed_layout") is not None else None),
+        proposed_scenario_patch=(dict(payload["proposed_scenario_patch"])
+                                 if payload.get("proposed_scenario_patch")
+                                 is not None else None))
+
+
 #: Where a layout request wants a block moved. Narrow on purpose: an instruction
 #: naming a block the registry does not have is unsupported, not approximated.
 _BLOCK_WORDS = {

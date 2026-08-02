@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence
 
 from ..mission.boundary import scan_for_personal_data
+from .intent_chain import chain_link
 
 DEFAULT_PATH = Path("data/workspace.db")
 
@@ -54,6 +55,52 @@ CREATE TABLE IF NOT EXISTS observation (
     observed_at TEXT NOT NULL,
     payload     TEXT NOT NULL
 );
+-- What was asked, before anything changed. Durable on its own, not folded into
+-- the proposal it produced.
+--
+-- The planner's protections are history-dependent: "add 63-day volatility" is
+-- analytical the first time and parameter tuning the fourth, and the repetition
+-- signature is what stops repeated tuning hiding behind rephrasing. Held only in
+-- a request, that history dies between calls — a user could try three windows
+-- across three requests and each would arrive looking like the first. Trial
+-- accounting that resets is worse than none, because it reports a small number
+-- rather than no number.
+--
+-- `instruction` is nullable on purpose. The durable semantic record is the
+-- structured intent and `instruction_hash`; the raw sentence may carry holdings,
+-- salary or employer detail and is subject to a stricter retention policy than
+-- the classification derived from it.
+CREATE TABLE IF NOT EXISTS worksheet_intent (
+    intent_id            TEXT PRIMARY KEY,
+    worksheet_id         TEXT NOT NULL,
+    owner                TEXT NOT NULL,
+    source_revision      INTEGER NOT NULL,
+    sequence             INTEGER NOT NULL,
+    instruction          TEXT,
+    instruction_hash     TEXT NOT NULL,
+    structured_request   TEXT NOT NULL,
+    edit_effect          TEXT NOT NULL,
+    selection_basis      TEXT NOT NULL,
+    repetition_signature TEXT NOT NULL,
+    related_prior        TEXT NOT NULL,
+    results_visible      INTEGER NOT NULL,
+    alternatives         INTEGER NOT NULL,
+    trial_effect         INTEGER NOT NULL,
+    planner_version      TEXT NOT NULL,
+    -- Each row chains to its predecessor. Editing a prior intent's
+    -- classification, or deleting one from the middle, breaks every successor's
+    -- hash — so a trial total derived from a doctored chain is detectably
+    -- derived from a doctored chain rather than quietly smaller.
+    chain_hash           TEXT NOT NULL,
+    created_at           TEXT NOT NULL,
+    proposal_id          TEXT,
+    status               TEXT NOT NULL
+);
+-- Ordering within a worksheet must be unique and gapless. Two intents claiming
+-- one position make the chain ambiguous, and an ambiguous chain cannot support
+-- a trial total anyone should rely on.
+CREATE UNIQUE INDEX IF NOT EXISTS worksheet_intent_sequence
+    ON worksheet_intent (worksheet_id, owner, sequence);
 -- One row per worksheet *revision*. Revisions are never edited, so the primary
 -- key spans the id and the revision: an UPDATE that lost a revision would erase
 -- the history that revisions exist to keep.
@@ -325,6 +372,87 @@ class WorkspaceStore:
         return [dict(r) for r in rows]
 
     # ---- proposals -------------------------------------------------------
+
+    # ---- worksheet intents ------------------------------------------------
+
+    def append_worksheet_intent(self, *, worksheet_id: str, owner: str,
+                                intent, created_at: str,
+                                planner_version: str,
+                                instruction_hash: str,
+                                store_instruction: bool = False,
+                                proposal_id: Optional[str] = None) -> int:
+        """Add one intent to a worksheet's chain and return its position.
+
+        The position is derived here, inside the write, rather than supplied by
+        the caller. A caller-chosen sequence is a caller-chosen history, and the
+        planner's protections are exactly the thing a caller has an incentive to
+        renumber.
+
+        `store_instruction` is off by default. The classification is the durable
+        record; the sentence it came from is personal data with a shorter life.
+        """
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT COALESCE(MAX(sequence), 0) AS last FROM worksheet_intent "
+                "WHERE worksheet_id = ? AND owner = ?",
+                (worksheet_id, owner)).fetchone()
+            sequence = int(row["last"]) + 1
+            previous = conn.execute(
+                "SELECT chain_hash FROM worksheet_intent "
+                "WHERE worksheet_id = ? AND owner = ? ORDER BY sequence DESC "
+                "LIMIT 1", (worksheet_id, owner)).fetchone()
+            chain_hash = chain_link(
+                previous["chain_hash"] if previous else "", intent)
+            conn.execute(
+                """INSERT INTO worksheet_intent
+                   (intent_id, worksheet_id, owner, source_revision, sequence,
+                    instruction, instruction_hash, structured_request,
+                    edit_effect, selection_basis, repetition_signature,
+                    related_prior, results_visible, alternatives, trial_effect,
+                    planner_version, chain_hash, created_at, proposal_id, status)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (intent.intent_id, worksheet_id, owner, intent.source_revision,
+                 sequence,
+                 intent.instruction if store_instruction else None,
+                 instruction_hash,
+                 json.dumps(intent.to_json()),
+                 intent.edit_effect.value, intent.selection_basis.value,
+                 intent.repetition_signature.key(),
+                 json.dumps(list(intent.related_prior_intents)),
+                 int(intent.results_visible), intent.alternatives_generated,
+                 intent.trial_effect, planner_version, chain_hash, created_at,
+                 proposal_id, "PLANNED"))
+        return sequence
+
+    def worksheet_intents(self, worksheet_id: str, owner: str, *,
+                          before_sequence: Optional[int] = None
+                          ) -> List[Dict[str, Any]]:
+        """The chain for one worksheet, in order, scoped to its owner.
+
+        Owner is part of the query rather than checked afterwards. A history
+        filtered after loading is a history that was loaded.
+        """
+        clause = "WHERE worksheet_id = ? AND owner = ?"
+        params: List[Any] = [worksheet_id, owner]
+        if before_sequence is not None:
+            clause += " AND sequence < ?"
+            params.append(before_sequence)
+        with self._conn() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM worksheet_intent {clause} ORDER BY sequence",
+                params).fetchall()
+        return [{**dict(row),
+                 "structured_request": json.loads(row["structured_request"]),
+                 "related_prior": json.loads(row["related_prior"] or "[]")}
+                for row in rows]
+
+    def link_intent_proposal(self, intent_id: str, owner: str, *,
+                             proposal_id: str) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE worksheet_intent SET proposal_id = ?, status = ? "
+                "WHERE intent_id = ? AND owner = ?",
+                (proposal_id, "PROPOSED", intent_id, owner))
 
     def save_worksheet_proposal(self, *, proposal_id: str, owner: str,
                                 worksheet_id: str, proposal,
