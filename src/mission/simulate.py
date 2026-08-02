@@ -54,6 +54,26 @@ class MissionResult:
     time_weighted: pd.Series
     money_weighted: Optional[float]
     periods_per_year: int
+    rsu_context: Optional[Any] = None
+    """The structured RSU result context, when this run used RSU mechanics.
+
+    An explicit field rather than a key inside `modelling_scope`, because it is
+    required for some runs and meaningless for others, and a generic bag cannot
+    express that difference."""
+
+    requires_rsu_context: bool = False
+    """Declared by the run, never inferred from the presence of diagnostics.
+
+    Inferring it would mean a clean RSU run — no unpriced arrivals, no failures
+    — looked exactly like a run that never touched RSU mechanics, so the one
+    case where the context is most reassuring is the one where its absence
+    would go unnoticed."""
+
+    result_schema_version: int = 2
+    """1 predates structured result contexts. Absence in a version-1 record is
+    not evidence that no diagnostic existed; it is evidence that none was
+    recorded, which reads as NOT_DECLARED rather than as clean."""
+
     modelling_scope: Optional[Dict[str, Any]] = None
     """What was and was not modelled, carried by the result itself.
 
@@ -100,6 +120,10 @@ class MissionResult:
             "unfilled_orders": [o.to_json() for o in self.path.unfilled],
             "cash_policy": (self.path.cash_policy.to_json()
                             if self.path.cash_policy else None),
+            "result_schema_version": self.result_schema_version,
+            "requires_rsu_context": self.requires_rsu_context,
+            "rsu_context": (self.rsu_context.to_json()
+                            if self.rsu_context is not None else None),
             "modelling_scope": self.modelling_scope,
             "scope_note": (
                 "This figure excludes everything listed under not_modelled. "

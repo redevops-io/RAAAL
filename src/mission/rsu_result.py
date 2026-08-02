@@ -293,6 +293,16 @@ class RSUResultContext:
         return (ScopeStatus.DECLARED if self.modelling_scope
                 else ScopeStatus.NOT_DECLARED)
 
+    def derive_presentability(self) -> Presentability:
+        """Recompute the status from the context alone.
+
+        The store re-derives this on read and compares it with what was stored.
+        Without that check somebody can edit `presentability: COMPLETE` while
+        leaving a failed disposition in the payload, and the two would never
+        meet.
+        """
+        return self.presentability
+
     @property
     def presentability(self) -> Presentability:
         """Derived from what was established, never from a lack of complaints.
@@ -335,6 +345,42 @@ class RSUResultContext:
             "scope_status": self.scope_status.value,
             "presentability": self.presentability.value,
         }
+
+
+class CorruptResultContext(ValueError):
+    """A stored context that cannot be trusted.
+
+    Refused rather than partially rendered. A run missing one of its destination
+    sections is not a run with less to say; it is a run whose payload was
+    altered, and rendering the remainder would present an edited record as an
+    original one.
+    """
+
+
+#: Sections every stored context must carry. Absence is corruption, not a
+#: default: a context written by this system always has all five, so a payload
+#: missing one has been through something.
+REQUIRED_SECTIONS = ("vest_accounting", "disposition", "allocation",
+                     "concentration", "comparisons")
+
+
+def validate(payload: Mapping[str, Any]) -> None:
+    """Refuse a stored context that has lost a section or disagrees with itself."""
+    missing = [name for name in REQUIRED_SECTIONS if name not in payload]
+    if missing:
+        raise CorruptResultContext(
+            f"stored RSU context is missing {', '.join(missing)}. A context "
+            "this system wrote always carries all five sections, so rendering "
+            "the remainder would present an edited record as an original")
+
+    stored = payload.get("presentability")
+    if stored is not None:
+        rebuilt = from_json(payload).derive_presentability().value
+        if stored != rebuilt:
+            raise CorruptResultContext(
+                f"stored presentability {stored!r} does not match the context, "
+                f"which derives {rebuilt!r}. The status and the payload "
+                "disagree, so one of them was edited")
 
 
 def from_json(payload: Mapping[str, Any]) -> RSUResultContext:
@@ -383,3 +429,73 @@ def from_json(payload: Mapping[str, Any]) -> RSUResultContext:
         modelling_scope={k: tuple(v) for k, v
                          in (payload.get("modelling_scope") or {}).items()},
         context_version=payload.get("context_version", CONTEXT_VERSION))
+
+
+def build(*, vest_accounting: Optional[Mapping[str, Any]] = None,
+          unpriced_arrivals: Sequence[Mapping[str, Any]] = (),
+          disposition_schedule=None,
+          allocation_execution=None,
+          concentration_assessment=None,
+          concentration_plan=None,
+          realized_concentration: Optional[float] = None,
+          verdict_rows: Sequence[Mapping[str, Any]] = (),
+          modelling_scope: Optional[Mapping[str, Sequence[str]]] = None
+          ) -> RSUResultContext:
+    """Assemble the context from what the run actually produced.
+
+    Every value is copied from the object that computed it. Deliberately not a
+    postprocessor that re-reads the portfolio and infers what happened: that
+    would be a second interpretation of the execution, and the two would
+    disagree exactly where it mattered — on the runs where something went wrong.
+    """
+    vest = vest_accounting or {}
+    accounting = VestAccountingContext(
+        gross_vest_value=vest.get("gross_vest_value"),
+        withheld_value=vest.get("withheld_value"),
+        delivered_value=vest.get("external_flow_value"),
+        cash_remainder=vest.get("cash_remainder"),
+        unpriced_arrivals=tuple(unpriced_arrivals))
+
+    disposition = DispositionContext()
+    if disposition_schedule is not None:
+        instructions = list(getattr(disposition_schedule, "instructions", ()))
+        disposition = DispositionContext(
+            status=(instructions[0].status.value if instructions else ""),
+            pending_instructions=tuple(
+                one.to_json() for one in instructions
+                if one.status.value in {"PENDING", "ELIGIBLE"}),
+            failed_instructions=tuple(
+                one.to_json() for one in instructions
+                if one.status.value in {"FAILED", "EXPIRED"}),
+            unsettled_report=tuple(disposition_schedule.unsettled_report()))
+
+    allocation = AllocationContext()
+    if allocation_execution is not None:
+        allocation = AllocationContext(
+            requested_targets=dict(allocation_execution.requested_allocation),
+            executed_targets=dict(allocation_execution.executed_allocation),
+            unfilled_targets=tuple(allocation_execution.unfilled_targets),
+            residual_cash=allocation_execution.residual_cash,
+            unallocated_weight=allocation_execution.unallocated_weight)
+
+    concentration = ConcentrationContext(realized=realized_concentration)
+    if concentration_assessment is not None:
+        concentration = ConcentrationContext(
+            current=concentration_assessment.concentration,
+            target=concentration_assessment.target,
+            projected=(concentration_plan.projected_post_sale_concentration
+                       if concentration_plan is not None else None),
+            realized=realized_concentration,
+            missing_prices=tuple(concentration_assessment.missing_prices),
+            unresolved_inputs=tuple(
+                concentration_plan.unresolved_inputs
+                if concentration_plan is not None else ()),
+            denominator_scope=("settled holdings", "settled cash"),
+            excluded_components=tuple(
+                concentration_assessment.excluded_components))
+
+    return RSUResultContext(
+        vest_accounting=accounting, disposition=disposition,
+        allocation=allocation, concentration=concentration,
+        comparisons=ComparisonContext(verdict_rows=tuple(verdict_rows)),
+        modelling_scope={k: tuple(v) for k, v in (modelling_scope or {}).items()})

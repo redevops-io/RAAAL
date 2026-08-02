@@ -351,6 +351,20 @@ class WorkspaceStore:
                 "without a statement of what it excludes will be read as "
                 "excluding nothing"
             )
+
+        # A run that declares it used RSU mechanics must carry the context that
+        # says whether its figure is complete. Storing it without one leaves a
+        # number whose caveats exist only in a function that has returned.
+        if result.get("requires_rsu_context") and not result.get("rsu_context"):
+            raise NotSaveable(
+                f"run {run_id} declares RSU mechanics and carries no result "
+                "context. The diagnostics that decide whether this figure is "
+                "presentable would exist nowhere after this write")
+
+        if result.get("rsu_context"):
+            from ..mission.rsu_result import validate as _validate_context
+
+            _validate_context(result["rsu_context"])
         with self._conn() as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO plan_run
@@ -606,6 +620,23 @@ class WorkspaceStore:
                 (plan_id, owner),
             ).fetchone()
         return self._hydrate(row) if row else None
+
+    @staticmethod
+    def rsu_context_of(record: Mapping[str, Any]):
+        """The stored context, validated, or a stated absence.
+
+        Returns `None` for a run that never declared one. A caller must treat
+        that as NOT_DECLARED rather than as clean — an older record's silence is
+        evidence that nothing was recorded, not that nothing happened.
+        """
+        from ..mission.rsu_result import from_json as _context_from_json
+        from ..mission.rsu_result import validate as _validate_context
+
+        payload = (record.get("result") or {}).get("rsu_context")
+        if not payload:
+            return None
+        _validate_context(payload)
+        return _context_from_json(payload)
 
     def get_run(self, run_id: str, owner: str) -> Optional[Dict[str, Any]]:
         """One run by id, scoped by owner through its plan.
