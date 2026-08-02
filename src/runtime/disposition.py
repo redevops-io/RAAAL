@@ -87,6 +87,22 @@ class DispositionInstruction:
     status: DispositionStatus = DispositionStatus.PENDING
     detail: str = ""
 
+    sizing_policy: Any = None
+    """A `ConcentrationPolicy` when the quantity is solved from portfolio state.
+
+    Present, `quantity` is not known at creation and must not be. Both the
+    employer price and the rest of the portfolio move between the vest and the
+    first eligible session, so a quantity fixed at vest solves yesterday's
+    problem."""
+
+    employer_asset: str = ""
+    sized_at: Any = None
+    sizing_plan: Any = None
+
+    @property
+    def sizes_from_portfolio(self) -> bool:
+        return self.sizing_policy is not None
+
     def to_json(self) -> Dict[str, Any]:
         return {"instruction_id": self.instruction_id,
                 "grant_ref": self.grant_ref,
@@ -257,6 +273,7 @@ def instruction_for(*, vest_ref: str, grant_ref: str, asset: str,
                     delivered_shares: float, policy: str,
                     delivery_session, blackouts: Sequence[tuple] = (),
                     execution_lag: int = 1, expires_at=None,
+                    sizing_policy: Any = None,
                     log: Optional[EventLog] = None
                     ) -> Optional[DispositionInstruction]:
     """The instruction a policy produces, or None where it produces no sale.
@@ -269,11 +286,28 @@ def instruction_for(*, vest_ref: str, grant_ref: str, asset: str,
         log.record(VestEventKind.DISPOSITION_EVALUATED, policy=name)
 
     if any(name.startswith(prefix) for prefix in CONCENTRATION_TARGETED):
-        raise UnsupportedPolicy(
-            f"policy {policy!r} sizes the sale from portfolio concentration, "
-            "which is not yet computed. Approximating it as a fixed fraction "
-            "would sell a different number of shares than was asked for, and "
-            "nothing in the result would show the substitution")
+        if sizing_policy is None:
+            raise UnsupportedPolicy(
+                f"policy {policy!r} sizes the sale from portfolio "
+                "concentration and no concentration policy was supplied. "
+                "Approximating it as a fixed fraction would sell a different "
+                "number of shares than was asked for, and nothing in the "
+                "result would show the substitution")
+
+        # Quantity deliberately zero at creation. It is solved at the first
+        # eligible session against the portfolio as it is then.
+        instruction = DispositionInstruction(
+            instruction_id=new_instruction_id(), grant_ref=grant_ref,
+            created_from_vest=vest_ref, asset=asset, quantity=0.0, policy=name,
+            earliest_eligible_date=delivery_session,
+            blackout_ref=tuple(blackouts), execution_lag=execution_lag,
+            expires_at=expires_at, sizing_policy=sizing_policy,
+            employer_asset=asset)
+        if log is not None:
+            log.record(VestEventKind.SALE_INSTRUCTION_CREATED,
+                       instruction_id=instruction.instruction_id,
+                       quantity=None)
+        return instruction
 
     if name not in _FRACTIONS:
         raise UnsupportedPolicy(f"unknown disposition policy {policy!r}")
@@ -426,6 +460,16 @@ class DispositionSchedule:
                     candidate = float(visible.iloc[-1][instruction.asset])
                     price = candidate if candidate == candidate else None
 
+                # Sized here, against the portfolio as it is now. Solved at the
+                # vest it would answer a question about a portfolio that has
+                # since changed.
+                if instruction.sizes_from_portfolio:
+                    instruction = self._size(instruction, session, visible,
+                                             holdings, cash, price=price)
+                    self.instructions[index] = instruction
+                    if instruction.status in TERMINAL or not instruction.quantity:
+                        continue
+
                 moved = advance(instruction, session, held_shares=held,
                                 price=price, log=self.log)
                 self.instructions[index] = moved
@@ -448,6 +492,42 @@ class DispositionSchedule:
             return orders
 
         return step
+
+    def _size(self, instruction, session, visible, holdings, cash, *, price):
+        """Solve a concentration-targeted quantity from the live portfolio."""
+        from .concentration import Feasibility, assess, solve
+
+        if price is None:
+            return instruction
+
+        latest = visible.iloc[-1] if len(visible) else {}
+        prices = {asset: float(latest[asset])
+                  for asset in getattr(visible, "columns", ())
+                  if asset in latest}
+        assessment = assess(holdings=dict(holdings), prices=prices, cash=cash,
+                            employer_asset=instruction.employer_asset or
+                            instruction.asset,
+                            policy=instruction.sizing_policy,
+                            measured_at=session)
+        plan = solve(assessment, price=price,
+                     held_shares=float(holdings.get(instruction.asset, 0.0)),
+                     policy=instruction.sizing_policy)
+
+        if plan.feasibility is Feasibility.UNCOMPUTABLE:
+            # Refused, not approximated. A denominator missing an unpriced
+            # holding sizes the sale too small and reports success.
+            return replace(instruction, status=DispositionStatus.PENDING,
+                           sized_at=session, sizing_plan=plan,
+                           detail="; ".join(plan.unresolved_inputs)
+                           or plan.detail)
+        if plan.feasibility is Feasibility.ALREADY_SATISFIED:
+            return replace(instruction, status=DispositionStatus.EXPIRED,
+                           sized_at=session, sizing_plan=plan,
+                           detail="the declared cap was already satisfied")
+
+        return replace(instruction, quantity=plan.shares_to_sell,
+                       sized_at=session, sizing_plan=plan,
+                       detail=plan.detail)
 
     def reconcile(self, fills) -> List[Dict[str, Any]]:
         """Attach what actually happened to each instructed sale.
