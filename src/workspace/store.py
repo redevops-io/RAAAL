@@ -16,7 +16,7 @@ import json
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Sequence
 
 from ..mission.boundary import scan_for_personal_data
 
@@ -57,6 +57,25 @@ CREATE TABLE IF NOT EXISTS observation (
 -- One row per worksheet *revision*. Revisions are never edited, so the primary
 -- key spans the id and the revision: an UPDATE that lost a revision would erase
 -- the history that revisions exist to keep.
+-- Worksheet proposals are immutable. Acceptance creates new artifacts and
+-- records the outcome here; it never rewrites the diff that was reviewed.
+--
+-- Named apart from `proposal`, which is the mission forward-tracking artifact.
+-- `CREATE TABLE IF NOT EXISTS` on a name already taken is a silent no-op, so
+-- the columns would simply not have existed.
+CREATE TABLE IF NOT EXISTS worksheet_proposal (
+    proposal_id     TEXT PRIMARY KEY,
+    owner           TEXT NOT NULL,
+    worksheet_id    TEXT NOT NULL,
+    source_revision INTEGER NOT NULL,
+    status          TEXT NOT NULL,
+    payload         TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    resolved_at     TEXT,
+    actor           TEXT,
+    result_revision INTEGER,
+    result_runs     TEXT
+);
 CREATE TABLE IF NOT EXISTS worksheet (
     worksheet_id  TEXT NOT NULL,
     revision      INTEGER NOT NULL,
@@ -131,7 +150,35 @@ class WorkspaceStore:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
 
     @contextmanager
+    def transaction(self) -> Iterator[sqlite3.Connection]:
+        """One connection across several writes, committed or rolled back once.
+
+        The apply path persists runs and then a worksheet revision that cites
+        them. Committing those separately leaves a window where an accepted edit
+        has produced runs and no revision — an orphaned run that looks like
+        history and belongs to nothing.
+        """
+        conn = sqlite3.connect(self.path)
+        conn.row_factory = sqlite3.Row
+        previous, self._tx = getattr(self, "_tx", None), conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self._tx = previous
+            conn.close()
+
+    @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
+        # Inside a transaction every write joins it rather than committing on
+        # its own, so a failure halfway through rolls the whole edit back.
+        joined = getattr(self, "_tx", None)
+        if joined is not None:
+            yield joined
+            return
         conn = sqlite3.connect(self.path)
         conn.row_factory = sqlite3.Row
         try:
@@ -276,6 +323,49 @@ class WorkspaceStore:
                 "SELECT * FROM confirmation_event WHERE owner = ?"
                 " ORDER BY occurred_at", (owner,)).fetchall()
         return [dict(r) for r in rows]
+
+    # ---- proposals -------------------------------------------------------
+
+    def save_worksheet_proposal(self, *, proposal_id: str, owner: str,
+                                worksheet_id: str, proposal,
+                                created_at: str) -> str:
+        """Record a worksheet proposal as PROPOSED. Immutable from here."""
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO worksheet_proposal
+                   (proposal_id, owner, worksheet_id, source_revision, status,
+                    payload, created_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (proposal_id, owner, worksheet_id, proposal.source_revision,
+                 "PROPOSED", json.dumps(proposal.to_json()), created_at))
+        return proposal_id
+
+    def get_worksheet_proposal(self, proposal_id: str,
+                               owner: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM worksheet_proposal "
+                "WHERE proposal_id = ? AND owner = ?",
+                (proposal_id, owner)).fetchone()
+        if row is None:
+            return None
+        return {**dict(row), "payload": json.loads(row["payload"]),
+                "result_runs": json.loads(row["result_runs"] or "[]")}
+
+    def resolve_worksheet_proposal(self, proposal_id: str, owner: str, *,
+                                   status: str, resolved_at: str,
+                                   actor: str = "",
+                                   result_revision: Optional[int] = None,
+                                   result_runs: Sequence[str] = ()) -> None:
+        """Record the outcome. The reviewed diff is never rewritten."""
+        with self._conn() as conn:
+            conn.execute(
+                """UPDATE worksheet_proposal
+                   SET status = ?, resolved_at = ?, actor = ?,
+                       result_revision = ?, result_runs = ?
+                   WHERE proposal_id = ? AND owner = ? AND status = 'PROPOSED'""",
+                (status, resolved_at, actor, result_revision,
+                 json.dumps(list(result_runs)), proposal_id, owner))
 
     def list_plans(self, owner: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:
