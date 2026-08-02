@@ -29,7 +29,11 @@ from src.workspace.confirmation import (
 
 BR = "benchmark-policy/public-default@1"
 
-COMPLETE = ("I put $2,000 into SPY every month in my Roth IRA, on the first "
+# $500 a month is $6,000 a year, inside the IRA limit. It was $2,000 — which is
+# $24,000 a year into an account permitting far less, so the suite's canonical
+# "complete description" was a plan that could not legally be executed. Nothing
+# noticed until contribution limits were enforced.
+COMPLETE = ("I put $500 into SPY every month in my Roth IRA, on the first "
             "trading day of the period, reinvesting the dividends, and I never "
             "sell.")
 NEEDS_ACCOUNT = ("I put $2,000 into SPY every month, on the first trading day "
@@ -77,7 +81,7 @@ class TestTheSummaryLeads:
     def test_it_states_the_plan_in_plain_language(self):
         rows = {r["key"]: r["value"] for r in view(COMPLETE).summary}
         assert rows["holdings"] == "SPY"
-        assert rows["amount"] == "$2,000"
+        assert rows["amount"] == "$500"
         assert rows["cadence"] == "every month"
         assert rows["account"] == "Roth IRA"
         assert rows["dividends"] == "reinvested"

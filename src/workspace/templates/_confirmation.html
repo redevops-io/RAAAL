@@ -17,6 +17,34 @@
     </table>
   </div>
 
+  {# 1a. Over the contribution limit. First, and above the summary's siblings,
+     because this is the one state where the plan was understood perfectly and
+     still cannot be run. Placed after a conflict would read as a detail. #}
+  {% if view.over_limit %}
+  <div class="group conflict over-limit">
+    <h3>More than this account allows</h3>
+    <div class="small">{{ view.over_limit.detail }}</div>
+    <div class="controls">{{ view.over_limit.account_label }} ·
+      {{ view.over_limit.year }}</div>
+    <ul class="choices">
+      {% for choice in view.over_limit.choices %}
+      <li><label><input type="radio" name="over-limit"
+                        value="{{ choice.value }}"> {{ choice.label }}</label></li>
+      {% endfor %}
+    </ul>
+    {% if not view.over_limit.limit_is_verified %}
+    {# The number doing the refusing states its own reliability. A plan refused
+       by an unchecked figure must not look refused by a certain one. #}
+    <div class="small muted">{{ view.over_limit.caveat }}</div>
+    {% endif %}
+    <p class="small muted" style="margin:10px 0 0">
+      We have not changed anything. Contributing the excess anyway is a decision
+      with consequences outside this simulation, so the plan stays as you wrote
+      it until you say which you meant.
+    </p>
+  </div>
+  {% endif %}
+
   {# 2. Conflicts block. Shown before anything that could make the plan look
      ready, because a provisional result next to an unresolved conflict reads
      as though the conflict were resolved. #}

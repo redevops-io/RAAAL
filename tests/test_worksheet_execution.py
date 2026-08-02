@@ -39,7 +39,7 @@ def store(tmp_path, worksheet):
 
     store = WorkspaceStore(tmp_path / "w.db")
     compiled = compile_scenario(
-        "I put $2,000 into SPY every month in my Roth IRA, on the first trading "
+        "I put $500 into SPY every month in my Roth IRA, on the first trading "
         "day of the period, reinvesting the dividends, and I never sell.",
         name="plan-1", version=1,
         benchmark_rule="benchmark-policy/public-default@1")

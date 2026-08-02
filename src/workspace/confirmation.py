@@ -177,6 +177,13 @@ class ConfirmationView:
     conflicts: Sequence[Dict[str, Any]] = ()
     not_simulated: Sequence[NotSimulated] = ()
     account: Optional[Dict[str, Any]] = None
+    over_limit: Optional[Dict[str, Any]] = None
+    """A stated contribution the stated account does not permit.
+
+    Blocking, and not a `conflict`: nothing here is ambiguous. Both facts were
+    read correctly and the plan they describe cannot be executed, so the honest
+    move is to refuse and let the user say which of the two they meant."""
+
     better_route: Optional[Dict[str, str]] = None
     defaults_ref: str = ""
     """Which versioned default set supplied the inferences. Dropped in the
@@ -193,7 +200,7 @@ class ConfirmationView:
         Named rather than inferred from counts in the template, so the layout
         cannot disagree with the decision.
         """
-        if self.conflicts:
+        if self.conflicts or self.over_limit:
             return "BLOCKED"
         if self.questions:
             return "CLARIFY"
@@ -212,7 +219,8 @@ class ConfirmationView:
             "questions": [q.__dict__ for q in self.questions],
             "conflicts": [dict(c) for c in self.conflicts],
             "not_simulated": [n.__dict__ for n in self.not_simulated],
-            "account": self.account, "defaults_ref": self.defaults_ref,
+            "account": self.account, "over_limit": self.over_limit,
+            "defaults_ref": self.defaults_ref,
             "can_run": self.can_run, "can_save": self.can_save,
         }
 
@@ -304,6 +312,73 @@ def _routing_for(question_field: str, text: str) -> str:
     return ""
 
 
+#: Contributions per year, by declared cadence. A cadence absent from this map
+#: yields no annual figure and therefore no limit check — an unknown cadence
+#: must not be guessed at, because guessing low would clear a plan that is over
+#: the limit and guessing high would refuse one that is not.
+_PER_YEAR = {"monthly": 12, "quarterly": 4, "annual": 1, "yearly": 1,
+             "weekly": 52, "biweekly": 26, "payroll": 26, "once": 1,
+             "one_off": 1}
+
+
+def _annual_contribution(schedule) -> Optional[float]:
+    per_year = _PER_YEAR.get(getattr(schedule, "cadence", ""))
+    if per_year is None or not getattr(schedule, "amount", 0):
+        return None
+    return float(schedule.amount) * per_year
+
+
+def _over_limit(scenario) -> Optional[Dict[str, Any]]:
+    """Whether the stated contribution exceeds what the stated account permits.
+
+    Checked here, before the run. Discovered afterwards it is a number the user
+    has already been shown and already believes.
+    """
+    import datetime as _dt
+
+    from ..runtime import AccountRuntime
+    from ..runtime.account_limits import LimitState
+    from .account_support import LABELS
+    from .environment import ACCOUNT_KINDS
+
+    kind = ACCOUNT_KINDS.get(getattr(scenario, "tax_treatment", ""))
+    annual = _annual_contribution(getattr(scenario, "flow_schedule", None))
+    if kind is None or annual is None:
+        return None
+
+    year = _dt.date.today().year
+    decision = AccountRuntime(name=f"account/{kind.value.lower()}", version=1,
+                              account_kind=kind).cap_contribution(annual, year=year)
+    if decision.within_limit:
+        return None
+
+    limit = decision.limit
+    return {
+        "requested": decision.requested,
+        "permitted": decision.permitted,
+        "refused": decision.refused,
+        "year": year,
+        "account_label": LABELS.get(scenario.tax_treatment,
+                                    scenario.tax_treatment),
+        "detail": (
+            f"This plan contributes ${decision.requested:,.0f} a year, and the "
+            f"{year} limit for this account is ${decision.permitted:,.0f}. "
+            f"It is over by ${decision.refused:,.0f}."),
+        # The figure doing the refusing is named, with its own reliability. A
+        # plan refused by an unchecked number should say so in the same breath.
+        "limit_is_verified": limit.state is LimitState.VERIFIED,
+        "caveat": limit.why_not_enforced,
+        "choices": [
+            {"value": "reduce",
+             "label": f"Contribute ${decision.permitted:,.0f} a year instead"},
+            {"value": "change_account",
+             "label": "This is a different kind of account"},
+            {"value": "split",
+             "label": "Some of it goes somewhere else"},
+        ],
+    }
+
+
 def build(result, *, text: str = "") -> ConfirmationView:
     """Prepare the confirmation screen from a compiled result."""
     scenario = result.scenario
@@ -350,8 +425,12 @@ def build(result, *, text: str = "") -> ConfirmationView:
             account = {**context, "value": scenario.tax_treatment,
                        "support": support_for(scenario.tax_treatment).to_json()}
 
+    over_limit = _over_limit(scenario) if scenario is not None else None
+
     return ConfirmationView(
-        headline=("Here is what we understood" if not conflicts
+        headline=("This plan contributes more than the account allows"
+                  if over_limit else
+                  "Here is what we understood" if not conflicts
                   else "These instructions conflict"),
         summary=summary,
         stated_count=len(result.stated),
@@ -361,8 +440,12 @@ def build(result, *, text: str = "") -> ConfirmationView:
         conflicts=tuple(conflicts),
         not_simulated=tuple(not_simulated),
         account=account,
+        over_limit=over_limit,
         better_route=(result.confirmation().get("a_better_route")),
         defaults_ref=result.defaults_ref,
-        can_run=result.can_simulate,
+        # An over-limit plan cannot run. Showing the refusal and leaving the
+        # button live would make the warning advisory, and the figure it
+        # produced would be one the account does not permit.
+        can_run=result.can_simulate and over_limit is None,
         can_save=result.can_save,
     )
