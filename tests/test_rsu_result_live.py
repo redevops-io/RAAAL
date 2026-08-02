@@ -16,6 +16,8 @@ import sqlite3
 import pandas as pd
 import pytest
 
+from tests.vest_fixtures import resolved_for
+
 from src.mission.accounting import CashPolicy
 from src.mission.rsu_result import (
     CorruptResultContext,
@@ -55,7 +57,7 @@ def vest():
 def messy_run(sessions):
     """One deliberately incomplete run, carrying every diagnostic type."""
     prices = pd.DataFrame({"ACME": 50.0, "VTI": 100.0}, index=sessions)
-    arrival, accounting = in_kind_flow_for(vest(), vest_price=50.0)
+    arrival, accounting = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
 
     # A disposition that never clears its blackout, so it stays unsettled.
     schedule = DispositionSchedule([sell_for(

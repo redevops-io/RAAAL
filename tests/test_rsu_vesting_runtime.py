@@ -12,6 +12,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from tests.vest_fixtures import resolved_for
+
 from src.runtime import ACCOUNT_IMPLEMENTED
 from src.runtime.rsu import (
     IMPLEMENTED,
@@ -49,7 +51,7 @@ class TestAVestIsNotAPurchase:
     made."""
 
     def test_it_delivers_shares_in_kind(self):
-        grant, _ = apply_vest_delivery(vest(), vest_price=50.0)
+        grant, _ = apply_vest_delivery(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         assert grant.ticker == "ACME"
         assert grant.shares > 0
 
@@ -58,7 +60,7 @@ class TestAVestIsNotAPurchase:
         slippage and no transaction cost, because no transaction happened."""
         from src.mission.accounting import Order
 
-        grant, _ = apply_vest_delivery(vest(), vest_price=50.0)
+        grant, _ = apply_vest_delivery(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         assert not isinstance(grant, Order)
         assert not hasattr(grant, "notional")
 
@@ -76,7 +78,7 @@ class TestWithheldSharesNeverEnterHoldings:
     def test_the_grant_carries_only_the_delivered_count(self):
         """There must be no intermediate state holding 100 shares followed by a
         sale of 22 — the withheld shares are never granted."""
-        grant, _ = apply_vest_delivery(vest(), vest_price=50.0)
+        grant, _ = apply_vest_delivery(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         assert grant.shares == pytest.approx(78.0)
 
     def test_both_counts_are_reported_not_only_the_net(self):
@@ -160,17 +162,16 @@ class TestUnknownsStayUnknown:
 
     def test_an_unmodellable_vest_is_refused_not_approximated(self):
         with pytest.raises(UnpinnedVest, match="corporate_action_ref"):
-            apply_vest_delivery(vest(corporate_action_ref=None),
-                                vest_price=50.0)
+            apply_vest_delivery(vest(corporate_action_ref=None), vest_price=50.0, resolved=resolved_for(vest(corporate_action_ref=None)))
 
     def test_a_missing_withholding_rate_is_refused(self):
         with pytest.raises(UnpinnedVest, match="withholding rate"):
-            apply_vest_delivery(vest(withholding_rate=None), vest_price=50.0)
+            apply_vest_delivery(vest(withholding_rate=None), vest_price=50.0, resolved=resolved_for(vest(withholding_rate=None)))
 
     def test_a_missing_vest_price_is_a_data_gap_not_a_free_vest(self):
         """No inferred price, no zero-price grant."""
         with pytest.raises(UnpinnedVest, match="vest price"):
-            apply_vest_delivery(vest(), vest_price=0.0)
+            apply_vest_delivery(vest(), vest_price=0.0, resolved=resolved_for(vest()))
 
     def test_nothing_infers_a_tax_or_account_fact(self):
         for name in ("marginal_tax_rate", "cost_basis_method", "state_tax",
@@ -196,8 +197,7 @@ class TestTheCorporateActionGate:
 
     def test_blocking_happens_before_any_arithmetic(self):
         with pytest.raises(UnpinnedVest):
-            apply_vest_delivery(vest(corporate_action_ref=None),
-                                vest_price=50.0)
+            apply_vest_delivery(vest(corporate_action_ref=None), vest_price=50.0, resolved=resolved_for(vest(corporate_action_ref=None)))
 
 
 class TestConcentrationIsMeasured:

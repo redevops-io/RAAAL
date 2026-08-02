@@ -17,6 +17,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from tests.vest_fixtures import resolved_for
+
 from src.mission.accounting import CashPolicy
 from src.mission.simulate import simulate
 from src.runtime.disposition import (
@@ -72,7 +74,7 @@ def drive(prices, schedule, *, in_kind=()):
 
 
 def vested(price=50.0):
-    arrival, accounting = in_kind_flow_for(vest(), vest_price=price)
+    arrival, accounting = in_kind_flow_for(vest(), vest_price=price, resolved=resolved_for(vest()))
     return arrival, accounting
 
 

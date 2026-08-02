@@ -205,7 +205,37 @@ def apply_share_withholding(gross_shares: float, vest_price: float, *,
             "withheld_value": withheld_value}
 
 
+def resolve_for_vest(vest: VestEvent, *, granted_shares: float,
+                     issuer_ref: str, realized, runtime, grant_ref: str = ""):
+    """Put a grant through its pinned corporate-action runtime.
+
+    The only way to obtain the `ResolvedGrant` that vest delivery accepts. A
+    reference that is declared and never executed is a claim the system cannot
+    support, and a raw declared quantity reaching withholding is exactly that
+    claim.
+    """
+    from decimal import Decimal
+
+    from .corporate_action import UnresolvedCorporateAction, resolve_grant
+
+    if vest.corporate_action_ref and realized is not None and \
+            vest.corporate_action_ref != realized.snapshot_ref:
+        # The run declared one snapshot and was handed another. Proceeding
+        # would compute a quantity from a history the plan never named.
+        raise UnresolvedCorporateAction(
+            f"vest {vest.grant_id} pins corporate actions "
+            f"{vest.corporate_action_ref!r} and was given "
+            f"{realized.snapshot_ref!r}")
+
+    return resolve_grant(
+        grant_ref=grant_ref or vest.grant_id,
+        granted_shares=Decimal(str(granted_shares)),
+        symbol=vest.employer_ticker, issuer_ref=issuer_ref,
+        vest_date=vest.vest_date, realized=realized, runtime=runtime)
+
+
 def apply_vest_delivery(vest: VestEvent, *, vest_price: float,
+                        resolved=None,
                         cumulative_supplemental: float = 0.0):
     """The in-kind delivery a vest produces.
 
@@ -229,13 +259,29 @@ def apply_vest_delivery(vest: VestEvent, *, vest_price: float,
             f"vest {vest.grant_id} states no withholding rate. A statutory "
             "remittance rate is not recoverable from the other fields")
 
+    if resolved is None:
+        raise UnpinnedVest(
+            f"vest {vest.grant_id} has not been through its corporate-action "
+            "runtime. The declared share count is the count at grant date, and "
+            "a split between then and now makes it the wrong one")
+    if not resolved.vests:
+        raise UnpinnedVest(
+            f"grant {resolved.grant_ref} was "
+            f"{resolved.status.value.lower()} and does not vest")
+
+    # The adjusted quantity, never the declared one. 101 granted through a
+    # two-for-one split is 202 at vest, and whole-share withholding on 101
+    # delivers 156 where the adjusted count delivers 157.
+    gross = float(resolved.adjusted_quantity)
+    ticker = resolved.symbol
+
     split = apply_share_withholding(
-        vest.gross_shares, vest_price, rate=rate,
+        gross, vest_price, rate=rate,
         method=vest.withholding_method,
         cumulative_supplemental=cumulative_supplemental)
 
     return Grant(date=pd.Timestamp(vest.vest_date),
-                 ticker=vest.employer_ticker,
+                 ticker=ticker,
                  shares=split["delivered_shares"],
                  reason=(f"vest {vest.grant_id}, net of "
                          f"{split['withheld_shares']:.4f} shares withheld")), split
@@ -247,7 +293,7 @@ def apply_vest_delivery(vest: VestEvent, *, vest_price: float,
 CONSERVATION_TOLERANCE = 1e-6
 
 
-def vest_accounting(vest: VestEvent, *, vest_price: float,
+def vest_accounting(vest: VestEvent, *, vest_price: float, resolved=None,
                     cumulative_supplemental: float = 0.0) -> Dict[str, Any]:
     """The full accounting of one vest, with the three values kept apart.
 
@@ -269,10 +315,18 @@ def vest_accounting(vest: VestEvent, *, vest_price: float,
     if vest.withholding_rate is None:
         raise UnpinnedVest(
             f"vest {vest.grant_id} states no withholding rate")
+    if resolved is None:
+        raise UnpinnedVest(
+            f"vest {vest.grant_id} has not been through its corporate-action "
+            "runtime, so its share count is the one declared at grant date")
+    if not resolved.vests:
+        raise UnpinnedVest(
+            f"grant {resolved.grant_ref} was "
+            f"{resolved.status.value.lower()} and does not vest")
 
     split = apply_share_withholding(
-        vest.gross_shares, vest_price, rate=vest.withholding_rate,
-        method=vest.withholding_method,
+        float(resolved.adjusted_quantity), vest_price,
+        rate=vest.withholding_rate, method=vest.withholding_method,
         cumulative_supplemental=cumulative_supplemental)
 
     delivered_value = split["delivered_shares"] * vest_price
@@ -284,6 +338,13 @@ def vest_accounting(vest: VestEvent, *, vest_price: float,
 
     return {
         "grant_id": vest.grant_id,
+        "granted_shares": float(resolved.original_quantity),
+        "adjusted_gross_shares": float(resolved.adjusted_quantity),
+        "corporate_actions_applied": list(resolved.applied),
+        "corporate_action_refs": list(resolved.applied_action_refs),
+        "corporate_action_runtime_ref": resolved.runtime_ref,
+        "corporate_action_snapshot_ref": resolved.snapshot_ref,
+        "resolved_symbol": resolved.symbol,
         "gross_shares": split["gross_shares"],
         "shares_withheld": split["withheld_shares"],
         "shares_delivered": split["delivered_shares"],
@@ -297,7 +358,7 @@ def vest_accounting(vest: VestEvent, *, vest_price: float,
     }
 
 
-def in_kind_flow_for(vest: VestEvent, *, vest_price: float,
+def in_kind_flow_for(vest: VestEvent, *, vest_price: float, resolved=None,
                      cumulative_supplemental: float = 0.0):
     """The engine event a vest produces.
 
@@ -311,10 +372,10 @@ def in_kind_flow_for(vest: VestEvent, *, vest_price: float,
     from ..mission.accounting import InKindFlow
 
     accounting = vest_accounting(
-        vest, vest_price=vest_price,
+        vest, vest_price=vest_price, resolved=resolved,
         cumulative_supplemental=cumulative_supplemental)
     return InKindFlow(
-        date=pd.Timestamp(vest.vest_date), asset=vest.employer_ticker,
+        date=pd.Timestamp(vest.vest_date), asset=resolved.symbol,
         quantity=accounting["shares_delivered"],
         valuation_price=vest_price,
         external_value=accounting["external_flow_value"],
@@ -416,7 +477,7 @@ def compute_employer_concentration(holdings: Mapping[str, float],
 #: Mechanisms that exist as callables in this module. The realization verifier
 #: resolves every name here, so the tuple cannot claim one into existence.
 IMPLEMENTED = ("apply_vest_delivery", "apply_share_withholding",
-               "vest_accounting", "in_kind_flow_for",
+               "vest_accounting", "in_kind_flow_for", "resolve_for_vest",
                "apply_supplemental_wage_threshold",
                "next_eligible_disposition_session",
                "allocate_disposition_proceeds",

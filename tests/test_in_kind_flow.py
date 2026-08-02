@@ -22,6 +22,8 @@ import re
 import pandas as pd
 import pytest
 
+from tests.vest_fixtures import resolved_for
+
 from src.mission.accounting import CashFlow, CashPolicy, InKindFlow
 from src.mission.benchmark import buy_and_hold
 from src.mission.simulate import simulate
@@ -69,21 +71,21 @@ class TestTheInKindBalanceIdentity:
     """Immediately after a vest, before any disposition."""
 
     def test_shares_are_credited(self, prices):
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         result = run(prices, in_kind=[arrival])
         assert float(result.path.holdings["ACME"].iloc[-1]) == pytest.approx(78.0)
 
     def test_cash_is_unchanged(self, prices):
         """No cash is debited, and none is credited either. The delivery is not
         a cash event."""
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         assert float(run(prices, in_kind=[arrival]).path.cash.iloc[-1]) == \
             pytest.approx(0.0)
 
     def test_the_external_flow_is_the_delivered_value(self, prices):
         """Delivered, not gross. Withheld shares never enter the account, so
         crediting their value would give the portfolio money it does not hold."""
-        arrival, accounting = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, accounting = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         result = run(prices, in_kind=[arrival])
         assert float(result.path.flows.sum()) == pytest.approx(3_900.0)
         assert accounting["gross_vest_value"] == pytest.approx(5_000.0)
@@ -91,7 +93,7 @@ class TestTheInKindBalanceIdentity:
     def test_an_in_kind_flow_never_becomes_spendable_cash(self, prices):
         """Held in one series this worked only because of statement order in
         the loop. Two series make funding a purchase from a vest impossible."""
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         result = run(prices, in_kind=[arrival], tickers=["VTI"])
         assert float(result.path.holdings.get("VTI", pd.Series([0.0])).iloc[-1]) \
             == pytest.approx(0.0)
@@ -100,19 +102,19 @@ class TestTheInKindBalanceIdentity:
 class TestNoArtificialTrade:
 
     def test_no_purchase_fill_is_generated(self, prices):
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         assert len(run(prices, in_kind=[arrival]).path.fills) == 0
 
     def test_no_transaction_cost_is_charged(self, prices):
         """78 shares at $50 is exactly $3,900 of value. A cost would make the
         holding worth less than the flow that delivered it."""
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         result = run(prices, in_kind=[arrival])
         assert result.path.terminal_value == pytest.approx(3_900.0)
 
     def test_no_execution_lag_is_applied_to_delivery(self, prices, sessions):
         """The shares are owned on the vest session, not a session later."""
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         result = run(prices, in_kind=[arrival])
         assert float(result.path.holdings["ACME"].iloc[0]) == pytest.approx(78.0)
 
@@ -127,8 +129,7 @@ class TestTheValuationIsPinnedNotRediscovered:
         """
         moving = pd.DataFrame(
             {"ACME": [50.0 + i for i in range(len(sessions))]}, index=sessions)
-        arrival, accounting = in_kind_flow_for(
-            vest(vest_date="2026-03-08"), vest_price=50.0)          # a Sunday
+        arrival, accounting = in_kind_flow_for(vest(vest_date="2026-03-08"), vest_price=50.0, resolved=resolved_for(vest(vest_date="2026-03-08")))          # a Sunday
 
         result = run(moving, in_kind=[arrival])
         assert float(result.path.flows.sum()) == pytest.approx(
@@ -147,10 +148,8 @@ class TestTWRAndMWRSeparate:
         """Time-weighted return measures the strategy, so contribution timing
         must not move it."""
         prices = self.rising(sessions)
-        early, _ = in_kind_flow_for(vest(vest_date="2026-03-02"),
-                                    vest_price=50.0)
-        late, _ = in_kind_flow_for(vest(vest_date="2026-04-01"),
-                                   vest_price=50.0)
+        early, _ = in_kind_flow_for(vest(vest_date="2026-03-02"), vest_price=50.0, resolved=resolved_for(vest(vest_date="2026-03-02")))
+        late, _ = in_kind_flow_for(vest(vest_date="2026-04-01"), vest_price=50.0, resolved=resolved_for(vest(vest_date="2026-04-01")))
 
         first = run(prices, in_kind=[early]).time_weighted
         second = run(prices, in_kind=[late]).time_weighted
@@ -168,10 +167,8 @@ class TestTWRAndMWRSeparate:
         how long that value was exposed, which is exactly what MWR measures and
         TWR removes."""
         prices = self.rising(sessions)
-        early, _ = in_kind_flow_for(vest(vest_date="2026-03-02"),
-                                    vest_price=50.0)
-        late, _ = in_kind_flow_for(vest(vest_date="2026-04-01"),
-                                   vest_price=50.0)
+        early, _ = in_kind_flow_for(vest(vest_date="2026-03-02"), vest_price=50.0, resolved=resolved_for(vest(vest_date="2026-03-02")))
+        late, _ = in_kind_flow_for(vest(vest_date="2026-04-01"), vest_price=50.0, resolved=resolved_for(vest(vest_date="2026-04-01")))
 
         first = run(prices, in_kind=[early])
         second = run(prices, in_kind=[late])
@@ -183,7 +180,7 @@ class TestTWRAndMWRSeparate:
 class TestBenchmarksReceiveTheSameFlow:
 
     def test_a_value_matched_benchmark_gets_the_same_dated_value(self, prices):
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         matched = benchmark_flows_for([arrival],
                                       mode=BenchmarkFlowMode.VALUE_MATCHED)
 
@@ -195,14 +192,14 @@ class TestBenchmarksReceiveTheSameFlow:
     def test_it_matches_by_date_not_merely_by_total(self, prices):
         """An annual total that agrees while the dates differ is a different
         investment, and money-weighted return will say so."""
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         matched = benchmark_flows_for([arrival],
                                       mode=BenchmarkFlowMode.VALUE_MATCHED)
         assert [f.date for f in matched] == [arrival.date]
 
     def test_an_in_kind_hold_benchmark_receives_the_shares_themselves(self,
                                                                      prices):
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         held = benchmark_flows_for([arrival], mode=BenchmarkFlowMode.IN_KIND_HOLD)
         benchmark = run(prices, in_kind=held)
         assert float(benchmark.path.holdings["ACME"].iloc[-1]) == \
@@ -211,7 +208,7 @@ class TestBenchmarksReceiveTheSameFlow:
     def test_the_two_modes_are_not_interchangeable(self, prices):
         """One compares allocation strategies; the other compares dispositions
         of the same asset. Substituting one answers a question nobody asked."""
-        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0)
+        arrival, _ = in_kind_flow_for(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         matched = benchmark_flows_for([arrival],
                                       mode=BenchmarkFlowMode.VALUE_MATCHED)
         held = benchmark_flows_for([arrival], mode=BenchmarkFlowMode.IN_KIND_HOLD)
@@ -250,7 +247,7 @@ class TestAMissingPriceIsANamedGap:
 class TestConservation:
 
     def test_the_three_values_account_for_the_gross(self):
-        accounting = vest_accounting(vest(), vest_price=50.0)
+        accounting = vest_accounting(vest(), vest_price=50.0, resolved=resolved_for(vest()))
         assert conserved(accounting)
         assert accounting["gross_vest_value"] == pytest.approx(
             accounting["withheld_value"] + accounting["external_flow_value"]
@@ -259,20 +256,21 @@ class TestConservation:
     def test_it_holds_across_the_threshold_split(self):
         big = vest(gross_shares=30_000.0)
         accounting = vest_accounting(big, vest_price=50.0,
+                                     resolved=resolved_for(big),
                                      cumulative_supplemental=800_000.0)
         assert conserved(accounting)
 
     def test_any_remainder_is_explicit_rather_than_absorbed(self):
         """A remainder folded into delivered shares is rounding in the
         account's favour that nobody chose."""
-        accounting = vest_accounting(vest(gross_shares=101.0), vest_price=37.13)
+        accounting = vest_accounting(vest(gross_shares=101.0), vest_price=37.13, resolved=resolved_for(vest(gross_shares=101.0)))
         assert "cash_remainder" in accounting
         assert conserved(accounting)
 
     def test_the_basis_says_what_the_figure_is(self):
         """Account value after share withholding — not total compensation
         economics, and not final tax liability."""
-        basis = vest_accounting(vest(), vest_price=50.0)["basis"]
+        basis = vest_accounting(vest(), vest_price=50.0, resolved=resolved_for(vest()))["basis"]
         assert "after share withholding" in basis
         assert "not final tax liability" in basis
 

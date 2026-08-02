@@ -188,9 +188,21 @@ class RealizedCorporateActions:
                 "events": [one.to_json() for one in self.events]}
 
 
+class ResolutionStatus(str, Enum):
+    RESOLVED = "RESOLVED"
+    CANCELLED = "CANCELLED"
+    REPLACED = "REPLACED"
+
+
 @dataclass(frozen=True)
 class ResolvedGrant:
-    """The grant's identity and quantity at the vest date."""
+    """The grant's identity and quantity at the vest date, with its provenance.
+
+    The only thing vest delivery accepts. Passing a raw declared quantity would
+    let a grant reach withholding without having been through the runtime that
+    was pinned for it — a corporate-action reference that was declared and never
+    executed, which is the defect this wiring exists to close.
+    """
 
     grant_ref: str
     symbol: str
@@ -201,9 +213,29 @@ class ResolvedGrant:
     cancelled: bool = False
     replaced_by: Optional[str] = None
 
+    original_symbol: str = ""
+    original_quantity: Decimal = Decimal(0)
+    applied_action_refs: Sequence[str] = ()
+    runtime_ref: str = ""
+    snapshot_ref: str = ""
+    """Which realized history produced this. Two runs can share an
+    interpretation policy and receive different action histories, so the
+    snapshot travels beside the runtime — the market-data lesson, applied to
+    corporate actions."""
+
+    status: ResolutionStatus = ResolutionStatus.RESOLVED
+
     @property
     def vests(self) -> bool:
         return not self.cancelled
+
+    @property
+    def adjusted_quantity(self) -> Decimal:
+        return self.gross_shares
+
+    @property
+    def was_adjusted(self) -> bool:
+        return self.gross_shares != self.original_quantity
 
     def to_json(self) -> Dict[str, Any]:
         return {"grant_ref": self.grant_ref, "symbol": self.symbol,
@@ -211,7 +243,15 @@ class ResolvedGrant:
                 "fractional_shares": str(self.fractional_shares),
                 "cash_in_lieu": str(self.cash_in_lieu),
                 "applied": list(self.applied), "cancelled": self.cancelled,
-                "replaced_by": self.replaced_by, "vests": self.vests}
+                "replaced_by": self.replaced_by, "vests": self.vests,
+                "original_symbol": self.original_symbol,
+                "original_quantity": str(self.original_quantity),
+                "adjusted_quantity": str(self.adjusted_quantity),
+                "was_adjusted": self.was_adjusted,
+                "applied_action_refs": list(self.applied_action_refs),
+                "runtime_ref": self.runtime_ref,
+                "snapshot_ref": self.snapshot_ref,
+                "resolution_status": self.status.value}
 
 
 @dataclass(frozen=True)
@@ -374,6 +414,7 @@ def resolve_grant(*, grant_ref: str, granted_shares: Decimal, symbol: str,
 
     shares, current = Decimal(granted_shares), symbol
     applied: List[str] = []
+    refs: List[str] = []
     fraction_total, cash = Decimal(0), Decimal(0)
 
     for event in realized.through(issuer_ref, vest_date):
@@ -383,15 +424,25 @@ def resolve_grant(*, grant_ref: str, granted_shares: Decimal, symbol: str,
                 f"{UNSUPPORTED[event.kind]}")
 
         if event.kind is CorporateActionKind.GRANT_CANCELLED:
-            return ResolvedGrant(grant_ref=grant_ref, symbol=current,
-                                 gross_shares=Decimal(0), cancelled=True,
-                                 applied=tuple(applied + [event.kind.value]))
+            return ResolvedGrant(
+                grant_ref=grant_ref, symbol=current, gross_shares=Decimal(0),
+                cancelled=True, status=ResolutionStatus.CANCELLED,
+                applied=tuple(applied + [event.kind.value]),
+                applied_action_refs=tuple(refs + [event.source_ref]),
+                original_symbol=symbol, original_quantity=Decimal(granted_shares),
+                runtime_ref=runtime.artifact_id,
+                snapshot_ref=realized.snapshot_ref)
 
         if event.kind is CorporateActionKind.GRANT_REPLACED:
             return ResolvedGrant(
                 grant_ref=grant_ref, symbol=current, gross_shares=Decimal(0),
                 cancelled=True, replaced_by=apply_replacement(event),
-                applied=tuple(applied + [event.kind.value]))
+                status=ResolutionStatus.REPLACED,
+                applied=tuple(applied + [event.kind.value]),
+                applied_action_refs=tuple(refs + [event.source_ref]),
+                original_symbol=symbol, original_quantity=Decimal(granted_shares),
+                runtime_ref=runtime.artifact_id,
+                snapshot_ref=realized.snapshot_ref)
 
         if event.kind in (CorporateActionKind.SPLIT,
                           CorporateActionKind.REVERSE_SPLIT):
@@ -409,11 +460,16 @@ def resolve_grant(*, grant_ref: str, granted_shares: Decimal, symbol: str,
             shares, current = apply_stock_conversion(shares, current, event)
 
         applied.append(event.kind.value)
+        refs.append(event.source_ref)
 
     return ResolvedGrant(grant_ref=grant_ref, symbol=current,
                          gross_shares=shares,
                          fractional_shares=fraction_total, cash_in_lieu=cash,
-                         applied=tuple(applied))
+                         applied=tuple(applied), applied_action_refs=tuple(refs),
+                         original_symbol=symbol,
+                         original_quantity=Decimal(granted_shares),
+                         runtime_ref=runtime.artifact_id,
+                         snapshot_ref=realized.snapshot_ref)
 
 
 #: Mechanisms that exist here. Resolved to real callables by the test suite.

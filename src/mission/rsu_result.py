@@ -120,6 +120,12 @@ DESTINATIONS: Mapping[str, str] = {
 @dataclass(frozen=True)
 class VestAccountingContext:
     basis: str = "POST_WITHHOLDING_ACCOUNT_VALUE"
+    granted_shares: Optional[float] = None
+    adjusted_gross_shares: Optional[float] = None
+    corporate_actions_applied: Sequence[str] = ()
+    corporate_action_refs: Sequence[str] = ()
+    corporate_action_runtime_ref: str = ""
+    corporate_action_snapshot_ref: str = ""
     gross_vest_value: Optional[float] = None
     withheld_value: Optional[float] = None
     delivered_value: Optional[float] = None
@@ -128,6 +134,12 @@ class VestAccountingContext:
 
     def to_json(self) -> Dict[str, Any]:
         return {"basis": self.basis, "basis_note": POST_WITHHOLDING_BASIS,
+                "granted_shares": self.granted_shares,
+                "adjusted_gross_shares": self.adjusted_gross_shares,
+                "corporate_actions_applied": list(self.corporate_actions_applied),
+                "corporate_action_refs": list(self.corporate_action_refs),
+                "corporate_action_runtime_ref": self.corporate_action_runtime_ref,
+                "corporate_action_snapshot_ref": self.corporate_action_snapshot_ref,
                 "gross_vest_value": self.gross_vest_value,
                 "withheld_value": self.withheld_value,
                 "delivered_value": self.delivered_value,
@@ -405,6 +417,15 @@ def from_json(payload: Mapping[str, Any]) -> RSUResultContext:
     return RSUResultContext(
         vest_accounting=VestAccountingContext(
             basis=vest.get("basis", "POST_WITHHOLDING_ACCOUNT_VALUE"),
+            granted_shares=vest.get("granted_shares"),
+            adjusted_gross_shares=vest.get("adjusted_gross_shares"),
+            corporate_actions_applied=tuple(
+                vest.get("corporate_actions_applied") or ()),
+            corporate_action_refs=tuple(vest.get("corporate_action_refs") or ()),
+            corporate_action_runtime_ref=vest.get(
+                "corporate_action_runtime_ref", ""),
+            corporate_action_snapshot_ref=vest.get(
+                "corporate_action_snapshot_ref", ""),
             gross_vest_value=vest.get("gross_vest_value"),
             withheld_value=vest.get("withheld_value"),
             delivered_value=vest.get("delivered_value"),
@@ -463,6 +484,15 @@ def build(*, vest_accounting: Optional[Mapping[str, Any]] = None,
     """
     vest = vest_accounting or {}
     accounting = VestAccountingContext(
+        granted_shares=vest.get("granted_shares"),
+        adjusted_gross_shares=vest.get("adjusted_gross_shares"),
+        corporate_actions_applied=tuple(
+            vest.get("corporate_actions_applied") or ()),
+        corporate_action_refs=tuple(vest.get("corporate_action_refs") or ()),
+        corporate_action_runtime_ref=vest.get(
+            "corporate_action_runtime_ref", ""),
+        corporate_action_snapshot_ref=vest.get(
+            "corporate_action_snapshot_ref", ""),
         gross_vest_value=vest.get("gross_vest_value"),
         withheld_value=vest.get("withheld_value"),
         delivered_value=vest.get("external_flow_value"),

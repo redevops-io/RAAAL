@@ -38,6 +38,7 @@ BASE = RSUComparisonProfile(
     grant_identity="grant/g1", vest_dates=("2026-03-02",),
     delivered_values=(3_900.0,), withholding_runtime="tax/us-federal@1",
     corporate_action_runtime="ca/none@1",
+    corporate_action_snapshot="actions@2026-06",
     policy_kind="SELL_ALL_AND_DIVERSIFY", blackout_policy=(),
     execution_lag=1, transaction_cost_model="bps@10",
     fractional_share_policy="FRACTIONAL_ALLOWED",

@@ -12,6 +12,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from tests.vest_fixtures import resolved_for
+
 from src.mission.accounting import CashPolicy
 from src.mission.simulate import simulate
 from src.runtime.allocation import (
@@ -47,13 +49,12 @@ def prices(sessions):
 
 
 def vest_arrival():
-    return in_kind_flow_for(
-        VestEvent(grant_id="g1", employer_ticker="ACME", vest_date="2026-03-02",
-                  gross_shares=100.0, vest_price_source="p",
-                  withholding_rate=0.22,
-                  withholding_method=WithholdingMethod.SHARE_WITHHOLDING,
-                  market_data_ref="md@1", corporate_action_ref="ca@1"),
-        vest_price=50.0)
+    one = VestEvent(grant_id="g1", employer_ticker="ACME",
+                    vest_date="2026-03-02", gross_shares=100.0,
+                    vest_price_source="p", withholding_rate=0.22,
+                    withholding_method=WithholdingMethod.SHARE_WITHHOLDING,
+                    market_data_ref="md@1", corporate_action_ref="ca@1")
+    return in_kind_flow_for(one, vest_price=50.0, resolved=resolved_for(one))
 
 
 def sale(log=None):

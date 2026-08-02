@@ -62,7 +62,8 @@ class BenchmarkStatus(str, Enum):
 #: check cannot quietly omit one — `test_every_profile_field_is_load_bearing`
 #: mutates each in turn and requires the verdict to change.
 VEST_FLOW = ("grant_identity", "vest_dates", "delivered_values",
-             "withholding_runtime", "corporate_action_runtime")
+             "withholding_runtime", "corporate_action_runtime",
+             "corporate_action_snapshot")
 
 DISPOSITION = ("policy_kind", "blackout_policy", "execution_lag",
                "transaction_cost_model", "fractional_share_policy")
@@ -113,6 +114,13 @@ class RSUComparisonProfile:
     delivered_values: Optional[Sequence[float]] = None
     withholding_runtime: Optional[str] = None
     corporate_action_runtime: Optional[str] = None
+    corporate_action_snapshot: Optional[str] = None
+    """Which realized action history the run received.
+
+    Beside the runtime, not instead of it. Two runs can share an interpretation
+    policy and be handed different histories — one knowing about a split the
+    other does not — and matching only the policy would repeat the market-data
+    snapshot defect exactly."""
 
     # disposition
     policy_kind: Optional[str] = None
