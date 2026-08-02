@@ -102,9 +102,17 @@ app.include_router(workspace_router)
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
+    """Liveness plus the compatibility facts a client needs.
+
+    The public view only. An image digest and a migration head describe how to
+    attack the deployment, not how to interoperate with it.
+    """
+    from .deploy import read_manifest
+
     return {
         "status": "ok",
         "version": API_VERSION,
+        "build": read_manifest().public(),
         "paper_only": True,
         "external_execution_path": False,
         "notice": DEMO_NOTICE,
