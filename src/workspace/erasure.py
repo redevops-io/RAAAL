@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -68,7 +67,7 @@ def owner_reference(owner: str) -> str:
     return "owner-" + hashlib.sha256(f"erasure:{owner}".encode()).hexdigest()[:32]
 
 
-def _rows_for(conn: sqlite3.Connection, record, owner: str) -> List[Dict]:
+def _rows_for(conn, record, owner: str) -> List[Dict]:
     """Rows this owner holds, by the declared ownership path.
 
     No table is special-cased here. The join comes from the classification, so

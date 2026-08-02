@@ -13,11 +13,11 @@ ever exported.
 from __future__ import annotations
 
 import json
-import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Sequence
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence
 
+from ..db.engine import Database, Dialect
 from ..mission.boundary import scan_for_personal_data
 from ..runtime.base import canonical_hash
 from .intent_chain import chain_link
@@ -274,17 +274,30 @@ class NotSaveable(ValueError):
 
 
 class WorkspaceStore:
-    def __init__(self, path: Path | str = DEFAULT_PATH) -> None:
-        self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self._conn() as conn:
-            conn.executescript(_SCHEMA)
-            self._add_missing_columns(conn)
-            self._relax_not_null(conn)
-            self._widen_primary_keys(conn)
+    """The workspace, on whichever database this instance was pointed at.
+
+    Accepts a filesystem path (SQLite — tests, local development, the standalone
+    demo), a database URL, or nothing at all, in which case
+    `QUANTIFY_DATABASE_URL` decides and a local SQLite file is the fallback.
+    A deployed pilot is required to be PostgreSQL by `src.db.guard`, not by this
+    constructor: a store that refused SQLite outright could not be unit-tested.
+    """
+
+    def __init__(self, target: Path | str | None = None) -> None:
+        self.db = Database(target if target is not None else DEFAULT_PATH)
+        self.path = self.db.path
+        self.db.create_all()
+        if self.db.dialect is Dialect.SQLITE:
+            # Legacy repair, SQLite only. PostgreSQL gets its schema from
+            # Alembic, where an ordered revision does this properly and leaves a
+            # record that it happened.
+            with self._conn() as conn:
+                self._add_missing_columns(conn)
+                self._relax_not_null(conn)
+                self._widen_primary_keys(conn)
 
     @staticmethod
-    def _widen_primary_keys(conn: sqlite3.Connection) -> None:
+    def _widen_primary_keys(conn) -> None:
         """Rebuild any table whose primary key gained a column."""
         for table, expected in _WIDENED_PRIMARY_KEY:
             columns = conn.execute(f"PRAGMA table_info({table})").fetchall()
@@ -303,7 +316,7 @@ class WorkspaceStore:
             conn.execute(f"DROP TABLE {table}__old")
 
     @staticmethod
-    def _relax_not_null(conn: sqlite3.Connection) -> None:
+    def _relax_not_null(conn) -> None:
         """Rebuild any table whose column must now accept NULL."""
         for table, column in _RELAXED_NOT_NULL:
             columns = conn.execute(f"PRAGMA table_info({table})").fetchall()
@@ -320,7 +333,7 @@ class WorkspaceStore:
             conn.execute(f"DROP TABLE {table}__old")
 
     @staticmethod
-    def _add_missing_columns(conn: sqlite3.Connection) -> None:
+    def _add_missing_columns(conn) -> None:
         """`CREATE TABLE IF NOT EXISTS` does nothing to a table that exists.
 
         An existing workspace database would keep its old shape and every insert
@@ -334,7 +347,7 @@ class WorkspaceStore:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
 
     @contextmanager
-    def transaction(self) -> Iterator[sqlite3.Connection]:
+    def transaction(self) -> Iterator[Any]:
         """One connection across several writes, committed or rolled back once.
 
         The apply path persists runs and then a worksheet revision that cites
@@ -342,8 +355,7 @@ class WorkspaceStore:
         has produced runs and no revision — an orphaned run that looks like
         history and belongs to nothing.
         """
-        conn = sqlite3.connect(self.path)
-        conn.row_factory = sqlite3.Row
+        conn = self.db.connect()
         previous, self._tx = getattr(self, "_tx", None), conn
         try:
             yield conn
@@ -356,15 +368,14 @@ class WorkspaceStore:
             conn.close()
 
     @contextmanager
-    def _conn(self) -> Iterator[sqlite3.Connection]:
+    def _conn(self) -> Iterator[Any]:
         # Inside a transaction every write joins it rather than committing on
         # its own, so a failure halfway through rolls the whole edit back.
         joined = getattr(self, "_tx", None)
         if joined is not None:
             yield joined
             return
-        conn = sqlite3.connect(self.path)
-        conn.row_factory = sqlite3.Row
+        conn = self.db.connect()
         try:
             yield conn
             conn.commit()
@@ -906,7 +917,7 @@ class WorkspaceStore:
         return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
 
     @staticmethod
-    def _hydrate(row: sqlite3.Row) -> Dict[str, Any]:
+    def _hydrate(row: Mapping[str, Any]) -> Dict[str, Any]:
         record = dict(row)
         record["scenario"] = json.loads(record["scenario"])
         # Absent for plans saved before stage 1 could involve a model. Those

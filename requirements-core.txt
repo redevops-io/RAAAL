@@ -34,3 +34,12 @@ httpx>=0.27
 # below the measured crossover Polars is slower, so it belongs to replay,
 # aggregation and Discovery sweeps only. See docs/Performance.md.
 polars>=1.30
+
+# Persistence. PostgreSQL is the deployed authority; SQLite remains for tests,
+# local development and the standalone demo. SQLAlchemy Core defines the schema
+# once for both dialects and Alembic turns it into ordered, reversible
+# migrations — the three in-code repair routines it replaces had no ordering,
+# no recorded state and no way to say which schema a database was at.
+sqlalchemy>=2.0
+alembic>=1.13
+psycopg[binary]>=3.1
