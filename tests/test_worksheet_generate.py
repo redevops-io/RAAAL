@@ -15,7 +15,7 @@ import re
 
 import pytest
 
-from src.workspace.generate import generate, run_id_for, worksheet_id_for
+from src.workspace.generate import generate, new_worksheet_id, run_id_for
 from src.workspace.store import WorkspaceStore
 from src.workspace.worksheet import from_json
 
@@ -76,7 +76,7 @@ class TestTheJourney:
             follow_redirects=False)
         assert response.status_code == 303
 
-        worksheet = store.get_worksheet(worksheet_id_for("plan-1"), OWNER)
+        worksheet = store.worksheet_for_scenario("plan-1", OWNER)
         assert worksheet is not None
         assert worksheet["revision"] == 1
 
@@ -90,7 +90,7 @@ class TestTheJourney:
                         data={"parse": json.dumps(parse(COMPLETE).to_json())},
                         follow_redirects=False)
 
-        record = store.get_worksheet(worksheet_id_for("plan-1"), OWNER)
+        record = store.worksheet_for_scenario("plan-1", OWNER)
         worksheet = from_json(record["payload"])
         assert worksheet.primary_run_ref
         assert store.get_run(worksheet.primary_run_ref, OWNER) is not None, (
@@ -106,7 +106,8 @@ class TestTheJourney:
                         data={"parse": json.dumps(parse(COMPLETE).to_json())},
                         follow_redirects=False)
 
-        page = api_client.get(f"/workspace/research/{worksheet_id_for('plan-1')}")
+        identifier = _store.worksheet_for_scenario("plan-1", OWNER)["worksheet_id"]
+        page = api_client.get(f"/workspace/research/{identifier}")
         assert page.status_code == 200
         assert "SPY" in text(page.text)
 
@@ -168,7 +169,7 @@ class TestReSavingMakesARevision:
             generate(store, plan_id="plan-1", owner=OWNER,
                      scenario=compiled.scenario, run={"modelling_scope": {"excludes": ["dividends"]}},
                      comparison={}, ran_at="2026-08-01T00:00:00Z")
-        assert len(store.worksheet_revisions(worksheet_id_for("plan-1"),
+        assert len(store.worksheet_revisions(store.worksheet_for_scenario("plan-1", OWNER)["worksheet_id"],
                                              OWNER)) == 1
 
 
@@ -181,7 +182,7 @@ class TestNothingIsCitedBeforeItExists:
         assert generate(store, plan_id="plan-1", owner=OWNER,
                         scenario=compiled.scenario, run={}, comparison={},
                         ran_at="2026-08-01T00:00:00Z") is None
-        assert store.get_worksheet(worksheet_id_for("plan-1"), OWNER) is None
+        assert store.worksheet_for_scenario("plan-1", OWNER) is None
 
     def test_the_run_is_recorded_before_the_worksheet(self, tmp_path, compiled):
         """Ordering asserted through the store, not by reading the source."""

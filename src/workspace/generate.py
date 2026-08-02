@@ -18,6 +18,7 @@ figures someone already read stay readable.
 from __future__ import annotations
 
 import hashlib
+import uuid
 from typing import Any, Dict, Mapping, Optional, Sequence
 
 from .worksheet import ResearchWorksheet, create, revise
@@ -34,8 +35,19 @@ def run_id_for(plan_id: str, scenario_hash: str, ran_at: str) -> str:
     return f"run-{plan_id}-{digest}"
 
 
-def worksheet_id_for(plan_id: str) -> str:
-    return f"ws-{plan_id}"
+def new_worksheet_id() -> str:
+    """An opaque, server-generated identity.
+
+    It was `ws-{plan_id}`, which put a user's own scenario name into an
+    identifier that appears in URLs and is shared across tenants. Two problems,
+    and the second outlives the first: the id was guessable, and it was derived
+    from something the user chose, so knowing a plan name was enough to name
+    another tenant's worksheet.
+
+    The human-readable name lives on as `title`, which is a field rather than an
+    identity — an identifier that carries meaning is an identifier that leaks it.
+    """
+    return f"ws-{uuid.uuid4().hex}"
 
 
 def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any],
@@ -54,10 +66,13 @@ def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any
     store.record_run(run_id=identifier, plan_id=plan_id, ran_at=ran_at,
                      result=dict(run), comparison=dict(comparison or {}))
 
-    worksheet_id = worksheet_id_for(plan_id)
-    existing = store.get_worksheet(worksheet_id, owner)
+    # Found by what it cites, not by an id computed from the plan name. With an
+    # opaque identity there is nothing to recompute, and looking it up by
+    # (owner, scenario) is the question actually being asked: does this user
+    # already have a worksheet for this scenario?
+    existing = store.worksheet_for_scenario(plan_id, owner)
     if existing is None:
-        worksheet = create(worksheet_id=worksheet_id, owner_id=owner,
+        worksheet = create(worksheet_id=new_worksheet_id(), owner_id=owner,
                            scenario_ref=plan_id, primary_run_ref=identifier,
                            title=title or plan_id, created_at=ran_at)
         store.save_worksheet(worksheet)

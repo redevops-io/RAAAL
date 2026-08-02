@@ -158,23 +158,30 @@ class TestRollbackGoesForward:
         from src.workspace.worksheet import from_json, revise
 
         store = WorkspaceStore(Path(saved))
-        first = from_json(store.get_worksheet("ws-plan-1", "pilot")["payload"])
+        # Looked up by what it cites. Worksheet ids are opaque and
+        # server-generated, so there is no id to recompute from the plan name.
+        identifier = store.worksheet_for_scenario("plan-1", "pilot")["worksheet_id"]
+        first = from_json(store.get_worksheet(identifier, "pilot")["payload"])
         store.save_worksheet(revise(first, reason="a later run",
                                     primary_run_ref="run-later",
                                     created_at="2026-09-01T00:00:00Z"))
 
-        result = run("rollback", "ws-plan-1", "--to", "1", "--store", saved,
+        result = run("rollback", identifier, "--to", "1", "--store", saved,
                      "--at", "2026-10-01T00:00:00Z")
         assert result.returncode == 0
 
-        revisions = store.worksheet_revisions("ws-plan-1", "pilot")
+        revisions = store.worksheet_revisions(identifier, "pilot")
         assert [r["revision"] for r in revisions] == [1, 2, 3]
         restored = from_json(revisions[-1]["payload"])
         assert restored.primary_run_ref == first.primary_run_ref
         assert "rolled back" in restored.change_reason
 
     def test_an_absent_revision_fails(self, saved):
-        assert run("rollback", "ws-plan-1", "--to", "99",
+        from src.workspace.store import WorkspaceStore
+
+        identifier = WorkspaceStore(Path(saved)).worksheet_for_scenario(
+            "plan-1", "pilot")["worksheet_id"]
+        assert run("rollback", identifier, "--to", "99",
                    "--store", saved).returncode == 1
 
 

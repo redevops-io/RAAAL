@@ -133,7 +133,14 @@ CREATE TABLE IF NOT EXISTS worksheet (
     payload       TEXT NOT NULL,
     canonical_hash TEXT NOT NULL,
     created_at    TEXT NOT NULL,
-    PRIMARY KEY (worksheet_id, revision)
+    -- Owner is part of the identity, not a filter applied afterwards.
+    --
+    -- Keyed on (worksheet_id, revision) alone, a second owner could not create
+    -- a worksheet whose id another tenant already held: the write was refused,
+    -- and the refusal answered a question the requester was not entitled to
+    -- ask. Reads were correctly scoped, so nothing leaked on the way out — the
+    -- oracle was on the way in.
+    PRIMARY KEY (owner, worksheet_id, revision)
 );
 -- Confirmation-screen telemetry. Structure now, conclusions later: intent
 -- cannot be inferred without users, but the first sessions are the ones worth
@@ -177,6 +184,14 @@ _RELAXED_NOT_NULL = (
     ("worksheet_intent", "trial_effect"),
 )
 
+#: Tables whose primary key gained a column after shipping. SQLite cannot ALTER
+#: a primary key, so the table is rebuilt. `worksheet` was keyed on
+#: (worksheet_id, revision) with no owner, which made a write refusal reveal
+#: that another tenant held that id.
+_WIDENED_PRIMARY_KEY = (
+    ("worksheet", ("owner", "worksheet_id", "revision")),
+)
+
 
 class NotSaveable(ValueError):
     """A plan with unconfirmed choices cannot be saved.
@@ -194,6 +209,26 @@ class WorkspaceStore:
             conn.executescript(_SCHEMA)
             self._add_missing_columns(conn)
             self._relax_not_null(conn)
+            self._widen_primary_keys(conn)
+
+    @staticmethod
+    def _widen_primary_keys(conn: sqlite3.Connection) -> None:
+        """Rebuild any table whose primary key gained a column."""
+        for table, expected in _WIDENED_PRIMARY_KEY:
+            columns = conn.execute(f"PRAGMA table_info({table})").fetchall()
+            present = tuple(c["name"] for c in sorted(
+                (c for c in columns if c["pk"]), key=lambda c: c["pk"]))
+            if present == tuple(expected):
+                continue
+
+            names = ", ".join(c["name"] for c in columns)
+            ddl = next(iter(_SCHEMA.split(f"CREATE TABLE IF NOT EXISTS {table} (")[1]
+                            .split(");")))
+            conn.execute(f"ALTER TABLE {table} RENAME TO {table}__old")
+            conn.execute(f"CREATE TABLE {table} ({ddl})")
+            conn.execute(f"INSERT INTO {table} ({names}) "
+                         f"SELECT {names} FROM {table}__old")
+            conn.execute(f"DROP TABLE {table}__old")
 
     @staticmethod
     def _relax_not_null(conn: sqlite3.Connection) -> None:
@@ -330,8 +365,9 @@ class WorkspaceStore:
         with self._conn() as conn:
             existing = conn.execute(
                 "SELECT canonical_hash FROM worksheet "
-                "WHERE worksheet_id = ? AND revision = ?",
-                (worksheet.worksheet_id, worksheet.revision)).fetchone()
+                "WHERE owner = ? AND worksheet_id = ? AND revision = ?",
+                (worksheet.owner_id, worksheet.worksheet_id,
+                 worksheet.revision)).fetchone()
             if existing is not None:
                 if existing["canonical_hash"] == worksheet.canonical_hash:
                     return worksheet.worksheet_id      # idempotent redelivery
@@ -347,6 +383,21 @@ class WorkspaceStore:
                  json.dumps(payload), worksheet.canonical_hash,
                  worksheet.created_at or ""))
         return worksheet.worksheet_id
+
+    def worksheet_for_scenario(self, scenario_ref: str,
+                               owner: str) -> Optional[Dict[str, Any]]:
+        """This owner's latest worksheet for one scenario, if any.
+
+        Scoped by owner in the query. Two tenants may hold worksheets for
+        identically-named scenarios and neither may observe the other's.
+        """
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM worksheet WHERE owner = ? "
+                "AND json_extract(payload, '$.scenario_ref') = ? "
+                "ORDER BY revision DESC LIMIT 1",
+                (owner, scenario_ref)).fetchone()
+        return {**dict(row), "payload": json.loads(row["payload"])} if row else None
 
     def get_worksheet(self, worksheet_id: str, owner: str,
                       revision: Optional[int] = None) -> Optional[Dict[str, Any]]:
