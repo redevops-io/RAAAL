@@ -88,6 +88,13 @@ class RSUConfirmationCard:
     will_not_model: Sequence[str] = ()
     version_pin: str = ""
     versions: Mapping[str, str] = field(default_factory=dict)
+    scope: Optional[Mapping[str, Any]] = None
+    """The `ScopeDisclosure` this plan would run under.
+
+    The card and the worksheet may word a rule differently; they must not derive
+    different facts. Both render from one typed rule status and reason, so the
+    only way they can disagree is if the runtimes moved between confirming and
+    running — which `check_versions` refuses."""
 
     @property
     def blocking(self) -> Sequence[str]:
@@ -117,7 +124,8 @@ class RSUConfirmationCard:
                 "will_not_model": list(self.will_not_model),
                 "blocking": list(self.blocking), "can_run": self.can_run,
                 "version_pin": self.version_pin,
-                "versions": dict(self.versions)}
+                "versions": dict(self.versions),
+                "scope": dict(self.scope) if self.scope else None}
 
 
 def _render(value: Any) -> str:
@@ -132,7 +140,8 @@ def _render(value: Any) -> str:
 
 def build(declaration: RSUDeclaration, *, runtime,
           inferred: Mapping[str, tuple] = (),
-          defaults_ref: str = "") -> RSUConfirmationCard:
+          defaults_ref: str = "",
+          scope: Optional[Mapping[str, Any]] = None) -> RSUConfirmationCard:
     """Assemble the card from declarations and runtime statements.
 
     `runtime` is the `RSUVestingRuntime` whose assumptions and limitations also
@@ -174,7 +183,14 @@ def build(declaration: RSUDeclaration, *, runtime,
     will_model = tuple(one.statement for one in runtime.assumptions)
     will_not_model = tuple(one.statement for one in runtime.limitations)
 
+    if scope is None:
+        from ..runtime.rsu import IMPLEMENTED as RSU_IMPLEMENTED
+        from .scope_disclosure import for_rsu
+
+        scope = for_rsu(runtime, implemented=RSU_IMPLEMENTED).to_json()
+
     return RSUConfirmationCard(
+        scope=scope,
         described=tuple(stated), inferred=tuple(guessed),
         unresolved=tuple(open_questions),
         will_model=will_model, will_not_model=will_not_model,

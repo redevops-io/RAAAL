@@ -249,6 +249,13 @@ class RSUResultContext:
         default_factory=ConcentrationContext)
     comparisons: ComparisonContext = field(default_factory=ComparisonContext)
     modelling_scope: Mapping[str, Sequence[str]] = field(default_factory=dict)
+    scope_disclosure: Optional[Mapping[str, Any]] = None
+    """The exact disclosure this run executed under, stored verbatim.
+
+    A worksheet rebuilding it from today's runtimes would rewrite what an old
+    run disclosed the moment realization coverage changed — the figures would
+    stay and their stated scope would move."""
+
     context_version: str = CONTEXT_VERSION
 
     # ---- derived --------------------------------------------------------
@@ -364,6 +371,8 @@ class RSUResultContext:
             "comparisons": self.comparisons.to_json(),
             "modelling_scope": {k: list(v)
                                 for k, v in self.modelling_scope.items()},
+            "scope_disclosure": (dict(self.scope_disclosure)
+                                 if self.scope_disclosure else None),
             "diagnostics": [one.to_json() for one in self.diagnostics()],
             "scope_status": self.scope_status.value,
             "presentability": self.presentability.value,
@@ -462,6 +471,7 @@ def from_json(payload: Mapping[str, Any]) -> RSUResultContext:
             verdict_rows=tuple(comparisons.get("verdict_rows") or ())),
         modelling_scope={k: tuple(v) for k, v
                          in (payload.get("modelling_scope") or {}).items()},
+        scope_disclosure=payload.get("scope_disclosure"),
         context_version=payload.get("context_version", CONTEXT_VERSION))
 
 
@@ -473,7 +483,8 @@ def build(*, vest_accounting: Optional[Mapping[str, Any]] = None,
           concentration_plan=None,
           realized_concentration: Optional[float] = None,
           verdict_rows: Sequence[Mapping[str, Any]] = (),
-          modelling_scope: Optional[Mapping[str, Sequence[str]]] = None
+          modelling_scope: Optional[Mapping[str, Sequence[str]]] = None,
+          scope_disclosure: Optional[Mapping[str, Any]] = None
           ) -> RSUResultContext:
     """Assemble the context from what the run actually produced.
 
@@ -544,4 +555,5 @@ def build(*, vest_accounting: Optional[Mapping[str, Any]] = None,
         vest_accounting=accounting, disposition=disposition,
         allocation=allocation, concentration=concentration,
         comparisons=ComparisonContext(verdict_rows=tuple(verdict_rows)),
+        scope_disclosure=scope_disclosure,
         modelling_scope={k: tuple(v) for k, v in (modelling_scope or {}).items()})

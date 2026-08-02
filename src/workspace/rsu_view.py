@@ -195,6 +195,13 @@ class RSUWorksheetView:
     comparisons: Sequence[ComparisonRowView] = ()
     modelling_scope: ModellingScopeView = field(
         default_factory=ModellingScopeView)
+    scope_disclosure: Optional[Mapping[str, Any]] = None
+    """Read from the stored result, never rebuilt.
+
+    Rebuilt from today's runtimes, a historical worksheet would show figures
+    from one run beside the scope of another — and nothing on the page would
+    say the scope had moved."""
+
     note: str = ""
     block_order: Sequence[str] = BLOCK_ORDER
 
@@ -283,6 +290,7 @@ class RSUWorksheetView:
                         row.get("differing_dimensions") or ()),
                     isolates=row.get("isolates", ""))
                 for row in comparisons),
+            scope_disclosure=payload.get("scope_disclosure"),
             modelling_scope=ModellingScopeView(
                 modelled=tuple(scope.get("modelled") or ()),
                 not_applicable=tuple(scope.get("not_applicable") or ()),
@@ -300,6 +308,9 @@ class RSUWorksheetView:
                 "concentration": self.concentration.to_json(),
                 "comparisons": [row.to_json() for row in self.comparisons],
                 "modelling_scope": self.modelling_scope.to_json(),
+                "scope_disclosure": (dict(self.scope_disclosure)
+                                     if self.scope_disclosure else None),
+                "scope_recorded": self.scope_disclosure is not None,
                 "note": self.note, "block_order": list(self.block_order)}
 
 

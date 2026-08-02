@@ -32,6 +32,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+#: Bumped when a change would classify the same runtime differently. Stored on
+#: every disclosure, so a historical one says which rules produced it rather
+#: than being re-judged by whatever is current.
+SCOPE_SCHEMA_VERSION = "scope-disclosure@1"
+
 
 class Enforcement(str, Enum):
     ENFORCED = "ENFORCED"
@@ -91,6 +96,12 @@ class ScopeDisclosure:
     """Pre-tax, post-withholding, or after-tax. Stated because the three are
     routinely quoted as though interchangeable."""
 
+    schema_version: str = SCOPE_SCHEMA_VERSION
+    runtime_refs: Sequence[str] = ()
+    """Which runtime declarations produced this. Pinned so a stored disclosure
+    can be checked against the runtimes the run actually used, and so a later
+    change to realization coverage cannot rewrite what an old run disclosed."""
+
     @property
     def coverage(self) -> Dict[str, Any]:
         """Declared behaviours that are actually realized.
@@ -135,7 +146,31 @@ class ScopeDisclosure:
                 "statements": [one.to_json() for one in self.statements],
                 "jurisdiction": self.jurisdiction, "tax_year": self.tax_year,
                 "output_basis": self.output_basis,
+                "schema_version": self.schema_version,
+                "runtime_refs": list(self.runtime_refs),
                 "coverage": self.coverage}
+
+
+def from_json(payload: Mapping[str, Any]) -> ScopeDisclosure:
+    """Rebuild a stored disclosure. Coverage is recomputed from the stored
+    rules, never read — a stored fraction beside stored rules is a second
+    answer that can disagree with the first."""
+    return ScopeDisclosure(
+        recognised=tuple(payload.get("recognised") or ()),
+        comparable=tuple(payload.get("comparable") or ()),
+        not_comparable=tuple(payload.get("not_comparable") or ()),
+        rules=tuple(RuleDisclosure(
+            rule=one["rule"], enforcement=Enforcement(one["enforcement"]),
+            why=one.get("why", ""),
+            missing_inputs=tuple(one.get("missing_inputs") or ()))
+            for one in payload.get("rules") or ()),
+        statements=tuple(Statement(facet=Facet(one["facet"]), text=one["text"])
+                         for one in payload.get("statements") or ()),
+        jurisdiction=payload.get("jurisdiction", ""),
+        tax_year=payload.get("tax_year"),
+        output_basis=payload.get("output_basis", ""),
+        schema_version=payload.get("schema_version", SCOPE_SCHEMA_VERSION),
+        runtime_refs=tuple(payload.get("runtime_refs") or ()))
 
 
 #: Behaviours the account runtimes declare and nothing performs. Named rather
@@ -243,7 +278,8 @@ def for_account(declared: str, *, tax_year: int,
         comparable=tuple(comparable), not_comparable=tuple(not_comparable),
         rules=tuple(rules), statements=tuple(statements),
         jurisdiction="US-federal", tax_year=tax_year,
-        output_basis="pre-tax account value; no tax is applied to the figure")
+        output_basis="pre-tax account value; no tax is applied to the figure",
+        runtime_refs=(f"account-rules/us-federal-{tax_year}@1",))
 
 
 def for_rsu(runtime, *, implemented: Sequence[str] = ()) -> ScopeDisclosure:
@@ -276,6 +312,7 @@ def for_rsu(runtime, *, implemented: Sequence[str] = ()) -> ScopeDisclosure:
                       "share withholding."),
         ),
         jurisdiction="US-federal",
+        runtime_refs=(runtime.artifact_id,),
         output_basis=("value delivered to the modelled account after employer "
                       "share withholding; not gross compensation and not final "
                       "federal, state or local tax liability"))
