@@ -137,8 +137,23 @@ class DispositionExecution:
     filled_on: Any = None
     fill_price: Optional[float] = None
     proceeds: Optional[float] = None
-    """None until reconciled against the engine's fills. Not zero: an
-    unreconciled sale has unknown proceeds, and zero is a number."""
+    """Gross proceeds — shares times fill price, before the sale's own cost.
+    None until reconciled against the engine's fills. Not zero: an unreconciled
+    sale has unknown proceeds, and zero is a number."""
+
+    fill_cost: Optional[float] = None
+    """The transaction cost the sale itself incurred.
+
+    Carried because gross proceeds are not spendable. Allocating the gross
+    figure sizes purchases against money the sale did not produce, and the
+    shortfall then comes from somewhere else — which is the funding leak the
+    narrow scope exists to prevent."""
+
+    @property
+    def net_proceeds(self) -> Optional[float]:
+        if self.proceeds is None:
+            return None
+        return self.proceeds - (self.fill_cost or 0.0)
 
     @property
     def reconciled(self) -> bool:
@@ -197,19 +212,30 @@ class EventLog:
     def kinds(self) -> List[VestEventKind]:
         return [entry["kind"] for entry in self.entries]
 
-    def in_canonical_order(self) -> bool:
-        """Whether the recorded events respect the declared sequence.
+    def in_order(self, sequence: Sequence[Any],
+                 ignoring: Sequence[Any] = ()) -> bool:
+        """Whether the recorded events respect a declared sequence.
 
-        Deferrals are excluded from the ordering check: an instruction may be
-        deferred any number of times, between any two stages.
+        Events not named in `sequence` are skipped rather than failing, so one
+        log can carry several sequences — a vest's and an allocation's — and
+        each be checked against its own.
         """
         positions = []
         for kind in self.kinds():
-            if kind is VestEventKind.DISPOSITION_DEFERRED:
+            if kind in ignoring or kind not in sequence:
                 continue
-            positions.append(CANONICAL_ORDER.index(kind))
+            positions.append(list(sequence).index(kind))
         return all(earlier <= later
                    for earlier, later in zip(positions, positions[1:]))
+
+    def in_canonical_order(self) -> bool:
+        """The vest-to-sale sequence.
+
+        Deferrals are excluded: an instruction may be deferred any number of
+        times, between any two stages.
+        """
+        return self.in_order(CANONICAL_ORDER,
+                             ignoring=(VestEventKind.DISPOSITION_DEFERRED,))
 
 
 def new_instruction_id() -> str:
@@ -443,7 +469,8 @@ class DispositionSchedule:
             available.remove(match)
             self.executions[index] = replace(
                 execution, filled_on=match.date, fill_price=match.price,
-                proceeds=abs(match.shares) * match.price)
+                proceeds=abs(match.shares) * match.price,
+                fill_cost=getattr(match, "cost", 0.0))
         return self.unsettled_report()
 
     def _asset_of(self, instruction_id: str) -> str:
