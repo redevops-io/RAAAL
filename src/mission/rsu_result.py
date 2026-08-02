@@ -142,11 +142,20 @@ class DispositionContext:
     failed_instructions: Sequence[Mapping[str, Any]] = ()
     unsettled_report: Sequence[Mapping[str, Any]] = ()
 
+    executions: Sequence[Mapping[str, Any]] = ()
+    """Instructed and filled, as separate dates on one row.
+
+    Carried because the worksheet must show them apart: an order placed on the
+    first eligible session fills later at a price nobody knew when deciding, and
+    a single "sale date" would erase the gap that execution lag exists to
+    represent."""
+
     def to_json(self) -> Dict[str, Any]:
         return {"status": self.status,
                 "pending_instructions": [dict(o) for o in self.pending_instructions],
                 "failed_instructions": [dict(o) for o in self.failed_instructions],
-                "unsettled_report": [dict(o) for o in self.unsettled_report]}
+                "unsettled_report": [dict(o) for o in self.unsettled_report],
+                "executions": [dict(o) for o in self.executions]}
 
 
 @dataclass(frozen=True)
@@ -156,13 +165,15 @@ class AllocationContext:
     unfilled_targets: Sequence[Mapping[str, Any]] = ()
     residual_cash: Optional[float] = None
     unallocated_weight: Optional[float] = None
+    purchase_costs: Optional[float] = None
 
     def to_json(self) -> Dict[str, Any]:
         return {"requested_targets": dict(self.requested_targets),
                 "executed_targets": dict(self.executed_targets),
                 "unfilled_targets": [dict(o) for o in self.unfilled_targets],
                 "residual_cash": self.residual_cash,
-                "unallocated_weight": self.unallocated_weight}
+                "unallocated_weight": self.unallocated_weight,
+                "purchase_costs": self.purchase_costs}
 
 
 @dataclass(frozen=True)
@@ -405,13 +416,15 @@ def from_json(payload: Mapping[str, Any]) -> RSUResultContext:
                 disposition.get("pending_instructions") or ()),
             failed_instructions=tuple(
                 disposition.get("failed_instructions") or ()),
-            unsettled_report=tuple(disposition.get("unsettled_report") or ())),
+            unsettled_report=tuple(disposition.get("unsettled_report") or ()),
+            executions=tuple(disposition.get("executions") or ())),
         allocation=AllocationContext(
             requested_targets=dict(allocation.get("requested_targets") or {}),
             executed_targets=dict(allocation.get("executed_targets") or {}),
             unfilled_targets=tuple(allocation.get("unfilled_targets") or ()),
             residual_cash=allocation.get("residual_cash"),
-            unallocated_weight=allocation.get("unallocated_weight")),
+            unallocated_weight=allocation.get("unallocated_weight"),
+            purchase_costs=allocation.get("purchase_costs")),
         concentration=ConcentrationContext(
             current=concentration.get("current"),
             target=concentration.get("target"),
@@ -467,7 +480,9 @@ def build(*, vest_accounting: Optional[Mapping[str, Any]] = None,
             failed_instructions=tuple(
                 one.to_json() for one in instructions
                 if one.status.value in {"FAILED", "EXPIRED"}),
-            unsettled_report=tuple(disposition_schedule.unsettled_report()))
+            unsettled_report=tuple(disposition_schedule.unsettled_report()),
+            executions=tuple(one.to_json() for one in
+                             getattr(disposition_schedule, "executions", ())))
 
     allocation = AllocationContext()
     if allocation_execution is not None:
@@ -476,7 +491,8 @@ def build(*, vest_accounting: Optional[Mapping[str, Any]] = None,
             executed_targets=dict(allocation_execution.executed_allocation),
             unfilled_targets=tuple(allocation_execution.unfilled_targets),
             residual_cash=allocation_execution.residual_cash,
-            unallocated_weight=allocation_execution.unallocated_weight)
+            unallocated_weight=allocation_execution.unallocated_weight,
+            purchase_costs=allocation_execution.purchase_costs)
 
     concentration = ConcentrationContext(realized=realized_concentration)
     if concentration_assessment is not None:

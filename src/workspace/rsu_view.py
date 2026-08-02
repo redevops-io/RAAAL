@@ -70,6 +70,7 @@ class DispositionView:
     pending: Sequence[Mapping[str, Any]] = ()
     failed: Sequence[Mapping[str, Any]] = ()
     unsettled: Sequence[Mapping[str, Any]] = ()
+    executions: Sequence[Mapping[str, Any]] = ()
 
     @property
     def has_outstanding(self) -> bool:
@@ -80,6 +81,7 @@ class DispositionView:
                 "pending": [dict(o) for o in self.pending],
                 "failed": [dict(o) for o in self.failed],
                 "unsettled": [dict(o) for o in self.unsettled],
+                "executions": [dict(o) for o in self.executions],
                 "has_outstanding": self.has_outstanding}
 
 
@@ -90,13 +92,15 @@ class AllocationView:
     unfilled: Sequence[Mapping[str, Any]] = ()
     residual_cash: Optional[float] = None
     unallocated_weight: Optional[float] = None
+    purchase_costs: Optional[float] = None
 
     def to_json(self) -> Dict[str, Any]:
         return {"requested": dict(self.requested),
                 "executed": dict(self.executed),
                 "unfilled": [dict(o) for o in self.unfilled],
                 "residual_cash": self.residual_cash,
-                "unallocated_weight": self.unallocated_weight}
+                "unallocated_weight": self.unallocated_weight,
+                "purchase_costs": self.purchase_costs}
 
 
 @dataclass(frozen=True)
@@ -249,13 +253,15 @@ class RSUWorksheetView:
                 status=disposition.get("status", ""),
                 pending=tuple(disposition.get("pending_instructions") or ()),
                 failed=tuple(disposition.get("failed_instructions") or ()),
-                unsettled=tuple(disposition.get("unsettled_report") or ())),
+                unsettled=tuple(disposition.get("unsettled_report") or ()),
+                executions=tuple(disposition.get("executions") or ())),
             allocation=AllocationView(
                 requested=dict(allocation.get("requested_targets") or {}),
                 executed=dict(allocation.get("executed_targets") or {}),
                 unfilled=tuple(allocation.get("unfilled_targets") or ()),
                 residual_cash=allocation.get("residual_cash"),
-                unallocated_weight=allocation.get("unallocated_weight")),
+                unallocated_weight=allocation.get("unallocated_weight"),
+                purchase_costs=allocation.get("purchase_costs")),
             concentration=ConcentrationView(
                 current=concentration.get("current"),
                 declared_target=concentration.get("target"),
