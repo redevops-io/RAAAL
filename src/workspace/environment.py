@@ -106,12 +106,17 @@ def pins_for(scenario, *, calendar_ref: str = "nyse@1",
         # — two answers to one question, from two constructions of one runtime.
         import datetime as _dt
 
-        from ..runtime.account_limits import load as _load_limits
+        from ..runtime.account_limits import RulesetNotFound
+        from ..runtime.account_limits import load as _load_rules
 
-        _limit = _load_limits().limit_for(kind.value, _dt.date.today().year)
+        try:
+            _limit = _load_rules(_dt.date.today().year).limit_for(kind.value)
+        except RulesetNotFound:
+            _limit = None
         runtime = AccountRuntime(name=f"account/{kind.value.lower()}", version=1,
                                  account_kind=kind,
-                                 annual_contribution_limit=_limit.amount)
+                                 annual_contribution_limit=(
+                                     _limit.amount if _limit else None))
         account_hash = runtime.compatibility_hash
         unrealized = tuple(runtime.unrealized(ACCOUNT_IMPLEMENTED))
     else:

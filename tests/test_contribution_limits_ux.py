@@ -114,28 +114,32 @@ class TestItDoesNotRefuseWhatIsAllowed:
 
 class TestTheRefusingFigureStatesItsOwnReliability:
 
-    def test_an_unverified_limit_carries_its_caveat(self):
-        """A plan refused by an unchecked number must not look refused by a
-        certain one."""
+    def test_the_figure_is_verified_and_says_so(self):
         over = view(OVER).over_limit
-        assert over["limit_is_verified"] is False
-        assert "has not been checked" in over["caveat"]
+        assert over["limit_is_verified"] is True
+        assert over["ruleset_ref"] == "account-rules/us-federal-2026@1"
+        assert over["rule"] == "ira_contribution"
+
+    def test_a_verified_figure_still_names_what_it_could_not_check(self):
+        """The limit is shared with every other IRA. Being over it from one
+        account is certain; the caveat is that the total was never visible."""
+        over = view(OVER).over_limit
+        assert "shared" in over["caveat"].lower()
 
     def test_the_caveat_reaches_the_template(self):
         html = _render(view(OVER))
         assert "More than this account allows" in html
-        assert "has not been checked" in html
         assert "$16,500" in html
+        assert "shared" in _block(view(OVER)).lower()
 
-    def test_a_verified_limit_would_not_show_the_caveat(self):
-        """Scoped to the refusal block. The same caveat also appears in the
-        account card's unenforced list, which is a different claim about the
-        same figure — enforcement in general, rather than this refusal."""
+    def test_a_caveat_free_refusal_shows_no_caveat_line(self):
+        """Scoped to the refusal block, because the account card carries similar
+        copy about the same figure — a different claim, in a different place."""
         rendered = view(OVER)
-        assert "has not been checked" in _block(rendered)
+        assert "shared" in _block(rendered).lower()
 
-        rendered.over_limit = {**rendered.over_limit, "limit_is_verified": True}
-        assert "has not been checked" not in _block(rendered)
+        rendered.over_limit = {**rendered.over_limit, "caveat": None}
+        assert "shared with" not in _block(rendered).lower()
         assert "More than this account allows" in _block(rendered)
 
 

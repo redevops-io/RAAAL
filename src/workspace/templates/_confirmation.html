@@ -32,9 +32,11 @@
                         value="{{ choice.value }}"> {{ choice.label }}</label></li>
       {% endfor %}
     </ul>
-    {% if not view.over_limit.limit_is_verified %}
-    {# The number doing the refusing states its own reliability. A plan refused
-       by an unchecked figure must not look refused by a certain one. #}
+    {% if view.over_limit.caveat %}
+    {# The number doing the refusing states its own reliability, whatever the
+       reason. Gated on `limit_is_verified` this went silent the moment the
+       figures were checked — and the remaining caveat, that the limit is shared
+       with accounts nobody described, is the one a reader most needs. #}
     <div class="small muted">{{ view.over_limit.caveat }}</div>
     {% endif %}
     <p class="small muted" style="margin:10px 0 0">

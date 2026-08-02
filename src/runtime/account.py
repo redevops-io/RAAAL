@@ -125,8 +125,8 @@ class AccountRuntime(RuntimeArtifact):
     # assumption pointed at a mechanism that did not, and `IMPLEMENTED` was
     # empty because that was the only honest thing it could be.
 
-    def cap_contribution(self, annual_amount: float, *, year: int,
-                         table=None, age: Optional[int] = None):
+    def cap_contribution(self, annual_amount: float, *, tax_year: int,
+                         ruleset=None, known: Optional[Dict[str, Any]] = None):
         """What this account permits of a stated annual contribution.
 
         Refuses rather than silently capping. The assumption text promises
@@ -135,19 +135,29 @@ class AccountRuntime(RuntimeArtifact):
         balance the user never described while every displayed figure looked
         deliberate.
 
-        A limit this table does not carry permits the full amount and says so.
+        A limit this ruleset does not carry permits the full amount and says so.
         Refusing on an absent figure would invent a restriction, which is the
         same defect pointed the other way.
+
+        What it deliberately does **not** do is establish compliance with a
+        shared limit. The IRA ceiling is combined across every IRA a person
+        holds, so this method can prove a plan is over it and can never prove a
+        plan is under it. `ContributionDecision.compliance_established` carries
+        that difference; `missing_inputs` names what would settle it.
         """
         from .account_limits import ContributionDecision, load
 
-        table = load() if table is None else table
-        limit = table.limit_for(self.account_kind.value, year)
+        ruleset = load(tax_year) if ruleset is None else ruleset
+        limit = ruleset.limit_for(self.account_kind.value)
+        known = dict(known or {})
 
         allowance = limit.amount
-        if allowance is not None and age is not None and age >= 50 \
-                and limit.catch_up_50:
-            allowance += limit.catch_up_50
+        age = known.get("participant_age")
+        if allowance is not None and age is not None:
+            if 60 <= age <= 63 and limit.catch_up_60_63:
+                allowance += limit.catch_up_60_63
+            elif age >= 50 and limit.catch_up_50:
+                allowance += limit.catch_up_50
 
         if allowance is None:
             permitted, refused = annual_amount, 0.0
@@ -157,7 +167,8 @@ class AccountRuntime(RuntimeArtifact):
 
         return ContributionDecision(
             requested=annual_amount, permitted=permitted, refused=refused,
-            limit=limit, year=year)
+            limit=limit, tax_year=ruleset.tax_year,
+            missing_inputs=limit.missing_inputs(known))
 
     def apply_match(self, employee_contribution: float):
         """Employer money on top of an employee contribution.

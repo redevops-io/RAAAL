@@ -337,7 +337,7 @@ def _over_limit(scenario) -> Optional[Dict[str, Any]]:
     import datetime as _dt
 
     from ..runtime import AccountRuntime
-    from ..runtime.account_limits import LimitState
+    from ..runtime.account_limits import RulesetNotFound, load
     from .account_support import LABELS
     from .environment import ACCOUNT_KINDS
 
@@ -346,10 +346,24 @@ def _over_limit(scenario) -> Optional[Dict[str, Any]]:
     if kind is None or annual is None:
         return None
 
+    # The ruleset is pinned to a tax year. No published year means no check —
+    # substituting the nearest one would refuse a plan using figures from a year
+    # it was never meant to be judged against.
     year = _dt.date.today().year
-    decision = AccountRuntime(name=f"account/{kind.value.lower()}", version=1,
-                              account_kind=kind).cap_contribution(annual, year=year)
-    if decision.within_limit:
+    try:
+        ruleset = load(year)
+    except RulesetNotFound:
+        return None
+
+    decision = AccountRuntime(
+        name=f"account/{kind.value.lower()}", version=1, account_kind=kind
+    ).cap_contribution(annual, tax_year=year, ruleset=ruleset)
+
+    # Only certain overage blocks. A shared limit whose other accounts were
+    # never described leaves compliance unproven, and refusing on an unknown
+    # would block plans that are perfectly legal — that gap is reported on the
+    # account card, which is where an unprovable claim belongs.
+    if not decision.exceeds_on_this_account_alone:
         return None
 
     limit = decision.limit
@@ -358,16 +372,18 @@ def _over_limit(scenario) -> Optional[Dict[str, Any]]:
         "permitted": decision.permitted,
         "refused": decision.refused,
         "year": year,
+        "ruleset_ref": limit.ruleset_ref,
+        "rule": limit.rule,
         "account_label": LABELS.get(scenario.tax_treatment,
                                     scenario.tax_treatment),
         "detail": (
             f"This plan contributes ${decision.requested:,.0f} a year, and the "
             f"{year} limit for this account is ${decision.permitted:,.0f}. "
             f"It is over by ${decision.refused:,.0f}."),
-        # The figure doing the refusing is named, with its own reliability. A
+        # The figure doing the refusing names its source and its reliability. A
         # plan refused by an unchecked number should say so in the same breath.
-        "limit_is_verified": limit.state is LimitState.VERIFIED,
-        "caveat": limit.why_not_enforced,
+        "limit_is_verified": limit.verified,
+        "caveat": limit.why_not_enforced(known={}),
         "choices": [
             {"value": "reduce",
              "label": f"Contribute ${decision.permitted:,.0f} a year instead"},

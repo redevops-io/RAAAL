@@ -1,0 +1,87 @@
+spec_version: '0.1'
+name: us-federal-2026
+version: 1
+tax_year: 2026
+jurisdiction: US-federal
+title: US federal account rules for tax year 2026
+
+source:
+  authority: IRS
+  documents:
+    - "Publication 590-A (2025), Contributions to Individual Retirement
+       Arrangements (IRAs) — https://www.irs.gov/publications/p590a"
+    - "Retirement topics — 401(k) and profit-sharing plan contribution limits —
+       https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-401k-and-profit-sharing-plan-contribution-limits"
+  verified_on: '2026-08-02'
+
+rationale: >-
+  See us-federal-2025@1. A run pins the ruleset for the year it simulates, so
+  revising these figures cannot change what an earlier run decided.
+
+rules:
+
+  ira_contribution:
+    applies_to: [ROTH_IRA, TRADITIONAL_IRA]
+    combined_across_applies_to: true
+    value: 7500
+    catch_up_50: 1100
+    verified_against_source: true
+    requires:
+      - all_ira_contributions_for_tax_year
+      - participant_age
+
+  employee_deferral:
+    applies_to: [TRADITIONAL_401K, ROTH_401K]
+    combined_across_applies_to: true
+    value: 24500
+    catch_up_50: 8000
+    # Unchanged from 2025. Recorded explicitly rather than inherited, because a
+    # figure that happens to repeat is still a figure this year's ruleset must
+    # state on its own.
+    catch_up_60_63: 11250
+    verified_against_source: true
+    requires:
+      - all_401k_employee_deferrals_for_tax_year
+      - participant_age
+      - plan_types
+
+  annual_additions:
+    applies_to: [TRADITIONAL_401K, ROTH_401K]
+    value: 72000
+    verified_against_source: true
+    requires:
+      - employee_deferrals_for_tax_year
+      - employer_contributions_for_tax_year
+      - forfeitures_allocated
+
+  hsa_self_only:
+    applies_to: [HSA]
+    value: 4400
+    catch_up_55: 1000
+    verified_against_source: true
+    requires: [hsa_coverage_kind, participant_age]
+
+  hsa_family:
+    applies_to: [HSA]
+    value: 8750
+    catch_up_55: 1000
+    verified_against_source: true
+    requires: [hsa_coverage_kind, participant_age]
+
+income_phase_outs:
+  roth_ira:
+    verified_against_source: true
+    requires: [filing_status, modified_agi]
+    by_filing_status:
+      single_or_head_of_household: {begins: 153000, ends: 168000}
+      married_filing_jointly: {begins: 242000, ends: 252000}
+      # Not supplied for 2026. Absent rather than carried forward from 2025:
+      # an unstated figure must not acquire authority by inheritance.
+      married_filing_separately_living_with_spouse: null
+
+unlimited:
+  - TAXABLE
+
+not_yet_entered:
+  - PLAN_529
+  - TRUST

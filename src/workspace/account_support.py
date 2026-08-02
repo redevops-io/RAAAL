@@ -96,8 +96,8 @@ def support_for(declared: str,
     """
     import datetime as _dt
 
-    from ..runtime.account_limits import LimitState
-    from ..runtime.account_limits import load as load_limits
+    from ..runtime.account_limits import Enforcement, RulesetNotFound
+    from ..runtime.account_limits import load as load_rules
 
     year = year or _dt.date.today().year
     if not declared or declared == "NONE_APPLIED":
@@ -114,27 +114,43 @@ def support_for(declared: str,
                               recognized=Support.YES, comparable=Support.NO,
                               enforced=Support.NO)
 
-    # The governing limit comes from the versioned table, so an account whose
-    # limit this system actually applies declares it. Constructing the runtime
-    # without one made every account look as though it had no contribution rule
-    # to enforce, which is why nothing here ever moved off NO.
-    limit = load_limits().limit_for(kind.value, year)
+    # The governing figure comes from the ruleset pinned to the tax year, so an
+    # account whose limit this system actually applies declares it. Constructed
+    # without one, every account looked as though it had no contribution rule to
+    # enforce, which is why nothing here ever moved off NO.
+    try:
+        limit = load_rules(year).limit_for(kind.value)
+    except RulesetNotFound as absent:
+        return AccountSupport(
+            declared=declared, label=label, recognized=Support.YES,
+            comparable=Support.YES, enforced=Support.NO,
+            unenforced_behaviours=(str(absent).split(".")[0],))
+
     runtime = AccountRuntime(name=f"account/{kind.value.lower()}", version=1,
                              account_kind=kind,
                              annual_contribution_limit=limit.amount)
     declared_behaviours = tuple(a.name for a in runtime.assumptions)
     unenforced = list(runtime.unrealized(implemented))
 
-    # A mechanism that runs correctly against an unchecked number is not
-    # enforcement. It is enforcement-shaped, which is worse: the display says
-    # the limit is applied and nothing says the limit may be wrong.
-    unverified_figure = (limit.state is LimitState.UNVERIFIED
-                         and "contribution-limit" in declared_behaviours
-                         and "contribution-limit" not in unenforced)
+    # A mechanism that runs against an unchecked number, or against a limit
+    # shared with accounts nobody described, is not enforcement. It is
+    # enforcement-shaped, which is worse: the display says the limit is applied
+    # and nothing says what the check could not see.
+    #
+    # `known` is empty because a compiled scenario describes one account. That
+    # is the point — the reason is derived from what the scenario actually
+    # carries, not asserted.
+    figure_caveat = None
+    if "contribution-limit" in declared_behaviours \
+            and "contribution-limit" not in unenforced:
+        if limit.enforcement(known={}) is not Enforcement.ENFORCED:
+            figure_caveat = limit.why_not_enforced(known={})
+
     missing_mechanisms = len(unenforced)
-    if unverified_figure:
-        unenforced.append(limit.why_not_enforced)
+    if figure_caveat:
+        unenforced.append(figure_caveat)
     unenforced = tuple(unenforced)
+    unverified_figure = figure_caveat is not None
 
     if not declared_behaviours:
         # Nothing declared is not the same as nothing to declare. A Roth IRA has
