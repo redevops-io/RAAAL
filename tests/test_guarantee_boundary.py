@@ -31,6 +31,7 @@ GATED = (
     "test_decimal_columns.py",
     "test_json_columns.py",
     "test_migration_parity.py",
+    "test_transfer.py",
 )
 
 

@@ -20,6 +20,8 @@ fails a build.
 from __future__ import annotations
 
 import argparse
+import os
+import pathlib
 import json
 import sys
 from pathlib import Path
@@ -299,6 +301,73 @@ VERBS = {"create": create, "validate": validate, "benchmark": benchmark,
          "publish": publish, "rollback": rollback}
 
 
+def _migrate(args) -> int:
+    """Export a SQLite workspace, plan the import, and optionally apply it.
+
+    The dry run and the real import consume the *same* plan object. Recomputing
+    it would let a dry run report one thing and the import do another, which is
+    the only failure mode a dry run exists to rule out.
+    """
+    import datetime as dt
+    import json as _json
+
+    from src.db.engine import Database
+    from src.db.transfer import (
+        ExportRefused,
+        ImportRefused,
+        apply_import,
+        export_bundle,
+        plan_import,
+        verify_import,
+    )
+    from src.workspace.store import WorkspaceStore
+
+    source = WorkspaceStore(args.from_sqlite)
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    try:
+        bundle = export_bundle(source, exported_at=stamp,
+                               commit=os.environ.get("QUANTIFY_COMMIT", ""),
+                               owner=args.owner)
+    except ExportRefused as refusal:
+        print(f"export refused:\n{refusal}")
+        return 1
+
+    if args.bundle:
+        pathlib.Path(args.bundle).write_text(
+            _json.dumps(bundle, indent=2, sort_keys=True, default=str))
+
+    target = Database(args.to_postgres) if args.to_postgres else Database()
+    plan = plan_import(target, bundle)
+
+    print(f"rows ready      {plan.ready}")
+    print(f"redeliveries    {plan.redelivered}")
+    print(f"conflicts       {len(plan.conflicts)}")
+    print(f"unknown tables  {plan.unknown_tables or 'none'}")
+    print(f"digest status   {'verified' if bundle['manifest']['bundle_digest'] else 'absent'}")
+    for conflict in plan.conflicts[:10]:
+        print(f"  conflict {conflict['table']} {conflict['identity']}")
+
+    if args.dry_run:
+        print("\ndry run: nothing was written")
+        return 1 if plan.conflicts or plan.unknown_tables else 0
+
+    try:
+        apply_import(target, bundle, plan)
+    except ImportRefused as refusal:
+        print(f"import refused:\n{refusal}")
+        return 1
+
+    problems = verify_import(target, bundle)
+    if problems:
+        print("verification failed:\n  " + "\n  ".join(problems))
+        return 1
+    print("\nimported and verified against the bundle")
+    return 0
+
+
+VERBS["migrate"] = _migrate
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="mission", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -320,6 +389,18 @@ def main() -> int:
     p = sub.add_parser("publish")
     p.add_argument("--name", default=None)
     p.add_argument("--ledger", default="data/quantify.db")
+
+    p = sub.add_parser("migrate")
+    p.add_argument("--from-sqlite", required=True,
+                   help="path to the SQLite workspace to export")
+    p.add_argument("--to-postgres", default=None,
+                   help="target URL; defaults to QUANTIFY_DATABASE_URL")
+    p.add_argument("--owner", default=None,
+                   help="export one tenant only; omitted, exports everything")
+    p.add_argument("--dry-run", action="store_true",
+                   help="validate, plan and report without writing anything")
+    p.add_argument("--bundle", default=None,
+                   help="write the neutral bundle here as well")
 
     p = sub.add_parser("rollback")
     p.add_argument("worksheet_id")
