@@ -177,3 +177,81 @@ def dig(payload: Any, path: str) -> Any:
         if current is None:
             return None
     return current
+
+
+class CallerKind(str, Enum):
+    """What a production caller of `record_run` is entitled to store.
+
+    The distinction that matters is the third one. Without it a live path can
+    satisfy the write guard by labelling its own omission as legacy — the
+    record would say "nobody recorded this" when in fact this code declined to,
+    and the two are indistinguishable afterwards.
+    """
+
+    MARKET_DERIVED = "MARKET_DERIVED"
+    """Must supply a RECORDED provenance that identifies its data and carries
+    an allowed access decision."""
+
+    NON_MARKET = "NON_MARKET"
+    """Must supply NOT_APPLICABLE explicitly."""
+
+    LEGACY_IMPORT = "LEGACY_IMPORT"
+    """May supply NOT_RECORDED, and only on an import or migration path. A
+    live request may never choose this."""
+
+
+@dataclass(frozen=True)
+class RunCaller:
+    """One production path that persists a run."""
+
+    name: str
+    module: str
+    kind: CallerKind
+    reason: str
+
+    @property
+    def may_claim_legacy(self) -> bool:
+        return self.kind is CallerKind.LEGACY_IMPORT
+
+
+#: Every production caller of `record_run`. Compared against the call graph by
+#: `tests/test_run_callers.py`, so a new one fails until it is classified.
+#:
+#: `apply_import` is deliberately absent. It was listed here first, and the
+#: call-graph scan showed it never calls `record_run` at all — the transfer
+#: tool writes rows with raw SQL, below the store. That is correct for a
+#: migration (it must be able to carry a legacy row through unchanged) and it
+#: means the LEGACY_IMPORT kind currently classifies nothing. The kind stays,
+#: because the distinction it draws is what stops a live caller labelling its
+#: own omission as legacy, and `TestNoLiveCallerMayClaimLegacyAbsence` asserts
+#: no live caller has taken it.
+RUN_CALLERS: Mapping[str, RunCaller] = {
+    one.name: one for one in (
+        RunCaller(
+            name="generate", module="src/workspace/generate.py",
+            kind=CallerKind.MARKET_DERIVED,
+            reason="Persists the run behind a saved scenario. The figures come "
+                   "from a resolved frame, so the record of which frame is "
+                   "required rather than optional."),
+        RunCaller(
+            name="_apply", module="src/workspace/apply.py",
+            kind=CallerKind.MARKET_DERIVED,
+            reason="Persists each candidate run produced by an accepted "
+                   "proposal. Named `_apply` rather than `accept`: `accept` "
+                   "validates and delegates, and the call graph is what says "
+                   "which function actually writes. Every candidate is an "
+                   "independent artifact carrying the access it was computed "
+                   "from, so a worksheet citing three of them can say which "
+                   "data each used."),
+    )
+}
+
+
+def unclassified_callers(found: Sequence[str]) -> Tuple[str, ...]:
+    return tuple(sorted(set(found) - set(RUN_CALLERS)))
+
+
+def live_callers() -> Tuple[RunCaller, ...]:
+    """Callers a user request can reach. None of them may claim legacy."""
+    return tuple(one for one in RUN_CALLERS.values()
+                 if one.kind is not CallerKind.LEGACY_IMPORT)

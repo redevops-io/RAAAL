@@ -10,6 +10,7 @@ plan may cite public artifacts while nothing public may cite a plan.
 """
 from __future__ import annotations
 
+from dataclasses import replace as dataclasses_replace
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -154,9 +155,16 @@ def _prices() -> Optional[pd.DataFrame]:
     public router, which held the same bypass until Gate 3. Two copies of a gate
     are not twice as safe; they are a gate that gets updated in one place.
     """
-    from ..market_data.access import resolve_prices
+    from ..market_data.access import resolve
 
-    return resolve_prices(context="pilot scenario run")
+    return resolve(context="pilot scenario run").frame
+
+
+def _market_data(context: str):
+    """The frame and its provenance, for anything that will persist a figure."""
+    from ..market_data.access import resolve
+
+    return resolve(context=context)
 
 
 def _approved_snapshot():
@@ -227,7 +235,7 @@ def _now() -> str:
     return _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
 
 
-def _candidate_runner(prices: pd.DataFrame, store, worksheet_id: str):
+def _candidate_runner(access, store, worksheet_id: str):
     """Simulate one candidate from an accepted proposal.
 
     Injected into `apply.accept` rather than imported by it, so the apply path
@@ -262,7 +270,7 @@ def _candidate_runner(prices: pd.DataFrame, store, worksheet_id: str):
             else (candidate,)
         scenario = replace(
             base, allocation_rule=replace(base.allocation_rule, assets=assets))
-        outcome = _run(scenario, prices)
+        outcome = _run(scenario, access)
         if outcome.get("result") is None:
             # A candidate with no price history is a data gap, not a result.
             # Returning an empty payload would let the revision cite a run that
@@ -271,7 +279,17 @@ def _candidate_runner(prices: pd.DataFrame, store, worksheet_id: str):
                 status_code=422,
                 detail=outcome.get("unavailable")
                 or f"candidate {assets} could not be simulated")
-        return outcome["result"]
+
+        # Serialized here rather than handed back as a `MissionResult`. The
+        # annotation said `Dict` and the object was not one, so `dict(result)`
+        # in the apply path would have failed on the first real candidate.
+        #
+        # Every candidate is an independent artifact: a worksheet citing three
+        # of them must be able to say which data each used, even while they
+        # happen to share one access. `to_json` carries the provenance the
+        # result was built with, so this is a serialization rather than a
+        # caller remembering to attach something.
+        return outcome["result"].to_json()
 
     return run_one
 
@@ -329,9 +347,22 @@ def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
     return scope
 
 
-def _run(scenario, prices: pd.DataFrame,
-         scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Simulate a scenario and its benchmarks under identical conditions."""
+def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
+         ) -> Dict[str, Any]:
+    """Simulate a scenario and its benchmarks under identical conditions.
+
+    Takes the `MarketDataAccess` rather than a bare frame, so the record of
+    which data produced the figures travels with the data that produced them.
+    A caller attaching provenance to the result afterwards is a caller that can
+    forget, and the run it forgot on looks exactly like one it did not.
+    """
+    from ..market_data.access import MarketDataAccess
+
+    if not isinstance(access, MarketDataAccess):
+        raise TypeError(
+            "_run needs the MarketDataAccess the frame came from, not the "
+            "frame alone; the provenance is not reconstructable afterwards")
+    prices = access.frame
     sessions = prices.index
     flows = _flows_from(scenario.flow_schedule, sessions)
     policy = CashPolicy.idle()
@@ -367,6 +398,11 @@ def _run(scenario, prices: pd.DataFrame,
 
     result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
                       cash_policy=policy, modelling_scope=scope)
+    # Attached here rather than by each caller. `_run` is the only place that
+    # knows which access produced these figures, and a caller that has to
+    # remember to attach it is a caller that can forget — which is how the live
+    # path stored unattributable runs while the provenance sat one frame away.
+    result = dataclasses_replace(result, market_data=access.provenance)
     specs = _benchmark_specs(prices, tradeable)
     benchmarks = compare(prices, flows=flows, cash_policy=policy, benchmarks=specs)
 
@@ -489,9 +525,9 @@ def new_plan(request: Request, describe: str = ""):
     compiled = compile_scenario(describe, name="draft", version=1,
                                 benchmark_rule=BENCHMARK_RULE,
                                 parsed=stage1.parsed)
-    prices = _prices()
-    run = (_run(compiled.scenario, prices)
-           if compiled.can_simulate and prices is not None else None)
+    access = _market_data("draft scenario preview")
+    run = (_run(compiled.scenario, access)
+           if compiled.can_simulate and access.usable else None)
 
     return TEMPLATES.TemplateResponse(
         request, "new.html",
@@ -571,9 +607,9 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = "",
     # The run is persisted before the worksheet that cites it. A worksheet
     # written first and back-filled would briefly name artifacts that were not
     # there, and "briefly" is exactly when a crash happens.
-    prices = _prices()
-    if prices is not None:
-        run = _run(scenario, prices)
+    access = _market_data("saving a scenario")
+    if access.usable:
+        run = _run(scenario, access)
         if run.get("result") is not None:
             generate_worksheet(
                 _store(), plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
@@ -604,11 +640,11 @@ def plan_detail(request: Request, plan_id: str):
     stored = record["scenario"]
     migration = migration_for(plan_id, stored, compiled)
 
-    prices = _prices()
+    access = _market_data("opening a saved plan")
     scope = (TEMPLATES_BY_HINT[compiled.template_hint].modelling_scope()
              if compiled.template_hint in TEMPLATES_BY_HINT else None)
-    run = (_run(scenario_from_stored(stored, compiled.scenario), prices, scope)
-           if prices is not None else None)
+    run = (_run(scenario_from_stored(stored, compiled.scenario), access, scope)
+           if access.usable else None)
 
     return TEMPLATES.TemplateResponse(
         request, "plan.html",
@@ -866,7 +902,7 @@ def accept_worksheet_proposal(worksheet_id: str, proposal_id: str):
                             detail=f"no proposal {proposal_id!r}")
 
     proposal = proposal_from_json(record["payload"])
-    prices = _prices()
+    access = _market_data("candidate runs for an accepted proposal")
     try:
         result = accept(
             store, proposal_id=proposal_id, owner=PILOT_OWNER,
@@ -875,8 +911,8 @@ def accept_worksheet_proposal(worksheet_id: str, proposal_id: str):
             # here to give it one. Passing None is what makes the apply path
             # refuse rather than write a revision citing runs that never
             # happened.
-            run_candidate=(_candidate_runner(prices, store, worksheet_id)
-                           if prices is not None else None))
+            run_candidate=(_candidate_runner(access, store, worksheet_id)
+                           if access.usable else None))
     except StaleProposal as stale:
         raise HTTPException(status_code=409, detail=str(stale)) from stale
     except ApplyRefused as refused:
