@@ -135,6 +135,29 @@ def same_value(left: Optional[Any], right: Optional[Any]) -> bool:
     return canonical(left) == canonical(right)
 
 
+def same_quantity(left: Optional[Any], right: Optional[Any]) -> bool:
+    """Whether two representations denote the same *number*.
+
+    Distinct from `same_value`, which compares canonical strings and therefore
+    treats a difference in recorded precision as a difference. Both are needed,
+    for different sides of storage:
+
+        before writing   `same_value` — the payload and the value being mirrored
+                         are both in hand, so a `to_json` that rounded is
+                         visible and must be refused
+        after reading    `same_quantity` — PostgreSQL `NUMERIC(38, 12)` pads
+                         every value to its declared scale, so a column read
+                         back as 152.260000000000 cannot be compared spelling
+                         to spelling against a payload holding "152.26"
+
+    Using `same_value` on the read side reported drift on every clean row in
+    PostgreSQL. It went unnoticed because the mirror verifier had only ever run
+    against SQLite, where canonical text is stored verbatim — the exact shape of
+    "SQLite passing is not evidence about PostgreSQL".
+    """
+    return to_decimal(left) == to_decimal(right)
+
+
 class Money:
     """A value bound for a decimal column.
 

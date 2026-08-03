@@ -18,7 +18,13 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence
 
 from ..db.engine import Database, Dialect
-from ..db.decimals import DecimalDrift, Money, same_value, to_decimal
+from ..db.decimals import (
+    DecimalDrift,
+    Money,
+    same_quantity,
+    same_value,
+    to_decimal,
+)
 from ..db.types import Json, loads
 from ..mission.boundary import scan_for_personal_data
 from ..runtime.base import canonical_hash
@@ -314,6 +320,49 @@ def _with_decimals(record: Dict[str, Any], table: str,
     return record
 
 
+#: Tables holding an immutable artifact body with a hash over it.
+HASHED_ARTIFACTS = {
+    "planned_event": "planned_event_id",
+    "observed_event": "observed_event_id",
+    "event_reconciliation": "reconciliation_id",
+}
+
+
+def verify_content_hashes(store, table: str,
+                          owner: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Rows whose stored payload no longer matches the hash taken over it.
+
+    The narrowest of the three checks, and deliberately so. It answers only
+    "is this body the one that was written", and says nothing about whether a
+    mirrored column agrees with it or whether a derived conclusion still
+    follows from it. Each of those has its own verifier, because one broad
+    check that happened to catch all three would hide the absence of the other
+    two the day it stopped.
+
+    Recomputes from the stored payload rather than trusting anything alongside
+    it: a tampered payload with an untouched hash is the case this exists for.
+    """
+    identifier = HASHED_ARTIFACTS[table]
+    sql = f"SELECT * FROM {table}"
+    params: Sequence[Any] = ()
+    if owner is not None:
+        sql += " WHERE owner = ?"
+        params = (owner,)
+
+    corrupted: List[Dict[str, Any]] = []
+    with store._conn() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    for row in rows:
+        payload = loads(row["payload"], {})
+        recomputed = canonical_hash(payload)
+        if recomputed != row["content_hash"]:
+            corrupted.append({"table": table, "id": row[identifier],
+                              "owner": row["owner"],
+                              "stored_hash": row["content_hash"],
+                              "recomputed_hash": recomputed})
+    return corrupted
+
+
 def verify_decimal_columns(store, table: str,
                            owner: Optional[str] = None) -> List[Dict[str, Any]]:
     """Rows whose decimal column disagrees with the payload it mirrors.
@@ -339,7 +388,10 @@ def verify_decimal_columns(store, table: str,
         for column, field in MIRRORED_DECIMALS[table].items():
             stored, mirrored = row[column], payload.get(field)
             try:
-                agrees = same_value(stored, mirrored)
+                # Numeric comparison, not spelling: a NUMERIC column pads to
+                # its declared scale, so the stored value legitimately reads
+                # back with trailing zeros the payload does not carry.
+                agrees = same_quantity(stored, mirrored)
             except Exception:
                 agrees = False
             if not agrees:

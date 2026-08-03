@@ -609,3 +609,52 @@ Each was found the same way: by asking what the live path actually calls, rather
 than what the module declares. The generalisation is **reachability of
 enforcement** — every declared control needs one end-to-end test proving the
 live path reaches it, and one mutation proving that bypassing it fails.
+
+## Constructed invalid state
+
+A guard is not tested until a fixture deliberately creates the state that only
+that guard is meant to reject.
+
+This is a different question from reachability, and the two fail in different
+places:
+
+```text
+Reachability of enforcement   does the live path call the control?
+Constructed invalid state     has anything built the forbidden state,
+                              and shown that this control rejects it?
+```
+
+A control can pass the first and fail the second. It sits on the production
+path, it runs on every request, and it has never once been given input it
+should refuse — so deleting it changes no test result. Mutation testing does
+not find these: the mutation is applied, the suite still passes, and the honest
+conclusion looks like "this code is dead" when it is in fact "this code is
+untried".
+
+The distinction matters most for guards protecting states the ordinary API
+cannot produce. Those states have to be built below the API boundary, which
+feels like testing the wrong thing until the day a migration, a new caller or a
+changed constraint makes them reachable.
+
+| Guard | State a fixture had to construct |
+|---|---|
+| migration refuses an unresolvable owner | a `plan_run` orphaned under the old schema |
+| migration refuses an ambiguous owner | one `plan_id` held by two owners |
+| `record_run` derives or refuses | a run naming a plan that does not exist |
+| tenant identity in every key | two owners using identical ids |
+| composite `OwnershipPath` | a path joining half its parent's key |
+| transition affected one row | a conditional update reporting zero |
+| decimal mirror agrees with payload | a payload key renamed or rounded |
+| content hash covers the body | a payload edited with its hash left alone |
+
+Each row is a guard whose removal left the suite green until the state in the
+right-hand column existed. Four of them were found in a single afternoon by
+asking the question directly, which suggests the shape is common rather than
+exceptional.
+
+**A correct migration can invalidate a correct consumer.** Widening every
+tenant key was right, and it silently broke `OwnershipPath`, which joined on the
+single-column identity those keys used to have. The join stayed valid, kept
+returning rows, and returned another tenant's. Nothing in the migration was
+wrong; the defect was in code that still assumed the old identity shape. So the
+standing checks validate not only the keys but the consumers of those keys.

@@ -302,6 +302,43 @@ class TestTheDenormalizedCopyCannotDisagree:
                 matching_policy_version="m@1")
         assert store.planned_events("ws-1", "alice") == []
 
+    def test_a_clean_row_reports_no_drift_on_postgresql(self, postgres_store):
+        """The gap that let a broken verifier ship.
+
+        `verify_decimal_columns` had only ever run against SQLite, where the
+        canonical text is stored verbatim. On PostgreSQL the NUMERIC column
+        pads to its declared scale, so comparing spellings reported drift on
+        every clean row — the verifier was failing open on the engine that
+        matters, and nothing looked.
+        """
+        store_and_read(postgres_store, "152.26")
+        assert verify_decimal_columns(postgres_store, "planned_event") == []
+
+    @pytest.mark.parametrize("quantity", QUANTITIES)
+    def test_no_clean_quantity_reports_drift_on_postgresql(self, postgres_store,
+                                                           quantity):
+        store_and_read(postgres_store, quantity)
+        assert verify_decimal_columns(postgres_store, "planned_event") == []
+
+    def test_a_real_divergence_is_still_caught_on_postgresql(self,
+                                                             postgres_store):
+        """Loosening the comparison must not stop it detecting anything."""
+        store_and_read(postgres_store, "152.26")
+        with postgres_store._conn() as conn:
+            conn.execute("UPDATE planned_event SET expected_quantity = ?",
+                         ("152.27",))
+        assert verify_decimal_columns(postgres_store, "planned_event")
+
+    def test_a_rounded_column_is_still_caught_on_postgresql(self,
+                                                            postgres_store):
+        """152.2 against a payload of 152.26 is a rounded copy, and padding to
+        scale must not disguise it."""
+        store_and_read(postgres_store, "152.26")
+        with postgres_store._conn() as conn:
+            conn.execute("UPDATE planned_event SET expected_quantity = ?",
+                         ("152.2",))
+        assert verify_decimal_columns(postgres_store, "planned_event")
+
     def test_observed_events_are_covered_too(self, tmp_path):
         store = WorkspaceStore(tmp_path / "w.db")
         store.record_observed_event(
