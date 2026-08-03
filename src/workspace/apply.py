@@ -117,11 +117,17 @@ def accept(store, *, proposal_id: str, owner: str, worksheet_id: str,
         # ids that do not belong in an application error path. Found by
         # removing the lock in a test and watching `DeadlockDetected` escape.
         if is_conflict(exc):
+            # Chained, not discarded. The public payload is the message below
+            # and carries nothing internal; the original stays on `__cause__`
+            # for logs and tracebacks. `from None` hid the SQLSTATE and the
+            # backend context from operators as well as from callers, which
+            # solved the wrong half of the problem — the two are separate
+            # channels, and sanitising one must not blind the other.
             raise ProposalConflict(
                 f"proposal {proposal_id} could not be applied because another "
                 "request was changing the same records. Nothing from this "
                 "attempt was kept; read the proposal again to see the outcome "
-                "that stands") from None
+                "that stands") from exc
         raise
 
 
@@ -137,7 +143,16 @@ def _apply(store, *, proposal_id, owner, worksheet_id, proposal, at, actor,
         # the proposal row is taken first and the status and revision are read
         # after, inside the same transaction that will act on them.
         record = store.lock_worksheet_proposal(proposal_id, owner)
-        if record is not None and record["status"] != ProposalStatus.PROPOSED.value:
+        if record is None:
+            # Scoped to this owner, so a proposal belonging to someone else is
+            # simply absent — the requester learns nothing about whether that
+            # id exists elsewhere. Permitting a missing record used to let an
+            # acceptance proceed with nothing to lock, nothing to check for a
+            # prior outcome and nothing to transition, which is every guard in
+            # this function disabled at once.
+            raise ApplyRefused(
+                f"no proposal {proposal_id!r} to accept")
+        if record["status"] != ProposalStatus.PROPOSED.value:
             raise ApplyRefused(
                 f"proposal {proposal_id} is already {record['status']}. "
                 "Accepting it twice would produce a second revision for one "
@@ -215,7 +230,7 @@ def _apply(store, *, proposal_id, owner, worksheet_id, proposal, at, actor,
         # Rolling back here is what makes the guarantee whole: raising inside
         # the transaction discards the revision and every candidate run, so a
         # caller that cannot claim success also leaves nothing behind.
-        if record is not None and moved != 1:
+        if moved != 1:
             if moved == 0:
                 raise ProposalConflict(
                     f"proposal {proposal_id} was resolved by another request "

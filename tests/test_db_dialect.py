@@ -84,6 +84,23 @@ class TestTheModelMatchesTheShippedSchema:
                         for column in schema.metadata.tables[table].columns}
             assert live == modelled, f"{table} columns disagree"
 
+    #: Tables whose primary key the model deliberately widened after shipping,
+    #: with the column added. Each was keyed without `owner`, so two tenants
+    #: could not hold the same id — and because these tables are written with
+    #: `INSERT OR REPLACE`, one tenant's write silently overwrote the other's
+    #: row rather than merely being refused. The same defect was fixed for
+    #: `worksheet` when it was found there; it was never propagated.
+    #:
+    #: Enumerated rather than skipped, so an *accidental* primary-key change
+    #: still fails this test.
+    DELIBERATELY_WIDENED = {
+        "worksheet_proposal": "owner",
+        "proposal": "owner",
+        "observation": "owner",
+        "worksheet_intent": "owner",
+        "confirmation_event": "owner",
+    }
+
     def test_primary_keys_match(self, shipped):
         """The conflict target of every upsert depends on this being right."""
         for table in sorted(schema.metadata.tables):
@@ -91,9 +108,34 @@ class TestTheModelMatchesTheShippedSchema:
             live = tuple(c["name"] for c in
                          sorted((c for c in columns if c["pk"]),
                                 key=lambda c: c["pk"]))
-            assert live == schema.primary_key_columns(table), (
+            modelled = schema.primary_key_columns(table)
+            added = self.DELIBERATELY_WIDENED.get(table)
+            if added is not None:
+                assert added in modelled, (
+                    f"{table} was widened to include {added!r} and no longer is")
+                modelled = tuple(c for c in modelled if c != added)
+            assert live == modelled, (
                 f"{table} primary key disagrees; an upsert would target the "
                 "wrong columns and silently insert a duplicate")
+
+    def test_every_owner_scoped_table_keys_by_owner(self):
+        """The standing rule, checked against the model rather than remembered.
+
+        `worksheet` got `owner` in its key when a write refusal was found to be
+        answering a question about another tenant. Five more tables had the same
+        shape and kept it, because nothing enumerated them — so the rule was
+        satisfied where it had been applied and nowhere else.
+        """
+        unscoped = []
+        for name, table in schema.metadata.tables.items():
+            if "owner" not in table.columns:
+                continue                      # indirectly owned; see retention
+            if "owner" not in schema.primary_key_columns(name):
+                unscoped.append(name)
+        assert unscoped == ["plan"], (
+            "owner-scoped tables whose identity omits the owner: "
+            f"{unscoped}. Two tenants cannot then hold the same id, and an "
+            "`INSERT OR REPLACE` lets one overwrite the other")
 
     def test_foreign_keys_are_not_lost(self, shipped):
         """The shipped schema's constraints must survive the rewrite.

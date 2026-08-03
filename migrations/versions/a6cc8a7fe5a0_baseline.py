@@ -1,8 +1,8 @@
-"""baseline workspace schema
+"""baseline
 
-Revision ID: a335b8fd1ed9
+Revision ID: a6cc8a7fe5a0
 Revises: 
-Create Date: 2026-08-02 20:19:48.919396
+Create Date: 2026-08-02 21:56:34.659382
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = 'a335b8fd1ed9'
+revision: str = 'a6cc8a7fe5a0'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -35,7 +35,7 @@ def upgrade() -> None:
     sa.Column('reason', sa.Text(), nullable=True),
     sa.Column('compiler_version', sa.Text(), nullable=True),
     sa.Column('defaults_ref', sa.Text(), nullable=True),
-    sa.PrimaryKeyConstraint('event_id')
+    sa.PrimaryKeyConstraint('event_id', 'owner')
     )
     op.create_table('observation',
     sa.Column('observation_id', sa.Text(), nullable=False),
@@ -43,7 +43,7 @@ def upgrade() -> None:
     sa.Column('owner', sa.Text(), nullable=False),
     sa.Column('observed_at', sa.Text(), nullable=False),
     sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
-    sa.PrimaryKeyConstraint('observation_id')
+    sa.PrimaryKeyConstraint('observation_id', 'owner')
     )
     op.create_table('observed_event',
     sa.Column('owner', sa.Text(), nullable=False),
@@ -102,7 +102,7 @@ def upgrade() -> None:
     sa.Column('generated_at', sa.Text(), nullable=False),
     sa.Column('status', sa.Text(), nullable=False),
     sa.CheckConstraint("status IN ('ACCEPTED', 'EXPIRED', 'IGNORED', 'OPEN', 'SUPERSEDED')", name='ck_proposal_status'),
-    sa.PrimaryKeyConstraint('proposal_id')
+    sa.PrimaryKeyConstraint('proposal_id', 'owner')
     )
     op.create_table('worksheet',
     sa.Column('owner', sa.Text(), nullable=False),
@@ -136,7 +136,7 @@ def upgrade() -> None:
     sa.Column('status', sa.Text(), nullable=False),
     sa.Column('trace_id', sa.Text(), nullable=True),
     sa.CheckConstraint("status IN ('PLANNED', 'PROPOSED')", name='ck_worksheet_intent_status'),
-    sa.PrimaryKeyConstraint('intent_id')
+    sa.PrimaryKeyConstraint('intent_id', 'owner')
     )
     op.create_index('worksheet_intent_sequence', 'worksheet_intent', ['worksheet_id', 'owner', 'sequence'], unique=True)
     op.create_table('worksheet_proposal',
@@ -154,7 +154,7 @@ def upgrade() -> None:
     sa.Column('trace_id', sa.Text(), nullable=True),
     sa.CheckConstraint("result_revision IS NULL OR status = 'ACCEPTED'", name='ck_worksheet_proposal_result_only_when_accepted'),
     sa.CheckConstraint("status IN ('ACCEPTED', 'EXPIRED', 'PROPOSED', 'REJECTED', 'SUPERSEDED')", name='ck_worksheet_proposal_status'),
-    sa.PrimaryKeyConstraint('proposal_id')
+    sa.PrimaryKeyConstraint('proposal_id', 'owner')
     )
     op.create_table('event_reconciliation',
     sa.Column('owner', sa.Text(), nullable=False),
