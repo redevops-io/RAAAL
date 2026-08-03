@@ -266,10 +266,19 @@ class TestDeletion:
 
     def test_verification_is_independent_of_the_deletion(self, store,
                                                          monkeypatch):
-        """The falsification: skip one table and prove verification catches it.
+        """Skip one table and the deletion itself must refuse.
 
-        Verification derived from the deletion code would agree with it by
-        construction."""
+        This used to let the deletion succeed and then check afterwards that
+        `verify_deleted` noticed — because both read the same
+        `owner_scoped_tables()`, so a table missing from that list was skipped
+        by the deletion *and* by the check meant to catch the deletion skipping
+        it. They agreed by construction, and the test only passed because it
+        restored the full list before verifying.
+
+        Verification now reads the registry directly, so the two lists can
+        differ and the deletion fails at the time rather than being caught by a
+        later manual call nobody makes in production.
+        """
         populate(store, MINE)
 
         import src.workspace.erasure as erasure
@@ -279,7 +288,9 @@ class TestDeletion:
             erasure, "owner_scoped_tables",
             lambda: tuple(one for one in original()
                           if one.table != "worksheet_intent"))
-        erasure.delete_workspace(store, MINE, requested_at="t9")
+
+        with pytest.raises(erasure.DeletionIncomplete, match="worksheet_intent"):
+            erasure.delete_workspace(store, MINE, requested_at="t9")
 
         monkeypatch.setattr(erasure, "owner_scoped_tables", original)
         assert "worksheet_intent" in erasure.verify_deleted(store, MINE)
@@ -438,3 +449,57 @@ class TestTracesAreIndependent:
         populate(store, MINE)
         assert delete_workspace(store, MINE,
                                 requested_at="t9").status == "COMPLETE"
+
+
+class TestAnOwnershipPathIsWellFormedBeforeItIsUsed:
+    """Invalid paths are refused at construction, not discovered in a query.
+
+    Each of these is a state the ordinary declaration site cannot reach by
+    accident but a careless edit can, so the test constructs it deliberately.
+    A path with more local columns than parent columns produces a join that
+    silently drops the extra condition — matching more parents than intended,
+    and the extra ones belong to other tenants.
+    """
+
+    def test_more_local_columns_than_parent_columns_is_refused(self):
+        from src.workspace.retention import OwnershipPath
+
+        with pytest.raises(ValueError, match="local column"):
+            OwnershipPath(local_key=("proposal_id", "owner"),
+                          parent_table="worksheet_proposal",
+                          parent_key=("proposal_id",),
+                          parent_owner_column="owner")
+
+    def test_more_parent_columns_than_local_columns_is_refused(self):
+        from src.workspace.retention import OwnershipPath
+
+        with pytest.raises(ValueError, match="parent column"):
+            OwnershipPath(local_key=("proposal_id",),
+                          parent_table="worksheet_proposal",
+                          parent_key=("proposal_id", "owner"),
+                          parent_owner_column="owner")
+
+    def test_a_single_column_path_may_still_be_written_as_a_string(self):
+        """Normalized rather than rejected: a one-column join is legitimate
+        where the parent key really is one column."""
+        from src.workspace.retention import OwnershipPath
+
+        path = OwnershipPath(local_key="plan_id", parent_table="plan",
+                             parent_key="plan_id", parent_owner_column="owner")
+        assert path.local_key == ("plan_id",)
+        assert path.parent_key == ("plan_id",)
+
+    def test_the_join_names_every_column_pair(self):
+        """The generated SQL, not the declaration, is what deletes rows."""
+        from src.workspace.retention import OwnershipPath
+
+        path = OwnershipPath(
+            local_key=("proposal_id", "proposal_owner"),
+            parent_table="worksheet_proposal",
+            parent_key=("proposal_id", "owner"), parent_owner_column="owner")
+        select = path.select("child")
+        assert "worksheet_proposal.proposal_id = child.proposal_id" in select
+        assert "worksheet_proposal.owner = child.proposal_owner" in select
+        delete = path.delete("child")
+        assert "(proposal_id, proposal_owner) IN" in delete
+        assert "SELECT proposal_id, owner FROM worksheet_proposal" in delete

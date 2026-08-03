@@ -29,8 +29,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from ..db.schema import deletion_order
+from . import retention
 from .retention import (
     RETENTION_POLICY_VERSION,
+    DeletionBehaviour,
     OwnerScope,
     owner_scoped_tables,
 )
@@ -121,8 +123,12 @@ def delete_workspace(store, owner: str, *, requested_at: str,
     # nothing at all about a dependency between two directly-owned tables, which
     # is what `event_reconciliation` referencing its events is.
     position = {name: index for index, name in enumerate(deletion_order())}
+    # A classified table outside the relationship graph is deleted first.
+    # Nothing declares a dependency on it, and deleting a dependent early can
+    # never violate a RESTRICT — whereas guessing it is a parent could leave
+    # its children unreachable.
     ordered = sorted(owner_scoped_tables(),
-                     key=lambda one: position[one.table])
+                     key=lambda one: position.get(one.table, -1))
 
     with store._conn() as conn:
         for record in ordered:
@@ -155,13 +161,17 @@ def delete_workspace(store, owner: str, *, requested_at: str,
 def verify_deleted(store, owner: str) -> Mapping[str, int]:
     """Tables still holding rows for this owner.
 
-    Reads the classified inventory directly rather than trusting the deletion
-    that just ran. Verification derived from the deletion code would agree with
-    it by construction.
+    Reads the registry itself, not the helper the deletion iterates. Both used
+    to call `owner_scoped_tables()`, so a table missing from that list was
+    skipped by the deletion *and* by the check that was supposed to catch the
+    deletion skipping it — the two agreed by construction, which is precisely
+    what this function's independence was meant to prevent.
     """
     remaining: Dict[str, int] = {}
+    classified = [one for one in retention.WORKSPACE_RECORDS.values()
+                  if one.deletion_behaviour is DeletionBehaviour.DELETE_WITH_OWNER]
     with store._conn() as conn:
-        for record in owner_scoped_tables():
+        for record in classified:
             rows = _rows_for(conn, record, owner)
             if rows:
                 remaining[record.table] = len(rows)

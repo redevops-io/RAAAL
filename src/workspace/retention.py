@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 #: Bumped when a policy changes. Recorded on every deletion receipt so a receipt
 #: says which rules it was carried out under.
@@ -72,31 +72,63 @@ class OwnershipPath:
     described in a comment and special-cased in one function is a table the
     other three will get wrong.
 
-        plan_run.plan_id -> plan.plan_id -> plan.owner
+    **The join must span the parent's whole key.** This originally took a single
+    `local_key` and `parent_key`, which was correct while parent tables were
+    identified by one column. Once tenant identity entered every key, a join on
+    the id alone matched *both* tenants' parents — and a deletion for one owner
+    removed the other's child rows while reporting the right counts. Nothing
+    about that failure looks wrong from inside: the query is valid, it returns
+    rows, and they are the wrong rows.
+
+        plan_run.(owner, plan_id) -> plan.(owner, plan_id) -> plan.owner
     """
 
-    local_key: str
+    local_key: Tuple[str, ...]
     parent_table: str
-    parent_key: str
+    parent_key: Tuple[str, ...]
     parent_owner_column: str
 
+    def __post_init__(self) -> None:
+        # Accept a bare string for either key and normalize, so a
+        # single-column path stays readable at the declaration site.
+        if isinstance(self.local_key, str):
+            object.__setattr__(self, "local_key", (self.local_key,))
+        if isinstance(self.parent_key, str):
+            object.__setattr__(self, "parent_key", (self.parent_key,))
+        if len(self.local_key) != len(self.parent_key):
+            raise ValueError(
+                f"{self.parent_table}: the join has {len(self.local_key)} "
+                f"local column(s) and {len(self.parent_key)} parent column(s). "
+                "A partial join matches more parents than it should, and the "
+                "extra ones belong to other tenants.")
+
     def describe(self) -> str:
-        return (f"{self.local_key} -> {self.parent_table}.{self.parent_key} "
-                f"-> {self.parent_table}.{self.parent_owner_column}")
+        pairs = ", ".join(f"{local} -> {self.parent_table}.{parent}"
+                          for local, parent
+                          in zip(self.local_key, self.parent_key))
+        return f"{pairs} -> {self.parent_table}.{self.parent_owner_column}"
+
+    def _on(self, table: str) -> str:
+        return " AND ".join(
+            f"{self.parent_table}.{parent} = {table}.{local}"
+            for local, parent in zip(self.local_key, self.parent_key))
 
     def select(self, table: str) -> str:
         return (f"SELECT {table}.* FROM {table} JOIN {self.parent_table} "
-                f"ON {self.parent_table}.{self.parent_key} = {table}.{self.local_key} "
+                f"ON {self._on(table)} "
                 f"WHERE {self.parent_table}.{self.parent_owner_column} = ?")
 
     def delete(self, table: str) -> str:
-        return (f"DELETE FROM {table} WHERE {self.local_key} IN "
-                f"(SELECT {self.parent_key} FROM {self.parent_table} "
+        columns = ", ".join(self.local_key)
+        parents = ", ".join(self.parent_key)
+        return (f"DELETE FROM {table} WHERE ({columns}) IN "
+                f"(SELECT {parents} FROM {self.parent_table} "
                 f"WHERE {self.parent_owner_column} = ?)")
 
     def to_json(self) -> Dict[str, Any]:
-        return {"local_key": self.local_key, "parent_table": self.parent_table,
-                "parent_key": self.parent_key,
+        return {"local_key": list(self.local_key),
+                "parent_table": self.parent_table,
+                "parent_key": list(self.parent_key),
                 "parent_owner_column": self.parent_owner_column,
                 "describes": self.describe()}
 
@@ -264,6 +296,32 @@ SENSITIVE_CATEGORIES: Sequence[str] = (
     "tax assumptions", "raw user instructions", "evidence references",
     "model prompts and responses",
 )
+
+
+def paths_not_spanning_their_parent_key(
+        primary_keys: Mapping[str, Sequence[str]]) -> Sequence[str]:
+    """Ownership paths that join on less than their parent's whole key.
+
+    Takes the primary keys from the *database*, so this compares a declaration
+    against the schema rather than against another declaration.
+
+    A path joining on a subset matches every parent row sharing that subset —
+    which, since tenant identity entered every key, means every tenant's. The
+    resulting deletion is a valid query returning rows, so it reports plausible
+    counts while removing another tenant's records. That is not hypothetical:
+    the indirect fixture's original single-column path did exactly this.
+    """
+    wrong = []
+    for record in WORKSPACE_RECORDS.values():
+        path = record.ownership_path
+        if path is None:
+            continue
+        expected = tuple(primary_keys.get(path.parent_table, ()))
+        if expected and set(path.parent_key) != set(expected):
+            wrong.append(
+                f"{record.table}: joins {path.parent_table} on "
+                f"{tuple(path.parent_key)} but its key is {expected}")
+    return tuple(wrong)
 
 
 def unclassified(tables: Sequence[str]) -> Sequence[str]:

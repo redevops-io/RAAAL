@@ -34,9 +34,15 @@ INDIRECT_CHILD = RecordClass(
     table=TABLE,
     data_class=DataClass.PERSONAL_RECORD,
     owner_scope=OwnerScope.INDIRECT,
+    # Spans the parent's whole key. `proposal_id` alone matches both tenants'
+    # proposals, and deleting one owner then removed the other's child rows —
+    # with correct-looking counts, because the query was valid and returned
+    # rows. A child of a tenant-owned parent has to carry the tenant dimension;
+    # that is the same invariant as the keys themselves, one level down.
     ownership_path=OwnershipPath(
-        local_key="proposal_id", parent_table="worksheet_proposal",
-        parent_key="proposal_id", parent_owner_column="owner"),
+        local_key=("proposal_id", "proposal_owner"),
+        parent_table="worksheet_proposal",
+        parent_key=("proposal_id", "owner"), parent_owner_column="owner"),
     retention_policy="retained while the account is active",
     deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
     export_behaviour="included in a workspace export",
@@ -46,9 +52,10 @@ INDIRECT_CHILD = RecordClass(
 
 CREATE = f"""
 CREATE TABLE IF NOT EXISTS {TABLE} (
-    child_id    TEXT NOT NULL,
-    proposal_id TEXT NOT NULL,
-    note        TEXT NOT NULL,
+    child_id       TEXT NOT NULL,
+    proposal_id    TEXT NOT NULL,
+    proposal_owner TEXT NOT NULL,
+    note           TEXT NOT NULL,
     PRIMARY KEY (child_id)
 )
 """
@@ -66,11 +73,13 @@ def drop(store) -> None:
         conn.execute(DROP)
 
 
-def add(store, *, child_id: str, proposal_id: str, note: str = "n") -> None:
+def add(store, *, child_id: str, proposal_id: str, proposal_owner: str,
+        note: str = "n") -> None:
     with store._conn() as conn:
         conn.execute(
-            f"INSERT INTO {TABLE} (child_id, proposal_id, note) VALUES (?,?,?)",
-            (child_id, proposal_id, note))
+            f"INSERT INTO {TABLE} (child_id, proposal_id, proposal_owner, note) "
+            "VALUES (?,?,?,?)",
+            (child_id, proposal_id, proposal_owner, note))
 
 
 def rows(store):
