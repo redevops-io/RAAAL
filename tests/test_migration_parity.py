@@ -322,7 +322,12 @@ class TestStartupActuallyReachesTheCheck:
         monkeypatch.setenv("QUANTIFY_DATABASE_URL", postgres_database.url)
         # The schema was dropped and never migrated: starting would fail later,
         # on a user's request, in whichever code path got there first.
-        with pytest.raises(migrate.MigrationMismatch):
+        #
+        # The refusal now comes from the startup preflight rather than from
+        # `require_migration_head` directly, so the assertion is on the
+        # outcome — startup stopped, and stopped for this reason — rather than
+        # on which exception class carried it.
+        with pytest.raises(RuntimeError, match="MIGRATION_MISMATCH"):
             with TestClient(api.app):
                 pass
 

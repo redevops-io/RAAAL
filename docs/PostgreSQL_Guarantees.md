@@ -139,6 +139,56 @@ rows, and returned another tenant's.
 
 ---
 
+---
+
+## The production preflight
+
+A production instance establishes all of this before it serves anything:
+
+```text
+build identity -> URL -> connect -> version -> migration head -> schema parity
+```
+
+Each step has its own outcome — `REFUSED_CONFIGURATION`,
+`DATABASE_UNAVAILABLE`, `UNSUPPORTED_DATABASE`, `MIGRATION_MISMATCH`,
+`SCHEMA_MISMATCH`, `BUILD_UNOBSERVABLE` — because collapsing them into one
+"startup failed" would discard the only thing an operator needs. The public
+surface still reports nothing but `ready: false`.
+
+    QUANTIFY_DEPLOYMENT_PROFILE=production
+    QUANTIFY_DATABASE_URL=postgresql://...
+
+**The profile decides whether a refusal stops the service, not whether the
+question is asked.** The database checks run under any profile pointed at
+PostgreSQL — a developer with an unmigrated database wants to know — and a
+schema mismatch stops every profile, because serving a database whose columns
+this code does not expect moves the failure onto the first request that touches
+one.
+
+**The URL is judged before anything opens it.** `Database` creates the parent
+directory of a SQLite path on construction, so a check made after building one
+would already have written to disk.
+
+**There is no production fallback.** Absent configuration, the target resolves
+to `data/workspace.db` — correct for a checkout, and in production the same
+shape as the `_prices()` bypass: a live path quietly reading something nobody
+authorised.
+
+`PROVEN_POSTGRES_MAJOR` is stated as *proven*, not as a ceiling. A later major
+is unsupported until this same lane passes against it, which is a day's work
+rather than a re-architecture.
+
+Readiness and liveness are separate endpoints. A failed preflight makes an
+instance unready — visible to a load balancer, still diagnosable — rather than
+crash-looping a container nobody can inspect. No user-facing route is served in
+that state.
+
+The startup proof record carries the profile, engine, version, migration head,
+parity result, build provenance and timestamp, and no credentials or network
+detail.
+
+---
+
 ## Running the PostgreSQL lane
 
 ```bash

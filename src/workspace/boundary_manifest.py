@@ -75,6 +75,14 @@ MANIFEST: Sequence[EndpointBoundary] = (
     EndpointBoundary("/info", Exposure.INFRASTRUCTURE,
                      "Build and capability metadata. Carries no artifacts."),
     EndpointBoundary("/health", Exposure.INFRASTRUCTURE, "Liveness."),
+    # Readiness is separate from liveness: a failed preflight makes an
+    # instance unready without making it indistinguishable from a dead
+    # process. It carries the outcome and nothing about why — a client learns
+    # that the service cannot serve, not which host it could not reach or
+    # which revision its schema is at.
+    EndpointBoundary("/ready", Exposure.INFRASTRUCTURE,
+                     "Readiness. Reports whether the startup preflight passed, "
+                     "and nothing about why it did not."),
     EndpointBoundary("/docs", Exposure.INFRASTRUCTURE, "Generated API docs."),
     EndpointBoundary("/redoc", Exposure.INFRASTRUCTURE, "Generated API docs."),
     EndpointBoundary("/openapi.json", Exposure.INFRASTRUCTURE, "Schema."),

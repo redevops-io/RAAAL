@@ -22,6 +22,8 @@ from typing import Any, Dict, List, Optional
 
 from contextlib import asynccontextmanager
 
+import logging
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 
@@ -73,33 +75,48 @@ def _bootstrap() -> None:
         _ledger.publish_protocol(p)
 
 
-def _check_schema() -> None:
-    """Refuse to serve a database at a different schema than this code expects.
+#: The startup preflight's outcome, held for the readiness endpoint.
+#:
+#: Readiness and liveness are separate on purpose. A migration mismatch should
+#: make the service *unready* — visible to a load balancer, still diagnosable by
+#: an operator — rather than crash-looping a container that cannot be inspected.
+#: What must not happen is a user-facing request being served in that state.
+_PREFLIGHT: Dict[str, Any] = {"outcome": None}
 
-    At startup, not at first use. A service that starts happily and fails on the
-    first request touching a column the database has not grown yet has moved the
-    failure onto a user, and onto whichever code path reached it first.
 
-    Skipped for SQLite, which is tests, local development and the standalone
-    demo — those databases are created by `create_all` and have no migration
-    history to be at odds with. A deployed pilot is PostgreSQL, and
-    `src.db.guard` is what refuses to let it be anything else.
-    """
-    from .db.engine import Database, Dialect
-    from .db.migrate import require_migration_head
-
-    database = Database()
-    if database.dialect is Dialect.SQLITE:
-        return
-    require_migration_head(database)
+def preflight_outcome():
+    return _PREFLIGHT["outcome"]
 
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
-    _check_schema()
+    import datetime as dt
+
+    from .deploy.preflight import Profile, Result, run as run_preflight
+
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    outcome = run_preflight(checked_at=stamp)
+    _PREFLIGHT["outcome"] = outcome
+
+    if not outcome.ready:
+        # The detail is for logs and the private proof record, never for a
+        # client. It names the host, the revision or the drifted column.
+        LOG.error("preflight %s: %s", outcome.result.value, outcome.detail)
+        if outcome.profile is Profile.PRODUCTION or \
+                outcome.result is Result.MIGRATION_MISMATCH:
+            # A schema mismatch stops any profile. Serving a database whose
+            # columns this code does not expect moves the failure onto the
+            # first request that touches one, which is how it reaches a user
+            # instead of an operator.
+            raise RuntimeError(
+                f"preflight {outcome.result.value}; refusing to serve. "
+                "See the operator log for detail.")
+
     _bootstrap()
     yield
 
+
+LOG = logging.getLogger(__name__)
 
 app = FastAPI(
     title="investment-agent (Quantify Investment OS)",
@@ -120,6 +137,23 @@ app.include_router(ui_router)
 # own store, mounted at its own prefix, so it can move to a different
 # hostname without any code moving with it.
 app.include_router(workspace_router)
+
+
+@app.get("/ready")
+def ready() -> Dict[str, Any]:
+    """Whether this instance may serve requests.
+
+    Carries the outcome and nothing about why: a client learns that the service
+    is not ready, not that its migration head is behind or which host it could
+    not reach.
+    """
+    from fastapi.responses import JSONResponse
+
+    outcome = preflight_outcome()
+    if outcome is None:
+        return JSONResponse({"ready": False}, status_code=503)
+    return JSONResponse(outcome.public(),
+                        status_code=200 if outcome.ready else 503)
 
 
 @app.get("/health")
