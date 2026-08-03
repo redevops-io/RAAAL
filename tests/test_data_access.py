@@ -187,9 +187,9 @@ class TestTheSnapshotIsPinned:
         seen = []
         real = policy_module.authorise
 
-        def watched(snapshot, *, context):
+        def watched(snapshot, *, context, **_):
             seen.append(snapshot)
-            return real(snapshot, context=context)
+            return real(snapshot, context=context, **_)
 
         monkeypatch.setattr(policy_module, "authorise", watched)
         monkeypatch.setenv("PILOT_DATA_POLICY", "SYNTHETIC_ONLY")
@@ -206,8 +206,8 @@ class TestTheSnapshotIsPinned:
         real = policy_module.authorise
         monkeypatch.setattr(
             policy_module, "authorise",
-            lambda snapshot, *, context: (seen.append(context),
-                                          real(snapshot, context=context))[1])
+            lambda snapshot, *, context, **_: (seen.append(context),
+                                          real(snapshot, context=context, **_))[1])
         monkeypatch.setenv("PILOT_DATA_POLICY", "SYNTHETIC_ONLY")
         resolve_prices(context="a distinctive context")
         assert seen == ["a distinctive context"]
@@ -251,7 +251,7 @@ class TestADeniedSnapshotYieldsNothing:
         self._with_snapshot(monkeypatch, synthetic_snapshot())
         import src.market_data.pilot_policy as policy_module
 
-        def deny(snapshot, *, context):
+        def deny(snapshot, *, context, **_):
             raise policy_module.PilotDataDenied("licence review unconfirmed")
 
         monkeypatch.setattr(policy_module, "authorise", deny)
@@ -273,7 +273,7 @@ class TestADeniedSnapshotYieldsNothing:
 
         monkeypatch.setattr(
             policy_module, "authorise",
-            lambda snapshot, *, context: (_ for _ in ()).throw(
+            lambda snapshot, *, context, **_: (_ for _ in ()).throw(
                 policy_module.PilotDataDenied("denied")))
 
         opened = []

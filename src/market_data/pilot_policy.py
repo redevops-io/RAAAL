@@ -78,10 +78,15 @@ class Authorisation:
                 "snapshot_id": self.snapshot_id, "reason": self.reason}
 
 
-def configured_policy(environ: Optional[Mapping[str, str]] = None
-                      ) -> PilotDataPolicy:
-    """The deployment's policy, or a refusal."""
-    raw = (environ if environ is not None else os.environ).get(POLICY_VARIABLE)
+def configured_policy(environ: Mapping[str, str]) -> PilotDataPolicy:
+    """The deployment's policy, or a refusal.
+
+    The mapping is required. It defaulted to `os.environ`, which made this a
+    second reader of the deployment rather than the one interpreter of a value
+    someone else resolved — `deploy.context.resolve` is the only caller that
+    supplies the real environment.
+    """
+    raw = environ.get(POLICY_VARIABLE)
     if not raw:
         raise PilotPolicyMissing(
             f"{POLICY_VARIABLE} is not set. A pilot deployment must state which "
@@ -124,6 +129,7 @@ def evaluate(snapshot, *, policy: PilotDataPolicy) -> Authorisation:
 
 
 def authorise(snapshot, *, environ: Optional[Mapping[str, str]] = None,
+              policy: Optional[PilotDataPolicy] = None,
               context: str = "") -> Authorisation:
     """Gate a pilot run. Raises unless the snapshot is permitted.
 
@@ -131,7 +137,10 @@ def authorise(snapshot, *, environ: Optional[Mapping[str, str]] = None,
     the synthetic one: a run whose figures came from data the plan did not name
     is worse than a refusal, because nothing in the result would say so.
     """
-    policy = configured_policy(environ)
+    # A resolved policy, or a mapping to interpret. Callers on the live path
+    # pass the former: the deployment already answered this.
+    if policy is None:
+        policy = configured_policy(environ if environ is not None else {})
     verdict = evaluate(snapshot, policy=policy)
     if verdict.permitted:
         return verdict

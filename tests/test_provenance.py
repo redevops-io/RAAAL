@@ -144,7 +144,7 @@ class TestADeniedReadProducesNoData:
         monkeypatch.setenv(POLICY, "market-data-egress/pilot-vendor-approved@1")
         monkeypatch.setattr(
             policy_module, "authorise",
-            lambda snapshot, *, context: (_ for _ in ()).throw(
+            lambda snapshot, *, context, **_: (_ for _ in ()).throw(
                 policy_module.PilotDataDenied("review open")))
 
         frame, provenance = resolve(context="a run", accessed_at=AT)

@@ -753,14 +753,43 @@ a caller can get wrong — which is why `resolve` returns frame and provenance
 together rather than as a pair, and why `OwnershipPath` emits its own SQL rather
 than describing a join for each consumer to write.
 
-**Where this is not yet finished.** The database case now funnels through
-`resolve_target`, but `preflight.py` and `engine.py` each read the environment
-and pass the result in. They agree because both end at the same function, not
-because the environment is read once. The full form is a resolved deployment
-context — database, market-data policy, build identity, telemetry target — read
-once at startup and handed to everything else, with nothing below it consulting
-`os.environ` at all. Until then, the invariant holds by convention here rather
-than by construction.
+**Resolution parity is not single resolution.** The database case first funnelled
+through `resolve_target`, with `preflight.py` and `engine.py` each reading the
+environment and passing the result in. They agreed because both ended at the
+same function — not because the question was answered once. That is a weaker
+property that looks identical while it holds and gives no warning when it stops.
+
+The full form is `src/deploy/context.py`: one `resolve()`, one frozen
+`DeploymentContext` carrying database target, market-data policy, model
+configuration and build identity, judged by the preflight and then bound as the
+object the process serves under. `create_app` resolves once, preflights *that
+object*, and binds it; `tests/test_single_resolution.py` proves the object
+bound is the object judged, by identity rather than by equality.
+
+**The enumeration had to come first.** Fixing readers one at a time would have
+produced the same partial result as the five tenant-key tables. Two scans of the
+syntax tree found ten operational identities across ten modules — including
+`ANTHROPIC_API_KEY` and `QUANTIFY_PARSER_MODEL` read by a request handler in
+`workspace/routes.py`.
+
+**The invariant test was itself an instance of the defect.** The previous version
+scanned `src/` for string constants matching a hard-coded list of three variable
+names, and contained an assertion named `test_no_route_reads_an_operational_identity`.
+It passed while a route read two identities, because the scan was parametrised
+from the same list the assertion was about — self-authored evidence, the failure
+described under *coverage evidence*, in the file whose subject is exactly this.
+It now derives the inventory from the syntax tree: every environment access in
+`src/`, whatever it names, so a variable nobody has thought of is in scope by
+default. It found one more the two scans had missed — a module-level cache path
+in `market_data/loader.py`, evaluated at import and therefore frozen before any
+deployment existed.
+
+**What remains, declared rather than hidden.** Four modules still read the
+environment, each recorded with its reason: three vendor or process credentials
+that no second component forms a view about, and the manifest expander in
+`loader.py`, whose variable names come from data rather than code. That one is
+fenced — `RESERVED_NAMES` refuses to expand any identity the context owns, so a
+YAML file cannot become a second route to a deployment fact.
 
 ## Journey completeness
 

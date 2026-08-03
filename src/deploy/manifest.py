@@ -11,7 +11,6 @@ precisely because both lists look authoritative.
 """
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -116,14 +115,14 @@ class BuildManifest:
         return self.private()
 
 
-def read_manifest(environ: Optional[Mapping[str, str]] = None) -> BuildManifest:
+def read_manifest(environ: Mapping[str, str]) -> BuildManifest:
     """Assemble the manifest from the environment and the code.
 
     Deployment facts are read only from `environ`. There is deliberately no
     fallback to `git rev-parse`: on a server there is no working tree, and in
     development it would report the checkout rather than the running image.
     """
-    source = os.environ if environ is None else environ
+    source = environ
 
     deployment: Dict[str, str] = {}
     missing: List[str] = []

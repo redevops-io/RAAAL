@@ -129,3 +129,22 @@ def _pilot_data_policy(monkeypatch):
     would pass by producing nothing.
     """
     monkeypatch.setenv("PILOT_DATA_POLICY", "SYNTHETIC_ONLY")
+
+
+@pytest.fixture(autouse=True)
+def _no_inherited_deployment():
+    """No test serves under the deployment a previous test established.
+
+    `create_app` binds a process-wide `DeploymentContext`, which is right for a
+    server — one process, one deployment — and wrong for a suite, where the
+    next test would silently answer from the previous one's environment. That
+    is the same defect the context exists to remove, one level up: a component
+    using a resolved answer that was resolved for something else.
+    """
+    from src.deploy.context import unbind
+
+    unbind()
+    try:
+        yield
+    finally:
+        unbind()

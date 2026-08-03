@@ -25,7 +25,6 @@ something nobody authorised. Production refuses instead.
 """
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -96,9 +95,9 @@ class Preflight:
         return {"ready": self.ready}
 
 
-def configured_profile(environ: Optional[Mapping[str, str]] = None) -> Profile:
-    source = os.environ if environ is None else environ
-    raw = (source.get(PROFILE_VAR) or Profile.LOCAL.value).strip().lower()
+def configured_profile(environ: Mapping[str, str]) -> Profile:
+    """Interpret a profile. The mapping is required — see `configured_policy`."""
+    raw = (environ.get(PROFILE_VAR) or Profile.LOCAL.value).strip().lower()
     try:
         return Profile(raw)
     except ValueError:
@@ -113,12 +112,23 @@ def _postgres_major(version: str) -> Optional[int]:
 
 
 def run(environ: Optional[Mapping[str, str]] = None,
-        checked_at: str = "") -> Preflight:
-    """The whole preflight, in order, stopping at the first refusal."""
-    from ..db.engine import DATABASE_URL_VAR, Dialect, dialect_of, resolve_target
+        checked_at: str = "", context: Optional[Any] = None) -> Preflight:
+    """The whole preflight, in order, stopping at the first refusal.
 
-    source = os.environ if environ is None else environ
-    profile = configured_profile(source)
+    Inspects a resolved `DeploymentContext` and reads nothing itself. The
+    preflight validated PostgreSQL while the store opened SQLite because both
+    read the environment separately and neither could be wrong on its own
+    terms; judging the object the application will actually use is what makes
+    that class of divergence impossible rather than merely unlikely. Passing
+    `environ` resolves a context through the one resolver — a convenience for
+    callers describing a hypothetical deployment, not a second reader.
+    """
+    from ..db.engine import DATABASE_URL_VAR, Dialect
+    from .context import resolve
+
+    if context is None:
+        context = resolve(environ)
+    profile = context.profile
     facts: Dict[str, Any] = {}
 
     def refuse(result: Result, detail: str) -> Preflight:
@@ -127,9 +137,7 @@ def run(environ: Optional[Mapping[str, str]] = None,
 
     # 1. Build identity. Checked first because a deployment that cannot say
     #    what it is cannot be diagnosed when a later step fails.
-    from .manifest import read_manifest
-
-    manifest = read_manifest(source)
+    manifest = context.build
     facts["build"] = {"observable": manifest.observable,
                       **{k: v for k, v in manifest.deployment.items()
                          if k in ("commit", "release_ref", "image_digest",
@@ -147,21 +155,23 @@ def run(environ: Optional[Mapping[str, str]] = None,
             "which code it is running cannot be diagnosed when something else "
             "fails, and package self-report answers a different question")
 
-    # 2. The URL, judged as a string. Nothing has opened anything yet.
-    configured = source.get(DATABASE_URL_VAR)
-    if profile is Profile.PRODUCTION and not configured:
+    # 2. The target, judged before anything opens it.
+    if profile is Profile.PRODUCTION and not context.database.configured:
         return refuse(
             Result.REFUSED_CONFIGURATION,
             f"{DATABASE_URL_VAR} is not set. There is no production fallback: "
             "defaulting to a local SQLite file would be a live path quietly "
             "reading a database nobody authorised")
 
-    url = resolve_target(configured)
-    try:
-        dialect = dialect_of(url)
-    except Exception as exc:
-        return refuse(Result.REFUSED_CONFIGURATION, str(exc))
+    url = context.database.url
+    if context.database.problem:
+        return refuse(Result.REFUSED_CONFIGURATION, context.database.problem)
+    dialect = Dialect(context.database.dialect)
 
+    # The engine, and nothing about where. `facts` becomes the startup proof, a
+    # durable artifact, and a redacted URL still names the host and port — that
+    # is network topology, not provenance. The host belongs in the operator log
+    # alongside `detail`, which already names it.
     facts["database"] = {"engine": dialect.value}
     if profile is Profile.PRODUCTION and dialect is not Dialect.POSTGRESQL:
         return refuse(

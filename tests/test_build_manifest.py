@@ -167,12 +167,29 @@ class TestTheLivePathConsultsIt:
         payload = TestClient(app).get("/health").json()["build"]
         assert payload["observable"] is True
 
-    def test_the_endpoint_does_not_restate_the_manifest(self):
-        """A second assembly in the route would drift from the first."""
-        import inspect
+    def test_the_endpoint_reports_the_bound_deployment(self, monkeypatch):
+        """The endpoint reads the resolved context, not the environment.
 
-        import src.api as api
+        Asserted by making the two disagree. This test used to check that the
+        word `read_manifest` appeared in the handler's source, which a handler
+        that assembled its own second manifest would also have satisfied — the
+        prose matched while the arrangement it stood for did not hold.
+        """
+        from src.deploy.context import bind, resolve, unbind
 
-        source = inspect.getsource(api.health)
-        assert "read_manifest" in source
-        assert "QUANTIFY_" not in source
+        for name, value in COMPLETE.items():
+            monkeypatch.setenv(name, value)
+        observable = resolve(dict(COMPLETE))
+
+        # Bound: observable. The environment now says otherwise, and the
+        # endpoint must still report what the deployment resolved.
+        bind(observable)
+        try:
+            for name in REQUIRED_DEPLOYMENT_FACTS:
+                monkeypatch.delenv(name, raising=False)
+            payload = TestClient(app).get("/health").json()["build"]
+        finally:
+            unbind()
+        assert payload["observable"] is True, (
+            "the endpoint re-read the environment instead of the deployment "
+            "it is serving under")

@@ -7,7 +7,8 @@ from .integrity import (
     verify,
 )
 from .loader import (
-    DEFAULT_CACHE,
+    BUILTIN_CACHE,
+    default_cache,
     Decision,
     Egress,
     EgressDenied,
@@ -22,7 +23,7 @@ from .loader import (
 
 __all__ = [
     "DIGEST_VERSION", "IntegrityError", "content_digest", "file_sha256",
-    "verify", "DEFAULT_CACHE", "Decision", "Egress", "EgressDenied",
+    "verify", "BUILTIN_CACHE", "default_cache", "Decision", "Egress", "EgressDenied",
     "Snapshot", "SnapshotUnavailable",
     "describe_for_run", "load_manifest", "load_prices", "production_snapshot",
     "synthetic_snapshot",

@@ -92,10 +92,23 @@ def preflight_outcome():
 async def _lifespan(_: FastAPI):
     import datetime as dt
 
+    from .deploy.context import bind, bound, resolve as resolve_context
     from .deploy.preflight import Profile, Result, run as run_preflight
 
+    # In production `create_app` has already resolved, judged and bound one,
+    # and this reuses it: resolving again here would reintroduce the second
+    # reader the context exists to remove, and a deployment whose environment
+    # changed between the two calls would be preflighted as one thing and
+    # served as another. Resolving only happens on the imported-application
+    # path, where nothing has established a deployment at all.
+    context = bound() or bind(resolve_context())
+
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
-    outcome = run_preflight(checked_at=stamp)
+    # Run again rather than reusing `create_app`'s outcome: the preflight is a
+    # check, not a resolution, and re-checking the same context is idempotent.
+    # Reusing a held outcome would let a process that has served before report
+    # the previous deployment's verdict for this one.
+    outcome = run_preflight(checked_at=stamp, context=context)
     _PREFLIGHT["outcome"] = outcome
 
     if not outcome.ready:
@@ -113,7 +126,15 @@ async def _lifespan(_: FastAPI):
                 "See the operator log for detail.")
 
     _bootstrap()
-    yield
+    try:
+        yield
+    finally:
+        # A bound context outlives the application object, and a process that
+        # serves several — every test that builds a client — would otherwise
+        # inherit the previous deployment's answer.
+        from .deploy.context import unbind
+
+        unbind()
 
 
 LOG = logging.getLogger(__name__)
@@ -149,6 +170,7 @@ def create_app() -> FastAPI:
     import datetime as dt
     import json as _json
 
+    from .deploy.context import bind, resolve as resolve_context
     from .deploy.preflight import Profile, run as run_preflight
 
     # Uvicorn installs its own logging config and does not propagate this
@@ -157,8 +179,15 @@ def create_app() -> FastAPI:
     # an operator is actually reading.
     log = logging.getLogger("uvicorn.error")
 
+    # Resolve, judge *that object*, then serve under it. The preflight once
+    # validated PostgreSQL while the store opened a local SQLite file, because
+    # each read the environment for itself and neither was wrong on its own
+    # terms. Passing the resolved context to both is what makes them the same
+    # answer rather than two answers that usually agree.
+    context = resolve_context()
+
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
-    outcome = run_preflight(checked_at=stamp)
+    outcome = run_preflight(checked_at=stamp, context=context)
     _PREFLIGHT["outcome"] = outcome
 
     if not outcome.ready:
@@ -169,9 +198,16 @@ def create_app() -> FastAPI:
         if outcome.profile is Profile.PRODUCTION:
             raise DeploymentRefused(outcome)
 
+    # Only now, and only this object: nothing serves under a context the
+    # preflight did not judge.
+    bind(context)
+    app.state.deployment = context
+
     proof = _json.dumps(outcome.proof(), sort_keys=True)
     log.info("deployment proof %s", proof)
     LOG.info("deployment proof %s", proof)
+    log.info("deployment context %s",
+             _json.dumps(context.to_json(), sort_keys=True))
     return app
 
 
@@ -240,12 +276,12 @@ def health() -> Dict[str, Any]:
     The public view only. An image digest and a migration head describe how to
     attack the deployment, not how to interoperate with it.
     """
-    from .deploy import read_manifest
+    from .deploy.context import current
 
     return {
         "status": "ok",
         "version": API_VERSION,
-        "build": read_manifest().public(),
+        "build": current().build.public(),
         "paper_only": True,
         "external_execution_path": False,
         "notice": DEMO_NOTICE,

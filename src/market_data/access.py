@@ -70,20 +70,18 @@ def resolve(*, context: str, accessed_at: Optional[str] = None
         recorded,
     )
     from .loader import load_prices, synthetic_snapshot
-    from .pilot_policy import (
-        PilotDataDenied,
-        PilotDataPolicy,
-        PilotPolicyMissing,
-        authorise,
-        configured_policy,
-    )
+    from ..deploy.context import current
+    from .pilot_policy import PilotDataDenied, PilotDataPolicy, authorise
 
     stamp = accessed_at or (
         dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z")
 
-    try:
-        policy = configured_policy()
-    except PilotPolicyMissing:
+    # The policy the deployment resolved, not one this gate looks up for
+    # itself. Fails closed unchanged: an absent policy still denies, and it
+    # now denies for the reason the resolver recorded rather than for the
+    # reason this call site guessed.
+    policy = current().market_data.policy
+    if policy is None:
         return MarketDataAccess(
             None, not_recorded("no market-data policy is configured"))
 
@@ -98,7 +96,7 @@ def resolve(*, context: str, accessed_at: Optional[str] = None
             None, not_recorded("no snapshot was resolved for this policy"))
 
     try:
-        authorise(snapshot, context=context)
+        authorise(snapshot, policy=policy, context=context)
     except PilotDataDenied as refusal:
         # No data, and a provenance that records the refusal rather than
         # pretending the question was never asked.

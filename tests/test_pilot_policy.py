@@ -173,9 +173,9 @@ class TestTheLiveRouteIsGated:
 
         real_authorise = policy_module.authorise
 
-        def watched(snapshot, *, context):
+        def watched(snapshot, *, context, **_):
             authorised.append((snapshot.snapshot_id, context))
-            return real_authorise(snapshot, context=context)
+            return real_authorise(snapshot, context=context, **_)
 
         monkeypatch.setattr(policy_module, "authorise", watched)
         monkeypatch.setenv(POLICY_VARIABLE, "SYNTHETIC_ONLY")

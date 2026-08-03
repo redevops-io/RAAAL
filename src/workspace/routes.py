@@ -46,6 +46,7 @@ from ..mission import (
 )
 from ..mission.parse_model import (
     AnthropicClient,
+    DEFAULT_MODEL,
     parse_from_stored,
     parse_with_model,
 )
@@ -78,13 +79,19 @@ def _parser_client():
     Absent by default. Without a key the compiler falls back to its
     deterministic rules and asks more questions, which is the correct direction
     to fail in: narrower recognition, never a confident wrong reading.
-    """
-    import os
 
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    Asks the deployment rather than the environment. This function used to read
+    `ANTHROPIC_API_KEY` and `QUANTIFY_PARSER_MODEL` itself — a request handler
+    deciding for itself what the deployment was, and the exact shape that let
+    the preflight validate PostgreSQL while the store opened SQLite.
+    """
+    from ..deploy.context import current
+
+    model = current().model
+    if not model.available:
         return None
-    return AnthropicClient(model=os.environ.get("QUANTIFY_PARSER_MODEL",
-                                                "claude-sonnet-5"))
+    return AnthropicClient(model=model.model or DEFAULT_MODEL,
+                           api_key=model.api_key())
 
 
 def _pinned_parse(record):
@@ -140,7 +147,16 @@ def _disclosures(compiled, run) -> Dict[str, Any]:
 
 
 def _store() -> WorkspaceStore:
-    return WorkspaceStore()
+    """The store, opened on the database this deployment resolved.
+
+    Stated at the construction site rather than left to the engine's default.
+    `WorkspaceStore()` reaching a correct default is how the previous defect
+    hid: the substitution happened one layer down, where no reader of this
+    function could see which database a request was about to write to.
+    """
+    from ..deploy.context import current
+
+    return WorkspaceStore(current().database.url)
 
 
 def _prices() -> Optional[pd.DataFrame]:

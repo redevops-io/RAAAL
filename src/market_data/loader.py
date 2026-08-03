@@ -37,9 +37,25 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_DIR = REPO_ROOT / "data" / "manifests"
 FIXTURE_MANIFEST = REPO_ROOT / "tests" / "fixtures" / "prices_synthetic_manifest.yaml"
 
-DEFAULT_CACHE = Path(
-    os.environ.get("QUANTIFY_MARKET_DATA_CACHE",
-                   str(Path.home() / ".cache" / "quantify" / "market-data")))
+#: Where snapshots are cached. Named so `DeploymentContext` can resolve it
+#: once; nothing else should read it.
+CACHE_VARIABLE = "QUANTIFY_MARKET_DATA_CACHE"
+
+#: Where snapshots are cached when a deployment names no directory.
+BUILTIN_CACHE = Path.home() / ".cache" / "quantify" / "market-data"
+
+
+def default_cache() -> Path:
+    """The cache directory this deployment resolved.
+
+    A function, not a module constant. `DEFAULT_CACHE` read the environment at
+    import time, which made this module a second reader of the deployment and
+    froze the answer at whatever the first import saw — so a process that
+    established a deployment afterwards used a directory nobody configured.
+    """
+    from ..deploy.context import current
+
+    return Path(current().market_data.cache_directory or BUILTIN_CACHE)
 
 _ENV_REF = re.compile(r"^\$\{([A-Z0-9_]+)\}$")
 
@@ -88,15 +104,42 @@ class Decision(str, Enum):
 _INTERNAL_ONLY = frozenset({Egress.INTERNAL_BENCHMARK})
 
 
+#: Names a manifest may not expand. These are the deployment's own identities,
+#: resolved once into `DeploymentContext`; a manifest that could name one would
+#: be a second path to the same answer, reachable by editing a YAML file.
+RESERVED_NAMES = frozenset({
+    "QUANTIFY_DATABASE_URL", "QUANTIFY_DEPLOYMENT_PROFILE", "PILOT_DATA_POLICY",
+    "QUANTIFY_MARKET_DATA_CACHE", "ANTHROPIC_API_KEY", "QUANTIFY_PARSER_MODEL",
+})
+
+
+class ReservedReference(ValueError):
+    """A manifest tried to expand a deployment identity."""
+
+
 def _resolve(value: Any) -> Optional[str]:
     """Expand `${VAR}` from the environment, so a bucket name need not be
-    committed while the snapshot identity still is."""
+    committed while the snapshot identity still is.
+
+    This is the one environment read that is not an operational identity: the
+    name comes from a manifest rather than from code, and nothing else forms a
+    view about the value — the manifest is its only consumer. What it must not
+    become is a back door to the deployment's own facts, so the names the
+    context owns are refused rather than expanded.
+    """
     if not isinstance(value, str):
         return value
     match = _ENV_REF.match(value.strip())
     if not match:
         return value
-    return os.environ.get(match.group(1))
+    name = match.group(1)
+    if name in RESERVED_NAMES:
+        raise ReservedReference(
+            f"a manifest may not expand {name}: it is a deployment identity, "
+            "resolved once into DeploymentContext. A manifest that could name "
+            "one would be a second route to the same answer, editable without "
+            "touching any code")
+    return os.environ.get(name)
 
 
 @dataclass(frozen=True)
@@ -224,7 +267,7 @@ def production_snapshot(name: str = "prices-production") -> Snapshot:
 # --- loading ---------------------------------------------------------------
 
 def load_prices(snapshot: Optional[Snapshot] = None, *,
-                cache_dir: Path = DEFAULT_CACHE,
+                cache_dir: Optional[Path] = None,
                 allow_network: bool = False) -> pd.DataFrame:
     """Produce the pinned table, or raise.
 
@@ -232,6 +275,7 @@ def load_prices(snapshot: Optional[Snapshot] = None, *,
     accident. A test that silently acquires a network dependency passes locally,
     fails in CI, and is diagnosed as flaky.
     """
+    cache_dir = Path(cache_dir) if cache_dir is not None else default_cache()
     snapshot = snapshot or synthetic_snapshot()
 
     if snapshot.is_local:

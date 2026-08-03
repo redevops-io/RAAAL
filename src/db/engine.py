@@ -62,7 +62,16 @@ def resolve_target(target: Optional[Union[str, Path]] = None) -> str:
     in twenty test files — keeps meaning what it has always meant.
     """
     if target is None:
-        target = os.environ.get(DATABASE_URL_VAR) or DEFAULT_SQLITE_PATH
+        # Ask the deployment, not the environment. This line used to read
+        # `QUANTIFY_DATABASE_URL` itself, which made the engine a second
+        # resolver: the preflight decided the deployment was PostgreSQL and
+        # this decided, separately and by the same means, that it was too —
+        # until `WorkspaceStore.__init__` stopped passing its argument through
+        # and the two answers silently parted. One resolver, so there is
+        # nothing left to disagree.
+        from ..deploy.context import current
+
+        return current().database.url
     if _is_url(target):
         return str(target)
     return f"sqlite:///{Path(target)}"
