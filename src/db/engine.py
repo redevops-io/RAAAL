@@ -92,6 +92,19 @@ _UPSERT = re.compile(
 
 _UNTRANSLATED = re.compile(r"INSERT\s+OR\s+(REPLACE|IGNORE)", re.IGNORECASE)
 
+#: SQLite's JSON accessor. PostgreSQL has no `json_extract`, so a query using
+#: one failed on every deployed request while passing every SQLite test — the
+#: same shape as `INSERT OR REPLACE`, and found the same way: by driving a real
+#: request into a real PostgreSQL database.
+#:
+#: Only the top-level `$.field` form is translated. A deeper path has more than
+#: one reasonable PostgreSQL spelling, and guessing between them would be a
+#: silent difference in what a query matches.
+_JSON_EXTRACT = re.compile(
+    r"json_extract\s*\(\s*(\w+)\s*,\s*'\$\.(\w+)'\s*\)", re.IGNORECASE)
+
+_UNTRANSLATED_JSON = re.compile(r"json_extract\s*\(", re.IGNORECASE)
+
 
 class UntranslatableStatement(ValueError):
     """A SQLite-only statement with no PostgreSQL rewrite.
@@ -122,6 +135,12 @@ def to_postgres(sql: str) -> str:
         return (f"INSERT INTO {table} ({' '.join(columns.split())}) "
                 f"VALUES ({' '.join(values.split())}) "
                 f"ON CONFLICT ({conflict}) {action}")
+
+    sql = _JSON_EXTRACT.sub(r"\1->>'\2'", sql)
+    if _UNTRANSLATED_JSON.search(sql):
+        raise UntranslatableStatement(
+            "`json_extract` outside the top-level `$.field` form has no single "
+            f"PostgreSQL spelling here:\n{sql.strip()}")
 
     sql = _UPSERT.sub(upsert, sql)
     if _UNTRANSLATED.search(sql):
