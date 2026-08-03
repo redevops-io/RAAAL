@@ -658,3 +658,48 @@ single-column identity those keys used to have. The join stayed valid, kept
 returning rows, and returned another tenant's. Nothing in the migration was
 wrong; the defect was in code that still assumed the old identity shape. So the
 standing checks validate not only the keys but the consumers of those keys.
+
+## Coverage evidence
+
+A coverage assertion must derive its evidence from the execution that produced
+the coverage, never from a list written alongside it.
+
+```text
+executed store calls -> captured method names -> compared with the public
+                                                 write-method inventory
+
+not
+
+a hand-written list of method names -> compared with another hand-written list
+```
+
+The second form passed while the code it claimed to cover was never called. It
+is not a weak test; it is **self-authored evidence** — the test writes down what
+it believes happened and then checks its own note.
+
+This has now appeared in five shapes, and they are one defect:
+
+| Claim | How it was authored by the thing it checked |
+|---|---|
+| the status vocabulary matches its enum | imported from the enum |
+| the migration matches the model | the comparison database was built from the model |
+| every diagnostic destination is guarded | parametrized from the list being guarded |
+| every write method is exercised | the exercised set was retyped by hand |
+| consumers preserve composite identity | reported clean having observed no joins |
+
+The last is the sharpest. A checker given nothing to inspect returns no
+violations, and no violations is exactly what a correct system returns. Silence
+means *pass* and *never ran* at the same time, so a run that inspected nothing
+must say so:
+
+    assert any("JOIN" in one.upper() for one in issued), (
+        "no join was captured, so this check had nothing to inspect")
+
+Applied generally:
+
+- every non-read-only store method must produce captured SQL;
+- every consumer check must assert it observed at least one relevant join;
+- every registry completeness test must compare against an independent schema
+  or type inventory;
+- every mutation must be shown to change the behaviour under test, not merely
+  to have been applied.
