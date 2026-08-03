@@ -147,14 +147,41 @@ class TestInstanceCompleteness:
                 contradictions=p.contradictions, unresolved=())})
 
     def stored_run(self, store, provenance_payload):
+        """Write a run, going under the store's guard when it has to.
+
+        `record_run` now refuses a result with no provenance or an incoherent
+        one, which is the point — but these tests are about the *verifier*
+        reading rows that already exist, including rows the writer would never
+        have produced. A legacy row predates the guard; a tampered one went
+        around it. Both have to be constructed below the API, exactly as the
+        JSONB tampering tests do.
+        """
+        from src.db.types import Json
+
         store.save_plan(plan_id="p-1", owner="alice", scenario=self.scenario(),
                         stated_text="x", saved_at="2026-01-01T00:00:00Z")
         result = {"modelling_scope": {"excludes": []}, "final_value": 1.0}
         if provenance_payload is not None:
             result["market_data"] = provenance_payload
-        store.record_run(run_id="r-1", plan_id="p-1", owner="alice",
-                         ran_at="2026-01-01T00:00:00Z", result=result,
-                         comparison={})
+
+        with store._conn() as conn:
+            conn.execute(
+                "INSERT INTO plan_run (owner, run_id, plan_id, ran_at, result, "
+                "comparison) VALUES (?,?,?,?,?,?)",
+                ("alice", "r-1", "p-1", "2026-01-01T00:00:00Z",
+                 Json(result), Json({})))
+        return store.get_run("r-1", "alice")
+
+    def stored_through_the_writer(self, store, provenance_payload):
+        """The same run, through `record_run`, for the cases it accepts."""
+        store.save_plan(plan_id="p-1", owner="alice", scenario=self.scenario(),
+                        stated_text="x", saved_at="2026-01-01T00:00:00Z")
+        store.record_run(
+            run_id="r-1", plan_id="p-1", owner="alice",
+            ran_at="2026-01-01T00:00:00Z",
+            result={"modelling_scope": {"excludes": []}, "final_value": 1.0,
+                    "market_data": provenance_payload},
+            comparison={})
         return store.get_run("r-1", "alice")
 
     def test_a_run_with_recorded_provenance_has_a_usable_chain(self, store):
@@ -162,7 +189,7 @@ class TestInstanceCompleteness:
 
         _, provenance = resolve(context="a run",
                                 accessed_at="2026-01-01T00:00:00Z")
-        run = self.stored_run(store, provenance.to_json())
+        run = self.stored_through_the_writer(store, provenance.to_json())
 
         stored = dig(run["result"], "market_data")
         assert stored is not None
@@ -334,3 +361,140 @@ class TestTheChainSurvivesTheDeploymentMoving:
         carried = from_json(dig(run["result"], "market_data"))
         assert carried.status is ProvenanceStatus.NOT_RECORDED
         assert carried.snapshot_id is None
+
+
+class TestTheWriterRefusesAnUnattributableRun:
+    """The guard that closes the reachability gap.
+
+    The live path resolved a frame and a provenance together, used the frame,
+    and dropped the provenance — so every stored run was unattributable while
+    the mechanism to attribute it already existed. The store now refuses a
+    result that cannot say which data produced it.
+    """
+
+    @pytest.fixture
+    def store(self, tmp_path, monkeypatch):
+        from src.workspace.store import WorkspaceStore
+
+        monkeypatch.setenv(POLICY, "SYNTHETIC_ONLY")
+        store = WorkspaceStore(tmp_path / "w.db")
+        inventory = TestInstanceCompleteness()
+        store.save_plan(plan_id="p-1", owner="alice",
+                        scenario=inventory.scenario(), stated_text="x",
+                        saved_at="2026-01-01T00:00:00Z")
+        return store
+
+    def record(self, store, market_data, run_id="r-1"):
+        result = {"modelling_scope": {"excludes": []}, "final_value": 1.0}
+        if market_data is not _OMITTED:
+            result["market_data"] = market_data
+        return store.record_run(run_id=run_id, plan_id="p-1", owner="alice",
+                                ran_at="2026-01-01T00:00:00Z", result=result,
+                                comparison={})
+
+    def test_an_omitted_provenance_is_refused(self, store):
+        from src.workspace.store import NotSaveable
+
+        with pytest.raises(NotSaveable, match="no market-data provenance"):
+            self.record(store, _OMITTED)
+
+    def test_the_refusal_names_all_three_options(self, store):
+        """`None` cannot mean market-derived, not market-derived and unknown at
+        once, so the refusal says which of the three to state."""
+        from src.workspace.store import NotSaveable
+
+        with pytest.raises(NotSaveable) as caught:
+            self.record(store, _OMITTED)
+        assert "NOT_APPLICABLE" in str(caught.value)
+
+    def test_nothing_is_written_when_it_is_refused(self, store):
+        from src.workspace.store import NotSaveable
+
+        with pytest.raises(NotSaveable):
+            self.record(store, _OMITTED)
+        assert store.get_run("r-1", "alice") is None
+
+    def test_a_denied_decision_is_refused(self, store):
+        """A denied read cannot authorize a stored result."""
+        from src.workspace.store import NotSaveable
+
+        with pytest.raises(NotSaveable, match="DENIED"):
+            self.record(store, {"status": "RECORDED", "snapshot_id": "s-1",
+                                "content_digest": "mdv1:aaa",
+                                "access_decision": "DENIED",
+                                "accessed_at": "2026-01-01T00:00:00Z"})
+
+    def test_a_label_without_a_digest_is_refused(self, store):
+        from src.workspace.store import NotSaveable
+
+        with pytest.raises(NotSaveable, match="content digest"):
+            self.record(store, {"status": "RECORDED", "snapshot_id": "s-1",
+                                "access_decision": "SYNTHETIC_ALLOWED",
+                                "accessed_at": "2026-01-01T00:00:00Z"})
+
+    def test_not_applicable_is_accepted(self, store):
+        """A run that used no market data says so, and is stored."""
+        from src.market_data.provenance import not_applicable
+
+        assert self.record(store, not_applicable().to_json()) == "r-1"
+
+    def test_not_recorded_is_accepted_for_a_legacy_import(self, store):
+        from src.market_data.provenance import not_recorded
+
+        assert self.record(store, not_recorded("legacy").to_json()) == "r-1"
+
+    def test_a_resolver_provenance_is_accepted(self, store):
+        from src.market_data.access import resolve
+
+        access = resolve(context="a run", accessed_at="2026-01-01T00:00:00Z")
+        assert self.record(store, access.provenance.to_json()) == "r-1"
+
+
+class TestTheResultCarriesItsOwnProvenance:
+    """`MissionResult` holds it, so it travels with the figure."""
+
+    def build(self, market_data=None):
+        """A real result from the engine, not a stub.
+
+        Standing in a fake `path` meant chasing whichever attribute `to_json`
+        happened to touch next, and a stub that satisfies the serializer today
+        proves nothing about the one it will satisfy tomorrow.
+        """
+        import pandas as pd
+
+        from src.mission.simulate import simulate
+
+        sessions = pd.date_range("2026-01-01", periods=3, freq="D")
+        prices = pd.DataFrame({"ACME": [10.0, 11.0, 12.0]}, index=sessions)
+        from src.mission.accounting import CashPolicy
+        from src.mission.benchmark import buy_and_hold
+
+        result = simulate(prices, flows=[], program=buy_and_hold([]),
+                          cash_policy=CashPolicy.idle(),
+                          modelling_scope={"excludes": []})
+        import dataclasses
+
+        return dataclasses.replace(result, market_data=market_data)
+
+    def test_a_result_without_it_serializes_as_not_recorded(self):
+        """Not omitted. An omitted field would mean all three things at once."""
+        body = self.build().to_json()
+        assert body["market_data"]["status"] == \
+            ProvenanceStatus.NOT_RECORDED.value
+
+    def test_a_result_with_it_serializes_the_record(self, monkeypatch):
+        from src.market_data.access import resolve
+
+        monkeypatch.setenv(POLICY, "SYNTHETIC_ONLY")
+        access = resolve(context="a run", accessed_at="2026-01-01T00:00:00Z")
+        body = self.build(access.provenance).to_json()
+        assert body["market_data"]["snapshot_id"] == \
+            access.provenance.snapshot_id
+        assert body["market_data"]["content_digest"]
+
+    def test_every_serialized_result_carries_the_field(self):
+        assert "market_data" in self.build().to_json()
+
+
+#: Distinguishes "the caller passed None" from "the caller passed nothing".
+_OMITTED = object()

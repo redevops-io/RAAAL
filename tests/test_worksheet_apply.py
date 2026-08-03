@@ -12,6 +12,7 @@ mentions; only the order of writes proves what it did.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 from pathlib import Path
 
 import pytest
@@ -29,7 +30,7 @@ from src.workspace.store import WorkspaceStore
 from src.workspace.worksheet import Block, create, from_json, revise
 
 OWNER = "pilot"
-RESULT = {"modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0}
+RESULT = {"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0, "market_data": NO_MARKET_DATA.to_json()}
 
 
 @pytest.fixture

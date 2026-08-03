@@ -52,7 +52,7 @@ def new_worksheet_id() -> str:
 
 def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any],
              comparison: Mapping[str, Any], ran_at: str,
-             title: str = "") -> Optional[ResearchWorksheet]:
+             title: str = "", provenance=None) -> Optional[ResearchWorksheet]:
     """Persist the run, then create or revise the worksheet that cites it.
 
     Returns `None` when there is no run to cite. A worksheet whose performance
@@ -63,8 +63,18 @@ def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any
         return None
 
     identifier = run_id_for(plan_id, scenario.content_hash, ran_at)
+    # Carried into the result rather than passed beside it, because the
+    # provenance belongs to the figure and travels wherever the figure does.
+    body = dict(run)
+    if "market_data" not in body:
+        from ..market_data.provenance import not_recorded
+
+        body["market_data"] = (provenance.to_json() if provenance is not None
+                               else not_recorded(
+                                   "this run was produced without a resolver "
+                                   "access record").to_json())
     store.record_run(run_id=identifier, plan_id=plan_id, ran_at=ran_at,
-                     result=dict(run), comparison=dict(comparison or {}))
+                     result=body, comparison=dict(comparison or {}))
 
     # Found by what it cites, not by an id computed from the plan name. With an
     # opaque identity there is nothing to recompute, and looking it up by

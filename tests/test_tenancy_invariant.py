@@ -20,6 +20,7 @@ would agree with both.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import os
 
 import pytest
@@ -50,7 +51,7 @@ pytestmark = pytest.mark.skipif(
            "metadata and the write layer reads adapted statements")
 
 A, B = "alice", "bob"
-RESULT = {"modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0}
+RESULT = {"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0, "market_data": NO_MARKET_DATA.to_json()}
 
 #: Identical across both tenants, so a collision is possible at every layer.
 PLAN, RUN, WORKSHEET = "p-shared", "r-shared", "ws-shared"

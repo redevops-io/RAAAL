@@ -11,6 +11,7 @@ trust.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import json
 import sqlite3
 
@@ -193,7 +194,7 @@ class TestNothingCollapses:
 class TestMissingAndCorruptContexts:
 
     def test_an_absent_context_is_not_declared(self):
-        view = RSUWorksheetView.from_result({"modelling_scope": {}})
+        view = RSUWorksheetView.from_result({"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {}, "market_data": NO_MARKET_DATA.to_json()})
         assert view.context_state is ContextState.NOT_DECLARED
         assert "absence of record" in view.note
 

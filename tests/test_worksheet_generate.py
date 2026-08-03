@@ -10,6 +10,7 @@ happens.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import json
 import re
 
@@ -132,7 +133,7 @@ class TestGenerationIsDeterministic:
                         stated_text=COMPLETE, saved_at="2026-08-01T00:00:00Z")
         worksheet = generate(
             store, plan_id="plan-1", owner=OWNER, scenario=compiled.scenario,
-            run={"modelling_scope": {"excludes": []}, "final_value": 12345.0},
+            run={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": []}, "final_value": 12345.0},
             comparison={}, ran_at="2026-08-01T00:00:00Z")
 
         blob = json.dumps(worksheet.to_json())
@@ -148,11 +149,11 @@ class TestReSavingMakesARevision:
                         stated_text=COMPLETE, saved_at="2026-08-01T00:00:00Z")
         first = generate(store, plan_id="plan-1", owner=OWNER,
                          scenario=compiled.scenario,
-                         run={"modelling_scope": {"excludes": ["dividends"]}}, comparison={},
+                         run={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}}, comparison={},
                          ran_at="2026-08-01T00:00:00Z")
         second = generate(store, plan_id="plan-1", owner=OWNER,
                           scenario=compiled.scenario,
-                          run={"modelling_scope": {"excludes": ["dividends"]}}, comparison={},
+                          run={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}}, comparison={},
                           ran_at="2027-01-01T00:00:00Z")
 
         assert first.revision == 1 and second.revision == 2
@@ -167,7 +168,7 @@ class TestReSavingMakesARevision:
                         stated_text=COMPLETE, saved_at="2026-08-01T00:00:00Z")
         for _ in range(3):
             generate(store, plan_id="plan-1", owner=OWNER,
-                     scenario=compiled.scenario, run={"modelling_scope": {"excludes": ["dividends"]}},
+                     scenario=compiled.scenario, run={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}},
                      comparison={}, ran_at="2026-08-01T00:00:00Z")
         assert len(store.worksheet_revisions(store.worksheet_for_scenario("plan-1", OWNER)["worksheet_id"],
                                              OWNER)) == 1
@@ -206,7 +207,7 @@ class TestNothingIsCitedBeforeItExists:
 
         store.save_worksheet = watched_worksheet
         generate(store, plan_id="plan-1", owner=OWNER,
-                 scenario=compiled.scenario, run={"modelling_scope": {"excludes": ["dividends"]}},
+                 scenario=compiled.scenario, run={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}},
                  comparison={}, ran_at="2026-08-01T00:00:00Z")
 
         assert [kind for kind, _ in recorded] == ["run", "worksheet"]

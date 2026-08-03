@@ -7,6 +7,7 @@ diagnostic-destination guards had to close.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import sqlite3
 
 import pytest
@@ -77,7 +78,7 @@ def populate(store, owner: str, *, suffix: str = ""):
                     stated_text="seed", saved_at="t0")
     store.record_run(run_id=f"run-{owner}{suffix}", plan_id=plan_id,
                      ran_at="t1",
-                     result={"modelling_scope": {"excludes": []},
+                     result={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": []},
                              "final_value": 1.0},
                      comparison={})
     store.save_worksheet(create(worksheet_id=worksheet_id, owner_id=owner,

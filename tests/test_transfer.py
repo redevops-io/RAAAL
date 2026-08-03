@@ -11,6 +11,7 @@ that refuses, because the target then holds a history nobody wrote.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import copy
 import os
 from decimal import Decimal
@@ -48,7 +49,7 @@ pytestmark = pytest.mark.skipif(
            "PostgreSQL-only guarantee")
 
 A, B = "alice", "bob"
-RESULT = {"modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0}
+RESULT = {"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0, "market_data": NO_MARKET_DATA.to_json()}
 AT = "2026-01-01T00:00:00Z"
 
 

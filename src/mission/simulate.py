@@ -83,6 +83,20 @@ class MissionResult:
     statement of what it excludes.
     """
 
+    market_data: Optional[Any] = None
+    """Which market data produced these figures.
+
+    Carried here for the same reason as the scope: the number is what travels,
+    and a figure that cannot say which data produced it cannot be checked
+    later. The live path resolved a frame and a provenance together and then
+    dropped the provenance, so every stored run was unattributable while the
+    mechanism to attribute it already existed.
+
+    `None` becomes NOT_RECORDED on serialization rather than being omitted —
+    an omitted field would mean "market-derived", "not market-derived" and
+    "unknown" at once, and a reader could not tell them apart.
+    """
+
     @property
     def time_weighted_annualized(self) -> Optional[float]:
         r = self.time_weighted.dropna()
@@ -102,8 +116,21 @@ class MissionResult:
         """Terminal value less net money put in. The number a user recognises."""
         return self.final_value - (self.path.contributed - self.path.withdrawn)
 
+    def market_data_json(self) -> Dict[str, Any]:
+        """The provenance, or an explicit statement that none was recorded."""
+        from ..market_data.provenance import not_recorded
+
+        if self.market_data is None:
+            return not_recorded(
+                "this result was built without a market-data access record"
+            ).to_json()
+        if hasattr(self.market_data, "to_json"):
+            return self.market_data.to_json()
+        return dict(self.market_data)
+
     def to_json(self) -> Dict[str, Any]:
         return {
+            "market_data": self.market_data_json(),
             "final_value": self.final_value,
             "contributed": self.path.contributed,
             "withdrawn": self.path.withdrawn,

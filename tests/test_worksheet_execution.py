@@ -12,6 +12,7 @@ function — and a statement can be checked against what actually happens.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import pytest
 
 from src.workspace.apply import accept
@@ -22,7 +23,7 @@ from src.workspace.store import WorkspaceStore
 from src.workspace.worksheet import create, from_json
 
 OWNER = "pilot"
-RESULT = {"modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0}
+RESULT = {"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0, "market_data": NO_MARKET_DATA.to_json()}
 
 
 @pytest.fixture

@@ -22,6 +22,7 @@ arranged.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import os
 import threading
 from typing import List
@@ -48,7 +49,7 @@ pytestmark = pytest.mark.skipif(
            "guarantees and SQLite cannot evidence them")
 
 OWNER = "pilot"
-RESULT = {"modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0}
+RESULT = {"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0, "market_data": NO_MARKET_DATA.to_json()}
 
 
 def fresh_database():

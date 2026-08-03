@@ -19,6 +19,7 @@ data produced it.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 
 from .provenance import MarketDataProvenance, ProvenanceStatus
@@ -29,13 +30,37 @@ from .provenance import MarketDataProvenance, ProvenanceStatus
 UNMANIFESTED_PRICES = "data/history/prices.parquet"
 
 
-def resolve(*, context: str, accessed_at: Optional[str] = None):
+@dataclass(frozen=True)
+class MarketDataAccess:
+    """A frame and the record of where it came from, as one value.
+
+    Returned together, and carried together. Passing `frame` and `provenance`
+    as separate arguments through several functions is how one of them gets
+    dropped — which is exactly what the live run path did: it used the frame
+    and discarded the provenance, so every stored figure was unattributable
+    while the mechanism to attribute it already existed.
+    """
+
+    frame: Optional[Any]
+    provenance: "MarketDataProvenance"
+
+    @property
+    def usable(self) -> bool:
+        return self.frame is not None
+
+    def __iter__(self):
+        """Unpacks as a pair, for callers that want only one half."""
+        return iter((self.frame, self.provenance))
+
+
+def resolve(*, context: str, accessed_at: Optional[str] = None
+            ) -> "MarketDataAccess":
     """Prices and the provenance of the data behind them, together.
 
-    Returned as a pair so a caller cannot obtain a figure without the record of
-    where it came from. A separate "and also fetch the provenance" call is one
-    a producer can forget, and the figure it forgot on looks exactly like one
-    it did not.
+    Returned as one object so a caller cannot obtain a figure without the
+    record of where it came from. A separate "and also fetch the provenance"
+    call is one a producer can forget, and the figure it forgot on looks
+    exactly like one it did not.
     """
     import datetime as dt
 
@@ -59,7 +84,8 @@ def resolve(*, context: str, accessed_at: Optional[str] = None):
     try:
         policy = configured_policy()
     except PilotPolicyMissing:
-        return None, not_recorded("no market-data policy is configured")
+        return MarketDataAccess(
+            None, not_recorded("no market-data policy is configured"))
 
     if policy is PilotDataPolicy.SYNTHETIC_ONLY:
         snapshot = synthetic_snapshot()
@@ -68,14 +94,15 @@ def resolve(*, context: str, accessed_at: Optional[str] = None):
         snapshot = approved_snapshot()
         decision = AccessDecision.PILOT_VENDOR_APPROVED
     if snapshot is None:
-        return None, not_recorded("no snapshot was resolved for this policy")
+        return MarketDataAccess(
+            None, not_recorded("no snapshot was resolved for this policy"))
 
     try:
         authorise(snapshot, context=context)
     except PilotDataDenied as refusal:
         # No data, and a provenance that records the refusal rather than
         # pretending the question was never asked.
-        return None, MarketDataProvenance(
+        return MarketDataAccess(None, MarketDataProvenance(
             status=ProvenanceStatus.RECORDED, snapshot_id=snapshot.snapshot_id,
             content_digest=getattr(snapshot, "content_digest", None),
             content_digest_version=getattr(snapshot, "content_digest_version",
@@ -85,17 +112,17 @@ def resolve(*, context: str, accessed_at: Optional[str] = None):
                                           None),
             policy_version=policy.value,
             access_decision=AccessDecision.DENIED,
-            access_decision_reason=str(refusal)[:200], accessed_at=stamp)
+            access_decision_reason=str(refusal)[:200], accessed_at=stamp))
 
     try:
         frame = load_prices(snapshot)
     except Exception:
-        return None, not_recorded(
-            f"snapshot {snapshot.snapshot_id} could not be loaded")
+        return MarketDataAccess(None, not_recorded(
+            f"snapshot {snapshot.snapshot_id} could not be loaded"))
 
-    return frame.sort_index(), recorded(
+    return MarketDataAccess(frame.sort_index(), recorded(
         snapshot, policy_version=policy.value, decision=decision,
-        accessed_at=stamp, reason=context)
+        accessed_at=stamp, reason=context))
 
 
 def resolve_prices(*, context: str) -> Optional[Any]:
@@ -104,8 +131,7 @@ def resolve_prices(*, context: str) -> Optional[Any]:
     Every caller that *stores* a number must use `resolve` and keep the
     provenance with it.
     """
-    frame, _ = resolve(context=context)
-    return frame
+    return resolve(context=context).frame
 
 
 def approved_snapshot():

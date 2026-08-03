@@ -234,13 +234,26 @@ class TestNoDataMeansNoRecordedProvenance:
 
 
 class TestTheDataAndItsProvenanceComeTogether:
-    def test_resolve_returns_both(self, monkeypatch):
+    def test_resolve_returns_one_object_carrying_both(self, monkeypatch):
         """A separate 'and also fetch the provenance' call is one a producer
-        can forget, and the figure it forgot on looks like one it did not."""
+        can forget, and the figure it forgot on looks like one it did not.
+
+        A pair was the first shape; a single object is harder to split by
+        accident as it is threaded through several functions, which is where
+        the live path lost it.
+        """
+        from src.market_data.access import MarketDataAccess
+
         monkeypatch.setenv(POLICY, "SYNTHETIC_ONLY")
-        result = resolve(context="a run", accessed_at=AT)
-        assert isinstance(result, tuple) and len(result) == 2
-        frame, provenance = result
+        access = resolve(context="a run", accessed_at=AT)
+        assert isinstance(access, MarketDataAccess)
+        assert access.usable
+        assert access.provenance.status is ProvenanceStatus.RECORDED
+
+    def test_it_still_unpacks_for_callers_that_want_one_half(self,
+                                                             monkeypatch):
+        monkeypatch.setenv(POLICY, "SYNTHETIC_ONLY")
+        frame, provenance = resolve(context="a run", accessed_at=AT)
         assert frame is not None and provenance is not None
 
     def test_the_prices_only_helper_still_exists_for_non_storing_callers(

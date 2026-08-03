@@ -25,6 +25,7 @@ exercised by a test.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import os
 
 import pytest
@@ -48,7 +49,7 @@ from src.workspace.worksheet import create, revise, from_json
 POSTGRES_URL = os.environ.get("QUANTIFY_TEST_POSTGRES_URL")
 
 OWNER = "alice"
-RESULT = {"modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0}
+RESULT = {"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0, "market_data": NO_MARKET_DATA.to_json()}
 
 
 def scenario_for(name="p1"):

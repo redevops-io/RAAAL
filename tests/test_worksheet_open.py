@@ -14,6 +14,7 @@ The route should have nowhere to pass original text.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import re
 
 import pytest
@@ -73,7 +74,7 @@ def saved(client):
                     stated_text=DESCRIPTION, saved_at="2026-08-01T00:00:00Z")
     store.record_run(run_id="run-1", plan_id="plan-1",
                      ran_at="2026-08-01T00:00:00Z",
-                     result={"modelling_scope": {"excludes": ["dividends"]},
+                     result={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]},
                              "money_weighted": 0.11,
                              "time_weighted_annualized": 0.09,
                              "final_value": 130000.0},
@@ -180,7 +181,7 @@ class TestReferencesArePinned:
         api_client, store = client
         store.record_run(run_id="run-2", plan_id="plan-1",
                          ran_at="2027-01-01T00:00:00Z",
-                         result={"modelling_scope": {"excludes": []},
+                         result={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": []},
                                  "final_value": 999999.0},
                          comparison={})
         page = text(api_client.get("/workspace/research/ws-1").text)

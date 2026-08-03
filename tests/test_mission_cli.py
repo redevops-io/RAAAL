@@ -10,6 +10,7 @@ answers.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import json
 import sqlite3
 import subprocess
@@ -54,7 +55,7 @@ def saved(tmp_path):
     store.save_plan(plan_id="plan-1", owner="pilot", scenario=scenario,
                     stated_text=COMPLETE, saved_at="2026-08-01T00:00:00Z")
     generate(store, plan_id="plan-1", owner="pilot", scenario=scenario,
-             run={"modelling_scope": {"excludes": ["dividends"]},
+             run={"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]},
                   "final_value": 1.0},
              comparison={}, ran_at="2026-08-01T00:00:00Z")
     return str(db)

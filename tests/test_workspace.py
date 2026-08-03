@@ -10,6 +10,7 @@ Each test below is one clause of that sentence.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import re
 
 import pandas as pd
@@ -244,7 +245,7 @@ class TestSavingIsACommitment:
                         stated_text=COMPLETE, saved_at="2026-07-31")
         store.record_run(run_id="r1", plan_id="p", ran_at="2026-07-31",
                          result={"final_value": 1.0,
-                                 "modelling_scope": {"modelled": [],
+                                 "market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"modelled": [],
                                                      "not_modelled": []}},
                          comparison={})
 
@@ -268,7 +269,7 @@ class TestSavingIsACommitment:
                         stated_text=COMPLETE, saved_at="2026-07-31")
         store.record_run(run_id="r1", plan_id="p", ran_at="2026-07-31",
                          result={"money_weighted": 0.31,
-                                 "modelling_scope": {"modelled": [],
+                                 "market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"modelled": [],
                                                      "not_modelled": []}},
                          comparison={"class": "X"})
 

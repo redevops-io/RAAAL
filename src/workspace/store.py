@@ -591,6 +591,29 @@ class WorkspaceStore:
             from ..mission.rsu_result import validate as _validate_context
 
             _validate_context(result["rsu_context"])
+
+        # Every stored figure says which market data produced it, or says that
+        # nobody recorded it. `None` is refused because it would mean all three
+        # of "market-derived", "not market-derived" and "unknown" at once, and
+        # a reader could not tell them apart.
+        #
+        # The live path used to drop the provenance the resolver returned
+        # alongside the frame, so every run was unattributable while the
+        # mechanism to attribute it already existed.
+        market_data = result.get("market_data")
+        if market_data is None:
+            raise NotSaveable(
+                f"run {run_id} carries no market-data provenance. A figure "
+                "that cannot say which data produced it cannot be checked "
+                "later. Supply the provenance the resolver returned, or state "
+                "NOT_APPLICABLE for a run that used no market data.")
+        from ..market_data.provenance import verify as _verify_provenance
+
+        problems = _verify_provenance(market_data)
+        if problems:
+            raise NotSaveable(
+                f"run {run_id} has incoherent market-data provenance: "
+                + "; ".join(problems))
         with self._conn() as conn:
             if owner is None:
                 # Derived from the plan rather than defaulted. A run belongs to

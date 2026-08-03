@@ -22,6 +22,7 @@ proves only what that session remembers.
 """
 from __future__ import annotations
 
+from tests.market_fixture import NO_MARKET_DATA
 import os
 
 import pytest
@@ -57,7 +58,7 @@ OBSERVATION = "oe-shared"
 PLANNED = "pe-shared"
 RECONCILIATION = "rc-shared"
 
-RESULT = {"modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0}
+RESULT = {"market_data": NO_MARKET_DATA.to_json(), "modelling_scope": {"excludes": ["dividends"]}, "final_value": 1.0, "market_data": NO_MARKET_DATA.to_json()}
 
 #: Things a cross-tenant failure must never disclose.
 LEAKS = ("alice", "bob", "worksheet_proposal", "worksheet_pkey", "duplicate key",
