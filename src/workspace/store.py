@@ -879,20 +879,58 @@ class WorkspaceStore:
         return {**dict(row), "payload": loads(row["payload"]),
                 "result_runs": loads(row["result_runs"], [])}
 
+    def lock_worksheet_proposal(self, proposal_id: str,
+                                owner: str) -> Optional[Dict[str, Any]]:
+        """Take the proposal row and hold it for the rest of the transaction.
+
+        Must be called inside `transaction()`. Every check that authorizes an
+        acceptance has to happen after this and re-read what it authorizes:
+        a check performed before the lock describes state another session is
+        still free to change, and two sessions passing the same pre-lock check
+        is exactly how one review produced two acceptances.
+
+        SQLite has no `FOR UPDATE` and does not need one — it admits a single
+        writer, so the transaction is already exclusive. The portable authority
+        is the conditional update in `resolve_worksheet_proposal`; this is
+        PostgreSQL reinforcing it by making the loser wait rather than race.
+        """
+        clause = (" FOR UPDATE" if self.db.dialect is Dialect.POSTGRESQL
+                  else "")
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM worksheet_proposal "
+                "WHERE proposal_id = ? AND owner = ?" + clause,
+                (proposal_id, owner)).fetchone()
+        if row is None:
+            return None
+        return {**dict(row), "payload": loads(row["payload"]),
+                "result_runs": loads(row["result_runs"], [])}
+
     def resolve_worksheet_proposal(self, proposal_id: str, owner: str, *,
                                    status: str, resolved_at: str,
                                    actor: str = "",
                                    result_revision: Optional[int] = None,
-                                   result_runs: Sequence[str] = ()) -> None:
-        """Record the outcome. The reviewed diff is never rewritten."""
+                                   result_runs: Sequence[str] = ()) -> int:
+        """Record the outcome, and report whether it was this call that did.
+
+        The `status = 'PROPOSED'` predicate makes this a conditional state
+        transition: at most one caller can move a proposal out of PROPOSED,
+        whatever else is happening concurrently. Returning the row count is
+        what makes that useful — the predicate was already here, and the
+        result was thrown away, so a losing caller updated nothing and
+        continued as though it had won.
+
+        The reviewed diff is never rewritten.
+        """
         with self._conn() as conn:
-            conn.execute(
+            cursor = conn.execute(
                 """UPDATE worksheet_proposal
                    SET status = ?, resolved_at = ?, actor = ?,
                        result_revision = ?, result_runs = ?
                    WHERE proposal_id = ? AND owner = ? AND status = 'PROPOSED'""",
                 (status, resolved_at, actor, result_revision,
                  Json(list(result_runs)), proposal_id, owner))
+            return cursor.rowcount
 
     def list_plans(self, owner: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:

@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
+from ..db.errors import is_conflict
 from .proposal import WorksheetProposal
 from .worksheet import Block, ResearchWorksheet, from_json, revise
 
@@ -37,6 +38,17 @@ class ProposalStatus(str, Enum):
 
 class ApplyRefused(RuntimeError):
     """The proposal was not applied, and why."""
+
+
+class ProposalConflict(ApplyRefused):
+    """Another request resolved this proposal while we were applying it.
+
+    A subtype of `ApplyRefused` so callers that handle refusal handle this too,
+    and distinct so one that wants to say "someone else got there first" can.
+    Raised in place of whatever the database would otherwise have thrown, which
+    would have carried constraint names and table structure into an application
+    error path.
+    """
 
 
 class StaleProposal(ApplyRefused):
@@ -77,28 +89,62 @@ def accept(store, *, proposal_id: str, owner: str, worksheet_id: str,
             f"proposal {proposal_id} is not applicable: "
             + "; ".join(u.why for u in proposal.unsupported))
 
-    record = store.get_worksheet_proposal(proposal_id, owner)
-    if record is not None and record["status"] != ProposalStatus.PROPOSED.value:
-        raise ApplyRefused(
-            f"proposal {proposal_id} is already {record['status']}. Accepting "
-            "it twice would produce a second revision for one review")
-
-    latest = store.get_worksheet(worksheet_id, owner)
-    if latest is None:
-        raise ApplyRefused(f"no worksheet {worksheet_id!r}")
-    worksheet = from_json(latest["payload"])
-
-    if worksheet.revision != proposal.source_revision:
-        raise StaleProposal(
-            f"proposal {proposal_id} was reviewed against revision "
-            f"{proposal.source_revision} and the worksheet is now at "
-            f"{worksheet.revision}. Re-plan against the current revision rather "
-            "than applying a diff to state nobody reviewed")
-
     runs: List[str] = []
     derived: List[str] = []
 
+    try:
+        return _apply(
+            store, proposal_id=proposal_id, owner=owner,
+            worksheet_id=worksheet_id, proposal=proposal, at=at, actor=actor,
+            run_candidate=run_candidate, runs=runs, derived=derived)
+    except ApplyRefused:
+        raise
+    except Exception as exc:
+        # Contention is meant to be settled by the row lock and the conditional
+        # transition above. If either is lost, the database reports the
+        # collision as a deadlock, a serialization failure or a unique
+        # violation — carrying constraint names, table structure and process
+        # ids that do not belong in an application error path. Found by
+        # removing the lock in a test and watching `DeadlockDetected` escape.
+        if is_conflict(exc):
+            raise ProposalConflict(
+                f"proposal {proposal_id} could not be applied because another "
+                "request was changing the same records. Nothing from this "
+                "attempt was kept; read the proposal again to see the outcome "
+                "that stands") from None
+        raise
+
+
+def _apply(store, *, proposal_id, owner, worksheet_id, proposal, at, actor,
+           run_candidate, runs, derived) -> ApplyResult:
     with store.transaction():
+        # Lock first, then read everything that authorizes the acceptance.
+        #
+        # These checks used to sit outside the transaction, and two sessions
+        # could both pass them before either wrote — one review, two
+        # acceptances, two ApplyResults claiming success. A check made before
+        # the lock describes state another session is still free to change, so
+        # the proposal row is taken first and the status and revision are read
+        # after, inside the same transaction that will act on them.
+        record = store.lock_worksheet_proposal(proposal_id, owner)
+        if record is not None and record["status"] != ProposalStatus.PROPOSED.value:
+            raise ApplyRefused(
+                f"proposal {proposal_id} is already {record['status']}. "
+                "Accepting it twice would produce a second revision for one "
+                "review")
+
+        latest = store.get_worksheet(worksheet_id, owner)
+        if latest is None:
+            raise ApplyRefused(f"no worksheet {worksheet_id!r}")
+        worksheet = from_json(latest["payload"])
+
+        if worksheet.revision != proposal.source_revision:
+            raise StaleProposal(
+                f"proposal {proposal_id} was reviewed against revision "
+                f"{proposal.source_revision} and the worksheet is now at "
+                f"{worksheet.revision}. Re-plan against the current revision "
+                "rather than applying a diff to state nobody reviewed")
+
         # Artifacts first, always. The revision cites them, and a revision that
         # cites a run which does not exist is the dangling reference this whole
         # ordering exists to prevent.
@@ -142,11 +188,30 @@ def accept(store, *, proposal_id: str, owner: str, worksheet_id: str,
             benchmark_run_refs=tuple(worksheet.benchmark_run_refs) + tuple(runs),
         )
         store.save_worksheet(updated)
-        store.resolve_worksheet_proposal(proposal_id, owner,
-                               status=ProposalStatus.ACCEPTED.value,
-                               resolved_at=at, actor=actor,
-                               result_revision=updated.revision,
-                               result_runs=runs)
+        moved = store.resolve_worksheet_proposal(
+            proposal_id, owner, status=ProposalStatus.ACCEPTED.value,
+            resolved_at=at, actor=actor, result_revision=updated.revision,
+            result_runs=runs)
+        if record is not None and not moved:
+            # The conditional update matched nothing: this proposal was no
+            # longer PROPOSED when the write ran. Raising inside the
+            # transaction rolls back the revision and every candidate run with
+            # it, so the loser leaves nothing behind rather than only failing
+            # its final status update.
+            #
+            # NO TEST ISOLATES THIS BRANCH, and it is kept deliberately. With
+            # the row lock held, a loser refuses earlier, at the status check.
+            # With the lock removed, the two sessions contend on this same row
+            # and PostgreSQL reports a deadlock, which `is_conflict` translates.
+            # Every route into it is therefore covered by something else — but
+            # the window it closes is real: a loser whose update matches nothing
+            # and which does *not* deadlock would otherwise commit a second
+            # revision and report success. Removing it because no falsification
+            # fires would trade a real guarantee for a green mutation run.
+            raise ProposalConflict(
+                f"proposal {proposal_id} was resolved by another request while "
+                "this one was applying it. Nothing from this attempt was kept; "
+                "read the proposal again to see the outcome that stands")
 
     return ApplyResult(proposal_id=proposal_id, revision=updated.revision,
                        runs=tuple(runs), derived=tuple(derived))
