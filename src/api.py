@@ -118,6 +118,63 @@ async def _lifespan(_: FastAPI):
 
 LOG = logging.getLogger(__name__)
 
+
+class DeploymentRefused(RuntimeError):
+    """The deployment did not establish what it must before serving.
+
+    Raised by `create_app` rather than by a request handler, so a refusal
+    happens before the process is capable of accepting traffic at all — not on
+    the first request that reaches whichever code path noticed.
+    """
+
+    def __init__(self, outcome) -> None:
+        self.outcome = outcome
+        super().__init__(
+            f"deployment preflight {outcome.result.value}; refusing to serve. "
+            "See the operator log for detail.")
+
+
+def create_app() -> FastAPI:
+    """The production entrypoint.
+
+    Uvicorn is pointed at this rather than at the module-level `app`, so the
+    preflight runs while the process is still starting and a refusal prevents
+    the server binding at all. Importing a ready-made application would run the
+    checks in a lifespan hook, after the socket is open.
+
+    Until Gate 3 nothing served this application at all — no uvicorn invocation
+    existed anywhere, and the container ran the Bokeh dashboard instead. Every
+    control Gate 2 built sat on a path no deployment took.
+    """
+    import datetime as dt
+    import json as _json
+
+    from .deploy.preflight import Profile, run as run_preflight
+
+    # Uvicorn installs its own logging config and does not propagate this
+    # module's logger, so a proof written with `LOG.info` never reached the
+    # container log. It is attached to uvicorn's own logger, which is the one
+    # an operator is actually reading.
+    log = logging.getLogger("uvicorn.error")
+
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    outcome = run_preflight(checked_at=stamp)
+    _PREFLIGHT["outcome"] = outcome
+
+    if not outcome.ready:
+        # Detail goes to the operator, never to a client: it names the host,
+        # the revision or the drifted column.
+        log.error("preflight %s: %s", outcome.result.value, outcome.detail)
+        LOG.error("preflight %s: %s", outcome.result.value, outcome.detail)
+        if outcome.profile is Profile.PRODUCTION:
+            raise DeploymentRefused(outcome)
+
+    proof = _json.dumps(outcome.proof(), sort_keys=True)
+    log.info("deployment proof %s", proof)
+    LOG.info("deployment proof %s", proof)
+    return app
+
+
 app = FastAPI(
     title="investment-agent (Quantify Investment OS)",
     version=API_VERSION,
@@ -139,21 +196,41 @@ app.include_router(ui_router)
 app.include_router(workspace_router)
 
 
-@app.get("/ready")
+@app.get("/health/live")
+def live() -> Dict[str, Any]:
+    """Liveness. The process exists and is answering.
+
+    Deliberately says nothing about whether it can serve. A dashboard
+    responding on a port has never been evidence of pilot readiness, and a
+    liveness probe that reported readiness would make an unready instance
+    indistinguishable from a working one.
+    """
+    return {"live": True}
+
+
+@app.get("/health/ready")
 def ready() -> Dict[str, Any]:
     """Whether this instance may serve requests.
 
     Carries the outcome and nothing about why: a client learns that the service
     is not ready, not that its migration head is behind or which host it could
-    not reach.
+    not reach. The reasons are in the operator log and the startup proof.
     """
     from fastapi.responses import JSONResponse
 
     outcome = preflight_outcome()
     if outcome is None:
+        # The factory has not run. Either the application was imported rather
+        # than created, or the preflight has not completed.
         return JSONResponse({"ready": False}, status_code=503)
     return JSONResponse(outcome.public(),
                         status_code=200 if outcome.ready else 503)
+
+
+@app.get("/ready")
+def ready_alias() -> Dict[str, Any]:
+    """Kept so an existing probe does not silently start failing."""
+    return ready()
 
 
 @app.get("/health")

@@ -42,47 +42,61 @@ class Surface:
     name: str
     module: str
     entrypoint: Optional[str]
-    """The file that starts it, or None if nothing does."""
+    """What starts it, or None if nothing does."""
 
     production_reachable: bool
     data_policy: DataPolicy
     reason: str
+    dockerfile: Optional[str] = None
+    requires_preflight: bool = False
+    """Whether its entrypoint must run the deployment preflight before
+    accepting traffic. True for every production surface."""
 
     def to_json(self) -> dict:
         return {"surface": self.name, "module": self.module,
-                "entrypoint": self.entrypoint,
+                "entrypoint": self.entrypoint, "dockerfile": self.dockerfile,
                 "production_reachable": self.production_reachable,
+                "requires_preflight": self.requires_preflight,
                 "data_policy": self.data_policy.value, "reason": self.reason}
 
 
-#: The path the container's `CMD` runs. Read by the test that checks these
-#: declarations against the Dockerfile rather than trusting them.
-CONTAINER_ENTRYPOINT = "scripts/service.py"
+#: What each image's `CMD` runs. Read by the tests that check these
+#: declarations against the Dockerfiles rather than trusting them.
+PRODUCTION_ENTRYPOINT = "src.api:create_app"
+DASHBOARD_ENTRYPOINT = "scripts/service.py"
+
+PRODUCTION_DOCKERFILE = "Dockerfile"
+DASHBOARD_DOCKERFILE = "Dockerfile.dashboard"
 
 SURFACES: Tuple[Surface, ...] = (
     Surface(
         name="pilot-api", module="src/api.py",
-        entrypoint=None,
-        production_reachable=False,
+        entrypoint=PRODUCTION_ENTRYPOINT,
+        dockerfile=PRODUCTION_DOCKERFILE,
+        production_reachable=True,
+        requires_preflight=True,
         data_policy=DataPolicy.GATED,
-        reason="THE PILOT APPLICATION, AND NOTHING STARTS IT. No uvicorn "
-               "invocation exists in the Dockerfile or in scripts/. Its "
-               "routers are gated and its startup preflight is complete, and "
-               "none of that runs anywhere — a deployment entrypoint is "
-               "required before the pilot can be served at all."),
+        reason="The product. Served by the production image through "
+               "`create_app`, which runs the deployment preflight while the "
+               "process is starting — so a refusal prevents the server binding "
+               "rather than being noticed after the socket is open. Nothing "
+               "served this at all until Gate 3."),
     Surface(
         name="regime-dashboard", module="src/visualization/bokeh_app.py",
-        entrypoint=CONTAINER_ENTRYPOINT,
-        production_reachable=True,
+        entrypoint=DASHBOARD_ENTRYPOINT,
+        dockerfile=DASHBOARD_DOCKERFILE,
+        production_reachable=False,
+        requires_preflight=False,
         data_policy=DataPolicy.SYNTHETIC_ONLY,
-        reason="What the container actually serves, on port 8080, via "
-               "`scripts/service.py`. It reads history parquet files directly "
-               "and is restricted to synthetic data until it either goes "
-               "through the market-data gate or stops being deployed."),
+        reason="A development and demo surface. It was the production "
+               "container until Gate 3, which meant the deployed product was a "
+               "dashboard while the pilot went unserved. It reads history "
+               "parquet files directly, which is tolerable for a demo and is "
+               "exactly why it must not be production-reachable."),
     Surface(
         name="mission-cli", module="scripts/mission.py",
         entrypoint="scripts/mission.py",
-        production_reachable=False,
+        production_reachable=False, requires_preflight=False,
         data_policy=DataPolicy.NONE,
         reason="An operator command line, run deliberately. It is not served "
                "and accepts no request from a user."),

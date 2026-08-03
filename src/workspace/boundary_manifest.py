@@ -80,6 +80,12 @@ MANIFEST: Sequence[EndpointBoundary] = (
     # process. It carries the outcome and nothing about why — a client learns
     # that the service cannot serve, not which host it could not reach or
     # which revision its schema is at.
+    EndpointBoundary("/health/live", Exposure.INFRASTRUCTURE,
+                     "Liveness. The process exists. Says nothing about whether "
+                     "it can serve — a port answering is not readiness."),
+    EndpointBoundary("/health/ready", Exposure.INFRASTRUCTURE,
+                     "Readiness. Whether the deployment preflight passed, and "
+                     "nothing about why it did not."),
     EndpointBoundary("/ready", Exposure.INFRASTRUCTURE,
                      "Readiness. Reports whether the startup preflight passed, "
                      "and nothing about why it did not."),

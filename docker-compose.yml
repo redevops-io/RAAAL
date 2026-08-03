@@ -1,0 +1,48 @@
+# Which surface runs under which profile.
+#
+# The api service is the product. The dashboard is a development surface and is
+# not in the production profile at all — it was the production container until
+# Gate 3, and the separation is what stops that recurring by accident.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["production", "development"]
+    ports:
+      - "8000:8000"
+    environment:
+      QUANTIFY_DEPLOYMENT_PROFILE: production
+      QUANTIFY_DATABASE_URL: postgresql://quantify:quantify_dev@postgres:5432/quantify
+      PILOT_DATA_POLICY: SYNTHETIC_ONLY
+      # Supplied by the build pipeline. The preflight refuses without them.
+      QUANTIFY_COMMIT: ${QUANTIFY_COMMIT:-}
+      QUANTIFY_RELEASE_REF: ${QUANTIFY_RELEASE_REF:-}
+      QUANTIFY_IMAGE_DIGEST: ${QUANTIFY_IMAGE_DIGEST:-}
+      QUANTIFY_SNAPSHOT_ID: ${QUANTIFY_SNAPSHOT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    profiles: ["production", "development"]
+    environment:
+      POSTGRES_USER: quantify
+      POSTGRES_PASSWORD: quantify_dev
+      POSTGRES_DB: quantify
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantify -d quantify"]
+      interval: 5s
+      retries: 10
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    profiles: ["development", "demo"]
+    ports:
+      - "8080:8080"
+    environment:
+      QUANTIFY_DEPLOYMENT_PROFILE: development
+      PILOT_DATA_POLICY: SYNTHETIC_ONLY

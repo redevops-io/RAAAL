@@ -1,0 +1,40 @@
+# The regime dashboard. A development and demo surface, never the pilot.
+#
+# This was the production image until Gate 3, which meant the deployed product
+# was a Bokeh dashboard while the pilot API went unserved. It is kept because it
+# is useful, and kept separate because the ambiguity about which one was the
+# product is what allowed an ungated market-data reader to sit on a served path.
+#
+# Synthetic data only. It reads history parquet files directly rather than
+# through `market_data.access`, which is tolerable for a demo and is why it must
+# not be reachable from a production deployment.
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN mkdir -p reports data/history data/models site
+
+ENV START_DATE=2015-01-01 \
+    WARMUP_DAYS=252 \
+    STEP_DAYS=5 \
+    REFRESH_INTERVAL=86400 \
+    FORCE_REFRESH=1 \
+    PORT=8080 \
+    QUANTIFY_DEPLOYMENT_PROFILE=development \
+    PILOT_DATA_POLICY=SYNTHETIC_ONLY
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=60s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+CMD ["python", "scripts/service.py"]
