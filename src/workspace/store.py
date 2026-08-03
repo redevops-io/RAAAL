@@ -422,7 +422,16 @@ class WorkspaceStore:
     """
 
     def __init__(self, target: Path | str | None = None) -> None:
-        self.db = Database(target if target is not None else DEFAULT_PATH)
+        # `None` is passed straight through, so `resolve_target` consults
+        # `QUANTIFY_DATABASE_URL` before falling back to a local file.
+        #
+        # This used to substitute `DEFAULT_PATH` here, which meant the resolver
+        # never saw `None` and the environment variable was never read. The
+        # deployment preflight validated PostgreSQL — reachable, migrated,
+        # schema-parity checked — and then every plan, run and worksheet was
+        # written to `data/workspace.db` inside the container. The two halves
+        # each looked correct and were talking about different databases.
+        self.db = Database(target)
         self.path = self.db.path
         self.db.create_all()
         if self.db.dialect is Dialect.SQLITE:

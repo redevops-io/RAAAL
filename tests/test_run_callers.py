@@ -149,26 +149,86 @@ class TestALiveCallerStoresRealProvenance:
         assert carried.identifies_data
         assert carried.snapshot_id == access.provenance.snapshot_id
 
-    def test_generate_without_a_record_stores_an_explicit_absence(self, store):
-        """It does not invent one — but it is also not what a live request
-        does, which is why `generate` is classified MARKET_DERIVED and the
-        journey test checks the route rather than this function."""
-        from src.workspace.generate import generate
+class TestGenerateEnforcesItsOwnClassification:
+    """A live producer may not downgrade its omission into legacy absence.
+
+    The store's guard accepts NOT_RECORDED, because a migration must carry a
+    legacy row through unchanged. That leniency is right there and wrong here:
+    it let `generate` satisfy the guard while storing an absence it had chosen,
+    and the record would read as "nobody recorded this" rather than "this code
+    declined to".
+    """
+
+    @pytest.fixture
+    def prepared(self, tmp_path, monkeypatch):
+        from src.workspace.store import WorkspaceStore
 
         from tests.test_producer_inventory import TestInstanceCompleteness
 
+        monkeypatch.setenv(POLICY, "SYNTHETIC_ONLY")
+        store = WorkspaceStore(tmp_path / "w.db")
         inventory = TestInstanceCompleteness()
         scenario = inventory.scenario()
         store.save_plan(plan_id="p-1", owner="alice", scenario=scenario,
                         stated_text="x", saved_at="2026-01-01T00:00:00Z")
-        generate(store, plan_id="p-1", owner="alice", scenario=scenario,
-                 run={"modelling_scope": {"excludes": []}, "final_value": 1.0},
-                 comparison={}, ran_at="2026-01-01T00:00:00Z")
+        return store, scenario
 
-        carried = from_json(
-            store.runs_for("p-1", "alice")[0]["result"]["market_data"])
-        assert carried.status is ProvenanceStatus.NOT_RECORDED
-        assert carried.snapshot_id is None
+    def run_with(self, prepared, market_data, omit=False):
+        from src.workspace.generate import generate
+
+        store, scenario = prepared
+        body = {"modelling_scope": {"excludes": []}, "final_value": 1.0}
+        if not omit:
+            body["market_data"] = market_data
+        return generate(store, plan_id="p-1", owner="alice", scenario=scenario,
+                        run=body, comparison={},
+                        ran_at="2026-01-01T00:00:00Z")
+
+    def test_an_omitted_record_is_refused(self, prepared):
+        from src.workspace.generate import UnattributableRun
+
+        with pytest.raises(UnattributableRun, match="no market-data"):
+            self.run_with(prepared, None, omit=True)
+
+    def test_a_claimed_legacy_absence_is_refused(self, prepared):
+        """The precise downgrade this exists to stop."""
+        from src.market_data.provenance import not_recorded
+        from src.workspace.generate import UnattributableRun
+
+        with pytest.raises(UnattributableRun, match="never recorded"):
+            self.run_with(prepared, not_recorded("no reason").to_json())
+
+    def test_a_denied_decision_is_refused(self, prepared):
+        from src.workspace.generate import UnattributableRun
+
+        with pytest.raises(UnattributableRun):
+            self.run_with(prepared, {
+                "status": "RECORDED", "snapshot_id": "s-1",
+                "content_digest": "mdv1:aaa", "access_decision": "DENIED",
+                "accessed_at": "2026-01-01T00:00:00Z"})
+
+    def test_a_label_without_a_digest_is_refused(self, prepared):
+        from src.workspace.generate import UnattributableRun
+
+        with pytest.raises(UnattributableRun):
+            self.run_with(prepared, {
+                "status": "RECORDED", "snapshot_id": "prices-2026-01",
+                "access_decision": "SYNTHETIC_ALLOWED",
+                "accessed_at": "2026-01-01T00:00:00Z"})
+
+    def test_nothing_is_persisted_when_it_refuses(self, prepared):
+        from src.workspace.generate import UnattributableRun
+
+        store, _ = prepared
+        with pytest.raises(UnattributableRun):
+            self.run_with(prepared, None, omit=True)
+        assert store.runs_for("p-1", "alice") == []
+
+    def test_a_resolver_record_is_accepted(self, prepared):
+        from src.market_data.access import resolve
+
+        access = resolve(context="a run", accessed_at="2026-01-01T00:00:00Z")
+        assert self.run_with(prepared, access.provenance.to_json()) is not None
 
 
 class TestTheCandidatePathCarriesTheRealRecord:

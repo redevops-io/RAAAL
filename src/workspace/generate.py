@@ -50,6 +50,58 @@ def new_worksheet_id() -> str:
     return f"ws-{uuid.uuid4().hex}"
 
 
+class UnattributableRun(ValueError):
+    """A live producer tried to store a figure it could not attribute."""
+
+
+def _require_recorded_provenance(run_id: str, market_data) -> None:
+    """`generate` is a live producer, so it may not store an absence.
+
+    The store's own guard accepts NOT_RECORDED, because a migration must be
+    able to carry a legacy row through unchanged. That leniency is correct
+    there and wrong here: a live path satisfying the guard by labelling its own
+    omission as historical absence produces a record saying "nobody recorded
+    this" when in fact this code declined to, and the two are indistinguishable
+    afterwards.
+
+    Enforced at this boundary rather than left to the route. A caller that must
+    remember to supply something is a caller that can forget, and the route is
+    not the only thing that will ever call this.
+    """
+    from ..market_data.provenance import (
+        ProvenanceStatus,
+        from_json,
+        verify,
+    )
+
+    if market_data is None:
+        raise UnattributableRun(
+            f"run {run_id} has no market-data provenance. This is a live "
+            "producer: it must supply the record the resolver returned, and "
+            "may not fall back to stating that none exists.")
+
+    problems = verify(market_data)
+    if problems:
+        raise UnattributableRun(
+            f"run {run_id} has incoherent provenance: " + "; ".join(problems))
+
+    provenance = from_json(market_data)
+    if provenance.status is ProvenanceStatus.NOT_RECORDED:
+        raise UnattributableRun(
+            f"run {run_id} claims its provenance was never recorded. Only an "
+            "import path may say that; a live producer holding the resolver's "
+            "answer is declining to store it.")
+    if provenance.status is ProvenanceStatus.RECORDED:
+        if not provenance.identifies_data:
+            raise UnattributableRun(
+                f"run {run_id} names a snapshot without a content digest, so "
+                "two snapshots sharing a label cannot be told apart.")
+        if not provenance.permitted:
+            raise UnattributableRun(
+                f"run {run_id} was produced under a denied access decision, "
+                "which should not have yielded data at all.")
+
+
 def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any],
              comparison: Mapping[str, Any], ran_at: str,
              title: str = "", provenance=None) -> Optional[ResearchWorksheet]:
@@ -66,13 +118,9 @@ def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any
     # Carried into the result rather than passed beside it, because the
     # provenance belongs to the figure and travels wherever the figure does.
     body = dict(run)
-    if "market_data" not in body:
-        from ..market_data.provenance import not_recorded
-
-        body["market_data"] = (provenance.to_json() if provenance is not None
-                               else not_recorded(
-                                   "this run was produced without a resolver "
-                                   "access record").to_json())
+    if provenance is not None and "market_data" not in body:
+        body["market_data"] = provenance.to_json()
+    _require_recorded_provenance(identifier, body.get("market_data"))
     store.record_run(run_id=identifier, plan_id=plan_id, ran_at=ran_at,
                      result=body, comparison=dict(comparison or {}))
 
