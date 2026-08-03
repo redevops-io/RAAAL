@@ -214,12 +214,30 @@ class TestStatusVocabulary:
                     ("wp-1", OWNER, "ws-1", 1, "MAYBE", "{}",
                      "2026-01-01T00:00:00Z"))
 
-    def test_the_vocabulary_tracks_the_enum(self):
-        """Retyped in the schema, the list would fall behind the enum silently
-        and start rejecting a status the application had begun to write."""
-        from src.workspace.apply import ProposalStatus
-        assert set(schema.STATUS_VOCABULARY["worksheet_proposal"]) == {
-            member.value for member in ProposalStatus}
+    @pytest.mark.parametrize("table", sorted(schema.STATUS_ENUMS))
+    def test_the_vocabulary_tracks_the_enum(self, table):
+        """The constraint and the enum are declared independently.
+
+        Importing the enum into the schema would make them agree by
+        construction — a check that cannot disagree. Declared apart, this fails
+        when either moves without the other, which is the case that matters: a
+        constraint falling behind starts rejecting a status the application has
+        already begun to write, at the first row that uses it and not before.
+        """
+        import importlib
+
+        module, name = schema.STATUS_ENUMS[table]
+        enum = getattr(importlib.import_module(module), name)
+        assert set(schema.STATUS_VOCABULARY[table]) == {
+            member.value for member in enum}
+
+    def test_every_status_column_is_constrained(self):
+        """A status column absent from the vocabulary is unconstrained, and
+        would accept anything the day a typo reached it."""
+        constrained = set(schema.STATUS_VOCABULARY)
+        with_status = {name for name, table in schema.metadata.tables.items()
+                       if "status" in table.columns}
+        assert with_status == constrained
 
     def test_lifecycle_is_not_encoded_in_the_database(self):
         """PROPOSED -> ACCEPTED needs facts the row does not carry."""

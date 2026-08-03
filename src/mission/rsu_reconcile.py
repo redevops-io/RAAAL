@@ -34,6 +34,7 @@ from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from ..db.decimals import Number, canonical, to_decimal
+from ..db.temporal import canonical_date, canonical_timestamp
 
 #: Bumped when a change would reconcile the same records differently. Stored on
 #: every reconciliation, so a historical one says which rules produced it.
@@ -137,6 +138,7 @@ class PlannedEvent:
         _refuse_floats(self, ("expected_gross_shares",
                               "expected_withheld_shares",
                               "expected_delivered_shares", "expected_value"))
+        canonical_date(self.expected_date)
 
     def to_json(self) -> Dict[str, Any]:
         return {"event_id": self.event_id, "grant_ref": self.grant_ref,
@@ -179,6 +181,11 @@ class ObservedEvent:
     def __post_init__(self) -> None:
         _refuse_floats(self, ("gross_shares", "withheld_shares",
                               "delivered_shares", "value"))
+        # Both are dates and they stay apart: a vest reported in July may have
+        # settled in June, and one grammar for both would not stop them being
+        # swapped — only the reconciler's use of them does that.
+        canonical_date(self.observed_date)
+        canonical_date(self.effective_date)
 
     def to_json(self) -> Dict[str, Any]:
         return {"observation_id": self.observation_id,

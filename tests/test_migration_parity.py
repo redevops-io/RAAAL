@@ -22,7 +22,7 @@ import pytest
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 
-from src.db import migrate
+from src.db import migrate, schema
 from src.db.engine import Database
 from src.db.schema import metadata
 
@@ -105,6 +105,112 @@ class TestFreshMigrationMatchesTheModel:
         migrate.upgrade(sqlite_database)
         present = set(sqlite_database.existing_tables())
         assert set(metadata.tables) <= present
+
+
+class TestTheParityInventoryIsBroadEnough:
+    """What a schema comparison must cover, checked as an inventory.
+
+    The first parity tests compared tables, columns, types, nullability and
+    primary keys — and a dropped foreign key passed every one of them. Shape
+    can match while the database permits states the model calls impossible, so
+    the dimensions are enumerated here and each is asserted against a migrated
+    database rather than assumed to be covered.
+    """
+
+    DIMENSIONS = ("tables", "columns", "types", "nullability", "primary_keys",
+                  "foreign_keys", "unique_constraints", "check_constraints",
+                  "indexes")
+
+    @pytest.fixture(scope="class")
+    def migrated(self, tmp_path_factory):
+        database = Database(tmp_path_factory.mktemp("parity") / "w.db")
+        migrate.upgrade(database)
+        return database
+
+    def inspector(self, database):
+        from sqlalchemy import inspect
+        engine = database.sqlalchemy_engine()
+        return inspect(engine), engine
+
+    def test_foreign_keys_match(self, migrated):
+        inspector, engine = self.inspector(migrated)
+        try:
+            for table in sorted(metadata.tables):
+                live = {(tuple(fk["constrained_columns"]),
+                         fk["referred_table"],
+                         tuple(fk["referred_columns"]))
+                        for fk in inspector.get_foreign_keys(table)}
+                modelled = {(one.columns, one.parent, one.parent_columns)
+                            for one in schema.RELATIONSHIPS
+                            if one.table == table}
+                assert live == modelled, f"{table} foreign keys disagree"
+        finally:
+            engine.dispose()
+
+    def test_check_constraints_are_present(self, migrated):
+        """A CHECK that the migration did not create is a rule the deployed
+        database does not have, however clearly the model states it."""
+        inspector, engine = self.inspector(migrated)
+        try:
+            for table in sorted(schema.STATUS_VOCABULARY):
+                names = {c["name"] for c in
+                         inspector.get_check_constraints(table)}
+                assert f"ck_{table}_status" in names, (
+                    f"{table} has no status constraint in the database")
+        finally:
+            engine.dispose()
+
+    def test_row_local_checks_are_present(self, migrated):
+        inspector, engine = self.inspector(migrated)
+        try:
+            assert "ck_worksheet_proposal_result_only_when_accepted" in {
+                c["name"] for c in
+                inspector.get_check_constraints("worksheet_proposal")}
+            assert "ck_event_reconciliation_observation_required" in {
+                c["name"] for c in
+                inspector.get_check_constraints("event_reconciliation")}
+        finally:
+            engine.dispose()
+
+    def test_indexes_match(self, migrated):
+        """Not a correctness defect the way a missing constraint is, but a
+        deployment-parity one: concurrency and query plans depend on them."""
+        inspector, engine = self.inspector(migrated)
+        try:
+            for table in sorted(metadata.tables):
+                live = {index["name"] for index in inspector.get_indexes(table)}
+                modelled = {index.name for index
+                            in metadata.tables[table].indexes}
+                assert modelled <= live, (
+                    f"{table} is missing indexes {modelled - live}")
+        finally:
+            engine.dispose()
+
+    def test_unique_constraints_match(self, migrated):
+        inspector, engine = self.inspector(migrated)
+        try:
+            for table in sorted(metadata.tables):
+                live = {tuple(sorted(u["column_names"])) for u in
+                        inspector.get_unique_constraints(table)}
+                live |= {tuple(sorted(index["column_names"]))
+                         for index in inspector.get_indexes(table)
+                         if index.get("unique")}
+                modelled = {tuple(sorted(c.name for c in index.columns))
+                            for index in metadata.tables[table].indexes
+                            if index.unique}
+                assert modelled <= live, f"{table} lost a uniqueness guarantee"
+        finally:
+            engine.dispose()
+
+    def test_every_dimension_has_a_test(self):
+        """The inventory is the point. A dimension listed and unchecked is the
+        hole the foreign key went through."""
+        checked = {name.replace("test_", "").replace("_match", "")
+                   .replace("_are_present", "").replace("s_are_present", "")
+                   for name in dir(self) if name.startswith("test_")}
+        for dimension in ("foreign_key", "index", "unique_constraint",
+                          "check_constraint"):
+            assert any(dimension in name for name in checked), dimension
 
 
 class TestDowngrade:

@@ -282,21 +282,16 @@ plan_run = Table(
 )
 
 
-def _vocabulary(module: str, name: str) -> Tuple[str, ...]:
-    """The values an enum declares, imported rather than retyped.
-
-    A hand-copied list in the schema would be a second declaration of the
-    vocabulary, and it would fall behind the enum silently — the constraint
-    would start rejecting a status the application had begun to write, at the
-    first row that used it and not before.
-    """
-    import importlib
-
-    enum = getattr(importlib.import_module(module), name)
-    return tuple(member.value for member in enum)
-
-
-#: Which values each status column may hold.
+#: Which values each status column may hold, and the enum each one must match.
+#:
+#: Stated here rather than imported from those enums, for two reasons.
+#:
+#: The schema is imported by everything that touches storage, and the enums live
+#: in modules that import storage — reading them here made a cycle. More
+#: importantly, importing them would make the constraint agree with the enum *by
+#: construction*, and a check that cannot disagree proves nothing. Declared
+#: independently, `tests/test_referential_policy.py` compares the two and fails
+#: when either moves without the other.
 #:
 #: These constrain *vocabulary*, not lifecycle. Whether PROPOSED may become
 #: ACCEPTED, whether the required runs exist first, whether a proposal has gone
@@ -305,14 +300,27 @@ def _vocabulary(module: str, name: str) -> Tuple[str, ...]:
 #: tried to express them would encode a partial version of a rule that lives
 #: somewhere else, and the partial version would be the one enforced.
 STATUS_VOCABULARY: Mapping[str, Tuple[str, ...]] = {
-    "worksheet_proposal": _vocabulary("src.workspace.apply", "ProposalStatus"),
-    "proposal": _vocabulary("src.mission.proposal", "ProposalStatus"),
-    "event_reconciliation": _vocabulary("src.mission.rsu_reconcile",
-                                        "ReconciliationStatus"),
+    "worksheet_proposal": ("PROPOSED", "ACCEPTED", "REJECTED", "EXPIRED",
+                           "SUPERSEDED"),
+    "proposal": ("OPEN", "ACCEPTED", "IGNORED", "EXPIRED", "SUPERSEDED"),
+    "event_reconciliation": ("PENDING", "UNOBSERVED_OVERDUE", "MATCHED",
+                             "MATCHED_WITH_VARIANCE", "LATE",
+                             "MISSING_CONFIRMED", "UNEXPECTED", "AMBIGUOUS",
+                             "CONFLICTING"),
     # Not an enum in the code: the store writes these two literals directly.
     # Listed here so the column is still constrained, and so the day someone
     # adds a third the constraint is what tells them to declare it.
     "worksheet_intent": ("PLANNED", "PROPOSED"),
+}
+
+#: Where each vocabulary's authoritative enum lives, for the test that compares
+#: them. Kept as data so a new status column joins the comparison by being
+#: declared rather than by someone remembering to extend a test.
+STATUS_ENUMS: Mapping[str, Tuple[str, str]] = {
+    "worksheet_proposal": ("src.workspace.apply", "ProposalStatus"),
+    "proposal": ("src.mission.proposal", "ProposalStatus"),
+    "event_reconciliation": ("src.mission.rsu_reconcile",
+                             "ReconciliationStatus"),
 }
 
 
