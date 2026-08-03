@@ -365,3 +365,89 @@ class TestDeletion:
         text = str(receipt.to_json())
         assert A not in text and B not in text
         assert receipt.owner_reference.startswith("owner-")
+
+
+class TestTheSamePlanIdUnderTwoTenants:
+    """What the ownership migration was for.
+
+    `plan` was keyed on `plan_id` alone, so the seeding above had to suffix
+    plan ids per owner to avoid a collision — a test working around the defect
+    it should have been finding. Both tenants now use the same plan id and the
+    same run ids.
+    """
+
+    def _seed_shared(self, owner):
+        from src.mission.compiler import compile_scenario
+        from src.mission.scenario import ScenarioSpecification
+        from src.mission.spec import Inference, Provenance
+
+        store = session()
+        compiled = compile_scenario(
+            "I put $2,000 into SPY every month in my Roth IRA, on the first "
+            "trading day of the period, reinvesting the dividends, and I never "
+            "sell.", name=PLAN, version=1,
+            benchmark_rule="benchmark-policy/public-default@1")
+        provenance = compiled.scenario.provenance
+        scenario = ScenarioSpecification(**{
+            **compiled.scenario.__dict__,
+            "provenance": Provenance(
+                stated=provenance.stated,
+                inferred=tuple(Inference(i.field, i.value, i.why, confirmed=True)
+                               for i in provenance.inferred),
+                contradictions=provenance.contradictions, unresolved=())})
+        store.save_plan(plan_id="p-shared", owner=owner, scenario=scenario,
+                        stated_text="seed", saved_at="2026-01-01T00:00:00Z")
+        store.record_run(run_id="r-shared", plan_id="p-shared",
+                         ran_at="2026-01-01T00:00:00Z", result=RESULT,
+                         comparison={}, owner=owner)
+        return store
+
+    def test_both_tenants_hold_the_same_plan_id(self, tenants):
+        self._seed_shared(A)
+        self._seed_shared(B)
+        rows = observe("SELECT owner FROM plan WHERE plan_id = %s ORDER BY owner",
+                       ("p-shared",))
+        assert [r["owner"] for r in rows] == [A, B]
+
+    def test_both_tenants_hold_the_same_run_id(self, tenants):
+        self._seed_shared(A)
+        self._seed_shared(B)
+        rows = observe("SELECT owner FROM plan_run WHERE run_id = %s "
+                       "ORDER BY owner", ("r-shared",))
+        assert [r["owner"] for r in rows] == [A, B]
+
+    def test_each_reads_only_their_own_run(self, tenants):
+        self._seed_shared(A)
+        self._seed_shared(B)
+        store = session()
+        assert store.get_run("r-shared", A)["owner"] == A
+        assert store.get_run("r-shared", B)["owner"] == B
+        assert store.get_run("r-shared", "carol") is None
+
+    def test_runs_for_is_scoped_at_the_query(self, tenants):
+        self._seed_shared(A)
+        self._seed_shared(B)
+        runs = session().runs_for("p-shared", A)
+        assert [r["owner"] for r in runs] == [A]
+
+    def test_a_run_cannot_reference_another_owners_plan(self, tenants):
+        """The composite foreign key, not an application convention."""
+        self._seed_shared(A)
+        with pytest.raises(Exception) as caught:
+            with session()._conn() as conn:
+                conn.execute(
+                    "INSERT INTO plan_run (owner, run_id, plan_id, ran_at, "
+                    "result, comparison) VALUES (?,?,?,?,?,?)",
+                    (B, "r-steal", "p-shared", "2026-01-01T00:00:00Z",
+                     "{}", "{}"))
+        assert "foreign key" in str(caught.value).lower() or \
+               "violates" in str(caught.value).lower()
+
+    def test_deleting_one_tenant_leaves_the_others_identical_ids(self, tenants):
+        self._seed_shared(A)
+        self._seed_shared(B)
+        delete_workspace(session(), A, requested_at="2026-07-01T00:00:00Z")
+        assert observe("SELECT owner FROM plan_run WHERE run_id = %s",
+                       ("r-shared",)) == [{"owner": B}]
+        assert observe("SELECT COUNT(*) AS n FROM plan WHERE plan_id = %s",
+                       ("p-shared",))[0]["n"] == 1

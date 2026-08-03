@@ -50,7 +50,7 @@ metadata = MetaData()
 plan = Table(
     "plan", metadata,
     Column("plan_id", Text, primary_key=True),
-    Column("owner", Text, nullable=False),
+    Column("owner", Text, primary_key=True),
     Column("title", Text, nullable=False),
     Column("scenario", JsonText, nullable=False),
     Column("intent", Text),
@@ -270,15 +270,23 @@ confirmation_event = Table(
 
 plan_run = Table(
     "plan_run", metadata,
+    Column("owner", Text, primary_key=True),
     Column("run_id", Text, primary_key=True),
     Column("plan_id", Text, nullable=False),
     Column("ran_at", Text, nullable=False),
     Column("result", JsonText, nullable=False),
     Column("comparison", JsonText, nullable=False),
-    # `plan_run` carries no owner column and is reachable only through its
-    # plan. `src/workspace/retention.py` declares that ownership path so
-    # deletion and export both find these rows; the foreign key is what makes
-    # the path true rather than merely asserted.
+    # `plan_run` used to carry no owner and was reachable only through its
+    # plan. That made the production schema weaker than it needed to be —
+    # tenant-unsafe run ids, a join on every ownership question, and an
+    # ownership path that deletion, export and auditing each had to honour
+    # separately. It is now directly scoped, and the composite foreign key
+    # below makes a run belong to exactly one owner's plan by construction.
+    #
+    # `OwnershipPath.INDIRECT` keeps its own coverage in
+    # `tests/ownership_fixture.py`, which owns an indirectly scoped table for
+    # that purpose. Leaving a real domain table indirect to serve as a test
+    # canary would have been paying for the test in production.
 )
 
 
@@ -391,8 +399,8 @@ class Relationship:
 #: application-managed through `OwnershipPath`.
 RELATIONSHIPS: Tuple[Relationship, ...] = (
     Relationship(
-        table="plan_run", columns=("plan_id",),
-        parent="plan", parent_columns=("plan_id",),
+        table="plan_run", columns=("owner", "plan_id"),
+        parent="plan", parent_columns=("owner", "plan_id"),
         policy=DeletePolicy.RESTRICT,
         rationale="A run is the record that a plan was executed and what it "
                   "produced. It outlives the interest in its plan, and "

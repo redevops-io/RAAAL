@@ -194,3 +194,72 @@ class TestExactlyOneIsTheOnlySuccess:
         assert store.resolve_worksheet_proposal(
             "wp-1", OWNER, status=ProposalStatus.ACCEPTED.value,
             resolved_at="2026-01-02T00:00:00Z", result_revision=2) == 1
+
+
+class TestRunOwnershipIsDerivedNotDefaulted:
+    """`record_run` resolves an owner or refuses; it never picks one.
+
+    Removing the refusal left every test green, because every existing caller
+    passes a plan that exists and has one owner. The failing conditions have to
+    be constructed: a run naming no plan at all, and a plan id held by two
+    owners. Both would otherwise get an owner assigned by whichever row the
+    lookup happened to return.
+    """
+
+    def test_a_run_for_an_unknown_plan_is_refused(self, store):
+        from src.workspace.store import NotSaveable
+
+        with pytest.raises(NotSaveable, match="resolves to 0 owners"):
+            store.record_run(run_id="r-x", plan_id="p-missing",
+                             ran_at="2026-01-01T00:00:00Z", result=RESULT,
+                             comparison={})
+
+    def test_nothing_is_written_when_the_owner_cannot_be_resolved(self, store):
+        from src.workspace.store import NotSaveable
+
+        with pytest.raises(NotSaveable):
+            store.record_run(run_id="r-x", plan_id="p-missing",
+                             ran_at="2026-01-01T00:00:00Z", result=RESULT,
+                             comparison={})
+        with store._conn() as conn:
+            assert conn.execute(
+                "SELECT COUNT(*) AS n FROM plan_run WHERE run_id = ?",
+                ("r-x",)).fetchone()["n"] == 0
+
+    def test_an_explicit_owner_is_honoured(self, store):
+        """The caller may state it, which is what the apply path will do once
+        two tenants can hold the same plan id."""
+        store.record_run(run_id="r-explicit", plan_id="plan-1",
+                         ran_at="2026-01-01T00:00:00Z", result=RESULT,
+                         comparison={}, owner=OWNER)
+        assert store.get_run("r-explicit", OWNER)["owner"] == OWNER
+
+    def test_a_plan_id_held_by_two_owners_is_refused(self, store):
+        """The lookup cannot choose, so it must not."""
+        from src.mission.compiler import compile_scenario
+        from src.mission.scenario import ScenarioSpecification
+        from src.mission.spec import Inference, Provenance
+        from src.workspace.store import NotSaveable
+
+        compiled = compile_scenario(
+            "I put $2,000 into SPY every month in my Roth IRA, on the first "
+            "trading day of the period, reinvesting the dividends, and I never "
+            "sell.", name="plan-1", version=1,
+            benchmark_rule="benchmark-policy/public-default@1")
+        provenance = compiled.scenario.provenance
+        scenario = ScenarioSpecification(**{
+            **compiled.scenario.__dict__,
+            "provenance": Provenance(
+                stated=provenance.stated,
+                inferred=tuple(Inference(i.field, i.value, i.why, confirmed=True)
+                               for i in provenance.inferred),
+                contradictions=provenance.contradictions, unresolved=())})
+        # A second tenant with the same plan id — legal since the ownership
+        # migration, and precisely the case the derivation cannot resolve.
+        store.save_plan(plan_id="plan-1", owner="other", scenario=scenario,
+                        stated_text="seed", saved_at="2026-01-01T00:00:00Z")
+
+        with pytest.raises(NotSaveable, match="resolves to 2 owners"):
+            store.record_run(run_id="r-ambiguous", plan_id="plan-1",
+                             ran_at="2026-01-01T00:00:00Z", result=RESULT,
+                             comparison={})

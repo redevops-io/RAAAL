@@ -76,13 +76,24 @@ class TestTheModelMatchesTheShippedSchema:
         assert live == set(schema.metadata.tables), (
             "the model and the database disagree about which tables exist")
 
+    #: Columns added after shipping, with the reason. Enumerated so an
+    #: accidental addition still fails the comparison.
+    DELIBERATELY_ADDED = {
+        # `plan_run` was reachable only through its plan. Every ownership
+        # question was a join, and deletion was one forgotten cascade away
+        # from keeping every run while reporting success.
+        ("plan_run", "owner"),
+    }
+
     def test_every_column_is_modelled(self, shipped):
         for table in sorted(schema.metadata.tables):
             live = {row["name"] for row in
                     shipped.execute(f"PRAGMA table_info({table})")}
             modelled = {column.name
                         for column in schema.metadata.tables[table].columns}
-            assert live == modelled, f"{table} columns disagree"
+            added = {name for name in modelled - live
+                     if (table, name) in self.DELIBERATELY_ADDED}
+            assert live == modelled - added, f"{table} columns disagree"
 
     #: Tables whose primary key the model deliberately widened after shipping,
     #: with the column added. Each was keyed without `owner`, so two tenants
@@ -99,11 +110,20 @@ class TestTheModelMatchesTheShippedSchema:
         "observation": "owner",
         "worksheet_intent": "owner",
         "confirmation_event": "owner",
+        "plan": "owner",
+        # `plan_run` gained the column outright rather than widening an
+        # existing one, so it is compared separately below.
     }
 
     def test_primary_keys_match(self, shipped):
         """The conflict target of every upsert depends on this being right."""
         for table in sorted(schema.metadata.tables):
+            if table == "plan_run":
+                # Had no owner column at all before the ownership migration,
+                # so there is no shipped key to compare against. Its identity
+                # is asserted directly instead.
+                assert schema.primary_key_columns(table) == ("owner", "run_id")
+                continue
             columns = shipped.execute(f"PRAGMA table_info({table})").fetchall()
             live = tuple(c["name"] for c in
                          sorted((c for c in columns if c["pk"]),
@@ -132,7 +152,7 @@ class TestTheModelMatchesTheShippedSchema:
                 continue                      # indirectly owned; see retention
             if "owner" not in schema.primary_key_columns(name):
                 unscoped.append(name)
-        assert unscoped == ["plan"], (
+        assert unscoped == [], (
             "owner-scoped tables whose identity omits the owner: "
             f"{unscoped}. Two tenants cannot then hold the same id, and an "
             "`INSERT OR REPLACE` lets one overwrite the other")
@@ -208,13 +228,20 @@ class TestUpsertTranslation:
         assert "ON CONFLICT (owner, worksheet_id, revision)" in translated
 
     def test_key_columns_are_not_assigned(self):
-        """Assigning a key column in the update is a no-op at best."""
+        """Assigning a key column in the update is a no-op at best.
+
+        `owner` is a key column on `plan` since the ownership migration, so it
+        belongs on the excluded side now — which is what the conflict target
+        being read from the model rather than a list gets right for free.
+        """
         translated = to_postgres(
             "INSERT OR REPLACE INTO plan (plan_id, owner, title) "
             "VALUES (?, ?, ?)")
         assignments = translated.split("DO UPDATE SET")[1]
         assert "plan_id = EXCLUDED" not in assignments
-        assert "owner = EXCLUDED.owner" in assignments
+        assert "owner = EXCLUDED" not in assignments
+        assert "title = EXCLUDED.title" in assignments
+        assert "ON CONFLICT (plan_id, owner)" in translated
 
     def test_an_untranslatable_statement_is_refused(self):
         """Passing it through would surface a driver syntax error instead."""

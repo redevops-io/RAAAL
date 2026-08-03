@@ -185,13 +185,36 @@ class TestTheInventoryIsCheckedAgainstTheSchema:
         source = inspect.getsource(erasure._rows_for)
         assert "plan_run" not in source
 
-    def test_indirect_scope_names_how_it_is_reached(self):
-        """A cascade that assumes a foreign key deletes nothing and reports
-        success."""
-        [runs] = [one for one in WORKSPACE_RECORDS.values()
-                  if one.owner_scope is OwnerScope.INDIRECT]
-        assert runs.table == "plan_run"
-        assert "plan.owner" in runs.reached_through
+    def test_no_production_table_is_indirectly_owned(self):
+        """`plan_run` was the last one, and it has its own owner now.
+
+        An indirect table is one every consumer must remember to join through:
+        deletion, export, tenant isolation and auditing each get it right
+        separately or not at all. Where a real owner column is possible, it is
+        strictly better — so the assertion is that none remain, not that the
+        machinery is unused.
+
+        `OwnerScope.INDIRECT` still exists and is still exercised, against a
+        table `tests/ownership_fixture.py` owns for the purpose. Holding a
+        domain table in a weaker shape to keep that path covered would be
+        paying for the test in production.
+        """
+        indirect = [one.table for one in WORKSPACE_RECORDS.values()
+                    if one.owner_scope is OwnerScope.INDIRECT]
+        assert indirect == [], (
+            f"{indirect} are reachable only through a parent; give them an "
+            "owner column or record why they cannot have one")
+
+    def test_every_indirect_scope_still_has_to_name_its_path(self):
+        """The rule survives its last production instance disappearing.
+
+        Declaring INDIRECT without a path is what makes a deletion silently
+        skip a table, so it is refused whether or not anything uses it today.
+        """
+        from tests.ownership_fixture import INDIRECT_CHILD
+
+        assert INDIRECT_CHILD.reached_through is not None
+        assert "worksheet_proposal.owner" in INDIRECT_CHILD.reached_through
 
     def test_sensitive_categories_are_named(self):
         for category in ("employer name or ticker", "holdings",

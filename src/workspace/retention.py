@@ -160,10 +160,13 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
             sensitive_fields=("stated_text", "scenario", "parse")),
         RecordClass(
             table="plan_run", data_class=DataClass.PERSONAL_RECORD,
-            owner_scope=OwnerScope.INDIRECT,
-            ownership_path=OwnershipPath(
-                local_key="plan_id", parent_table="plan",
-                parent_key="plan_id", parent_owner_column="owner"),
+            # Directly scoped since the ownership migration. It used to be
+            # reachable only through its plan, which made every ownership
+            # question a join and left deletion one forgotten cascade away from
+            # keeping every run while reporting success. `OwnershipPath` keeps
+            # its coverage in `tests/ownership_fixture.py` rather than by
+            # holding a production table in a weaker shape.
+            owner_scope=OwnerScope.DIRECT, owner_column="owner",
             retention_policy=ACTIVE_ACCOUNT,
             deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
             export_behaviour="included in a workspace export",

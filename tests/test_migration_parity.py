@@ -43,15 +43,27 @@ def diff_against_model(database: Database):
         engine.dispose()
 
 
-def ignorable(diff) -> bool:
+def ignorable(diff, dialect="sqlite") -> bool:
     """Differences that are rendering noise rather than schema drift.
 
-    SQLite has no native boolean or server-default introspection worth
-    comparing, and Alembic reports a `server_default` difference for
-    `evidence_refs` that both sides in fact agree on. Nothing here hides a
-    table, a column, an index or a type change.
+    SQLite has no server-default introspection worth comparing, and Alembic
+    reports a `server_default` difference for `evidence_refs` that both sides in
+    fact agree on.
+
+    It also does not report foreign-key constraint *names*: `PRAGMA
+    foreign_key_list` gives the columns, the target and the delete rule and no
+    name at all. Alembic therefore sees an unnamed constraint where the model
+    declares a named one and proposes adding it. The constraint is present and
+    enforced — `TestSqliteEnforcesTheCompositeKey` below inserts a run against
+    another owner's plan and requires it to be refused — so ignoring the name
+    difference does not hide a missing foreign key. This applies only to
+    SQLite; on PostgreSQL names reflect and the comparison stays strict.
     """
-    if isinstance(diff, tuple) and diff and diff[0] == "modify_default":
+    if not (isinstance(diff, tuple) and diff):
+        return False
+    if diff[0] == "modify_default":
+        return True
+    if diff[0] in ("add_fk", "remove_fk") and dialect == "sqlite":
         return True
     return False
 
@@ -96,15 +108,46 @@ class TestFreshMigrationMatchesTheModel:
         assert drift == [], f"migrations and model disagree: {drift}"
 
     def test_on_postgresql(self, postgres_database):
+        """Strict: PostgreSQL reflects constraint names, so nothing about
+        foreign keys is excused here."""
         migrate.upgrade(postgres_database)
         drift = [d for d in diff_against_model(postgres_database)
-                 if not ignorable(d)]
+                 if not ignorable(d, dialect="postgresql")]
         assert drift == [], f"migrations and model disagree: {drift}"
 
     def test_every_modelled_table_exists_after_migrating(self, sqlite_database):
         migrate.upgrade(sqlite_database)
         present = set(sqlite_database.existing_tables())
         assert set(metadata.tables) <= present
+
+
+class TestSqliteEnforcesTheCompositeKey:
+    """Why the unnamed-foreign-key difference above is safe to ignore.
+
+    The parity check cannot see the constraint's name on SQLite. It can see
+    whether the database refuses a row the constraint forbids, which is the
+    property that actually matters.
+    """
+
+    def test_a_run_cannot_be_attached_to_another_owners_plan(self,
+                                                             sqlite_database):
+        migrate.upgrade(sqlite_database)
+        conn = sqlite_database.connect()
+        try:
+            conn.execute(
+                "INSERT INTO plan (plan_id, owner, title, scenario, "
+                "stated_text, saved_at, rule_hash, content_hash) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                ("p-1", "alice", "t", "{}", "s", "2026-01-01T00:00:00Z",
+                 "h", "h"))
+            with pytest.raises(Exception) as caught:
+                conn.execute(
+                    "INSERT INTO plan_run (owner, run_id, plan_id, ran_at, "
+                    "result, comparison) VALUES (?,?,?,?,?,?)",
+                    ("bob", "r-1", "p-1", "2026-01-01T00:00:00Z", "{}", "{}"))
+            assert "foreign key" in str(caught.value).lower()
+        finally:
+            conn.close()
 
 
 class TestTheParityInventoryIsBroadEnough:
@@ -293,3 +336,114 @@ class TestStartupActuallyReachesTheCheck:
         monkeypatch.setenv("QUANTIFY_DATABASE_URL", postgres_database.url)
         with TestClient(api.app) as client:
             assert client.get("/health").status_code == 200
+
+
+class TestTheOwnershipMigrationRefusesToGuess:
+    """The data step, exercised against data that cannot be resolved.
+
+    Migrating a fresh database never reaches these checks — there are no
+    pre-existing rows to fail on — so removing them left every test green. The
+    conditions have to be built first: a run whose plan is gone, and a plan id
+    already held by two owners. Both are states the *old* schema permitted,
+    which is exactly why the migration has to look.
+    """
+
+    BASELINE = "a6cc8a7fe5a0"
+
+    def at_baseline(self, tmp_path):
+        database = Database(tmp_path / "old.db")
+        migrate.upgrade(database, self.BASELINE)
+        return database
+
+    def insert_plan(self, database, plan_id, owner):
+        conn = database.connect()
+        try:
+            conn.execute(
+                "INSERT INTO plan (plan_id, owner, title, scenario, "
+                "stated_text, saved_at, rule_hash, content_hash) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (plan_id, owner, "t", "{}", "s", "2026-01-01T00:00:00Z",
+                 "h", "h"))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def insert_run(self, database, run_id, plan_id):
+        conn = database.connect()
+        try:
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.execute(
+                "INSERT INTO plan_run (run_id, plan_id, ran_at, result, "
+                "comparison) VALUES (?,?,?,?,?)",
+                (run_id, plan_id, "2026-01-01T00:00:00Z", "{}", "{}"))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def test_an_orphaned_run_stops_the_migration(self, tmp_path):
+        """Assigning it an owner would invent a tenant relationship, and the
+        invention would be invisible afterwards."""
+        database = self.at_baseline(tmp_path)
+        self.insert_run(database, "r-orphan", "p-missing")
+        with pytest.raises(Exception) as caught:
+            migrate.upgrade(database)
+        assert "no owner can be established" in str(caught.value)
+
+    def test_the_database_is_left_at_the_old_revision(self, tmp_path):
+        """A refused migration must not leave a half-applied schema."""
+        database = self.at_baseline(tmp_path)
+        self.insert_run(database, "r-orphan", "p-missing")
+        with pytest.raises(Exception):
+            migrate.upgrade(database)
+        assert migrate.applied_revision(database) == self.BASELINE
+
+    def test_an_ambiguous_plan_id_stops_the_migration(self, tmp_path):
+        """Two owners already holding one plan id: the join cannot choose."""
+        database = self.at_baseline(tmp_path)
+        conn = database.connect()
+        try:
+            # The old key made this impossible through the primary key, so it
+            # is written directly — the point is that the migration checks
+            # rather than trusting the shape it is migrating away from.
+            conn.execute("DROP TABLE plan_run")
+            conn.execute("ALTER TABLE plan RENAME TO plan__x")
+            conn.execute(
+                "CREATE TABLE plan (plan_id TEXT NOT NULL, owner TEXT NOT NULL,"
+                " title TEXT NOT NULL, scenario TEXT NOT NULL, intent TEXT,"
+                " stated_text TEXT NOT NULL, saved_at TEXT NOT NULL,"
+                " rule_hash TEXT NOT NULL, content_hash TEXT NOT NULL,"
+                " parse TEXT)")
+            conn.execute(
+                "CREATE TABLE plan_run (run_id TEXT PRIMARY KEY, plan_id TEXT "
+                "NOT NULL, ran_at TEXT NOT NULL, result TEXT NOT NULL, "
+                "comparison TEXT NOT NULL)")
+            for owner in ("alice", "bob"):
+                conn.execute(
+                    "INSERT INTO plan (plan_id, owner, title, scenario, "
+                    "stated_text, saved_at, rule_hash, content_hash) "
+                    "VALUES (?,?,?,?,?,?,?,?)",
+                    ("p-1", owner, "t", "{}", "s", "2026-01-01T00:00:00Z",
+                     "h", "h"))
+            conn.commit()
+        finally:
+            conn.close()
+
+        with pytest.raises(Exception) as caught:
+            migrate.upgrade(database)
+        assert "more than one owner" in str(caught.value)
+
+    def test_a_resolvable_database_migrates(self, tmp_path):
+        """The check must not refuse data it can resolve."""
+        database = self.at_baseline(tmp_path)
+        self.insert_plan(database, "p-1", "alice")
+        self.insert_run(database, "r-1", "p-1")
+        migrate.upgrade(database)
+
+        conn = database.connect()
+        try:
+            row = conn.execute(
+                "SELECT owner FROM plan_run WHERE run_id = ?", ("r-1",)
+            ).fetchone()
+        finally:
+            conn.close()
+        assert row["owner"] == "alice", "the owner was not derived from the plan"

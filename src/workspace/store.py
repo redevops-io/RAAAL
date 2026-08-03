@@ -497,7 +497,8 @@ class WorkspaceStore:
         return plan_id
 
     def record_run(self, *, run_id: str, plan_id: str, ran_at: str,
-                   result: Dict[str, Any], comparison: Dict[str, Any]) -> str:
+                   result: Dict[str, Any], comparison: Dict[str, Any],
+                   owner: Optional[str] = None) -> str:
         """Persist a historical run so its verdict survives later changes.
 
         Same reason the public ledger stores verdicts rather than recomputing
@@ -528,10 +529,25 @@ class WorkspaceStore:
 
             _validate_context(result["rsu_context"])
         with self._conn() as conn:
+            if owner is None:
+                # Derived from the plan rather than defaulted. A run belongs to
+                # whoever owns the plan it ran, and there is exactly one such
+                # owner now that `plan` is keyed by both — so this resolves or
+                # it refuses, and never guesses.
+                rows = conn.execute(
+                    "SELECT owner FROM plan WHERE plan_id = ?",
+                    (plan_id,)).fetchall()
+                if len(rows) != 1:
+                    raise NotSaveable(
+                        f"run {run_id} names plan {plan_id!r}, which resolves "
+                        f"to {len(rows)} owners. A run must belong to exactly "
+                        "one; pass `owner` explicitly")
+                owner = rows[0]["owner"]
             conn.execute(
                 """INSERT OR REPLACE INTO plan_run
-                   (run_id, plan_id, ran_at, result, comparison) VALUES (?,?,?,?,?)""",
-                (run_id, plan_id, ran_at, Json(result), Json(comparison)),
+                   (owner, run_id, plan_id, ran_at, result, comparison)
+                   VALUES (?,?,?,?,?,?)""",
+                (owner, run_id, plan_id, ran_at, Json(result), Json(comparison)),
             )
         return run_id
 
@@ -978,9 +994,7 @@ class WorkspaceStore:
         """
         with self._conn() as conn:
             row = conn.execute(
-                """SELECT plan_run.* FROM plan_run
-                   JOIN plan ON plan.plan_id = plan_run.plan_id
-                   WHERE plan_run.run_id = ? AND plan.owner = ?""",
+                "SELECT * FROM plan_run WHERE run_id = ? AND owner = ?",
                 (run_id, owner)).fetchone()
         if row is None:
             return None
@@ -988,12 +1002,14 @@ class WorkspaceStore:
                 "comparison": loads(row["comparison"])}
 
     def runs_for(self, plan_id: str, owner: str) -> List[Dict[str, Any]]:
-        if self.get_plan(plan_id, owner) is None:
-            return []
+        # Owner is in the query, not a pre-check followed by an unscoped read.
+        # The pre-check was correct and the read beneath it was not, which is
+        # the shape that survives every refactor of the check.
         with self._conn() as conn:
             rows = conn.execute(
-                "SELECT * FROM plan_run WHERE plan_id = ? ORDER BY ran_at DESC",
-                (plan_id,),
+                "SELECT * FROM plan_run WHERE plan_id = ? AND owner = ? "
+                "ORDER BY ran_at DESC",
+                (plan_id, owner),
             ).fetchall()
         return [
             {**dict(r), "result": loads(r["result"]),
