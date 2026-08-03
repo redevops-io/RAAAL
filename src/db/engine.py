@@ -230,6 +230,11 @@ class Database:
         if self.dialect is Dialect.SQLITE:
             raw = sqlite3.connect(self.path)
             raw.row_factory = sqlite3.Row
+            # Off by default in SQLite, which means a declared foreign key is
+            # decorative there. The shipped schema had one on `plan_run` and it
+            # had never once been enforced — so the constraint said something
+            # about the data that was not true, on the engine the tests run on.
+            raw.execute("PRAGMA foreign_keys = ON")
             return Connection(raw, self.dialect)
 
         import psycopg

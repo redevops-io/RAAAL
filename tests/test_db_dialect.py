@@ -95,6 +95,47 @@ class TestTheModelMatchesTheShippedSchema:
                 f"{table} primary key disagrees; an upsert would target the "
                 "wrong columns and silently insert a duplicate")
 
+    def test_foreign_keys_are_not_lost(self, shipped):
+        """The shipped schema's constraints must survive the rewrite.
+
+        This test exists because they did not. `plan_run` carried
+        `FOREIGN KEY (plan_id) REFERENCES plan (plan_id)` in the original DDL,
+        the metadata rewrite dropped it, and every parity check passed — they
+        compared tables, columns, keys and nullability, and a constraint is none
+        of those. A schema comparison that only looks at shape will keep missing
+        the parts that carry the guarantees.
+        """
+        for table in sorted(schema.metadata.tables):
+            live = {(row["from"], row["table"], row["to"]) for row in
+                    shipped.execute(f"PRAGMA foreign_key_list({table})")}
+            modelled = {
+                (column, one.parent, parent)
+                for one in schema.RELATIONSHIPS if one.table == table
+                for column, parent in zip(one.columns, one.parent_columns)}
+            assert live <= modelled, (
+                f"{table} had foreign keys the model does not declare: "
+                f"{live - modelled}")
+
+    def test_every_relationship_reaches_the_metadata(self):
+        """A declared relationship that never became a constraint is a policy
+        nothing enforces."""
+        for one in schema.RELATIONSHIPS:
+            constraints = schema.metadata.tables[one.table].foreign_key_constraints
+            targets = {tuple(sorted(fk.column.name for fk in c.elements))
+                       for c in constraints}
+            assert tuple(sorted(one.parent_columns)) in targets, (
+                f"{one.table} declares a relationship to {one.parent} that no "
+                "constraint implements")
+
+    def test_delete_policies_are_stated_not_defaulted(self):
+        """A blanket CASCADE would make the database a second deletion model,
+        and its version would win silently."""
+        for one in schema.RELATIONSHIPS:
+            assert one.policy in schema.DeletePolicy
+            assert one.rationale.strip(), (
+                f"{one.table} -> {one.parent} has a delete policy and no "
+                "recorded reason for it")
+
     def test_nullability_matches(self, shipped):
         """`trial_effect` nullable is a decision, not an accident."""
         for table in sorted(schema.metadata.tables):

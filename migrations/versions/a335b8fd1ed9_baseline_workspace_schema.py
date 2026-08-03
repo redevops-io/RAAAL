@@ -1,8 +1,8 @@
 """baseline workspace schema
 
-Revision ID: c7c7c8740ac7
+Revision ID: a335b8fd1ed9
 Revises: 
-Create Date: 2026-08-02 19:46:06.217660
+Create Date: 2026-08-02 20:19:48.919396
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = 'c7c7c8740ac7'
+revision: str = 'a335b8fd1ed9'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -37,21 +37,6 @@ def upgrade() -> None:
     sa.Column('defaults_ref', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('event_id')
     )
-    op.create_table('event_reconciliation',
-    sa.Column('owner', sa.Text(), nullable=False),
-    sa.Column('worksheet_id', sa.Text(), nullable=False),
-    sa.Column('reconciliation_id', sa.Text(), nullable=False),
-    sa.Column('planned_event_id', sa.Text(), nullable=True),
-    sa.Column('observed_event_id', sa.Text(), nullable=True),
-    sa.Column('status', sa.Text(), nullable=False),
-    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
-    sa.Column('matching_policy_version', sa.Text(), nullable=False),
-    sa.Column('superseded_by', sa.Text(), nullable=True),
-    sa.Column('content_hash', sa.Text(), nullable=False),
-    sa.Column('derived_at', sa.Text(), nullable=False),
-    sa.PrimaryKeyConstraint('owner', 'worksheet_id', 'reconciliation_id')
-    )
-    op.create_index('reconciliation_worksheet', 'event_reconciliation', ['owner', 'worksheet_id', 'derived_at'], unique=False)
     op.create_table('observation',
     sa.Column('observation_id', sa.Text(), nullable=False),
     sa.Column('plan_id', sa.Text(), nullable=False),
@@ -91,14 +76,6 @@ def upgrade() -> None:
     sa.Column('parse', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=True),
     sa.PrimaryKeyConstraint('plan_id')
     )
-    op.create_table('plan_run',
-    sa.Column('run_id', sa.Text(), nullable=False),
-    sa.Column('plan_id', sa.Text(), nullable=False),
-    sa.Column('ran_at', sa.Text(), nullable=False),
-    sa.Column('result', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
-    sa.Column('comparison', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
-    sa.PrimaryKeyConstraint('run_id')
-    )
     op.create_table('planned_event',
     sa.Column('owner', sa.Text(), nullable=False),
     sa.Column('worksheet_id', sa.Text(), nullable=False),
@@ -124,6 +101,7 @@ def upgrade() -> None:
     sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('generated_at', sa.Text(), nullable=False),
     sa.Column('status', sa.Text(), nullable=False),
+    sa.CheckConstraint("status IN ('ACCEPTED', 'EXPIRED', 'IGNORED', 'OPEN', 'SUPERSEDED')", name='ck_proposal_status'),
     sa.PrimaryKeyConstraint('proposal_id')
     )
     op.create_table('worksheet',
@@ -157,6 +135,7 @@ def upgrade() -> None:
     sa.Column('proposal_id', sa.Text(), nullable=True),
     sa.Column('status', sa.Text(), nullable=False),
     sa.Column('trace_id', sa.Text(), nullable=True),
+    sa.CheckConstraint("status IN ('PLANNED', 'PROPOSED')", name='ck_worksheet_intent_status'),
     sa.PrimaryKeyConstraint('intent_id')
     )
     op.create_index('worksheet_intent_sequence', 'worksheet_intent', ['worksheet_id', 'owner', 'sequence'], unique=True)
@@ -173,7 +152,37 @@ def upgrade() -> None:
     sa.Column('result_revision', sa.Integer(), nullable=True),
     sa.Column('result_runs', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=True),
     sa.Column('trace_id', sa.Text(), nullable=True),
+    sa.CheckConstraint("result_revision IS NULL OR status = 'ACCEPTED'", name='ck_worksheet_proposal_result_only_when_accepted'),
+    sa.CheckConstraint("status IN ('ACCEPTED', 'EXPIRED', 'PROPOSED', 'REJECTED', 'SUPERSEDED')", name='ck_worksheet_proposal_status'),
     sa.PrimaryKeyConstraint('proposal_id')
+    )
+    op.create_table('event_reconciliation',
+    sa.Column('owner', sa.Text(), nullable=False),
+    sa.Column('worksheet_id', sa.Text(), nullable=False),
+    sa.Column('reconciliation_id', sa.Text(), nullable=False),
+    sa.Column('planned_event_id', sa.Text(), nullable=True),
+    sa.Column('observed_event_id', sa.Text(), nullable=True),
+    sa.Column('status', sa.Text(), nullable=False),
+    sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
+    sa.Column('matching_policy_version', sa.Text(), nullable=False),
+    sa.Column('superseded_by', sa.Text(), nullable=True),
+    sa.Column('content_hash', sa.Text(), nullable=False),
+    sa.Column('derived_at', sa.Text(), nullable=False),
+    sa.CheckConstraint("observed_event_id IS NOT NULL OR status IN ('PENDING', 'UNOBSERVED_OVERDUE', 'MISSING_CONFIRMED')", name='ck_event_reconciliation_observation_required'),
+    sa.CheckConstraint("status IN ('AMBIGUOUS', 'CONFLICTING', 'LATE', 'MATCHED', 'MATCHED_WITH_VARIANCE', 'MISSING_CONFIRMED', 'PENDING', 'UNEXPECTED', 'UNOBSERVED_OVERDUE')", name='ck_event_reconciliation_status'),
+    sa.ForeignKeyConstraint(['owner', 'worksheet_id', 'observed_event_id'], ['observed_event.owner', 'observed_event.worksheet_id', 'observed_event.observed_event_id'], name='fk_event_reconciliation_owner_worksheet_id_observed_event_id', ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['owner', 'worksheet_id', 'planned_event_id'], ['planned_event.owner', 'planned_event.worksheet_id', 'planned_event.planned_event_id'], name='fk_event_reconciliation_owner_worksheet_id_planned_event_id', ondelete='RESTRICT'),
+    sa.PrimaryKeyConstraint('owner', 'worksheet_id', 'reconciliation_id')
+    )
+    op.create_index('reconciliation_worksheet', 'event_reconciliation', ['owner', 'worksheet_id', 'derived_at'], unique=False)
+    op.create_table('plan_run',
+    sa.Column('run_id', sa.Text(), nullable=False),
+    sa.Column('plan_id', sa.Text(), nullable=False),
+    sa.Column('ran_at', sa.Text(), nullable=False),
+    sa.Column('result', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
+    sa.Column('comparison', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
+    sa.ForeignKeyConstraint(['plan_id'], ['plan.plan_id'], name='fk_plan_run_plan_id', ondelete='RESTRICT'),
+    sa.PrimaryKeyConstraint('run_id')
     )
     # ### end Alembic commands ###
 
@@ -181,17 +190,17 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('plan_run')
+    op.drop_index('reconciliation_worksheet', table_name='event_reconciliation')
+    op.drop_table('event_reconciliation')
     op.drop_table('worksheet_proposal')
     op.drop_index('worksheet_intent_sequence', table_name='worksheet_intent')
     op.drop_table('worksheet_intent')
     op.drop_table('worksheet')
     op.drop_table('proposal')
     op.drop_table('planned_event')
-    op.drop_table('plan_run')
     op.drop_table('plan')
     op.drop_table('observed_event')
     op.drop_table('observation')
-    op.drop_index('reconciliation_worksheet', table_name='event_reconciliation')
-    op.drop_table('event_reconciliation')
     op.drop_table('confirmation_event')
     # ### end Alembic commands ###

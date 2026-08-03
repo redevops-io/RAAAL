@@ -21,11 +21,15 @@ person to touch them would have only the shape to go on.
 """
 from __future__ import annotations
 
-from typing import Dict, Mapping, Sequence, Tuple
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple
 
 from .types import DecimalText, JsonText
 from sqlalchemy import (
     Column,
+    CheckConstraint,
+    ForeignKeyConstraint,
     Float,
     Index,
     Integer,
@@ -276,6 +280,222 @@ plan_run = Table(
     # deletion and export both find these rows; the foreign key is what makes
     # the path true rather than merely asserted.
 )
+
+
+def _vocabulary(module: str, name: str) -> Tuple[str, ...]:
+    """The values an enum declares, imported rather than retyped.
+
+    A hand-copied list in the schema would be a second declaration of the
+    vocabulary, and it would fall behind the enum silently — the constraint
+    would start rejecting a status the application had begun to write, at the
+    first row that used it and not before.
+    """
+    import importlib
+
+    enum = getattr(importlib.import_module(module), name)
+    return tuple(member.value for member in enum)
+
+
+#: Which values each status column may hold.
+#:
+#: These constrain *vocabulary*, not lifecycle. Whether PROPOSED may become
+#: ACCEPTED, whether the required runs exist first, whether a proposal has gone
+#: stale and whether a reconciliation may become MATCHED all stay in application
+#: code, where the surrounding facts are available. A database constraint that
+#: tried to express them would encode a partial version of a rule that lives
+#: somewhere else, and the partial version would be the one enforced.
+STATUS_VOCABULARY: Mapping[str, Tuple[str, ...]] = {
+    "worksheet_proposal": _vocabulary("src.workspace.apply", "ProposalStatus"),
+    "proposal": _vocabulary("src.mission.proposal", "ProposalStatus"),
+    "event_reconciliation": _vocabulary("src.mission.rsu_reconcile",
+                                        "ReconciliationStatus"),
+    # Not an enum in the code: the store writes these two literals directly.
+    # Listed here so the column is still constrained, and so the day someone
+    # adds a third the constraint is what tells them to declare it.
+    "worksheet_intent": ("PLANNED", "PROPOSED"),
+}
+
+
+class DeletePolicy(str, Enum):
+    """What the database does when a referenced row is deleted.
+
+    Stated per relationship rather than defaulted. A blanket `ON DELETE CASCADE`
+    would make the database a second deletion model competing with
+    `src/workspace/retention.py` — and the database's version would win silently,
+    removing rows the application's own verification never saw and reporting
+    success either way.
+    """
+
+    RESTRICT = "RESTRICT"
+    """Refuse. The dependent row is independently meaningful — an audit record,
+    a reconciliation, a run — and losing it with its parent would destroy
+    history. This *reinforces* the application's deletion order instead of
+    replacing it: delete the dependents first, as `delete_workspace` does, and
+    the constraint is satisfied; forget one and the parent delete fails loudly
+    rather than orphaning it."""
+
+    CASCADE = "CASCADE"
+    """Remove with the parent. Only where the dependent has no meaning at
+    all without it."""
+
+    SET_NULL = "SET NULL"
+    """Keep the row, drop the link. For an optional reference whose historical
+    record stays meaningful once the target is gone."""
+
+
+@dataclass(frozen=True)
+class Relationship:
+    """One referential dependency, and the reason for its policy.
+
+    Executable metadata, like `OwnershipPath`. The deletion order is derived
+    from this graph rather than hand-sorted, so a new table joins the ordering
+    by declaring its parent instead of by someone remembering to re-sort a list.
+    """
+
+    table: str
+    columns: Tuple[str, ...]
+    parent: str
+    parent_columns: Tuple[str, ...]
+    policy: DeletePolicy
+    rationale: str
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"table": self.table, "columns": list(self.columns),
+                "parent": self.parent,
+                "parent_columns": list(self.parent_columns),
+                "policy": self.policy.value, "rationale": self.rationale}
+
+
+#: Every referential dependency the schema enforces.
+#:
+#: Deliberately absent: `trace_id` on `worksheet_intent` and
+#: `worksheet_proposal`. Traces are operational telemetry that expires on its
+#: own schedule, and a foreign key would either block that expiry or delete
+#: research records along with it. A trace that has aged out must leave a
+#: readable intent behind — so the reference is allowed to dangle, and nothing
+#: may require it to resolve.
+#:
+#: Also absent: `worksheet_id` on the worksheet-scoped tables. `worksheet` is
+#: keyed on (owner, worksheet_id, revision) because revisions are immutable
+#: history, so there is no single row a worksheet id refers to. Inventing a
+#: unique key to hang a constraint on would be adding structure to satisfy a
+#: constraint rather than to describe the domain. Those relationships stay
+#: application-managed through `OwnershipPath`.
+RELATIONSHIPS: Tuple[Relationship, ...] = (
+    Relationship(
+        table="plan_run", columns=("plan_id",),
+        parent="plan", parent_columns=("plan_id",),
+        policy=DeletePolicy.RESTRICT,
+        rationale="A run is the record that a plan was executed and what it "
+                  "produced. It outlives the interest in its plan, and "
+                  "`retention.py` reaches it only through `plan.owner` — so the "
+                  "constraint holds the application to deleting runs first, "
+                  "which is the order `delete_workspace` already uses."),
+    Relationship(
+        table="event_reconciliation", columns=("owner", "worksheet_id",
+                                               "planned_event_id"),
+        parent="planned_event", parent_columns=("owner", "worksheet_id",
+                                                "planned_event_id"),
+        policy=DeletePolicy.RESTRICT,
+        rationale="A reconciliation is the derived relationship between an "
+                  "expectation and a report. Cascading from the expectation "
+                  "would erase the finding that it was met or missed, which is "
+                  "the only thing tracking is for."),
+    Relationship(
+        table="event_reconciliation", columns=("owner", "worksheet_id",
+                                               "observed_event_id"),
+        parent="observed_event", parent_columns=("owner", "worksheet_id",
+                                                 "observed_event_id"),
+        policy=DeletePolicy.RESTRICT,
+        rationale="As above, from the observation side. The column is nullable "
+                  "because pending, overdue and confirmed-missing rows have no "
+                  "observation, and a foreign key does not constrain NULL."),
+)
+
+
+def _constraints() -> Tuple[ForeignKeyConstraint, ...]:
+    """Build the constraints from the declared relationships.
+
+    One source. A constraint written directly on a table would be a second
+    declaration, and the two would disagree about a policy without anything
+    noticing.
+    """
+    built = []
+    for one in RELATIONSHIPS:
+        built.append(ForeignKeyConstraint(
+            [metadata.tables[one.table].c[name] for name in one.columns],
+            [metadata.tables[one.parent].c[name] for name in one.parent_columns],
+            ondelete=one.policy.value,
+            name=f"fk_{one.table}_{'_'.join(one.columns)}"))
+    return tuple(built)
+
+
+for _constraint in _constraints():
+    metadata.tables[_constraint.table.name].append_constraint(_constraint)
+
+
+def _status_checks() -> None:
+    """Constrain each status column to its declared vocabulary."""
+    for table, values in STATUS_VOCABULARY.items():
+        listed = ", ".join(f"'{value}'" for value in sorted(values))
+        metadata.tables[table].append_constraint(
+            CheckConstraint(f"status IN ({listed})",
+                            name=f"ck_{table}_status"))
+
+
+_status_checks()
+
+#: Consistency that is genuinely local to one row, and nothing wider.
+#:
+#: A constraint spanning tables, or one that needed to know what else had
+#: happened, would be a domain rule re-expressed incompletely in a place that
+#: cannot see the rest of the facts.
+metadata.tables["worksheet_proposal"].append_constraint(
+    CheckConstraint(
+        "result_revision IS NULL OR status = 'ACCEPTED'",
+        name="ck_worksheet_proposal_result_only_when_accepted"))
+# A rejected, expired or superseded proposal produced no revision. A row
+# carrying one would claim an edit was applied that never was, and the
+# worksheet history would not show it.
+
+metadata.tables["event_reconciliation"].append_constraint(
+    CheckConstraint(
+        "observed_event_id IS NOT NULL OR status IN "
+        "('PENDING', 'UNOBSERVED_OVERDUE', 'MISSING_CONFIRMED')",
+        name="ck_event_reconciliation_observation_required"))
+# Only three states are reached without an observation, and all three mean
+# something specific about its absence. Any other status without an observed
+# event is a conclusion drawn from nothing — the `unknown is not false`
+# distinction, enforced at rest.
+
+
+def deletion_order() -> Tuple[str, ...]:
+    """Tables ordered so every dependent is deleted before its parent.
+
+    Derived from `RELATIONSHIPS` rather than hand-sorted. The previous ordering
+    was a heuristic — indirectly-owned tables first — which happened to be right
+    for the one indirect table that existed and says nothing about a second.
+    """
+    remaining = dict.fromkeys(sorted(metadata.tables))
+    parents: Dict[str, Set[str]] = {name: set() for name in remaining}
+    for one in RELATIONSHIPS:
+        if one.parent != one.table:
+            parents[one.table].add(one.parent)
+
+    ordered: List[str] = []
+    while remaining:
+        # A table is ready once nothing still waiting depends on it.
+        ready = sorted(name for name in remaining
+                       if not any(other != name and name in parents[other]
+                                  for other in remaining))
+        if not ready:
+            raise RuntimeError(
+                f"the relationship graph has a cycle among {sorted(remaining)}; "
+                "no deletion order exists")
+        for name in ready:
+            ordered.append(name)
+            del remaining[name]
+    return tuple(ordered)
 
 
 def primary_key_columns(table_name: str) -> Tuple[str, ...]:

@@ -28,6 +28,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from ..db.schema import deletion_order
 from .retention import (
     RETENTION_POLICY_VERSION,
     OwnerScope,
@@ -114,9 +115,14 @@ def delete_workspace(store, owner: str, *, requested_at: str,
     request_id = request_id or f"del-{uuid.uuid4().hex[:16]}"
     counts: Dict[str, int] = {}
 
+    # Derived from the relationship graph, not from a heuristic. The previous
+    # ordering put indirectly-owned tables first, which was right for the one
+    # indirect table that existed and says nothing about a second — and says
+    # nothing at all about a dependency between two directly-owned tables, which
+    # is what `event_reconciliation` referencing its events is.
+    position = {name: index for index, name in enumerate(deletion_order())}
     ordered = sorted(owner_scoped_tables(),
-                     key=lambda one: 0 if one.owner_scope is OwnerScope.INDIRECT
-                     else 1)
+                     key=lambda one: position[one.table])
 
     with store._conn() as conn:
         for record in ordered:
