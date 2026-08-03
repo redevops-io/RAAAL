@@ -91,11 +91,11 @@ def populate(store, owner: str, *, suffix: str = ""):
 
     planned = PlannedEvent(event_id=f"pe-{owner}{suffix}", grant_ref="grant/g1",
                            expected_date="2026-06-15", employer_asset="ACME",
-                           expected_gross_shares=100.0)
+                           expected_gross_shares="100.0")
     observed = ObservedEvent(observation_id=f"oe-{owner}{suffix}",
                              observed_date="2026-06-16",
                              effective_date="2026-06-15", grant_ref="grant/g1",
-                             employer_asset="ACME", gross_shares=100.0)
+                             employer_asset="ACME", gross_shares="100.0")
     store.record_planned_event(owner=owner, worksheet_id=worksheet_id,
                                event=planned, plan_revision=1, created_at="t0",
                                matching_policy_version=MATCHING_POLICY_VERSION)

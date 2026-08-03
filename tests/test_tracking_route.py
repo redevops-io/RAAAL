@@ -29,16 +29,16 @@ AS_OF = "2026-07-10"
 
 JUNE = PlannedEvent(event_id="plan-jun", grant_ref="grant/g1",
                     expected_date="2026-06-15", employer_asset="ACME",
-                    expected_gross_shares=100.0, expected_withheld_shares=22.0,
-                    expected_delivered_shares=78.0)
+                    expected_gross_shares="100.0", expected_withheld_shares="22.0",
+                    expected_delivered_shares="78.0")
 SEPT = replace(JUNE, event_id="plan-sep", expected_date="2026-09-15")
 
 
 def observation(**overrides) -> ObservedEvent:
     base = dict(observation_id="obs-1", observed_date="2026-07-02",
                 effective_date="2026-06-19", grant_ref="grant/g1",
-                employer_asset="ACME", gross_shares=100.0,
-                withheld_shares=22.0, delivered_shares=78.0,
+                employer_asset="ACME", gross_shares="100.0",
+                withheld_shares="22.0", delivered_shares="78.0",
                 evidence_ref="statement/june")
     base.update(overrides)
     return ObservedEvent(**base)
@@ -233,7 +233,7 @@ class TestTheDisplayDistinctions:
         store, _ = tracked
         store.record_observed_event(
             owner=OWNER, worksheet_id="ws-1",
-            event=observation(observation_id="obs-2", delivered_shares=70.0),
+            event=observation(observation_id="obs-2", delivered_shares="70.0"),
             created_at="t2", supersedes="obs-1")
 
         ids = {one["observed_event_id"]

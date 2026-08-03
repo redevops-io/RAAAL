@@ -65,14 +65,20 @@ def render_item(type_, obj, autogen_context):
     `Text().with_variant(JSONB(), "postgresql")` says the same thing in terms
     that cannot drift: JSONB where it exists, TEXT where it does not.
     """
-    from src.db.types import JsonText
+    from src.db.types import DecimalText, JsonText
 
-    if type_ == "type" and isinstance(obj, JsonText):
+    if type_ != "type":
+        return False
+    if isinstance(obj, JsonText):
         autogen_context.imports.add("import sqlalchemy as sa")
         autogen_context.imports.add(
             "from sqlalchemy.dialects import postgresql")
         return ('sa.Text().with_variant('
                 'postgresql.JSONB(astext_type=sa.Text()), "postgresql")')
+    if isinstance(obj, DecimalText):
+        autogen_context.imports.add("import sqlalchemy as sa")
+        return ('sa.Text().with_variant('
+                'sa.Numeric(precision=38, scale=12), "postgresql")')
     return False
 
 

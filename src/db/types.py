@@ -27,8 +27,10 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from sqlalchemy import Text, TypeDecorator
+from sqlalchemy import Numeric, Text, TypeDecorator
 from sqlalchemy.dialects.postgresql import JSONB
+
+from .decimals import Money
 
 
 class JsonText(TypeDecorator):
@@ -85,12 +87,39 @@ def loads(value: Any, default: Any = None) -> Any:
     return value
 
 
+class DecimalText(TypeDecorator):
+    """NUMERIC on PostgreSQL, canonical decimal TEXT on SQLite.
+
+    The types differ on purpose. SQLite has no exact decimal type — a NUMERIC
+    column there has REAL affinity and would silently reintroduce the binary
+    approximation the column exists to avoid. Canonical text is exact, and the
+    adapter returns a `Decimal` from both, which is the parity that matters.
+
+    `NUMERIC(38, 12)` covers shares, prices, values, ratios and fractional RSU
+    quantities without pretending every field has currency-style two-decimal
+    precision.
+    """
+
+    impl = Text
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(Numeric(38, 12))
+        return dialect.type_descriptor(Text())
+
+
 def adapt(value: Any, dialect_name: str) -> Any:
     """Turn a bound parameter into something the driver accepts."""
-    if not isinstance(value, Json):
-        return value
-    if dialect_name == "postgresql":
-        from psycopg.types.json import Jsonb
+    if isinstance(value, Json):
+        if dialect_name == "postgresql":
+            from psycopg.types.json import Jsonb
 
-        return Jsonb(value.obj)
-    return value.as_text()
+            return Jsonb(value.obj)
+        return value.as_text()
+    if isinstance(value, Money):
+        # PostgreSQL takes the Decimal and stores it exactly; SQLite takes the
+        # canonical string, because its NUMERIC affinity would convert a
+        # Decimal back into a float.
+        return value.as_decimal() if dialect_name == "postgresql" else value.text
+    return value

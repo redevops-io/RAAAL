@@ -16,6 +16,10 @@ from dataclasses import replace
 
 import pytest
 
+from decimal import Decimal
+
+from src.db.decimals import to_decimal
+
 from src.mission.rsu_reconcile import (
     MATCHING_POLICY_VERSION,
     UNKNOWN_STATES,
@@ -29,16 +33,16 @@ from src.mission.rsu_reconcile import (
 
 JUNE = PlannedEvent(
     event_id="plan-jun", grant_ref="grant/g1", expected_date="2026-06-15",
-    employer_asset="ACME", expected_gross_shares=100.0,
-    expected_withheld_shares=22.0, expected_delivered_shares=78.0,
+    employer_asset="ACME", expected_gross_shares="100.0",
+    expected_withheld_shares="22.0", expected_delivered_shares="78.0",
     source_declaration="declaration/rsu@1", version_pin="pin-abc")
 
 
 def seen(**overrides) -> ObservedEvent:
     base = dict(observation_id="obs-1", observed_date="2026-06-16",
                 effective_date="2026-06-15", grant_ref="grant/g1",
-                employer_asset="ACME", gross_shares=100.0,
-                withheld_shares=22.0, delivered_shares=78.0,
+                employer_asset="ACME", gross_shares="100.0",
+                withheld_shares="22.0", delivered_shares="78.0",
                 evidence_ref="statement/june")
     base.update(overrides)
     return ObservedEvent(**base)
@@ -141,12 +145,12 @@ class TestALateVestIsOneEvent:
 class TestVarianceIsDimensionSpecific:
 
     def test_more_withheld_is_a_variance_not_an_unexpected_event(self):
-        row = only([JUNE], [seen(withheld_shares=30.0, delivered_shares=70.0)],
+        row = only([JUNE], [seen(withheld_shares="30.0", delivered_shares="70.0")],
                    as_of="2026-06-20")
         assert row.status is ReconciliationStatus.MATCHED_WITH_VARIANCE
 
     def test_each_dimension_is_reported_separately(self):
-        row = only([JUNE], [seen(withheld_shares=30.0, delivered_shares=70.0)],
+        row = only([JUNE], [seen(withheld_shares="30.0", delivered_shares="70.0")],
                    as_of="2026-06-20")
         dimensions = {one.dimension: one.delta for one in row.variances}
         assert dimensions["withheld_shares"] == pytest.approx(8.0)
@@ -154,8 +158,8 @@ class TestVarianceIsDimensionSpecific:
         assert "gross_shares" not in dimensions
 
     @pytest.mark.parametrize("expected,observed", [
-        (5_000.0, None),   # planned a value, none reported
-        (None, 5_000.0),   # reported a value, none planned
+        ("5000", None),   # planned a value, none reported
+        (None, "5000"),   # reported a value, none planned
     ])
     def test_an_unknown_on_one_side_is_not_a_variance(self, expected,
                                                       observed):
@@ -182,11 +186,11 @@ class TestThePlanNeverMoves:
 
     def test_reconciling_does_not_alter_the_planned_event(self):
         before = JUNE.to_json()
-        reconcile([JUNE], [seen(delivered_shares=70.0)], as_of="2026-06-20")
+        reconcile([JUNE], [seen(delivered_shares="70.0")], as_of="2026-06-20")
         assert JUNE.to_json() == before
 
     def test_reconciling_does_not_alter_the_observation(self):
-        observation = seen(delivered_shares=70.0)
+        observation = seen(delivered_shares="70.0")
         before = observation.to_json()
         reconcile([JUNE], [observation], as_of="2026-06-20")
         assert observation.to_json() == before
@@ -194,8 +198,8 @@ class TestThePlanNeverMoves:
     def test_the_expectation_survives_being_wrong(self):
         """Rewriting it to 70 destroys the evidence that the prediction was
         wrong, which is the only thing tracking is for."""
-        row = only([JUNE], [seen(delivered_shares=70.0)], as_of="2026-06-20")
-        assert JUNE.expected_delivered_shares == 78.0
+        row = only([JUNE], [seen(delivered_shares="70.0")], as_of="2026-06-20")
+        assert to_decimal(JUNE.expected_delivered_shares) == Decimal("78.0")
         assert row.variances
 
 
@@ -281,7 +285,7 @@ class TestReplayability:
         """The plan hash is unchanged; the derived relationship moves."""
         before = JUNE.to_json()
         matched = only([JUNE], [seen()], as_of="2026-06-20")
-        varied = only([JUNE], [seen(delivered_shares=70.0)],
+        varied = only([JUNE], [seen(delivered_shares="70.0")],
                       as_of="2026-06-20")
 
         assert JUNE.to_json() == before

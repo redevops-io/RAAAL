@@ -37,16 +37,16 @@ WORKSHEET = "ws-1"
 
 JUNE = PlannedEvent(
     event_id="plan-jun", grant_ref="grant/g1", expected_date="2026-06-15",
-    employer_asset="ACME", expected_gross_shares=100.0,
-    expected_withheld_shares=22.0, expected_delivered_shares=78.0,
+    employer_asset="ACME", expected_gross_shares="100.0",
+    expected_withheld_shares="22.0", expected_delivered_shares="78.0",
     source_declaration="declaration/rsu@1", version_pin="pin-abc")
 
 
 def observation(**overrides) -> ObservedEvent:
     base = dict(observation_id="obs-1", observed_date="2026-06-16",
                 effective_date="2026-06-15", grant_ref="grant/g1",
-                employer_asset="ACME", gross_shares=100.0,
-                withheld_shares=22.0, delivered_shares=78.0,
+                employer_asset="ACME", gross_shares="100.0",
+                withheld_shares="22.0", delivered_shares="78.0",
                 evidence_ref="statement/june")
     base.update(overrides)
     return ObservedEvent(**base)
@@ -125,7 +125,7 @@ class TestImmutabilityAndCorrections:
         with pytest.raises(NotSaveable, match="different body"):
             store.record_planned_event(
                 owner=OWNER, worksheet_id=WORKSHEET,
-                event=replace(JUNE, expected_delivered_shares=70.0),
+                event=replace(JUNE, expected_delivered_shares="70.0"),
                 plan_revision=1, created_at="t0",
                 matching_policy_version=MATCHING_POLICY_VERSION)
 
@@ -134,13 +134,13 @@ class TestImmutabilityAndCorrections:
         with pytest.raises(NotSaveable, match="supersedes"):
             store.record_observed_event(
                 owner=OWNER, worksheet_id=WORKSHEET,
-                event=observation(delivered_shares=70.0), created_at="t2")
+                event=observation(delivered_shares="70.0"), created_at="t2")
 
     def test_a_correction_is_a_new_record_and_the_original_remains(self, store):
         persist(store, observed=[observation()], as_of="2026-06-20")
         store.record_observed_event(
             owner=OWNER, worksheet_id=WORKSHEET,
-            event=observation(observation_id="obs-2", delivered_shares=70.0),
+            event=observation(observation_id="obs-2", delivered_shares="70.0"),
             created_at="t2", supersedes="obs-1")
 
         rows = {one["observed_event_id"]: one
@@ -154,7 +154,7 @@ class TestImmutabilityAndCorrections:
 
         store.record_observed_event(
             owner=OWNER, worksheet_id=WORKSHEET,
-            event=observation(observation_id="obs-2", delivered_shares=70.0),
+            event=observation(observation_id="obs-2", delivered_shares="70.0"),
             created_at="t2", supersedes="obs-1")
         assert store.planned_events(WORKSHEET, OWNER)[0]["content_hash"] == before
 
@@ -216,7 +216,7 @@ class TestStoredIsVerifiedAgainstDerived:
             VerificationState.DERIVATION_MISMATCH}
 
     def test_an_altered_variance_is_caught(self, store, tmp_path):
-        persist(store, observed=[observation(delivered_shares=70.0)],
+        persist(store, observed=[observation(delivered_shares="70.0")],
                 as_of="2026-06-20")
         with sqlite3.connect(tmp_path / "w.db") as conn:
             row = conn.execute(

@@ -1,8 +1,8 @@
 """baseline workspace schema
 
-Revision ID: b944e1687833
+Revision ID: c7c7c8740ac7
 Revises: 
-Create Date: 2026-08-02 19:27:26.037885
+Create Date: 2026-08-02 19:46:06.217660
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = 'b944e1687833'
+revision: str = 'c7c7c8740ac7'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -68,8 +68,8 @@ def upgrade() -> None:
     sa.Column('effective_date', sa.Text(), nullable=False),
     sa.Column('observed_at', sa.Text(), nullable=False),
     sa.Column('asset', sa.Text(), nullable=True),
-    sa.Column('quantity', sa.Float(), nullable=True),
-    sa.Column('value', sa.Float(), nullable=True),
+    sa.Column('quantity', sa.Text().with_variant(sa.Numeric(precision=38, scale=12), "postgresql"), nullable=True),
+    sa.Column('value', sa.Text().with_variant(sa.Numeric(precision=38, scale=12), "postgresql"), nullable=True),
     sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('evidence_refs', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), server_default=sa.text("'[]'"), nullable=False),
     sa.Column('source', sa.Text(), nullable=False),
@@ -108,8 +108,8 @@ def upgrade() -> None:
     sa.Column('kind', sa.Text(), nullable=False),
     sa.Column('expected_effective_date', sa.Text(), nullable=False),
     sa.Column('asset', sa.Text(), nullable=True),
-    sa.Column('expected_quantity', sa.Float(), nullable=True),
-    sa.Column('expected_value', sa.Float(), nullable=True),
+    sa.Column('expected_quantity', sa.Text().with_variant(sa.Numeric(precision=38, scale=12), "postgresql"), nullable=True),
+    sa.Column('expected_value', sa.Text().with_variant(sa.Numeric(precision=38, scale=12), "postgresql"), nullable=True),
     sa.Column('payload', sa.Text().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"), nullable=False),
     sa.Column('matching_policy_version', sa.Text(), nullable=False),
     sa.Column('source_ref', sa.Text(), nullable=True),

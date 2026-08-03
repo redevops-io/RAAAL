@@ -28,9 +28,12 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
+from decimal import Decimal
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+from ..db.decimals import Number, canonical, to_decimal
 
 #: Bumped when a change would reconcile the same records differently. Stored on
 #: every reconciliation, so a historical one says which rules produced it.
@@ -85,7 +88,7 @@ class MatchingPolicy:
     missing one plus an unexpected one — which is the right answer once the gap
     is large enough that they might genuinely be different events."""
 
-    quantity_tolerance: float = 0.0
+    quantity_tolerance: Number = 0
     """Exact by default. A share count that differs is a variance to report,
     not a rounding to absorb."""
 
@@ -102,6 +105,18 @@ class MatchingPolicy:
                 "version": self.version}
 
 
+def _refuse_floats(event: Any, fields: Sequence[str]) -> None:
+    """Reject a float quantity where it enters, not where it is stored.
+
+    `0.1` is not one tenth. Accepting it and converting at the database boundary
+    would launder an already-lost value into something that looks exact, and
+    attribute the loss to the store rather than to the caller that introduced
+    it. `canonical` raises for a float and validates everything else.
+    """
+    for name in fields:
+        canonical(getattr(event, name))
+
+
 @dataclass(frozen=True)
 class PlannedEvent:
     """What the confirmed scenario expected. Never edited."""
@@ -111,21 +126,26 @@ class PlannedEvent:
     expected_date: str
     kind: str = "vest"
     employer_asset: str = ""
-    expected_gross_shares: Optional[float] = None
-    expected_withheld_shares: Optional[float] = None
-    expected_delivered_shares: Optional[float] = None
-    expected_value: Optional[float] = None
+    expected_gross_shares: Optional[Number] = None
+    expected_withheld_shares: Optional[Number] = None
+    expected_delivered_shares: Optional[Number] = None
+    expected_value: Optional[Number] = None
     source_declaration: str = ""
     version_pin: str = ""
+
+    def __post_init__(self) -> None:
+        _refuse_floats(self, ("expected_gross_shares",
+                              "expected_withheld_shares",
+                              "expected_delivered_shares", "expected_value"))
 
     def to_json(self) -> Dict[str, Any]:
         return {"event_id": self.event_id, "grant_ref": self.grant_ref,
                 "expected_date": self.expected_date, "kind": self.kind,
                 "employer_asset": self.employer_asset,
-                "expected_gross_shares": self.expected_gross_shares,
-                "expected_withheld_shares": self.expected_withheld_shares,
-                "expected_delivered_shares": self.expected_delivered_shares,
-                "expected_value": self.expected_value,
+                "expected_gross_shares": canonical(self.expected_gross_shares),
+                "expected_withheld_shares": canonical(self.expected_withheld_shares),
+                "expected_delivered_shares": canonical(self.expected_delivered_shares),
+                "expected_value": canonical(self.expected_value),
                 "source_declaration": self.source_declaration,
                 "version_pin": self.version_pin}
 
@@ -146,15 +166,19 @@ class ObservedEvent:
     kind: str = "vest"
     grant_ref: str = ""
     employer_asset: str = ""
-    gross_shares: Optional[float] = None
-    withheld_shares: Optional[float] = None
-    delivered_shares: Optional[float] = None
-    value: Optional[float] = None
+    gross_shares: Optional[Number] = None
+    withheld_shares: Optional[Number] = None
+    delivered_shares: Optional[Number] = None
+    value: Optional[Number] = None
     evidence_ref: str = ""
     source: str = "user"
     confirms_absence: bool = False
     """Set only by an explicit report that the event did not occur. Silence
     never sets it."""
+
+    def __post_init__(self) -> None:
+        _refuse_floats(self, ("gross_shares", "withheld_shares",
+                              "delivered_shares", "value"))
 
     def to_json(self) -> Dict[str, Any]:
         return {"observation_id": self.observation_id,
@@ -162,9 +186,10 @@ class ObservedEvent:
                 "effective_date": self.effective_date, "kind": self.kind,
                 "grant_ref": self.grant_ref,
                 "employer_asset": self.employer_asset,
-                "gross_shares": self.gross_shares,
-                "withheld_shares": self.withheld_shares,
-                "delivered_shares": self.delivered_shares, "value": self.value,
+                "gross_shares": canonical(self.gross_shares),
+                "withheld_shares": canonical(self.withheld_shares),
+                "delivered_shares": canonical(self.delivered_shares),
+                "value": canonical(self.value),
                 "evidence_ref": self.evidence_ref, "source": self.source,
                 "confirms_absence": self.confirms_absence}
 
@@ -180,8 +205,25 @@ class Variance:
     delta: Any = None
 
     def to_json(self) -> Dict[str, Any]:
-        return {"dimension": self.dimension, "expected": self.expected,
-                "observed": self.observed, "delta": self.delta}
+        # Quantities are canonicalized only here. Held as Decimal inside, the
+        # dimension stays arithmetic; serialized as canonical text, it matches
+        # what the payload and the mirrored columns record, so a stored variance
+        # and a re-derived one compare byte for byte.
+        return {"dimension": self.dimension,
+                "expected": self._as_text(self.expected),
+                "observed": self._as_text(self.observed),
+                "delta": self._as_text(self.delta)}
+
+    @staticmethod
+    def _as_text(value: Any) -> Any:
+        """Canonical text for a quantity; anything else unchanged.
+
+        The `date` dimension carries ISO strings and an integer day count,
+        neither of which is a decimal quantity.
+        """
+        if isinstance(value, Decimal):
+            return canonical(value)
+        return value
 
 
 @dataclass(frozen=True)
@@ -267,9 +309,16 @@ def _variances(planned: PlannedEvent, observed: ObservedEvent,
             # Unknown on either side is not a variance. Reporting one would
             # invent a difference from an absence of information.
             continue
-        if abs(actual - expected) > policy.quantity_tolerance:
-            found.append(Variance(dimension=dimension, expected=expected,
-                                  observed=actual, delta=actual - expected))
+        # Exact throughout. A quantity may arrive as a Decimal or as a
+        # canonical string depending on whether it came from the caller or from
+        # the database, and the subtraction below has to mean the same thing
+        # either way.
+        expected_exact = to_decimal(expected)
+        actual_exact = to_decimal(actual)
+        difference = actual_exact - expected_exact
+        if abs(difference) > to_decimal(policy.quantity_tolerance):
+            found.append(Variance(dimension=dimension, expected=expected_exact,
+                                  observed=actual_exact, delta=difference))
     return found
 
 

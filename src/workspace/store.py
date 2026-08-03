@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence
 
 from ..db.engine import Database, Dialect
+from ..db.decimals import DecimalDrift, Money, same_value, to_decimal
 from ..db.types import Json, loads
 from ..mission.boundary import scan_for_personal_data
 from ..runtime.base import canonical_hash
@@ -264,6 +265,90 @@ _RELAXED_NOT_NULL = (
 _WIDENED_PRIMARY_KEY = (
     ("worksheet", ("owner", "worksheet_id", "revision")),
 )
+
+
+#: The denormalized decimal columns and the payload field each one mirrors.
+#: Read by `verify_decimal_columns`, which re-derives the comparison from the
+#: stored payload rather than trusting that the write did it.
+MIRRORED_DECIMALS = {
+    "planned_event": {"expected_quantity": "expected_gross_shares",
+                      "expected_value": "expected_value"},
+    "observed_event": {"quantity": "gross_shares", "value": "value"},
+}
+
+
+def _mirror(payload: Mapping[str, Any], field: str, value: Any,
+            table: str) -> Money:
+    """Bind a decimal column, having checked it against the payload it copies.
+
+    These columns exist so a value can be filtered, ordered and aggregated in
+    the database. That makes them a second answer to a question the hashed
+    payload already answers, and a second answer that can disagree is worse
+    than not having one — the disagreement would surface in a query result or a
+    threshold comparison, which is the least visible place for it.
+
+    The payload stays authoritative. This does not reconcile the two; it refuses
+    to write a row where they differ.
+    """
+    if not same_value(payload.get(field), value):
+        raise DecimalDrift(
+            f"{table}.{field}: the value being stored ({value!r}) and the "
+            f"payload field it mirrors ({payload.get(field)!r}) are different "
+            "quantities. The payload is authoritative and the column is a copy "
+            "of it; writing both would give the database two answers.")
+    return Money(value)
+
+
+def _with_decimals(record: Dict[str, Any], table: str,
+                   **extra: Any) -> Dict[str, Any]:
+    """Normalize a row's decimal columns, whichever dialect produced it.
+
+    PostgreSQL returns a `Decimal` from NUMERIC and SQLite returns canonical
+    text. Callers get a `Decimal` from both, so nothing downstream has to know
+    which engine it read from — the property the differing column types exist
+    to preserve.
+    """
+    for column in MIRRORED_DECIMALS[table]:
+        record[column] = to_decimal(record.get(column))
+    record.update(extra)
+    return record
+
+
+def verify_decimal_columns(store, table: str,
+                           owner: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Rows whose decimal column disagrees with the payload it mirrors.
+
+    Re-derives the comparison from what is stored rather than trusting the
+    write that put it there. A check that shared code with the writer would
+    agree with it by construction — the same reason `verify_deleted` reads the
+    schema instead of the deletion it is verifying.
+
+    Returns the drifted rows rather than raising, because an integrity sweep
+    wants all of them and not just the first.
+    """
+    drifted: List[Dict[str, Any]] = []
+    sql = f"SELECT * FROM {table}"
+    params: Sequence[Any] = ()
+    if owner is not None:
+        sql += " WHERE owner = ?"
+        params = (owner,)
+    with store._conn() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    for row in rows:
+        payload = loads(row["payload"], {})
+        for column, field in MIRRORED_DECIMALS[table].items():
+            stored, mirrored = row[column], payload.get(field)
+            try:
+                agrees = same_value(stored, mirrored)
+            except Exception:
+                agrees = False
+            if not agrees:
+                drifted.append({"table": table, "column": column,
+                                "field": field, "stored": stored,
+                                "payload": mirrored,
+                                "row": {k: row[k] for k in
+                                        ("owner", "worksheet_id")}})
+    return drifted
 
 
 class NotSaveable(ValueError):
@@ -670,8 +755,12 @@ class WorkspaceStore:
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (owner, worksheet_id, event.event_id, plan_revision,
                  event.grant_ref, event.kind, event.expected_date,
-                 event.employer_asset, event.expected_gross_shares,
-                 event.expected_value, Json(payload),
+                 event.employer_asset,
+                 _mirror(payload, "expected_gross_shares",
+                         event.expected_gross_shares, "planned_event"),
+                 _mirror(payload, "expected_value", event.expected_value,
+                         "planned_event"),
+                 Json(payload),
                  matching_policy_version, event.source_declaration, digest,
                  created_at))
         return event.event_id
@@ -707,7 +796,10 @@ class WorkspaceStore:
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (owner, worksheet_id, event.observation_id, event.kind,
                  event.effective_date, event.observed_date,
-                 event.employer_asset, event.gross_shares, event.value,
+                 event.employer_asset,
+                 _mirror(payload, "gross_shares", event.gross_shares,
+                         "observed_event"),
+                 _mirror(payload, "value", event.value, "observed_event"),
                  Json(payload),
                  Json([event.evidence_ref] if event.evidence_ref else []),
                  event.source, supersedes, digest, created_at))
@@ -737,7 +829,8 @@ class WorkspaceStore:
                 "SELECT * FROM planned_event WHERE owner = ? AND "
                 "worksheet_id = ? ORDER BY expected_effective_date",
                 (owner, worksheet_id)).fetchall()
-        return [{**dict(r), "payload": loads(r["payload"])} for r in rows]
+        return [_with_decimals(dict(r), "planned_event",
+                               payload=loads(r["payload"])) for r in rows]
 
     def observed_events(self, worksheet_id: str, owner: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:
@@ -745,8 +838,9 @@ class WorkspaceStore:
                 "SELECT * FROM observed_event WHERE owner = ? AND "
                 "worksheet_id = ? ORDER BY effective_date, created_at",
                 (owner, worksheet_id)).fetchall()
-        return [{**dict(r), "payload": loads(r["payload"]),
-                 "evidence_refs": loads(r["evidence_refs"], [])}
+        return [_with_decimals(dict(r), "observed_event",
+                               payload=loads(r["payload"]),
+                               evidence_refs=loads(r["evidence_refs"], []))
                 for r in rows]
 
     def reconciliations(self, worksheet_id: str, owner: str) -> List[Dict[str, Any]]:

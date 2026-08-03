@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Dict, Mapping, Sequence, Tuple
 
-from .types import JsonText
+from .types import DecimalText, JsonText
 from sqlalchemy import (
     Column,
     Float,
@@ -194,8 +194,8 @@ planned_event = Table(
     Column("kind", Text, nullable=False),
     Column("expected_effective_date", Text, nullable=False),
     Column("asset", Text),
-    Column("expected_quantity", Float),
-    Column("expected_value", Float),
+    Column("expected_quantity", DecimalText),
+    Column("expected_value", DecimalText),
     Column("payload", JsonText, nullable=False),
     Column("matching_policy_version", Text, nullable=False),
     Column("source_ref", Text),
@@ -215,8 +215,8 @@ observed_event = Table(
     Column("effective_date", Text, nullable=False),
     Column("observed_at", Text, nullable=False),
     Column("asset", Text),
-    Column("quantity", Float),
-    Column("value", Float),
+    Column("quantity", DecimalText),
+    Column("value", DecimalText),
     Column("payload", JsonText, nullable=False),
     Column("evidence_refs", JsonText, nullable=False, server_default=text("'[]'")),
     Column("source", Text, nullable=False),
