@@ -761,3 +761,74 @@ context — database, market-data policy, build identity, telemetry target — r
 once at startup and handed to everything else, with nothing below it consulting
 `os.environ` at all. Until then, the invariant holds by convention here rather
 than by construction.
+
+## Journey completeness
+
+A guarantee is not established until one real journey crosses every boundary
+the way production crosses it.
+
+```text
+HTTP -> routing -> runtime -> planner -> store -> database
+     -> reload -> view model -> export
+```
+
+Every seam can be proven and the chain still broken. That is not a hypothetical
+here: the first journey test written against the deployed engine found two
+defects before it could assert anything about the subject it was written for.
+
+| Defect | Every component was | The composition was not |
+|---|---|---|
+| the store opened a default database | preflight correct, store correct, resolver correct | a request reached neither |
+| `json_extract` on PostgreSQL | migrations correct, store tests passing | every deployed save failed |
+| candidate runs dropped provenance | resolver correct, store correct, verifier correct | the route never carried it |
+
+Each was invisible to unit tests *by construction*, because each unit was
+right. What was wrong was the join between them, and nothing that examines one
+component at a time can see a join.
+
+**Three lanes, three defect classes.** They are not redundant and one does not
+subsume another:
+
+    mechanism tests    logic          does this function do what it says
+    journey tests      composition    do the seams compose under real calls
+    deployment tests   environment    does the shipped artifact do it
+
+Gate 2 produced defects in all three, and no lane found another lane's.
+
+**A journey must fail by observation, not by comparison.** Restoring the store
+defect makes the journey report *no run reached the configured database* —
+absent rows. A journey that instead compared two configuration values would be
+a unit test with more setup, and would have found nothing the unit test did not.
+
+---
+
+## The invariants, and where they came from
+
+These are not principles chosen in advance. Each was named after the same
+defect appeared enough times to be a shape rather than an incident.
+
+| Invariant | The question it asks |
+|---|---|
+| Reachability of enforcement | does the live path call this control? |
+| Ownership reachability | can every record's owner be proven, or is it declared global? |
+| Constructed invalid state | has anything built the state this control rejects? |
+| Coverage evidence | is the proof produced by the thing it certifies, or written beside it? |
+| Single resolution | do adjacent components resolve the same question once? |
+| Journey completeness | has the composed production path actually run? |
+
+They overlap at the edges and are not a partition. Two observations about the
+fit, recorded because a taxonomy that is claimed to be exhaustive and is not
+becomes a way of *not* looking:
+
+**One recurring defect is not on the list.** Fixing the instance that was found
+is not fixing the class — five tenant-key tables found one at a time, two
+routers with the same ungated read, two immutable bodies with the same
+overwrite. The remedy is always an inventory derived from an independent
+source, and every invariant above ends up prescribing one. It may be the
+general case and the six may be its symptoms; that is not yet clear enough to
+write down as a law.
+
+**Several defects belong to more than one.** The truncated `OwnershipPath` was
+ownership reachability, single resolution *and* a consumer invalidated by a
+correct migration. Categorising it once would lose two of the three reasons it
+happened.
