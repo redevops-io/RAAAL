@@ -40,9 +40,16 @@ NON_PRODUCTION_READERS = {
         "the backtest/research pipeline, not reachable from a served request",
     "src/history.py":
         "offline historical analysis, run from the command line",
+    # This said "the standalone Bokeh demo, served separately and not part of
+    # the pilot surface". That was written from the module's name and was the
+    # opposite of true: `scripts/service.py` imports it and is the Dockerfile's
+    # CMD, so it is what the container runs. See `src/deploy/surfaces.py`,
+    # where surfaces are now declared with their entrypoint and checked against
+    # the Dockerfile rather than described.
     "src/visualization/bokeh_app.py":
-        "the standalone Bokeh demo, served separately and not part of the "
-        "pilot surface",
+        "the regime dashboard — production-reachable via scripts/service.py, "
+        "restricted to synthetic data, and pending routing through the "
+        "market-data gate",
     "src/market_data/loader.py":
         "the gate's own implementation — it is what resolves a snapshot to a "
         "file, and is reached only through `access.resolve_prices`",
