@@ -150,41 +150,13 @@ def _prices() -> Optional[pd.DataFrame]:
     pilot user describing a scenario received figures from it by an ordinary
     code path, which is precisely the route a licence breach takes.
 
-    Now the snapshot is resolved, authorised, and loaded by identity. There is
-    no fallback: a denied snapshot yields no prices rather than quietly becoming
-    the synthetic one, because a figure from data the plan did not name is worse
-    than no figure at all.
+    The resolution now lives in `market_data.access` and is shared with the
+    public router, which held the same bypass until Gate 3. Two copies of a gate
+    are not twice as safe; they are a gate that gets updated in one place.
     """
-    from ..market_data.loader import load_prices, synthetic_snapshot
-    from ..market_data.pilot_policy import (
-        PilotDataDenied,
-        PilotDataPolicy,
-        PilotPolicyMissing,
-        authorise,
-        configured_policy,
-    )
+    from ..market_data.access import resolve_prices
 
-    try:
-        policy = configured_policy()
-    except PilotPolicyMissing:
-        # Fails closed. Guidance in a runbook is not a gate.
-        return None
-
-    snapshot = (synthetic_snapshot()
-                if policy is PilotDataPolicy.SYNTHETIC_ONLY
-                else _approved_snapshot())
-    if snapshot is None:
-        return None
-
-    try:
-        authorise(snapshot, context="pilot scenario run")
-    except PilotDataDenied:
-        return None
-
-    try:
-        return load_prices(snapshot).sort_index()
-    except Exception:                                          # noqa: BLE001
-        return None
+    return resolve_prices(context="pilot scenario run")
 
 
 def _approved_snapshot():

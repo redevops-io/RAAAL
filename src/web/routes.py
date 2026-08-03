@@ -73,7 +73,20 @@ def _registries():
 
 
 def _prices() -> Optional[pd.DataFrame]:
-    return pd.read_parquet(PRICES) if PRICES.exists() else None
+    """Prices for a public page, through the same gate the workspace uses.
+
+    This read `data/history/prices.parquet` directly until Gate 3 — an
+    unmanifested file with no snapshot identity, no licence class and no egress
+    check, on the *public* router. The identical bypass had already been found
+    and fixed in `src/workspace/routes.py`; it survived here because the fix was
+    applied to the consumer that was found rather than to the class of consumer.
+
+    There is one gate now, in `market_data.access`, and the inventory test
+    requires every production reader to be it.
+    """
+    from ..market_data.access import resolve_prices
+
+    return resolve_prices(context="public methodology page")
 
 
 def _pick_protocol(methodology, protocols: ProtocolRegistry):

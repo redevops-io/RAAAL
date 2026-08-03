@@ -135,25 +135,56 @@ class TestTheLiveRouteIsGated:
         monkeypatch.delenv(POLICY_VARIABLE, raising=False)
         assert routes._prices() is None
 
-    def test_it_no_longer_reads_the_unmanifested_file(self):
+    def test_it_no_longer_reads_the_unmanifested_file(self, monkeypatch):
         """`data/history/prices.parquet` had no snapshot identity, no licence
-        class and no egress check, and the live route read it directly."""
-        import inspect
+        class and no egress check, and the live route read it directly.
+
+        Watched rather than read. This asserted `"read_parquet" not in source`,
+        which is a claim about the text of one function — it says nothing about
+        what that function calls, and it broke the moment the resolution moved
+        into `market_data.access` while the behaviour stayed correct.
+        """
+        import pandas as pd
 
         import src.workspace.routes as routes
+        from src.market_data.access import UNMANIFESTED_PRICES
 
-        source = inspect.getsource(routes._prices)
-        assert "read_parquet" not in source
-        assert "PRICES" not in source
+        opened = []
+        original = pd.read_parquet
+        monkeypatch.setattr(
+            pd, "read_parquet",
+            lambda path, *a, **k: (opened.append(str(path)),
+                                   original(path, *a, **k))[1])
+        monkeypatch.setenv(POLICY_VARIABLE, "SYNTHETIC_ONLY")
+        routes._prices()
 
-    def test_prices_are_loaded_by_snapshot_identity(self):
-        import inspect
+        assert opened, "no file was read at all; this proves nothing"
+        assert not any(UNMANIFESTED_PRICES in one for one in opened), (
+            f"the live route read the unmanifested file: {opened}")
 
+    def test_prices_are_loaded_by_snapshot_identity(self, monkeypatch):
+        """The snapshot is resolved and authorised, then loaded by its id."""
+        import src.market_data.access as access
         import src.workspace.routes as routes
 
-        source = inspect.getsource(routes._prices)
-        assert "load_prices" in source
-        assert "authorise" in source
+        authorised = []
+        original = access.__dict__.get("_authorise_probe")
+        import src.market_data.pilot_policy as policy_module
+
+        real_authorise = policy_module.authorise
+
+        def watched(snapshot, *, context):
+            authorised.append((snapshot.snapshot_id, context))
+            return real_authorise(snapshot, context=context)
+
+        monkeypatch.setattr(policy_module, "authorise", watched)
+        monkeypatch.setenv(POLICY_VARIABLE, "SYNTHETIC_ONLY")
+        assert routes._prices() is not None
+
+        assert authorised, "nothing was authorised; the gate was not reached"
+        snapshot_id, context = authorised[0]
+        assert snapshot_id, "a snapshot with no identity was authorised"
+        assert context == "pilot scenario run"
 
     def test_a_denied_snapshot_yields_no_prices_rather_than_other_data(
             self, monkeypatch):
