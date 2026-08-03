@@ -27,7 +27,7 @@ import sqlite3
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterator, Optional, Sequence, Tuple, Union
+from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
 
 from sqlalchemy import create_engine, inspect
 
@@ -131,6 +131,34 @@ def to_postgres(sql: str) -> str:
     return _PLACEHOLDER.sub("%s", sql)
 
 
+#: Statements issued while a recorder is active, in order. Populated after
+#: dialect translation, because the statement the store *writes* is not the one
+#: PostgreSQL *receives* — `INSERT OR REPLACE` becomes `ON CONFLICT`, and it is
+#: the rewrite that either overwrites an immutable body or does not.
+_recorders: List[List[str]] = []
+
+
+def _record(sql: str) -> None:
+    for sink in _recorders:
+        sink.append(sql)
+
+
+@contextmanager
+def capture_statements() -> Iterator[List[str]]:
+    """Collect every statement issued inside this block.
+
+    Used by `tests/test_immutability.py` to check what the store actually sends
+    rather than what its source contains — the distinction that nine
+    prose-matching failures in this codebase have turned on.
+    """
+    sink: List[str] = []
+    _recorders.append(sink)
+    try:
+        yield sink
+    finally:
+        _recorders.remove(sink)
+
+
 class _Cursor:
     """A cursor that reads the same way under either driver."""
 
@@ -161,7 +189,10 @@ class Connection:
     def execute(self, sql: str, params: Sequence[Any] = ()) -> _Cursor:
         bound = tuple(adapt(value, self.dialect.value) for value in params)
         if self.dialect is Dialect.POSTGRESQL:
-            return _Cursor(self._raw.execute(to_postgres(sql), bound))
+            issued = to_postgres(sql)
+            _record(issued)
+            return _Cursor(self._raw.execute(issued, bound))
+        _record(sql)
         return _Cursor(self._raw.execute(sql, bound))
 
     def commit(self) -> None:

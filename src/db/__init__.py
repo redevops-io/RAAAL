@@ -13,6 +13,7 @@ enforced on one path and not on the path that runs.
 """
 from .engine import (
     DATABASE_URL_VAR,
+    capture_statements,
     Database,
     Dialect,
     UnsupportedTarget,
@@ -23,7 +24,7 @@ from .engine import (
 )
 from .schema import SCHEMA_VERSION, metadata, primary_key_columns, table_names
 
-__all__ = ["DATABASE_URL_VAR", "Database", "Dialect", "SCHEMA_VERSION",
+__all__ = ["DATABASE_URL_VAR", "capture_statements", "Database", "Dialect", "SCHEMA_VERSION",
            "UnsupportedTarget", "UntranslatableStatement", "dialect_of",
            "metadata", "primary_key_columns", "resolve_target", "table_names",
            "to_postgres"]

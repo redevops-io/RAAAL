@@ -537,8 +537,19 @@ class WorkspaceStore:
 
         payload = scenario.to_json()
         with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT content_hash FROM plan WHERE plan_id = ? AND owner = ?",
+                (plan_id, owner)).fetchone()
+            if existing is not None:
+                if existing["content_hash"] == scenario.content_hash:
+                    return plan_id           # idempotent redelivery
+                raise NotSaveable(
+                    f"plan {plan_id} is already stored with different contents. "
+                    "The compiled scenario and the stage 1 parse are pinned — "
+                    "replacing them would alter a plan the user has already "
+                    "read and confirmed. Save it under a new id instead")
             conn.execute(
-                """INSERT OR REPLACE INTO plan
+                """INSERT INTO plan
                    (plan_id, owner, title, scenario, intent, stated_text,
                     saved_at, rule_hash, content_hash, parse)
                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
@@ -595,8 +606,23 @@ class WorkspaceStore:
                         f"to {len(rows)} owners. A run must belong to exactly "
                         "one; pass `owner` explicitly")
                 owner = rows[0]["owner"]
+            digest = canonical_hash({"result": result, "comparison": comparison})
+            existing = conn.execute(
+                "SELECT result, comparison FROM plan_run "
+                "WHERE run_id = ? AND owner = ?", (run_id, owner)).fetchone()
+            if existing is not None:
+                stored = canonical_hash({
+                    "result": loads(existing["result"], {}),
+                    "comparison": loads(existing["comparison"], {})})
+                if stored == digest:
+                    return run_id            # idempotent redelivery
+                raise NotSaveable(
+                    f"run {run_id} is already stored with a different result. "
+                    "A run records the verdict a plan actually got; replacing "
+                    "it would make a saved worksheet show a figure it never "
+                    "cited. Record a new run instead")
             conn.execute(
-                """INSERT OR REPLACE INTO plan_run
+                """INSERT INTO plan_run
                    (owner, run_id, plan_id, ran_at, result, comparison)
                    VALUES (?,?,?,?,?,?)""",
                 (owner, run_id, plan_id, ran_at, Json(result), Json(comparison)),
