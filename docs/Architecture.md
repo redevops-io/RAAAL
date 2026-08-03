@@ -703,3 +703,61 @@ Applied generally:
   or type inventory;
 - every mutation must be shown to change the behaviour under test, not merely
   to have been applied.
+
+## Single resolution
+
+Any question several components depend on is answered **once**, by one
+resolver, into one typed object. Every consumer takes the object. No consumer
+re-derives the answer from the inputs.
+
+```text
+inputs -> one resolver -> typed object -> every consumer
+
+not
+
+inputs -> consumer A resolves
+       -> consumer B resolves
+```
+
+Two components that each resolve correctly will still drift, because nothing
+compares their answers. Each is right about its own half, and the disagreement
+is invisible from inside either one.
+
+This is the shape behind most of the significant refactorings in this codebase,
+and it took a deployment defect to see that they were all the same move:
+
+| Question | Was resolved by | Now resolved once as |
+|---|---|---|
+| which rows does this owner hold | deletion and verification separately | `OwnershipPath`, consumed by delete, verify and export |
+| which market data is this | the frame, with provenance fetched beside it | `MarketDataAccess`, carrying frame and provenance together |
+| what did this run model | card, worksheet and runtime each rebuilding it | `ScopeDisclosure`, projected into all three |
+| which columns are an identity | the schema and each upsert statement | the model, read by the conflict-target translation |
+| which database is this | the preflight and the store, independently | `resolve_target` |
+
+The last one is why this is written down. `WorkspaceStore()` substituted a
+default before the resolver could read the configured URL, so the preflight
+validated PostgreSQL — reachable, migrated, schema parity checked — and the
+application wrote to a local SQLite file. Both were correct about the question
+they asked. Nothing asked whether they had asked the same question.
+
+**It is not the same as reachability.** Reachability asks whether the live path
+calls the control. Constructed invalid state asks whether anything builds the
+state the control rejects. This asks a third thing: *do the components that must
+agree resolve to the same answer* — and it is invisible to both of the others,
+because every component can be individually reachable, individually tested, and
+individually right.
+
+**The consequence is that the object is the contract.** Once an answer is a
+typed object, "did you remember to fetch the other half" stops being a question
+a caller can get wrong — which is why `resolve` returns frame and provenance
+together rather than as a pair, and why `OwnershipPath` emits its own SQL rather
+than describing a join for each consumer to write.
+
+**Where this is not yet finished.** The database case now funnels through
+`resolve_target`, but `preflight.py` and `engine.py` each read the environment
+and pass the result in. They agree because both end at the same function, not
+because the environment is read once. The full form is a resolved deployment
+context — database, market-data policy, build identity, telemetry target — read
+once at startup and handed to everything else, with nothing below it consulting
+`os.environ` at all. Until then, the invariant holds by convention here rather
+than by construction.
