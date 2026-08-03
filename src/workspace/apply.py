@@ -51,6 +51,16 @@ class ProposalConflict(ApplyRefused):
     """
 
 
+class TransitionIntegrityError(RuntimeError):
+    """A state transition changed a number of rows that cannot be right.
+
+    Deliberately *not* an `ApplyRefused`. A refusal means the request was
+    understood and declined; this means the stored state no longer matches what
+    this code can reason about, and a caller that retried would be retrying
+    against a database nobody has explained.
+    """
+
+
 class StaleProposal(ApplyRefused):
     """The worksheet advanced after the proposal was reviewed.
 
@@ -192,22 +202,33 @@ def _apply(store, *, proposal_id, owner, worksheet_id, proposal, at, actor,
             proposal_id, owner, status=ProposalStatus.ACCEPTED.value,
             resolved_at=at, actor=actor, result_revision=updated.revision,
             result_runs=runs)
-        if record is not None and not moved:
-            # The conditional update matched nothing: this proposal was no
-            # longer PROPOSED when the write ran. Raising inside the
-            # transaction rolls back the revision and every candidate run with
-            # it, so the loser leaves nothing behind rather than only failing
-            # its final status update.
-            #
-            # NO TEST ISOLATES THIS BRANCH, and it is kept deliberately. With
-            # the row lock held, a loser refuses earlier, at the status check.
-            # With the lock removed, the two sessions contend on this same row
-            # and PostgreSQL reports a deadlock, which `is_conflict` translates.
-            # Every route into it is therefore covered by something else — but
-            # the window it closes is real: a loser whose update matches nothing
-            # and which does *not* deadlock would otherwise commit a second
-            # revision and report success. Removing it because no falsification
-            # fires would trade a real guarantee for a green mutation run.
+        # The transition write must have affected exactly one proposal row.
+        #
+        # This is an invariant guard, not a branch on expected control flow. The
+        # three protections before it answer different questions — the row lock
+        # says no competing transaction can decide concurrently, the post-lock
+        # re-read says the proposal still authorizes acceptance, and the
+        # `status = 'PROPOSED'` predicate says the stored state still permits
+        # the transition. This one says *this transaction actually performed
+        # it*, which none of the others establishes.
+        #
+        # Rolling back here is what makes the guarantee whole: raising inside
+        # the transaction discards the revision and every candidate run, so a
+        # caller that cannot claim success also leaves nothing behind.
+        if record is not None and moved != 1:
+            if moved == 0:
+                raise ProposalConflict(
+                    f"proposal {proposal_id} was resolved by another request "
+                    "while this one was applying it. Nothing from this attempt "
+                    "was kept; read the proposal again to see the outcome that "
+                    "stands")
+            # Impossible under the primary key, which is exactly why it is
+            # worth saying so rather than silently accepting the first row.
+            raise TransitionIntegrityError(
+                f"resolving proposal {proposal_id} changed {moved} rows where "
+                "one was required. A proposal identifies one review, so more "
+                "than one row moving means the stored state no longer matches "
+                "what this code can reason about")
             raise ProposalConflict(
                 f"proposal {proposal_id} was resolved by another request while "
                 "this one was applying it. Nothing from this attempt was kept; "
