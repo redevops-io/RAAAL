@@ -98,7 +98,12 @@ def main() -> int:
     # question. A split legitimately rewrites every earlier price; anything
     # else is the vendor revising history, and a stored run cited the old
     # numbers.
-    existing = sorted(out.glob("prices-catalog-*.parquet"))
+    # Market series only. The first version of this glob also matched the
+    # sibling `.total-return.parquet` and reconciled the market series against
+    # the total-return one — 104,006 changed values, and a refusal to write.
+    # The guard behaved correctly on a comparison that was meaningless.
+    existing = sorted(one for one in out.glob("prices-catalog-*.parquet")
+                      if not one.name.endswith(".total-return.parquet"))
     if existing:
         import pandas
         previous = pandas.read_parquet(existing[-1])
@@ -123,6 +128,10 @@ def main() -> int:
             return 2
 
     close.to_parquet(parquet)
+    # The total-return series beside the market one. Both are needed and using
+    # either for the other's question is wrong in a way that looks reasonable.
+    if panel.total_return is not None:
+        panel.total_return.to_parquet(out / f"{snapshot_id}.total-return.parquet")
 
     # The claim `calendar/nyse@1` has to be true of the file, not of the
     # intention. The first build asserted it while carrying 1210 weekends.
@@ -149,6 +158,14 @@ def main() -> int:
         "provider": "yahoo",
         "fetched_at": panel.fetched_at.isoformat(timespec="seconds"),
         "adjustment": panel.adjustment,
+        "series": {
+            "market": f"{snapshot_id}.parquet",
+            "total_return": f"{snapshot_id}.total-return.parquet",
+            "note": ("market = split-adjusted Close, values a holding. "
+                     "total_return = Adj Close, measures a strategy. "
+                     "As-traded prices are market x the split factor after "
+                     "the date; see src/market_data/ingest.as_traded_price."),
+        },
         # The vendor's own corporate-action tables, kept beside the prices.
         # They are what makes a later fetch's differences explainable rather
         # than merely different.

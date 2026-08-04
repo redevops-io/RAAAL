@@ -225,3 +225,85 @@ class TestTheComparatorIsNeitherNoisyNorVacuous:
         dividends = {"VTI": pd.Series([0.9], index=[index[-1]])}
 
         assert not reconcile(before, panel(after, dividends=dividends)).clean
+
+
+class TestAShareCountCarriesAnEpoch:
+    """A holding recorded before a split is recorded in shares that no longer
+    exist, at a price no series reports.
+
+    Somebody who bought 10 NVDA at $1,209 in May 2024 holds 100 today and
+    their statement still says 10 at $1,209. Valuing that position against a
+    split-adjusted series without converting gives 10 x 120.998 = $1,210 for a
+    holding worth $12,100 — off by the split ratio, and entirely plausible.
+    """
+
+    NVDA = pd.Series([4.0, 10.0],
+                     index=pd.to_datetime(["2021-07-20", "2024-06-10"]))
+
+    def test_the_factor_compounds_across_every_later_split(self):
+        from datetime import date as _date
+        from src.market_data.ingest import split_factor
+
+        # Before both splits: 4 x 10.
+        assert split_factor(self.NVDA, _date(2020, 1, 2)) == 40.0
+        # Between them: only the 10:1 is still ahead.
+        assert split_factor(self.NVDA, _date(2024, 6, 6)) == 10.0
+        # After both.
+        assert split_factor(self.NVDA, _date(2025, 1, 2)) == 1.0
+
+    def test_a_split_on_the_day_itself_does_not_apply(self):
+        """The split-adjusted price on the split date is already post-split."""
+        from datetime import date as _date
+        from src.market_data.ingest import split_factor
+
+        assert split_factor(self.NVDA, _date(2024, 6, 10)) == 1.0
+
+    def test_the_as_traded_price_is_the_one_on_the_statement(self):
+        from datetime import date as _date
+        from src.market_data.ingest import as_traded_price
+
+        # Yahoo's split-adjusted close for 2024-06-06 is 120.998.
+        assert round(as_traded_price(120.998, self.NVDA, _date(2024, 6, 6)), 2) \
+            == 1209.98
+
+    def test_value_survives_the_split_in_both_directions(self):
+        """The invariant. Quantity and price each change by the ratio; what a
+        holding is worth does not."""
+        from datetime import date as _date
+        from src.market_data.ingest import current_shares
+
+        bought = _date(2024, 6, 6)
+        as_traded_shares, as_traded = 10.0, 1209.98
+        today_shares = current_shares(as_traded_shares, self.NVDA, bought)
+
+        assert today_shares == 100.0
+        assert round(as_traded_shares * as_traded, 2) \
+            == round(today_shares * 120.998, 2)
+
+    def test_no_splits_means_no_conversion(self):
+        from datetime import date as _date
+        from src.market_data.ingest import current_shares, split_factor
+
+        assert split_factor(None, _date(2020, 1, 1)) == 1.0
+        assert current_shares(37.0, None, _date(2020, 1, 1)) == 37.0
+
+
+class TestTheTwoSeriesAnswerDifferentQuestions:
+    """`Close` values a holding; `Adj Close` measures a strategy.
+
+    Using the total-return series to value a position credits reinvested
+    dividends into the share price and then credits them again as cash. The
+    error is small per dividend and compounds silently over a decade.
+    """
+
+    def test_the_fetch_carries_both(self):
+        index = sessions(5)
+        market = pd.DataFrame({"VTI": [100.0] * 5}, index=index)
+        total = pd.DataFrame({"VTI": [101.0] * 5}, index=index)
+        fetched = PanelFetch(prices=market, splits={}, dividends={},
+                             fetched_at=pd.Timestamp("2026-08-04", tz="UTC")
+                             .to_pydatetime(), total_return=total)
+
+        assert fetched.prices["VTI"].iloc[0] == 100.0
+        assert fetched.total_return["VTI"].iloc[0] == 101.0
+        assert fetched.adjustment == "split_adjusted_close"

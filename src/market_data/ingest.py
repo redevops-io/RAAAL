@@ -58,14 +58,29 @@ MOVE_THRESHOLD = 0.35
 
 @dataclass(frozen=True)
 class PanelFetch:
-    """One whole-history fetch, and what the vendor said about it at the time."""
+    """One whole-history fetch, and what the vendor said about it at the time.
+
+    Two price series, because they answer different questions and using either
+    for the other's question is wrong in a way that looks plausible:
+
+        market   Close with auto_adjust=False -- split-adjusted, dividends NOT
+                 removed. This is what a share was worth. Value a holding with
+                 it.
+        total    Adj Close -- splits and dividends. This is what an investment
+                 returned. Measure a strategy with it.
+
+    Valuing a position with `total` silently credits reinvested dividends into
+    the share price and then credits them again as cash. Measuring performance
+    with `market` drops the dividends entirely. Neither error announces itself.
+    """
 
     prices: pd.DataFrame
     splits: Mapping[str, pd.Series]
     dividends: Mapping[str, pd.Series]
     fetched_at: datetime
+    total_return: Optional[pd.DataFrame] = None
     source: str = "yahoo"
-    adjustment: str = "auto_adjust"
+    adjustment: str = "split_adjusted_close"
     notes: Sequence[str] = field(default_factory=tuple)
 
 
@@ -81,9 +96,15 @@ def fetch(tickers: Sequence[str], *, start: str, end: Optional[str] = None,
     """
     import yfinance
 
+    # auto_adjust=False so both series come back: `Close` is split-adjusted
+    # only, `Adj Close` carries dividends as well.
     frame = _download(tickers, start=start, end=end)
-    close = frame["Close"] if "Close" in frame.columns.get_level_values(0) else frame
+    levels = frame.columns.get_level_values(0)
+    close = frame["Close"] if "Close" in levels else frame
+    total = frame["Adj Close"] if "Adj Close" in levels else None
     close = close.dropna(how="all").sort_index()
+    if total is not None:
+        total = total.reindex(close.index)
 
     if session_reference:
         if session_reference not in close.columns:
@@ -133,8 +154,16 @@ def fetch(tickers: Sequence[str], *, start: str, end: Optional[str] = None,
         if dividend is not None and len(dividend):
             dividends[ticker] = _naive_index(dividend)
 
+    if total is not None:
+        total = total.reindex(close.index)
+        for column in total.columns:
+            first = total[column].first_valid_index()
+            if first is not None:
+                total.loc[first:, column] = total.loc[first:, column].ffill()
+
     return PanelFetch(
         prices=close,
+        total_return=total,
         splits=splits,
         dividends=dividends,
         fetched_at=datetime.now(timezone.utc),
@@ -148,7 +177,7 @@ def _download(tickers: Sequence[str], *, start: str, end: Optional[str]):
     for attempt in range(1, RETRIES + 1):
         try:
             frame = yfinance.download(list(tickers), start=start, end=end,
-                                      auto_adjust=True, progress=False,
+                                      auto_adjust=False, progress=False,
                                       threads=True)
             if frame is None or frame.empty:
                 raise RuntimeError("empty response")
@@ -303,3 +332,55 @@ def reconcile(previous: pd.DataFrame, panel: PanelFetch, *,
         added_tickers=sorted(set(panel.prices.columns) - set(previous.columns)),
         removed_tickers=sorted(set(previous.columns) - set(panel.prices.columns)),
     )
+
+
+# --- as-traded, and why a share count is not a number ----------------------
+#
+# A holding recorded before a split is recorded in shares that no longer
+# exist. Somebody who bought 10 NVDA at $1,209 in May 2024 holds 100 today,
+# and their statement still says 10 at $1,209. Both are true; neither can be
+# read without knowing which side of the split it was written on.
+#
+# So a quantity and a price each carry an adjustment epoch, and the thing that
+# survives the split is neither of them:
+#
+#     as_traded_shares x as_traded_price  ==  current_shares x current_price
+#
+# Value is the invariant. Store what the statement said — 10 at $1,209, on
+# that date — and convert at read time through a factor derived from the
+# corporate-action table. Rewriting the stored quantity to 100 would destroy
+# the only record of what the user actually did, to save a multiplication.
+
+
+def split_factor(splits: Optional[pd.Series], when: date) -> float:
+    """How many of today's shares one share held on `when` became.
+
+    The product of every split strictly after that date. A share bought before
+    NVDA's 10:1 is ten shares now, so the factor is 10; a share bought after
+    it is one share, and the factor is 1.
+    """
+    if splits is None or not len(splits):
+        return 1.0
+    factor = 1.0
+    for stamp, ratio in splits.items():
+        stamp_date = stamp.date() if hasattr(stamp, "date") else stamp
+        if stamp_date > when:
+            factor *= float(ratio)
+    return factor
+
+
+def as_traded_price(split_adjusted: float, splits: Optional[pd.Series],
+                    when: date) -> float:
+    """The price actually printed on the day.
+
+    No vendor here reports it — Yahoo's `Close` is split-adjusted even with
+    `auto_adjust=False` — but it is recoverable, and a user comparing a figure
+    against their own statement needs the number they remember.
+    """
+    return split_adjusted * split_factor(splits, when)
+
+
+def current_shares(as_traded_shares: float, splits: Optional[pd.Series],
+                   when: date) -> float:
+    """What a quantity recorded on `when` is worth in today's share count."""
+    return as_traded_shares * split_factor(splits, when)
