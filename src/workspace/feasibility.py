@@ -127,10 +127,19 @@ class OpenItem:
 
     @property
     def dismissible(self) -> bool:
-        # Nothing may be set aside while the plan cannot run at all: the
-        # result of dismissing every item would still be no result.
-        return (self.resolution is Resolution.UNSUPPORTED_SEPARABLE
-                and self.executable)
+        # Not gated on the plan being runnable.
+        #
+        # It was, briefly, on the reasoning that setting every item aside
+        # would still leave no result. True, and it removed the user's only
+        # action: an `unclear:` item offers no answer box — the compiler has
+        # nowhere to put a free-text reply — so the acknowledgement is the
+        # single control it has. A blocked plan rendered four questions with
+        # nothing at all beneath them.
+        #
+        # Whether the plan can run is said once, in its own banner. Narrowing
+        # the plan's scope is a decision the user may take at any time, and
+        # taking it while something else blocks is not incoherent.
+        return self.resolution is Resolution.UNSUPPORTED_SEPARABLE
 
     @property
     def state(self) -> "ItemState":
@@ -156,6 +165,20 @@ class OpenItem:
         the first and not the second — asking a question with no way to answer
         it is what forces somebody back to rewriting their description.
         """
+        # Only fields the compiler will actually read back.
+        #
+        # A prefixed field — `asset_identity:SPX`, `template:x`, `unclear:y` —
+        # is generated from the parse and has no settle site, so a free-text
+        # reply to it is recorded as an amendment and then ignored. Rendering
+        # an input there is worse than rendering nothing: the user believes
+        # they have answered, submits, and the same question comes back
+        # unchanged with no explanation.
+        #
+        # Derived from the compiler by `test_answerable_questions.py`, which
+        # reads its `settle`/`answered` call sites rather than trusting this
+        # list to have stayed true.
+        if ":" in self.field:
+            return False
         return self.resolution is Resolution.REQUIRED_CLARIFICATION
 
     @property

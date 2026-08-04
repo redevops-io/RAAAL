@@ -127,3 +127,112 @@ class TestThePageRendersAControlForEveryQuestion:
                      "account_type": "TAXABLE", "cadence": "monthly"})
         assert response.status_code == 303, response.text
         assert plan_id
+
+
+class TestEveryQuestionOffersSomeControl:
+    """Answer box, choice, or acknowledgement — but never nothing.
+
+    A blocked plan rendered four "What did you mean by X?" questions with no
+    control beneath any of them. Two causes met: an `unclear:` item has no
+    answer box, because the compiler has nowhere to put a free-text reply, and
+    `dismissible` had been gated on the plan being runnable — so the one
+    control it did have disappeared exactly when the user most needed
+    something to do.
+
+    The earlier check only asserted that *asked* fields had an `answer:` or
+    `confirm:` input. `unclear:` items are asked and take neither, so they
+    passed through it.
+    """
+
+    UNCLEAR = ["unclear:SP500 ETF (specific ticker not given)",
+               "unclear:5-year lookback period for backtest"]
+
+    def _items(self, executable):
+        from src.workspace.feasibility import classify
+
+        class Raised:
+            def __init__(self, field):
+                self.field = field
+                self.question = "What did you mean by X?"
+                self.why_it_matters = "w"
+
+        return classify([Raised(f) for f in self.UNCLEAR], executable=executable)
+
+    @pytest.mark.parametrize("executable", [True, False])
+    def test_an_unclear_item_always_has_at_least_one_control(self, executable):
+        for item in self._items(executable):
+            assert item.answerable or item.dismissible, (
+                f"{item.field} is asked with nothing the user can do")
+
+    def test_a_blocked_plan_does_not_remove_the_acknowledgement(self):
+        """The regression itself. Runnability is a property of the plan and
+        belongs in its own banner, not in whether a control exists."""
+        assert all(item.dismissible for item in self._items(executable=False))
+
+    def test_dismissal_still_does_not_extend_to_required_fields(self):
+        """The other direction. Making everything dismissible would let a user
+        acknowledge away the account type, which changes what the result
+        answers rather than narrowing it."""
+        from src.workspace.feasibility import OpenItem, Resolution
+
+        required = OpenItem("account_type", "q", "w",
+                            Resolution.REQUIRED_CLARIFICATION)
+        material = OpenItem("x", "q", "w", Resolution.MATERIAL)
+        assert not required.dismissible
+        assert not material.dismissible
+
+
+class TestNoControlPromisesMoreThanTheCompilerDelivers:
+    """An input whose value the compiler never reads is worse than none.
+
+    `asset_identity:SPX` and `template:x` are generated from the parse and
+    have no settle site. Classified REQUIRED_CLARIFICATION they rendered a
+    free-text box, the reply was recorded as an amendment, and the same
+    question came back unchanged — the user having every reason to think they
+    had answered it.
+    """
+
+    def consumed_by_the_compiler(self):
+        """The fields `settle()`/`answered()` actually read, from the source.
+
+        Derived rather than restated. A hand-written list here would be the
+        second copy that stops matching the compiler, and this check exists
+        precisely because the two disagreed.
+        """
+        import ast
+        import pathlib
+
+        tree = ast.parse(
+            pathlib.Path("src/mission/compiler.py").read_text())
+        found = set()
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id in ("answered", "settle")
+                    and node.args
+                    and isinstance(node.args[0], ast.Constant)):
+                found.add(node.args[0].value)
+        return found
+
+    def test_every_answerable_field_is_one_the_compiler_reads(self):
+        from src.workspace.feasibility import OpenItem, Resolution
+
+        consumed = self.consumed_by_the_compiler()
+        assert consumed, "the derivation found nothing; the check is vacuous"
+
+        for field in ("asset_identity:SPX", "template:rsu-vesting",
+                      "unclear:5-year lookback"):
+            item = OpenItem(field, "q", "w", Resolution.REQUIRED_CLARIFICATION)
+            assert not item.answerable, (
+                f"{field} offers an input the compiler never reads")
+
+    def test_the_plain_fields_are_still_answerable(self):
+        """The other direction: excluding too much would take away the
+        controls that do work."""
+        from src.workspace.feasibility import OpenItem, Resolution
+
+        consumed = self.consumed_by_the_compiler()
+        for field in ("amount", "account_type", "cadence"):
+            assert field in consumed, f"{field} is no longer read by the compiler"
+            item = OpenItem(field, "q", "w", Resolution.REQUIRED_CLARIFICATION)
+            assert item.answerable
