@@ -36,6 +36,7 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Mapping, Optional
 
 from .preflight import Profile, configured_profile
@@ -60,6 +61,33 @@ def _retention(raw: Optional[str]) -> int:
     except (TypeError, ValueError):
         return DEFAULT_RETENTION_DAYS
     return days if days > 0 else DEFAULT_RETENTION_DAYS
+
+
+#: Declared, never inferred. A deployment states which parser it is running.
+PARSER_MODE_VAR = "QUANTIFY_PARSER_MODE"
+PARSER_FALLBACK_VAR = "QUANTIFY_PARSER_FALLBACK"
+PARSER_PROMPT_VERSION_VAR = "QUANTIFY_PARSER_PROMPT_VERSION"
+
+
+def _model_target(source: Mapping[str, str]) -> "ModelTarget":
+    from ..mission.parse_model import PARSER_VERSION
+
+    raw_mode = (source.get(PARSER_MODE_VAR) or "").strip().upper()
+    try:
+        mode = ParserMode(raw_mode) if raw_mode else ParserMode.DETERMINISTIC
+    except ValueError:
+        mode = ParserMode.DETERMINISTIC
+    raw_fallback = (source.get(PARSER_FALLBACK_VAR) or "").strip().upper()
+    try:
+        fallback = (ParserFallback(raw_fallback) if raw_fallback
+                    else ParserFallback.REFUSE)
+    except ValueError:
+        fallback = ParserFallback.REFUSE
+    return ModelTarget(
+        _api_key=source.get("ANTHROPIC_API_KEY"),
+        model=source.get("QUANTIFY_PARSER_MODEL"),
+        mode=mode, fallback=fallback, declared=bool(raw_mode),
+        prompt_version=source.get(PARSER_PROMPT_VERSION_VAR) or PARSER_VERSION)
 
 
 def _redact(url: str) -> str:
@@ -123,29 +151,119 @@ class MarketDataTarget:
                 "problem": self.policy_error}
 
 
+class ParserMode(str, Enum):
+    MODEL_ASSISTED = "MODEL_ASSISTED"
+    DETERMINISTIC = "DETERMINISTIC"
+
+
+class ParserFallback(str, Enum):
+    REFUSE = "REFUSE"
+    """A model-assisted deployment that cannot reach its model refuses the
+    request. Silently parsing deterministically instead would hand two users
+    different products under one deployment — one gets model-widened
+    recognition, the other a narrower grammar, and neither is told."""
+
+    EXPLICIT_DETERMINISTIC = "EXPLICIT_DETERMINISTIC"
+    """Fall back, and record on the plan that it happened."""
+
+
 @dataclass(frozen=True)
 class ModelTarget:
-    """Stage 1's model configuration, resolved rather than looked up.
+    """Stage 1's parser configuration, resolved rather than looked up.
 
     `workspace/routes.py` read `ANTHROPIC_API_KEY` and `QUANTIFY_PARSER_MODEL`
     directly — a request handler deciding for itself whether a model was
     available. The key never leaves this object; consumers ask whether one is
     configured.
+
+    **Mode is declared, never inferred from whether a key happens to exist.**
+    An entire pilot was measured model-assisted because the variable was set in
+    the shell, which nobody had decided. A deployment states what it is and the
+    preflight refuses an incoherent statement.
     """
 
     _api_key: Optional[str] = field(default=None, repr=False)
     model: Optional[str] = None
+    mode: "ParserMode" = ParserMode.DETERMINISTIC
+    fallback: "ParserFallback" = ParserFallback.REFUSE
+    prompt_version: str = ""
+
+    declared: bool = False
+    """Whether a deployment stated the mode or it was defaulted.
+
+    The default is deterministic, so a developer checkout cannot become
+    model-assisted because a stray key exists in a shell — which is exactly how
+    an entire pilot came to be measured model-assisted without anyone deciding.
+
+    But a *production* deployment that omits the variable would quietly serve
+    the narrower product while the startup proof reported a valid
+    configuration: users would get a different parser than the pilot was
+    reviewed against, with fewer recognitions and different blockers, and
+    nothing would say so. That is configuration drift wearing a valid default,
+    so production requires the statement. `configured` is what lets the
+    preflight tell "chose deterministic" from "said nothing"."""
 
     @property
     def available(self) -> bool:
         return bool(self._api_key)
 
+    @property
+    def model_assisted(self) -> bool:
+        return self.mode is ParserMode.MODEL_ASSISTED
+
     def api_key(self) -> Optional[str]:
         """The one accessor. Named so a grep for it finds every use."""
         return self._api_key
 
+    def problems(self, *, require_declaration: bool = False) -> tuple:
+        """Why this parser configuration cannot be served, if it cannot.
+
+        Reported rather than raised: the preflight decides whether a problem
+        stops a deployment, and a resolver that raised would leave it with
+        nothing to log.
+        """
+        if require_declaration and not self.declared:
+            return (
+                f"{PARSER_MODE_VAR} is not set. A production deployment must "
+                "state which parser it runs: defaulting to deterministic would "
+                "serve a narrower product than the one reviewed, with fewer "
+                "recognitions and different blockers, while the startup proof "
+                "reported a valid configuration",)
+        if not self.model_assisted:
+            return ()
+        found = []
+        if not self.available:
+            found.append(
+                "parser mode is MODEL_ASSISTED and no API key is configured. "
+                "Serving would mean either refusing every description or "
+                "silently parsing with a narrower grammar than this "
+                "deployment declares")
+        if not self.model:
+            found.append(
+                "parser mode is MODEL_ASSISTED and no model is pinned. An "
+                "unpinned model changes what a description means without a "
+                "version anyone can cite")
+        return tuple(found)
+
     def to_json(self) -> dict:
-        return {"model": self.model, "available": self.available}
+        return {"model": self.model, "available": self.available,
+                "mode": self.mode.value, "fallback": self.fallback.value,
+                "prompt_version": self.prompt_version,
+                "declared": self.declared}
+
+    def identity(self) -> dict:
+        """What a *plan* records about how it was interpreted.
+
+        Distinct from `to_json`, which reports what the service intends to use.
+        A plan must say what it actually used, because deployment
+        configuration moves and a stored interpretation must not be re-read
+        against a parser that has since changed — the same rule market-data
+        provenance already follows.
+        """
+        return {"mode": self.mode.value,
+                "provider": "anthropic" if self.model_assisted else "",
+                "model": self.model if self.model_assisted else "",
+                "prompt_version": self.prompt_version}
 
 
 @dataclass(frozen=True)
@@ -310,8 +428,7 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
         market_data=MarketDataTarget(
             policy=policy, policy_error=problem,
             cache_directory=source.get(CACHE_VARIABLE)),
-        model=ModelTarget(_api_key=source.get("ANTHROPIC_API_KEY"),
-                          model=source.get("QUANTIFY_PARSER_MODEL")),
+        model=_model_target(source),
         telemetry=TelemetryTarget(
             path=source.get(TRACE_PATH_VAR, str(DEFAULT_TRACE_PATH)) or None,
             retention_days=_retention(source.get(TRACE_RETENTION_VAR))),

@@ -41,7 +41,13 @@ IMAGE = "quantify-api:pytest"
 NETWORK = "quantify-pytest-net"
 CONTAINER_DB = "postgresql://quantify:quantify_dev@quantify-pg:5432/quantify"
 
+#: A production deployment must declare which parser it runs, so every
+#: container started here declares one. The refusal is exercised deliberately
+#: in `test_container_parser_pinning.py`; letting it fire implicitly meant this
+#: whole lane errored with `DeploymentRefused` and stopped reaching the
+#: reachability questions it exists to ask.
 BUILD_STAMPS = {
+    "QUANTIFY_PARSER_MODE": "DETERMINISTIC",
     "QUANTIFY_COMMIT": "abc123",
     "QUANTIFY_RELEASE_REF": "v1.0.0",
     "QUANTIFY_IMAGE_DIGEST": "sha256:dead",

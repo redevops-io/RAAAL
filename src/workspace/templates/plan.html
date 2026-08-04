@@ -2,6 +2,21 @@
 {% block title %}{{ record.title }}{% endblock %}
 {% block content %}
 
+{# The parser that actually produced this plan, from the stored record. Not
+   from `DeploymentContext`: that says what the service would use today, and a
+   saved interpretation must not be re-described by a configuration that has
+   moved since. Same pinning rule as market-data provenance. #}
+{% if parser_identity and parser_identity.mode == "MODEL_ASSISTED" %}
+<div class="panel">
+  <p class="small muted" style="margin:0">
+    Interpreted with model assistance —
+    <span class="mono">{{ parser_identity.model or "unpinned" }}</span>,
+    parser v{{ parser_identity.prompt_version }}. Recorded when this plan was
+    saved; later changes to the service do not alter it.
+  </p>
+</div>
+{% endif %}
+
 <h1>{{ record.title }}</h1>
 <p class="lede">{{ record.stated_text }}</p>
 <p class="small muted mono">

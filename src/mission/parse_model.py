@@ -143,6 +143,17 @@ class ParseProvenance:
     model: Optional[str] = None
     model_available: bool = False
     model_error: str = ""
+    mode: str = "DETERMINISTIC"
+    """Which parser the deployment declared when this parse was produced.
+
+    Recorded on the parse rather than read from the deployment later. A plan
+    reopened after the configuration moves must show how it was actually
+    interpreted, not how the service would interpret it today — the same rule
+    that stops a stored figure being re-read against a snapshot that has since
+    changed. `model_available` says whether a model answered; this says what
+    was asked for, and the two differ when a fallback happened.
+    """
+
     rejected: Sequence[Rejection] = ()
     disagreements: Sequence[Disagreement] = ()
     accepted_from_model: Sequence[str] = ()
@@ -154,6 +165,7 @@ class ParseProvenance:
             "model": self.model,
             "model_available": self.model_available,
             "model_error": self.model_error,
+            "mode": self.mode,
             "rejected": [r.to_json() for r in self.rejected],
             "disagreements": [d.to_json() for d in self.disagreements],
             "accepted_from_model": list(self.accepted_from_model),
@@ -340,7 +352,8 @@ def merge(deterministic: ParsedUtterance,
 
 def parse_with_model(text: str, *,
                      client: Optional[ModelClient] = None,
-                     model: str = DEFAULT_MODEL) -> VerifiedParse:
+                     model: str = DEFAULT_MODEL,
+                     mode: str = "") -> VerifiedParse:
     """Stage 1. Deterministic rules, widened by a verified model reading.
 
     Never raises on the model's account. A missing key, a timeout, malformed
@@ -353,6 +366,7 @@ def parse_with_model(text: str, *,
     if client is None:
         return VerifiedParse(deterministic,
                              ParseProvenance(model=None, model_available=False,
+                                             mode=mode or "DETERMINISTIC",
                                              model_error="no client configured"))
 
     try:
@@ -363,6 +377,7 @@ def parse_with_model(text: str, *,
         return VerifiedParse(
             deterministic,
             ParseProvenance(model=model, model_available=False,
+                            mode=mode or "DETERMINISTIC",
                             model_error=f"{type(exc).__name__}: {exc}"))
 
     recognitions, assets, unclear, rejections = verify_proposals(payload, text)
@@ -379,6 +394,7 @@ def parse_with_model(text: str, *,
     return VerifiedParse(
         parsed,
         ParseProvenance(model=model, model_available=True,
+                        mode=mode or "MODEL_ASSISTED",
                         rejected=rejections, disagreements=disagreements,
                         accepted_from_model=accepted))
 

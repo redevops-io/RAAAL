@@ -694,6 +694,25 @@ The last three arrived in three consecutive slices, which is the argument for
 treating this as a class rather than a habit. Each was written *by someone who
 had just read the other two* and still landed the same way.
 
+**One arrived by a different route entirely, and deserves its own name:**
+
+> A guarantee can disappear through test *metadata*, even when the test itself
+> is sound.
+
+Three parser-pinning tests needed the real `_parser_client` and no network. They
+were marked `model_stage1`, which `pytest.ini` deselects by default because that
+tier calls a live provider. The assertions were discriminating, the fixtures
+valid, the implementation real — and none of it mattered, because classification
+removed them from every ordinary run. The suite reported three fewer tests and
+nothing else, and the deselection looked deliberate.
+
+Every other instance in this table is a check that *ran* and could not tell the
+difference. This one could, and never ran. That is why the guard inspects
+`pytest.ini` rather than asserting inside the tests: **a deselected test cannot
+defend its own inclusion.** "Uses production code" and "requires live
+infrastructure" are different claims, and a marker that conflates them removes
+exactly the tests most worth keeping.
+
 The third of them recurred immediately after being fixed. Rewritten to scan
 source instead of calling the helper, the check then counted a docstring
 sentence — ``Carries `PublicCode.TRANSITION_INTEGRITY_FAILURE` `` — as a

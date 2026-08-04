@@ -38,8 +38,17 @@ BUILD = {
 }
 
 
+#: A production deployment must now declare which parser it runs, so the
+#: default here declares one. The refusal itself is exercised deliberately in
+#: `tests/test_parser_pinning.py` — leaving it to fire implicitly in every
+#: database test would mean those tests stopped reaching the database checks
+#: they are about, which is how adding the requirement first broke thirteen of
+#: them at once.
+PARSER = {"QUANTIFY_PARSER_MODE": "DETERMINISTIC"}
+
+
 def production(**overrides):
-    return {PROFILE_VAR: "production", **BUILD, **overrides}
+    return {PROFILE_VAR: "production", **BUILD, **PARSER, **overrides}
 
 
 class TestTheProfile:

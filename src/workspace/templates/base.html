@@ -68,4 +68,16 @@ button, .btn { display:inline-block; margin-top:10px; padding:9px 16px;
     <a href="/ui/">Research library ↗</a>
   </nav>
 </header>
-<div class="wrap">{% block content %}{% endblock %}</div>
+<div class="wrap">
+{# The pilot data boundary, on every private surface. In the layout rather
+   than in eleven render calls: a disclosure each page must remember to
+   include is one that will be missing from the twelfth, and that page will be
+   the one someone reads a figure on. #}
+{% set notice = data_notice() %}
+{% if notice %}
+<div class="panel" style="border-left:3px solid var(--private)">
+  <p class="small" style="margin:0"><strong>{{ notice.headline }}</strong></p>
+  <p class="small muted" style="margin:4px 0 0">{{ notice.detail }}</p>
+</div>
+{% endif %}
+{% block content %}{% endblock %}</div>

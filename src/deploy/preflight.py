@@ -155,6 +155,18 @@ def run(environ: Optional[Mapping[str, str]] = None,
             "which code it is running cannot be diagnosed when something else "
             "fails, and package self-report answers a different question")
 
+    # 1b. The parser this deployment claims to be running.
+    #
+    #     An entire pilot was measured model-assisted because ANTHROPIC_API_KEY
+    #     happened to be set in a shell. Mode is declared now, and a declaration
+    #     that cannot be served is refused here rather than discovered by the
+    #     first user whose description needs the model.
+    facts["parser"] = context.model.to_json()
+    parser_problems = context.model.problems(
+        require_declaration=profile is Profile.PRODUCTION)
+    if parser_problems and profile is Profile.PRODUCTION:
+        return refuse(Result.REFUSED_CONFIGURATION, "; ".join(parser_problems))
+
     # 2. The target, judged before anything opens it.
     if profile is Profile.PRODUCTION and not context.database.configured:
         return refuse(

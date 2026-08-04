@@ -192,6 +192,22 @@ def _validate_source(store) -> List[str]:
     return problems
 
 
+def _data_boundary() -> Dict[str, Any]:
+    """What the exported figures are, stated in the bundle itself."""
+    from ..deploy.context import current
+    from ..market_data.pilot_policy import PilotDataPolicy
+
+    policy = current().market_data.policy
+    synthetic = policy is PilotDataPolicy.SYNTHETIC_ONLY
+    return {
+        "policy": getattr(policy, "value", None),
+        "synthetic": synthetic,
+        "notice": ("Pilot mode uses synthetic market data. Results are for "
+                   "product evaluation only and are not based on licensed "
+                   "live market data.") if synthetic else "",
+    }
+
+
 def export_bundle(store, *, commit: str = "", exported_at: str,
                   owner: Optional[str] = None) -> Dict[str, Any]:
     """Read a workspace into a neutral bundle, or refuse.
@@ -235,6 +251,12 @@ def export_bundle(store, *, commit: str = "", exported_at: str,
             "decimal": "decimal/plain@1",
             "temporal": "temporal/utc-iso@1",
         },
+        # The data boundary travels with the bundle. An export is the one
+        # artifact that outlives the screen it was read on: a file of
+        # realistic-looking series with no statement of what they are is the
+        # most likely thing to be mistaken for historical analysis, and it is
+        # the copy nobody can add a caveat to afterwards.
+        "market_data": _data_boundary(),
     }
     manifest["bundle_digest"] = digest_of([manifest["digests"]])
     return {"manifest": manifest, "records": records}

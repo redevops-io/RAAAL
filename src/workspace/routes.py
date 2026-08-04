@@ -71,8 +71,37 @@ TEMPLATES = Jinja2Templates(directory=[
 ])
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
+#: Available to every template, rather than passed by each of eleven render
+#: calls. A disclosure that each surface must remember to include is a
+#: disclosure that will be missing from the twelfth — and the surface it is
+#: missing from will be the one someone reads a figure on.
+TEMPLATES.env.globals["data_notice"] = lambda: _data_notice()
+
 PRICES = Path("data/history/prices.parquet")
 BENCHMARK_RULE = "benchmark-policy/public-default@1"
+
+
+#: The pilot data boundary, as disclosure. `market_data.pilot_policy` is what
+#: enforces it; this is what says so where a figure is read.
+#:
+#: A boundary enforced and not stated leaves a user reading a realistic-looking
+#: series and reasonably taking it for historical analysis. The synthetic
+#: fixture is deliberately shaped like market data so the evaluation stack has
+#: something realistic to run on, which is exactly why the disclosure is needed.
+def _data_notice():
+    from ..deploy.context import current
+    from ..market_data.pilot_policy import PilotDataPolicy
+
+    policy = current().market_data.policy
+    if policy is not PilotDataPolicy.SYNTHETIC_ONLY:
+        return None
+    return {
+        "headline": "Pilot mode uses synthetic market data.",
+        "detail": ("Results are for product evaluation only and are not based "
+                   "on licensed live market data. The series are invented, "
+                   "shaped like market data so the engine has something "
+                   "realistic to run on, and calibrated to no real security."),
+    }
 
 
 def _suggested_title(describe: str) -> str:
@@ -101,10 +130,20 @@ def _parser_client():
     deciding for itself what the deployment was, and the exact shape that let
     the preflight validate PostgreSQL while the store opened SQLite.
     """
-    from ..deploy.context import current
+    from ..deploy.context import ParserFallback, current
 
     model = current().model
+    if not model.model_assisted:
+        # Declared deterministic. Not "no key found" — a deployment that says
+        # what it is rather than one that discovers it.
+        return None
     if not model.available:
+        if model.fallback is ParserFallback.REFUSE:
+            raise HTTPException(
+                status_code=503,
+                detail="This deployment is configured for model-assisted "
+                       "interpretation and cannot currently reach its model. "
+                       "Please try again shortly.")
         return None
     return AnthropicClient(model=model.model or DEFAULT_MODEL,
                            api_key=model.api_key())
@@ -621,7 +660,10 @@ def new_plan(request: Request, describe: str = ""):
     if not describe.strip():
         return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
 
-    stage1 = parse_with_model(describe, client=_parser_client())
+    from ..deploy.context import current as _deployment
+
+    stage1 = parse_with_model(describe, mode=_deployment().model.mode.value,
+                              client=_parser_client())
 
     # Dispatch *before* generic compilation, not after. Compiled first and
     # branched afterwards, a vest would already have been read as cash arriving
@@ -696,6 +738,10 @@ async def save_plan(request: Request, describe: str = Form(...),
     edited, and runs and worksheets keep pointing at the same opaque id.
     """
     form = await request.form()
+
+    from ..deploy.context import current
+
+    parser = current().model.identity()
 
     parsed = None
     if parse.strip():
@@ -788,6 +834,7 @@ async def save_plan(request: Request, describe: str = Form(...),
             plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
             stated_text=describe, saved_at=saved_at, title=title.strip(),
             parse=parsed.to_json() if parsed is not None else None,
+            parser=parser,
         )
     except NotSaveable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -899,6 +946,11 @@ def plan_detail(request: Request, plan_id: str):
     return TEMPLATES.TemplateResponse(
         request, "plan.html",
         {
+            # From the stored parse, not from the deployment. Reading
+            # `current().model` here would re-describe an old plan with today's
+            # configuration, which is the failure the whole pinning rule
+            # exists to prevent.
+            "parser_identity": (record.get("parse") or {}).get("parser"),
             "record": record,
             "scenario": record["scenario"],
             "migration": migration,

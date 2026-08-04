@@ -51,6 +51,13 @@ def no_model_calls(request, monkeypatch):
     """
     if request.node.get_closest_marker("model_stage1"):
         return
+    if request.node.get_closest_marker("real_parser_client"):
+        # Reaches the real `_parser_client` without reaching a model. The
+        # decision it makes — declared mode, refuse or fall back — is worth
+        # testing, and `model_stage1` is the wrong marker for it: that tier is
+        # deselected by default because it calls a live API, so marking these
+        # meant they silently never ran.
+        return
     try:
         import src.workspace.routes as routes
     except Exception:                                           # pragma: no cover

@@ -532,13 +532,21 @@ class WorkspaceStore:
     def save_plan(self, *, plan_id: str, owner: str, scenario, stated_text: str,
                   saved_at: str, intent_id: Optional[str] = None,
                   parse: Optional[Dict[str, Any]] = None,
-                  title: str = "") -> str:
+                  title: str = "",
+                  parser: Optional[Dict[str, Any]] = None) -> str:
         """Persist a confirmed plan.
 
         `title` is the user's own name for it and is stored separately from
         `plan_id`, which the server generates. Identity never derives from
         wording: two plans may share a title, a title may be edited, and runs
         and worksheets keep pointing at the same opaque id either way.
+
+        `parser` records how *this* plan was interpreted — mode, provider,
+        model, prompt version. The deployment facts say what the service
+        intends to use; this says what was used. They diverge the moment
+        configuration changes, and a worksheet reopened afterwards must show
+        the interpretation the user confirmed rather than one re-read against a
+        parser that has since moved. Same rule as market-data provenance.
         """
         if not scenario.is_runnable:
             raise NotSaveable(
@@ -553,6 +561,10 @@ class WorkspaceStore:
             )
 
         payload = scenario.to_json()
+        if parser:
+            # Carried inside the pinned parse record, which is already the
+            # artifact a reopened plan reads rather than re-deriving.
+            parse = {**(parse or {}), "parser": dict(parser)}
         with self._conn() as conn:
             existing = conn.execute(
                 "SELECT content_hash FROM plan WHERE plan_id = ? AND owner = ?",
