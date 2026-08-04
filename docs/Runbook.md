@@ -120,7 +120,7 @@ because a key happens to be in the shell.
 12. **Run the acceptance checks** against the public URL, not the container:
 
     ```bash
-    python deploy/acceptance.py https://YOUR-HOST
+    python deploy/acceptance.py https://YOUR-HOST --record evidence/acceptance.json
     ```
 
     Exit 0 or do not invite users. Point it at the **public** address: run
@@ -304,6 +304,47 @@ update the secret store, then `docker compose up -d --force-recreate api`.
 The startup proof will show the new configuration. Nothing logs either value —
 `DatabaseTarget.display` redacts the connection string and `ModelTarget`
 exposes only whether a key is present.
+
+---
+
+## Deployment evidence
+
+After the first acceptance run against the public URL, keep two files together.
+They are the record of what was actually live when the cohort began, which is
+the question nobody can answer retroactively.
+
+```bash
+mkdir -p evidence
+python deploy/acceptance.py https://YOUR-HOST --record evidence/acceptance.json
+docker compose logs api | grep "deployment proof" > evidence/startup-proof.txt
+```
+
+**It is deliberately two files.** The acceptance script sees only the public
+surface, and the public surface does not carry the build identity, the
+migration head or the snapshot id — it is checked four times over that it does
+not, because those describe how to attack the deployment. Making one tidy
+record would mean publishing the facts the checks exist to keep private. So the
+public transcript and the private proof are captured separately and joined by
+whoever ran them.
+
+Re-record after any configuration change. A failed run is worth keeping too:
+"we re-ran it until it passed" is part of the history, and evidence that only
+exists when the answer was good is not evidence.
+
+---
+
+## Before inviting anyone
+
+The gaps below are pilot constraints, not open development. Each has an
+operational mitigation, and the mitigation is the price of running without the
+gate closed:
+
+| Gap | Required before the first invitation |
+|---|---|
+| **Gate 8** — no rate limits or cost caps | Keep the cohort small and invitation-only. Set **provider-side budget alerts** before the first invite; a pilot user can otherwise drive model spend with no ceiling in this code. |
+| **Gate 10** — no egress allowlist | Issue **tightly scoped credentials** — the model key should do nothing but call the model — and monitor outbound requests at the host or network layer. |
+| **Trace retention** — not scheduled | Add the cron entry for `python -m src.telemetry.purge` **before** traces accumulate, not after the volume fills. |
+| **Licensing** — six questions unresolved | Stay `PILOT_DATA_POLICY=SYNTHETIC_ONLY`. The gate fails closed, so this is enforced rather than remembered; the disclosure is the part that depends on nobody quietly removing it. |
 
 ---
 
