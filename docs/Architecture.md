@@ -1229,6 +1229,16 @@ reporting green is evidence about the suite before it is evidence about the
 code. Gate 9 produced more defects in its own checks than in the code they were
 written to check.
 
+> **The seventh invariant names a class of verifier defects. It does not
+> establish that every existing verifier has been examined for them.**
+
+What is established is narrower and worth stating that way: one lane's
+verifiers were not trustworthy, and there is now a repeatable method for
+auditing the others — self-authored evidence, prose counted as behaviour,
+vacuous premises, duplicated vocabularies, checks that cannot separate valid
+from invalid, and mutations that do not alter exercised behaviour. Applying it
+to the remaining lanes is outstanding work, not a completed claim.
+
 **Several defects belong to more than one.** The truncated `OwnershipPath` was
 ownership reachability, single resolution *and* a consumer invalidated by a
 correct migration. Categorising it once would lose two of the three reasons it
