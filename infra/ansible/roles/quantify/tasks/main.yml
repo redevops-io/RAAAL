@@ -315,6 +315,28 @@
   ansible.builtin.debug:
     msg: "{{ parser_identity.stdout_lines | select('search', '^PARSER=') | list }}"
 
+# The proxy is configuration in a bind-mounted file, which `docker compose up
+# -d` will not notice. This asserts the running proxy actually serves the
+# configuration just deployed, rather than trusting that writing the file was
+# enough — it was not, and the deploy reported success anyway.
+- name: Confirm the proxy is serving the deployed configuration
+  ansible.builtin.uri:
+    url: http://127.0.0.1:80/
+    follow_redirects: none
+    status_code: [302, 301]
+  register: root_redirect
+  retries: 5
+  delay: 5
+  until: root_redirect.status is defined and root_redirect.status in [301, 302]
+
+- name: Confirm the root points at the workspace
+  ansible.builtin.assert:
+    that:
+      - "'/workspace/' in (root_redirect.location | default(''))"
+    fail_msg: >-
+      The root does not redirect to the workspace. A pilot user typing the
+      hostname would land on the API's service metadata.
+
 # --- retention -------------------------------------------------------------
 
 # There is deliberately no scheduling subsystem in the application. A cron
