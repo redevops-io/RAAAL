@@ -80,4 +80,14 @@ button, .btn { display:inline-block; margin-top:10px; padding:9px 16px;
   <p class="small muted" style="margin:4px 0 0">{{ notice.detail }}</p>
 </div>
 {% endif %}
-{% block content %}{% endblock %}</div>
+{% block content %}{% endblock %}
+{# AGPL section 13: a user interacting with this over a network is entitled to
+   the corresponding source, and the offer has to be somewhere they will see
+   it. It lived only on `/`, which now redirects here, and on `/info`, which
+   nobody browsing a workspace would think to open. #}
+<footer class="small muted" style="margin-top:32px;padding-top:12px;border-top:1px solid var(--line)">
+  Quantify — closed pilot.
+  AGPL-3.0-or-later:
+  <a href="https://github.com/redevops-io/RAAAL">complete corresponding source</a>.
+  <a href="/info">Service details</a>.
+</footer></div>

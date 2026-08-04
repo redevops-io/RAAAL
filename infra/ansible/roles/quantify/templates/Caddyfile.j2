@@ -15,6 +15,14 @@
 		reverse_proxy api:8000
 	}
 
+	# A pilot user typing the hostname wants the product, not the API's service
+	# metadata. The root returned that JSON, so the first thing anyone invited to
+	# the pilot saw was a document describing the service rather than a way in.
+	#
+	# Only the exact root. `/info`, `/health*` and `/docs` still answer as
+	# themselves, which is where the licence offer and the readiness checks live.
+	redir / /workspace/ 302
+
 	handle /workspace/* {
 		# Expanded on the host by render-env.sh. A bcrypt hash is not a
 		# plaintext password, but it is offline-crackable, so it travels the
