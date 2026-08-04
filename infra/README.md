@@ -127,6 +127,42 @@ contains the literal string `postgresql://` — inside the *name* of the check
 `"an error does not leak 'postgresql://'"`. A naive secret-scanner flags the
 evidence file for carrying the string it exists to prove absent.
 
+## Reviewing the plan before applying
+
+```bash
+terraform plan -var-file=environments/test.tfvars -out=test.tfplan
+terraform show -no-color test.tfplan > test.tfplan.txt
+```
+
+Scan the **text** view for a credential assigned a literal value:
+
+```bash
+grep -Ein 'sk-ant-[A-Za-z0-9_-]|(password|api[_-]?key|secret_string)[[:space:]]*=[[:space:]]*"|postgresql://[^"<]*:[^"<@]*@' \
+  test.tfplan.txt
+```
+
+Silence is the pass. The obvious version of this pattern — matching the *word*
+`password` anywhere — fires four times on a completely clean plan: Terraform's
+own `password = (sensitive value)` redaction, the resource *name*
+`model_api_key` twice, and the deliberately elided `database_url_template`
+output. An operator who sees four benign hits on every deploy stops reading
+them by the third, which is how a check becomes decoration. The pattern above
+was tested against a clean plan and against six planted leaks.
+
+### Keep `test.tfplan.txt`, not `test.tfplan`
+
+The saved binary plan is a zip archive containing `tfplan`, `tfstate` and
+`tfstate-prev`. On a **first** plan those are empty and the archive is clean.
+On **every plan after that** all three members carry the database password in
+plaintext — verified by unpacking the archive and searching its members, which
+a `grep` of the compressed file cannot do: it cannot tell absent from
+compressed.
+
+So the artifact that belongs in the evidence set is `test.tfplan.txt`, the
+redacted text view, which stays clean in both cases. If you keep the binary
+plan for a re-apply, treat it exactly like state: encrypted, access-controlled,
+deleted afterwards.
+
 ## The deploy-time journeys, and when they decline
 
 The playbook runs both supported journeys against the real image, the real
