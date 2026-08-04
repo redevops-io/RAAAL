@@ -28,6 +28,40 @@ from enum import Enum
 from typing import Any, Optional, Sequence, Tuple
 
 
+class ItemState(str, Enum):
+    """What the user is looking at, and whether they can act on it.
+
+    Six states, not one list. The confirmation screen rendered every open item
+    identically, so "which account is this in?" — which the user can answer in
+    one click — sat beside "forward projection is not modelled", which they
+    cannot answer at all, in the same grey block with the same wording. A
+    reader cannot tell progress from a wall.
+
+    The Run button is a function of three of these being empty, so the
+    interaction has a gradient rather than a verdict.
+    """
+
+    RECOGNIZED = "recognized"
+    """Understood from the description. Nothing to do."""
+
+    NEEDS_CONFIRMATION = "needs_confirmation"
+    """The system chose something. One click to accept or change."""
+
+    NEEDS_ANSWER = "needs_answer"
+    """The user knows this and the system does not. One click or one value."""
+
+    NEEDS_CAPABILITY = "needs_capability"
+    """Quantify does not model it. The user cannot answer it, and saying
+    "please answer" of something unanswerable is what makes a page feel like a
+    rejection. They may be able to proceed without it."""
+
+    BLOCKED = "blocked"
+    """Nothing can run: no priceable instrument, an existing holding, a
+    forward projection that is the whole request."""
+
+    READY = "ready"
+
+
 class Resolution(str, Enum):
     """What a user may do about one thing the compiler could not settle."""
 
@@ -97,6 +131,21 @@ class OpenItem:
         # result of dismissing every item would still be no result.
         return (self.resolution is Resolution.UNSUPPORTED_SEPARABLE
                 and self.executable)
+
+    @property
+    def state(self) -> "ItemState":
+        """Which of the six this item is in."""
+        # Deliberately not "blocked because the plan is". Whether the plan can
+        # run is a property of the plan and belongs in one banner; folding it
+        # into every item is what made "which account is this in?" read as an
+        # unmodelled capability. An item is what it is, and the user can
+        # answer it now so that the plan is ready the moment the blocker
+        # clears.
+        if self.resolution is Resolution.REQUIRED_CLARIFICATION:
+            return ItemState.NEEDS_ANSWER
+        if self.resolution is Resolution.UNSUPPORTED_SEPARABLE:
+            return ItemState.NEEDS_CAPABILITY
+        return ItemState.BLOCKED
 
     @property
     def answerable(self) -> bool:

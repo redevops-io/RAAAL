@@ -156,11 +156,23 @@ class TestProseToConfirmation:
         assert "Not ready to save" in text(html)
 
         response, plan_id = submit_rendered_confirmation(client, VAGUE)
-        assert response.status_code == 422
-        assert plan_id is None
-        detail = response.json()["detail"]
-        assert "cannot be saved yet" in detail
-        assert "Required clarification" in detail or "Unconfirmed" in detail
+
+        # The refusal is now a re-rendered builder rather than a 422 the user
+        # cannot continue from — describe, compile, reject, rewrite was the
+        # whole shape of the interaction, and every answer already given went
+        # with the error response. What must still hold is unchanged: nothing
+        # is saved, and the page names what is missing rather than saying only
+        # that something is.
+        assert response.status_code == 200
+        assert plan_id is None, "an underspecified plan was saved"
+        assert "Not ready to save" in text(response.text)
+        assert "controls " in response.text, (
+            "the page came back without naming a single outstanding field")
+        # And the outstanding items are still spelled out, in the page rather
+        # than in an error body.
+        rendered = text(response.text)
+        assert ("Required clarification" in rendered
+                or "question" in rendered.lower())
 
     def test_no_yaml_reaches_the_user(self, client):
         """The whole point: prose in, plain language back."""

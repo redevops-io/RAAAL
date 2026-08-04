@@ -713,6 +713,110 @@ def new_plan(request: Request, describe: str = ""):
     )
 
 
+
+def _builder_context(request, *, describe, title, parse, amendments=(),
+                     exclusions=()):
+    """The plan-builder page context, built once for both entry points.
+
+    The GET and the re-render assembled this separately at first and the
+    second was missing `chain`, `run`, `parse_provenance` and `chain_order` —
+    it failed rendering on a variable the first had supplied all along. Two
+    constructions of the same page is the same drift as two constructions of
+    any other fact, and the one nobody looks at is the one that breaks.
+    """
+    from ..deploy.context import current as _deployment
+    from .feasibility import assess, blockers, classify
+
+    stage1 = parse_with_model(describe, mode=_deployment().model.mode.value,
+                              client=_parser_client())
+    compiled = compile_scenario(describe, name="draft", version=1,
+                                benchmark_rule=BENCHMARK_RULE,
+                                parsed=stage1.parsed,
+                                amendments=tuple(amendments),
+                                exclusions=tuple(exclusions))
+    access = _market_data("draft scenario preview")
+    run = (_run(compiled.scenario, access)
+           if compiled.can_simulate and access.usable else None)
+    feasibility = assess(compiled.scenario, access.frame)
+    open_items = classify(compiled.scenario.provenance.unresolved,
+                          executable=feasibility.can_execute)
+
+    return {
+        "describe": describe,
+        "result": compiled,
+        "feasibility": feasibility,
+        "open_items": open_items,
+        "blockers": blockers(compiled.scenario,
+                             executable=feasibility.can_execute,
+                             stated_text=describe),
+        "confirmation": compiled.confirmation(),
+        "view": build_confirmation(compiled, text=describe),
+        "suggested_title": title or _suggested_title(describe),
+        "parse": json.dumps(stage1.parsed.to_json()),
+        "parse_provenance": stage1.provenance,
+        "chain": build_scenario_chain(
+            subject="draft", scenario=compiled.scenario,
+            result=run["result"] if run else None,
+            benchmarks=run["benchmarks"] if run else (),
+            comparability=run["comparability"] if run else None,
+        ),
+        "run": run,
+        "chain_order": SCENARIO_CHAIN_ORDER,
+        "progress": _progress(open_items, feasibility),
+    }
+
+
+def _render_builder(request, *, describe, title, parse, answers, confirmations,
+                    exclusions, outstanding):
+    """The plan builder, re-rendered with everything supplied so far.
+
+    The user's description never changes — it is the immutable statement the
+    whole system is anchored on. What accumulates is the amendment set, echoed
+    back into the form as hidden fields so the next submission carries every
+    earlier answer with it. Each pass the question list is shorter.
+    """
+    from ..mission.spec import ScenarioAmendment
+
+    answered_at = pd.Timestamp.now("UTC").isoformat()
+    amendments = tuple(
+        ScenarioAmendment(question_id=field, answer=str(value),
+                          recorded_at=answered_at)
+        for field, value in answers.items() if str(value).strip())
+
+    context = _builder_context(request, describe=describe, title=title,
+                              parse=parse, amendments=amendments)
+    context.update({
+        "carried_answers": answers,
+        "carried_confirmations": confirmations,
+        "carried_exclusions": sorted(exclusions),
+    })
+    return TEMPLATES.TemplateResponse(request, "new.html", context,
+                                      status_code=200)
+
+
+def _progress(open_items, feasibility):
+    """How close this plan is to running, by state rather than by count.
+
+    A single "8 questions" tells a user nothing about whether answering them
+    is possible. Four of these being empty is exactly the Run condition, so
+    the number a user watches is the number that governs the button.
+    """
+    from .feasibility import ItemState
+
+    counted = {state: 0 for state in ItemState}
+    for item in open_items:
+        counted[item.state] += 1
+    return {
+        "needs_answer": counted[ItemState.NEEDS_ANSWER],
+        "needs_capability": counted[ItemState.NEEDS_CAPABILITY],
+        "blocked": counted[ItemState.BLOCKED],
+        "can_execute": feasibility.can_execute,
+        "ready": (counted[ItemState.NEEDS_ANSWER] == 0
+                  and counted[ItemState.BLOCKED] == 0
+                  and feasibility.can_execute),
+    }
+
+
 @router.post("/save")
 async def save_plan(request: Request, describe: str = Form(...),
                     title: str = Form(default=""),
@@ -773,6 +877,15 @@ async def save_plan(request: Request, describe: str = Form(...),
     acknowledged = {key[len("exclude:"):] for key, value in form.multi_items()
                     if key.startswith("exclude:") and str(value) == "on"}
 
+    # Flat maps for replaying into the next form. Derived from the same body
+    # the compiler consumed, so the page cannot echo back something different
+    # from what was applied.
+    answers = {key[len("answer:"):]: str(value)
+               for key, value in form.multi_items()
+               if key.startswith("answer:") and str(value).strip()}
+    confirmations = dict(decisions)
+    submitted_exclusions = set(acknowledged)
+
     # Two passes, because a choice means different things depending on what
     # the compiler had proposed.
     #
@@ -830,7 +943,20 @@ async def save_plan(request: Request, describe: str = Form(...),
                     described_holding[0].why_it_matters))
 
     if not verdict.can_execute:
-        raise HTTPException(status_code=422, detail=verdict.detail)
+        # Also a re-render, not a dead end. "There is no price history for
+        # SPX" was the end of the interaction: every answer already given went
+        # with the response, and the user's only move was to retype the
+        # description. The plan cannot run — that is true and stays on the
+        # page as a banner — but the questions beside it are still answerable,
+        # and answering them now means the plan is ready the moment the
+        # instrument is one we can price.
+        return _render_builder(request, describe=describe, title=title,
+                               parse=parse, answers=answers,
+                               confirmations=confirmations,
+                               exclusions=submitted_exclusions,
+                               outstanding=blockers(
+                                   scenario, executable=False,
+                                   stated_text=describe))
 
     # Name what is blocking, from the same classification the screen rendered.
     # "still has unconfirmed inferences or open questions" told a user nothing
@@ -843,7 +969,21 @@ async def save_plan(request: Request, describe: str = Form(...),
     outstanding = blockers(scenario, executable=verdict.can_execute,
                            stated_text=describe)
     if outstanding.any:
-        raise HTTPException(status_code=422, detail=outstanding.detail())
+        # Re-render the builder with everything answered so far, rather than
+        # returning a 422 the user cannot act on.
+        #
+        # This was the whole shape of the interaction: describe, compile,
+        # reject, start over. Every answer the user had already given was
+        # discarded with the response, so a description the compiler almost
+        # understood took as many rewrites as it had open questions. The
+        # description is still immutable and the answers are still amendments
+        # — they are simply carried forward instead of thrown away, and the
+        # question list shrinks with each pass.
+        return _render_builder(request, describe=describe, title=title,
+                               parse=parse, answers=answers,
+                               confirmations=confirmations,
+                               exclusions=submitted_exclusions,
+                               outstanding=outstanding)
 
     plan_id = new_plan_id()
     saved_at = pd.Timestamp.now("UTC").isoformat()

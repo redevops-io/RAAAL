@@ -52,6 +52,28 @@
 <input type="hidden" name="describe" value="{{ describe }}">
 <input type="hidden" name="parse" value="{{ parse }}">
 
+{# Everything already supplied, replayed so the next submission carries it.
+   Without this the interaction resets on every pass: the user answers three
+   questions, the plan is still incomplete, and the page comes back asking all
+   eight again. The description stays immutable; what accumulates is the
+   amendment set.
+
+   Rendered only for fields the page is no longer asking about — a hidden copy
+   beside a live control would submit the field twice and the older value
+   could win. #}
+{% set still_asked = (open_items or []) | map(attribute="field") | list %}
+{% for field, value in (carried_answers or {}).items() %}
+  {% if field not in still_asked %}
+<input type="hidden" name="answer:{{ field }}" value="{{ value }}">
+  {% endif %}
+{% endfor %}
+{% for field, value in (carried_confirmations or {}).items() %}
+<input type="hidden" name="confirm:{{ field }}" value="{{ value }}">
+{% endfor %}
+{% for field in carried_exclusions or [] %}
+<input type="hidden" name="exclude:{{ field }}" value="on">
+{% endfor %}
+
 {# The confirmation. Grouped the way a reader checks it, and every statement
    names the field it controls — two people reading this must agree on exactly
    what will be simulated and on who decided each part. #}
