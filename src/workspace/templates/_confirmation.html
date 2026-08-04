@@ -76,7 +76,7 @@
       {% if question.choices %}
       <ul class="choices">
         {% for choice in question.choices %}
-        <li><label><input type="radio" name="{{ question.field }}"
+        <li><label><input type="radio" name="answer:{{ question.field }}"
                           value="{{ choice.value }}"> {{ choice.label }}</label></li>
         {% endfor %}
       </ul>
@@ -85,6 +85,36 @@
       <div class="routing small">{{ question.routing }}</div>
       {% endif %}
       <div class="small muted">{{ question.why_it_matters }}</div>
+      {# Ordinary extra prose must not be a dead end. Where the feasibility
+         service classifies an item as separable, the user may proceed without
+         it — recorded as an exclusion that narrows the plan's scope, never as
+         a pretence that it was understood. The control appears only for items
+         the service permits; the route refuses the rest even if the field is
+         submitted by hand. #}
+      {% for item in open_items or [] %}
+        {% if item.field == question.field and item.dismissible %}
+        <label class="small" style="display:block;margin-top:6px">
+          <input type="checkbox" name="exclude:{{ item.field }}" value="on">
+          {{ item.label }}
+        </label>
+        <div class="small muted">
+          This part of your description will not affect the result, and the
+          saved plan will say so.
+        </div>
+        {% elif item.field == question.field
+                and item.resolution == "MATERIAL" %}
+        {# Stated, not merely omitted. A missing checkbox is invisible: the
+           user sees an item they cannot answer and cannot set aside, with no
+           indication that the difference is deliberate. #}
+        <div class="small" style="margin-top:6px">
+          <strong>Cannot be excluded.</strong>
+          {{ blockers.material | selectattr("field", "equalto", item.field)
+             | map(attribute="subject") | first | default("") and "" }}
+          This request depends on a capability Quantify does not currently
+          model, and setting it aside would change what the result answers.
+        </div>
+        {% endif %}
+      {% endfor %}
       <div class="controls">controls {{ question.field }}</div>
     </div>
     {% endfor %}
@@ -103,7 +133,7 @@
       {% if inference.choices %}
       <ul class="choices">
         {% for choice in inference.choices %}
-        <li><label><input type="radio" name="confirm-{{ inference.field }}"
+        <li><label><input type="radio" name="confirm:{{ inference.field }}"
                           value="{{ choice.value }}"
                           {% if choice.value == inference.value %}checked{% endif %}>
               {{ choice.label }}</label></li>

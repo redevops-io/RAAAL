@@ -109,6 +109,94 @@ class Contradiction:
 
 
 @dataclass(frozen=True)
+class ScenarioAmendment:
+    """Something the user said *after* the description, in answer to a question.
+
+    A third kind of provenance, and it needed to be. An answer is **stated
+    information** — the user supplied it — but it is not in the original text,
+    and recording it either of the two obvious ways loses something:
+
+        rewriting the description   destroys what was originally asked, so a
+                                    plan reopened next year shows words nobody
+                                    typed
+        marking it an inference     misstates who decided, which is the one
+                                    distinction the whole provenance model
+                                    exists to keep
+
+    So the description stays immutable, the answers stay immutable beside it,
+    and the compiler consumes both:
+
+        original description + answers + confirmed inferences
+            = effective scenario
+    """
+
+    question_id: str
+    """The `Unresolved.field` this answers, so the two can be paired without
+    matching on question text."""
+
+    answer: str
+    source: str = "USER_ANSWER"
+    recorded_at: str = ""
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"question_id": self.question_id, "answer": self.answer,
+                "source": self.source, "recorded_at": self.recorded_at}
+
+
+def amendment_from_json(payload: Mapping[str, Any]) -> "ScenarioAmendment":
+    return ScenarioAmendment(
+        question_id=payload["question_id"], answer=payload["answer"],
+        source=payload.get("source", "USER_ANSWER"),
+        recorded_at=payload.get("recorded_at", ""))
+
+
+@dataclass(frozen=True)
+class ScenarioExclusion:
+    """Something the compiler could not represent, which the user chose to
+    proceed without.
+
+    Not "acknowledged" in the sense of understood — the opposite. It records
+    that a phrase had no home in the model, that the user was told so, and that
+    they decided the remaining scenario still answers their question. A plan
+    carrying one is a plan whose scope is smaller than its description, and the
+    difference is stated rather than lost:
+
+        Not modelled at your direction:
+          - employer matching contributions
+
+    Without this, ordinary extra prose was an unresolvable dead end: the item
+    had no answerable control, `can_save` stayed false, and the only way
+    forward was to guess which sentence the compiler disliked.
+    """
+
+    item: str
+    """The unresolved field this excludes, e.g. `unclear:employer match`."""
+
+    reason: str
+    """Why it could not be represented, in the compiler's words."""
+
+    decision: str = "PROCEED_WITHOUT_MODELLING"
+    acknowledged_at: str = ""
+
+    @property
+    def subject(self) -> str:
+        return (self.item[len("unclear:"):] if self.item.startswith("unclear:")
+                else self.item.replace("_", " "))
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"item": self.item, "reason": self.reason,
+                "decision": self.decision, "subject": self.subject,
+                "acknowledged_at": self.acknowledged_at}
+
+
+def exclusion_from_json(payload: Mapping[str, Any]) -> "ScenarioExclusion":
+    return ScenarioExclusion(
+        item=payload["item"], reason=payload.get("reason", ""),
+        decision=payload.get("decision", "PROCEED_WITHOUT_MODELLING"),
+        acknowledged_at=payload.get("acknowledged_at", ""))
+
+
+@dataclass(frozen=True)
 class Provenance:
     """Who decided what. The whole reason a Mission is not just a config file."""
 
@@ -116,6 +204,13 @@ class Provenance:
     inferred: Sequence[Inference] = ()
     contradictions: Sequence[Contradiction] = ()
     unresolved: Sequence[Unresolved] = ()
+    amended: Sequence[ScenarioAmendment] = ()
+    """Answers the user gave to questions the description left open. Stated by
+    them, later than the description, and never merged into it."""
+
+    excluded: Sequence[ScenarioExclusion] = ()
+    """Parts of the description the compiler could not represent and the user
+    chose to proceed without. Narrows the scope of the result, and says so."""
 
     @property
     def unconfirmed(self) -> List[Inference]:

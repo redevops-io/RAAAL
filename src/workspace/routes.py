@@ -51,6 +51,7 @@ from ..mission.parse_model import (
     parse_with_model,
 )
 from ..mission.scenario import UNSIMULATED
+from ..mission.spec import ScenarioAmendment
 from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
@@ -59,6 +60,7 @@ from .comparability_record import as_payload as comparability_payload
 from .environment import pins_for
 from .comparability_record import record as comparability_records
 from .generate import generate as generate_worksheet
+from .generate import new_plan_id
 from .store import NotSaveable, WorkspaceStore
 
 #: Two search paths: the workspace's own templates, and the shared design
@@ -71,6 +73,20 @@ router = APIRouter(prefix="/workspace", tags=["workspace"])
 
 PRICES = Path("data/history/prices.parquet")
 BENCHMARK_RULE = "benchmark-policy/public-default@1"
+
+
+def _suggested_title(describe: str) -> str:
+    """A first draft of the plan's name, from the user's own words.
+
+    A suggestion only — the field is editable and identity never derives from
+    it. Truncated on a word boundary so the box opens with something short
+    enough to read rather than the whole description.
+    """
+    words = describe.strip().split()
+    if not words:
+        return "Untitled plan"
+    draft = " ".join(words[:8])
+    return draft[:60].rstrip(" ,.") + ("…" if len(words) > 8 else "")
 
 
 def _parser_client():
@@ -555,33 +571,47 @@ def _declaration_versions():
         scope_schema_version="rsu-result-context@1")
 
 
+#: Template surfaces that recognise a description but cannot yet compile one
+#: into anything executable, with what is missing.
+#:
+#: `RSUDeclaration` is consumed by the route that builds it, the card that
+#: renders it, and their tests. Nothing turns a declaration into a scenario, a
+#: run or a worksheet — vest events are not cash flows the compiler
+#: understands, and there is no `compile_rsu_declaration`. The confirmation
+#: card was therefore a polished surface in front of an unimplemented feature,
+#: which is precisely the shape this codebase exists to remove: a declaration
+#: with no reachable behaviour.
+#:
+#: Rendering it anyway implied that saving was one step away. It is not, and a
+#: user who writes an equity-compensation description deserves to be told that
+#: before they invest in refining it.
+UNAVAILABLE_TEMPLATES = {
+    "rsu-vesting": (
+        "Equity-compensation modelling is not available in this pilot. Your "
+        "description was recognised as an RSU scenario, and this version "
+        "cannot yet compile one into an executable plan — so there is nothing "
+        "it could honestly show you. Historical account and contribution "
+        "analysis is fully supported; describing your holdings and "
+        "contributions directly will work."),
+}
+
+
 def _template_confirmation(request: Request, describe: str, stage1):
-    """Render the confirmation surface a template hint dispatches to.
+    """Answer for a description this build recognises but cannot execute.
 
-    The route dispatches; it does not build. Duplicating the builder here would
-    create a second reading of the same words, and the two would diverge on
-    exactly the descriptions that are hard to read.
+    No plan-shaped record is created. A draft that cannot become a plan is a
+    record whose only purpose is to look like progress.
     """
-    from ..mission.rsu_declaration import TemplateHandlerMissing, handler_for
-    from ..runtime.rsu import US_SHARE_WITHHOLDING
-    from .rsu_confirmation import build as build_rsu_card
-
-    try:
-        handler = handler_for(stage1.parsed.template_hint)
-    except TemplateHandlerMissing as missing:
-        # 501, never a fallback. Falling back to generic compilation would read
-        # a vest as cash arriving and then a purchase, silently.
-        raise HTTPException(status_code=501, detail=str(missing)) from missing
-
-    declaration = handler(stage1.parsed, versions=_declaration_versions(),
-                          runtime_refs=_template_runtime_refs())
-    card = build_rsu_card(declaration, runtime=US_SHARE_WITHHOLDING)
-
+    hint = stage1.parsed.template_hint
+    detail = UNAVAILABLE_TEMPLATES.get(hint)
+    if detail is None:
+        raise HTTPException(
+            status_code=501,
+            detail=f"{hint!r} has no handler in this build")
     return TEMPLATES.TemplateResponse(
-        request, "rsu_confirm.html",
-        {"describe": describe, "declaration": declaration.to_json(),
-         "card": card.to_json(), "template_hint": stage1.parsed.template_hint,
-         "parse": json.dumps(stage1.parsed.to_json())},
+        request, "unavailable.html",
+        {"describe": describe, "capability": hint, "detail": detail},
+        status_code=501,
     )
 
 
@@ -607,13 +637,24 @@ def new_plan(request: Request, describe: str = ""):
     run = (_run(compiled.scenario, access)
            if compiled.can_simulate and access.usable else None)
 
+    from .feasibility import assess, blockers, classify
+
+    feasibility = assess(compiled.scenario, access.frame)
+    open_items = classify(compiled.scenario.provenance.unresolved,
+                          executable=feasibility.can_execute)
+
     return TEMPLATES.TemplateResponse(
         request, "new.html",
         {
             "describe": describe,
             "result": compiled,
+            "feasibility": feasibility,
+            "open_items": open_items,
+            "blockers": blockers(compiled.scenario,
+                                 executable=feasibility.can_execute),
             "confirmation": compiled.confirmation(),
             "view": build_confirmation(compiled, text=describe),
+            "suggested_title": _suggested_title(describe),
             "parse": json.dumps(stage1.parsed.to_json()),
             "parse_provenance": stage1.provenance,
             "chain": build_scenario_chain(
@@ -629,16 +670,33 @@ def new_plan(request: Request, describe: str = ""):
 
 
 @router.post("/save")
-def save_plan(describe: str, plan_id: str, confirm_all: str = "",
-              parse: str = Form(default="")):
-    """Commit. Refuses anything the user has not actually confirmed.
+async def save_plan(request: Request, describe: str = Form(...),
+                    title: str = Form(default=""),
+                    parse: str = Form(default="")):
+    """Commit what the user read, answered and confirmed.
 
-    The parse comes back from the confirmation screen so that what is saved is
-    the interpretation the user actually read. It arrives via a browser and is
-    therefore not trusted: `parse_from_stored` re-checks every recognition
-    against the description, so a tampered field cannot inject a reading the
-    text does not support.
+    Everything arrives in one POST body from one form. It used to arrive in
+    three places — `describe` and `plan_id` as query parameters, `parse` in the
+    body, and the answer and confirmation radios *outside the form entirely* —
+    so a user could read every question, click every answer and press Save
+    while none of it was submitted. For any scenario with an open question the
+    button did not render at all, and the journey dead-ended with no way
+    forward. That was the pilot's blocking defect and no backend test could see
+    it: they all construct a confirmed scenario directly.
+
+    The form contract:
+
+        title             the user's own name for the plan
+        parse             the pinned stage 1 reading, re-verified on the way in
+        answer:<field>    an answer to a question the compiler asked
+        confirm:<field>   CONFIRMED or REJECTED for one inference
+
+    **The identity is generated here.** It never derives from the title, the
+    description or the route, so two plans may share a title, a title may be
+    edited, and runs and worksheets keep pointing at the same opaque id.
     """
+    form = await request.form()
+
     parsed = None
     if parse.strip():
         try:
@@ -649,34 +707,86 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = "",
                 detail=f"the submitted interpretation does not match the "
                        f"description: {exc}") from exc
 
-    compiled = compile_scenario(describe, name=plan_id, version=1,
-                                benchmark_rule=BENCHMARK_RULE, parsed=parsed)
-    scenario = compiled.scenario
+    answered_at = pd.Timestamp.now("UTC").isoformat()
+    amendments = tuple(
+        ScenarioAmendment(question_id=key[len("answer:"):], answer=str(value),
+                          recorded_at=answered_at)
+        for key, value in form.multi_items()
+        if key.startswith("answer:") and str(value).strip())
 
-    if confirm_all == "yes":
-        # Confirming is an act the user performs on each inference. Doing it in
-        # bulk is allowed, and recording that it was bulk keeps the difference
-        # from a considered confirmation visible later.
-        from ..mission.spec import Inference, Provenance
-        from ..mission.scenario import ScenarioSpecification
+    decisions = {key[len("confirm:"):]: str(value)
+                 for key, value in form.multi_items()
+                 if key.startswith("confirm:")}
 
-        p = scenario.provenance
-        scenario = ScenarioSpecification(**{
-            **scenario.__dict__,
-            "provenance": Provenance(
-                stated=p.stated,
-                inferred=tuple(Inference(i.field, i.value, i.why, confirmed=True)
-                               for i in p.inferred),
-                contradictions=p.contradictions,
-                unresolved=p.unresolved,
-            ),
-        })
+    # Acknowledgements: "continue without modelling this". Typed, recorded, and
+    # only accepted for items the feasibility service classifies as separable —
+    # the form may offer the control, but it does not decide whether the
+    # control is permitted.
+    acknowledged = {key[len("exclude:"):] for key, value in form.multi_items()
+                    if key.startswith("exclude:") and str(value) == "on"}
 
+    # Two passes, because a choice means different things depending on what
+    # the compiler had proposed.
+    #
+    #   the user picks the value the compiler inferred  -> agreement
+    #   the user picks a different value                -> a statement
+    #
+    # Both are decisions and only the second is stated information. Recording
+    # agreement as a statement would credit the user with saying something the
+    # system suggested; recording a correction as a confirmed inference would
+    # credit the system with proposing what the user supplied.
+    compiled = compile_scenario(describe, name=title or "plan", version=1,
+                                benchmark_rule=BENCHMARK_RULE, parsed=parsed,
+                                amendments=amendments)
+
+    exclusions = _permitted_exclusions(compiled, acknowledged, answered_at)
+    if exclusions:
+        compiled = compile_scenario(describe, name=title or "plan", version=1,
+                                    benchmark_rule=BENCHMARK_RULE,
+                                    parsed=parsed, amendments=amendments,
+                                    exclusions=exclusions)
+
+    proposed = {one.field: one.value for one in compiled.scenario.provenance.inferred}
+    corrections = tuple(
+        ScenarioAmendment(question_id=field, answer=value,
+                          recorded_at=answered_at)
+        for field, value in decisions.items()
+        if field in proposed and value != proposed[field])
+    if corrections:
+        amendments = amendments + corrections
+        compiled = compile_scenario(describe, name=title or "plan", version=1,
+                                    benchmark_rule=BENCHMARK_RULE,
+                                    parsed=parsed, amendments=amendments,
+                                    exclusions=exclusions)
+
+    agreed = {field for field, value in decisions.items()
+              if proposed.get(field) == value}
+    scenario = _with_decisions(compiled.scenario, agreed)
+
+    # Refused here, not merely warned about on the screen. A plan that cannot
+    # execute saved successfully with zero runs and no worksheet while the
+    # confirmation page displayed both "no price history" and "Ready to save".
+    from .feasibility import assess, blockers
+
+    verdict = assess(scenario, _market_data("feasibility check").frame)
+    if not verdict.can_execute:
+        raise HTTPException(status_code=422, detail=verdict.detail)
+
+    # Name what is blocking, from the same classification the screen rendered.
+    # "still has unconfirmed inferences or open questions" told a user nothing
+    # about which item stopped them or whether anything could be done — the
+    # blocker was a forward projection the engine does not model, and the
+    # message did not say so.
+    outstanding = blockers(scenario, executable=verdict.can_execute)
+    if outstanding.any:
+        raise HTTPException(status_code=422, detail=outstanding.detail())
+
+    plan_id = new_plan_id()
     saved_at = pd.Timestamp.now("UTC").isoformat()
     try:
         _store().save_plan(
             plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
-            stated_text=describe, saved_at=saved_at,
+            stated_text=describe, saved_at=saved_at, title=title.strip(),
             parse=parsed.to_json() if parsed is not None else None,
         )
     except NotSaveable as exc:
@@ -695,9 +805,70 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = "",
                 run=run["result"].to_json(),
                 comparison={**(run.get("payload") or {}),
                             **(run.get("comparability_records") or {})},
-                ran_at=saved_at, title=plan_id, access=access)
+                ran_at=saved_at, title=title.strip() or plan_id, access=access)
 
     return RedirectResponse(f"/workspace/plans/{plan_id}", status_code=303)
+
+
+def _permitted_exclusions(compiled, acknowledged, at: str):
+    """Turn acknowledgements into typed exclusions, refusing the impermissible.
+
+    The feasibility service decides what may be dismissed; this only records
+    the user's decision about the ones it allows. A required clarification or a
+    material item submitted as an exclusion is refused rather than honoured —
+    the form is not the authority on whether proceeding is safe, and a
+    hand-built POST must not be able to dismiss the thing a result depends on.
+    """
+    from ..mission.spec import ScenarioExclusion
+    from .feasibility import Resolution, classify
+
+    if not acknowledged:
+        return ()
+    items = {one.field: one
+             for one in classify(compiled.scenario.provenance.unresolved)}
+    permitted = []
+    for field in sorted(acknowledged):
+        item = items.get(field)
+        if item is None:
+            continue                       # already settled; nothing to exclude
+        if item.resolution is not Resolution.UNSUPPORTED_SEPARABLE:
+            raise HTTPException(
+                status_code=422,
+                detail=(f"'{item.subject}' cannot be set aside: "
+                        + ("it is a required input, so there is nothing to "
+                           "proceed without."
+                           if item.resolution is Resolution.REQUIRED_CLARIFICATION
+                           else "excluding it would change what the result "
+                                "answers. Revise the description instead.")))
+        permitted.append(ScenarioExclusion(
+            item=item.field, reason=item.why_it_matters, acknowledged_at=at))
+    return tuple(permitted)
+
+
+def _with_decisions(scenario, agreed):
+    """Mark the inferences the user agreed to, and only those.
+
+    An inference nobody acted on stays unconfirmed and the store refuses the
+    plan: silence is not agreement, which is the rule the whole confirmation
+    screen exists to enforce.
+    """
+    from ..mission.scenario import ScenarioSpecification
+    from ..mission.spec import Inference, Provenance
+
+    if not agreed:
+        return scenario
+    source = scenario.provenance
+    return ScenarioSpecification(**{
+        **scenario.__dict__,
+        "provenance": Provenance(
+            stated=source.stated,
+            inferred=tuple(
+                Inference(one.field, one.value, one.why,
+                          confirmed=one.field in agreed)
+                for one in source.inferred),
+            contradictions=source.contradictions,
+            unresolved=source.unresolved,
+            amended=source.amended)})
 
 
 @router.get("/plans/{plan_id}", response_class=HTMLResponse)

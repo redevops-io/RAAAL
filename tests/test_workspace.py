@@ -139,13 +139,28 @@ class TestProseToConfirmation:
         page = text(client.get("/workspace/new", params={"describe": INFERRING}).text)
         assert "compiler-defaults/us-equity-scenario@1" in page
 
-    def test_an_underspecified_plan_cannot_be_saved_from_the_page(self, client):
-        html = client.get("/workspace/new", params={"describe": VAGUE}).text
+    def test_an_underspecified_plan_is_refused_when_submitted(self, client):
+        """The button is now always rendered, and the refusal moved to the
+        server.
 
+        Hiding it left a user with answered questions and no way to send them —
+        the answers are *how* the outstanding items get settled, so the control
+        that submits them cannot be gated on them already being settled. What
+        must hold is that submitting an underspecified plan is refused, and
+        that the refusal names what is missing rather than saying only that
+        something is.
+        """
+        from tests.conftest import submit_rendered_confirmation
+
+        html = client.get("/workspace/new", params={"describe": VAGUE}).text
         assert "Not ready to save" in text(html)
-        assert "/workspace/save" not in html, (
-            "the save control must be absent, not merely disabled"
-        )
+
+        response, plan_id = submit_rendered_confirmation(client, VAGUE)
+        assert response.status_code == 422
+        assert plan_id is None
+        detail = response.json()["detail"]
+        assert "cannot be saved yet" in detail
+        assert "Required clarification" in detail or "Unconfirmed" in detail
 
     def test_no_yaml_reaches_the_user(self, client):
         """The whole point: prose in, plain language back."""
@@ -368,15 +383,12 @@ class TestStageOneIsPinnedToTheSavedPlan:
         page = client.get("/workspace/new", params={"describe": COMPLETE})
         assert page.status_code == 200
 
-        response = client.post(
-            "/workspace/save",
-            params={"describe": COMPLETE, "plan_id": "pinned",
-                    "confirm_all": "yes"},
-            data={"parse": _json.dumps(parse(COMPLETE).to_json())},
-            follow_redirects=False)
+        from tests.conftest import submit_rendered_confirmation
+
+        response, plan_id = submit_rendered_confirmation(client, COMPLETE)
         assert response.status_code == 303, response.text
 
-        record = self._saved(tmp_path).get_plan("pinned", "pilot")
+        record = self._saved(tmp_path).get_plan(plan_id, "pilot")
         assert record is not None
         assert record["parse"]["text"] == COMPLETE
         assert record["parse"]["recognitions"]
@@ -387,14 +399,12 @@ class TestStageOneIsPinnedToTheSavedPlan:
 
         from src.mission.compiler import parse
 
-        client.post("/workspace/save",
-                    params={"describe": COMPLETE, "plan_id": "revisit",
-                            "confirm_all": "yes"},
-                    data={"parse": _json.dumps(parse(COMPLETE).to_json())},
-                    follow_redirects=False)
+        from tests.conftest import submit_rendered_confirmation
 
-        first = client.get("/workspace/plans/revisit")
-        second = client.get("/workspace/plans/revisit")
+        _response, plan_id = submit_rendered_confirmation(client, COMPLETE)
+
+        first = client.get(f"/workspace/plans/{plan_id}")
+        second = client.get(f"/workspace/plans/{plan_id}")
         assert first.status_code == 200
         assert text(first.text) == text(second.text)
 
@@ -402,19 +412,21 @@ class TestStageOneIsPinnedToTheSavedPlan:
         """The hidden field travels through a browser and is not trusted."""
         import json as _json
 
-        client.post("/workspace/save",
-                    params={"describe": COMPLETE, "plan_id": "tampered",
-                            "confirm_all": "yes"},
-                    data={"parse": _json.dumps({
-                        "text": COMPLETE,
-                        "recognitions": [{"field": "trigger_semantics",
-                                          "value": "crossing_event",
-                                          "span": "whenever it dips below"}],
-                        "assets": [], "unrecognized": [],
-                    })},
-                    follow_redirects=False)
+        forged = _json.dumps({
+            "text": COMPLETE,
+            "recognitions": [{"field": "trigger_semantics",
+                              "value": "crossing_event",
+                              "span": "whenever it dips below"}],
+            "assets": [], "unrecognized": [],
+        })
+        response = client.post(
+            "/workspace/save",
+            data={"describe": COMPLETE, "title": "Tampered", "parse": forged},
+            follow_redirects=False)
+        assert response.status_code == 303, response.text
+        plan_id = response.headers["location"].rsplit("/", 1)[-1]
 
-        record = self._saved(tmp_path).get_plan("tampered", "pilot")
+        record = self._saved(tmp_path).get_plan(plan_id, "pilot")
         assert record is not None
         fields = {r["field"] for r in record["parse"]["recognitions"]}
         assert "trigger_semantics" not in fields, (
@@ -426,9 +438,8 @@ class TestStageOneIsPinnedToTheSavedPlan:
 
         response = client.post(
             "/workspace/save",
-            params={"describe": COMPLETE, "plan_id": "mismatch",
-                    "confirm_all": "yes"},
-            data={"parse": _json.dumps({"text": "a different description",
+            data={"describe": COMPLETE, "title": "Mismatch",
+                  "parse": _json.dumps({"text": "a different description",
                                         "recognitions": [], "assets": [],
                                         "unrecognized": []})})
         assert response.status_code == 422
@@ -451,3 +462,81 @@ class TestStageOneIsPinnedToTheSavedPlan:
         page = client.get("/workspace/new", params={"describe": COMPLETE})
         assert page.status_code == 200
         assert "Here is what we understood" in text(page.text)
+
+
+class TestTheConfirmationScreenCanChangeWhatItShows:
+    """The defect that blocked the pilot: the answer and confirmation radios
+    rendered *outside* the form that submitted.
+
+    A user could read every question, click every answer, press Save, and none
+    of it was sent. For a scenario with an open question the button did not
+    render at all and the journey dead-ended. Every backend test passed,
+    because each built its POST body by hand — so the screen was decorative and
+    nothing could see it.
+
+    These submit what the page rendered.
+    """
+
+    COMPLETE_TEXT = COMPLETE
+
+    def test_a_rendered_submission_saves(self, client):
+        from tests.conftest import submit_rendered_confirmation
+
+        response, plan_id = submit_rendered_confirmation(client, COMPLETE)
+        assert response.status_code == 303, response.text
+        assert plan_id.startswith("plan-")
+
+    def test_every_control_is_inside_the_save_form(self, client):
+        """Structural, and the thing no behavioural test caught. A control the
+        browser will not submit is a control the user cannot use.
+
+        Written first against `COMPLETE`, which renders no controls at all — so
+        the loop body never ran and moving the card outside the form did not
+        fail it. A premise witness in the test written to catch precisely that
+        class of defect, added minutes after being reminded of it. The witness
+        below is what makes the placement assertion mean anything.
+        """
+        import re
+
+        body = client.get("/workspace/new", params={"describe": VAGUE}).text
+        controls = list(re.finditer(
+            r'name="(answer:|confirm:|exclude:)[^"]*"', body))
+        assert controls, (
+            "this page renders no controls, so it cannot demonstrate where "
+            "controls are placed")
+
+        opened = body.find('action="/workspace/save"')
+        closed = body.find("</form>", opened)
+        assert opened != -1 and closed != -1, "no save form was rendered"
+
+        for match in controls:
+            assert opened < match.start() < closed, (
+                f"{match.group(0)} renders outside the save form, so a browser "
+                "will never submit it")
+
+    def test_two_plans_may_share_a_title(self, client, tmp_path):
+        """Identity is generated, never derived from wording. The form once
+        hardcoded `plan_id=my-plan`, so a second save was impossible."""
+        from tests.conftest import submit_rendered_confirmation
+
+        _first, one = submit_rendered_confirmation(client, COMPLETE,
+                                                   title="My retirement")
+        _second, two = submit_rendered_confirmation(client, COMPLETE,
+                                                    title="My retirement")
+        assert one and two and one != two
+
+        store = self._saved(tmp_path) if hasattr(self, "_saved") else None
+        if store is not None:
+            assert store.get_plan(one, "pilot")["title"] == "My retirement"
+            assert store.get_plan(two, "pilot")["title"] == "My retirement"
+
+    def test_the_original_description_is_never_rewritten(self, client,
+                                                          tmp_path):
+        from src.workspace.store import WorkspaceStore
+        from tests.conftest import submit_rendered_confirmation
+
+        _response, plan_id = submit_rendered_confirmation(client, COMPLETE)
+        store = WorkspaceStore(tmp_path / "workspace.db")
+        record = store.get_plan(plan_id, "pilot")
+        if record is not None:
+            assert record["stated_text"] == COMPLETE

@@ -403,4 +403,4 @@ class TestTheDigestBelongsToTheApplicationNotTheLibrary:
 
 #: The canonical digest of the synthetic pilot snapshot, pinned.
 PILOT_SNAPSHOT_DIGEST = (
-    "mdf1:a170eb72bae89edb9a43eb70670052e7dab81f9943bfe622717ab76091dbdda4")
+    "mdf1:6317ae3dba5c3f75324ce921b697de6ece80de9d7be1b6b2b14f7d668d8d7220")

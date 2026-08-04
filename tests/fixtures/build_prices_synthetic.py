@@ -67,11 +67,20 @@ ASSETS = {
     "MGK":  ( 80.0,  1.12, 0.14,  0.11),
     "IWM":  (110.0,  1.05, 0.15,  0.06),
     "BRK-B":(130.0,  0.85, 0.12,  0.08),
-    # The two tickers users write most often. Absent at first, so a journey test
+    # The tickers users write most often. Absent at first, so a journey test
     # described against VTI measured the data gap rather than the journey — and
     # a UI cannot prove multi-asset rendering against a universe nobody names.
+    #
+    # VOO, VXUS and AGG joined them after the first real pass at the launch
+    # scenarios: a Roth plan described in VOO saved with zero runs and no
+    # worksheet. Choosing launch wording around whichever symbols happened to
+    # exist would have made the product look brittle and the pilot
+    # instructions artificial.
     "VTI":  (105.0,  0.99, 0.11,  0.08),
     "BND":  ( 82.0, -0.15, 0.04,  0.02),
+    "VOO":  (185.0,  1.00, 0.10,  0.08),
+    "VXUS": ( 48.0,  0.88, 0.13,  0.05),
+    "AGG":  ( 95.0, -0.12, 0.04,  0.02),
     "BTC-USD": (430.0, 0.60, 0.60, 0.25),
     "^VIX":  ( 20.0, -3.00, 0.80,  0.00),
     "^VVIX": ( 90.0, -1.50, 0.45,  0.00),

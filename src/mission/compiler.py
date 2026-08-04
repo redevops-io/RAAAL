@@ -184,7 +184,8 @@ _CADENCE = (
     # rebalance" in a *benchmark* clause, so the compiler read the user's
     # contribution cadence out of a sentence about what to compare against.
     # Found by the corpus immediately after this cadence was added.
-    ("annual", r"\b(?:every|each) year\b|\bannually\b|\bonce a year\b|\byearly\b"),
+    ("annual", r"\b(?:every|each) year\b|\bannually\b|\bonce a year\b|\byearly\b"
+               r"|\b(?:a|per) year\b"),
     ("payroll", r"\bevery pay ?day\b|\beach pay ?day\b|\bout of (?:each|every|my) pay ?che(?:ck|que)\b|\bwith each pay ?che(?:ck|que)\b|\bper pay period\b"),
     ("daily", r"\b(?:every|each) day\b|\bdaily\b"),
     ("once", r"\blump sum\b|\ball at once\b|\bone ?-?off\b"),
@@ -430,6 +431,17 @@ class CompilerResult:
         }
 
 
+def _as_amount(raw: Optional[str]) -> Optional[float]:
+    """An answered amount, or None. A malformed answer is not an amount, and
+    treating it as zero would silently produce a plan with no contributions."""
+    if raw is None:
+        return None
+    try:
+        return float(str(raw).replace(",", "").replace("$", "").strip())
+    except ValueError:
+        return None
+
+
 def compile_scenario(
     text: str,
     *,
@@ -440,8 +452,21 @@ def compile_scenario(
     objective: Objective = Objective.REPLAY,
     benchmark_rule: Optional[str] = None,
     parsed: Optional[ParsedUtterance] = None,
+    amendments: Sequence["ScenarioAmendment"] = (),
+    exclusions: Sequence["ScenarioExclusion"] = (),
 ) -> CompilerResult:
     """Stages 1–8. Deterministic from the parse onward.
+
+    `amendments` are answers the user gave to questions this compiler asked on
+    a previous pass. They are consulted *before* defaults and recorded as
+    stated, because that is what they are: the user supplying a value. The
+    original text is never edited and no answer becomes an inference — see
+    `ScenarioAmendment`.
+
+    `exclusions` are parts of the description the user was told could not be
+    represented and chose to proceed without. They drop the corresponding
+    question rather than answering it, and the scenario records that its scope
+    is narrower than its description.
 
     `parsed` is the injection point for stage 1. Pass one produced by
     `parse_model.parse_with_model` to widen recognition with a language model, or
@@ -460,12 +485,38 @@ def compile_scenario(
     stated: List[str] = [r.span for r in parsed.recognitions]
     inferred: List[Inference] = []
     unresolved: List[Unresolved] = []
+    _answers = {one.question_id: one for one in amendments}
+    _excluded_items = {one.item for one in exclusions}
+
+    def answered(field_name: str) -> Optional[str]:
+        """A user's answer to a question about `field_name`, recorded as stated.
+
+        Every `unresolved.append` site consults this. Wiring it only into
+        `settle` would leave the questions raised elsewhere — cadence, amount,
+        starting capital — unanswerable through the product, which is the
+        defect that blocked the RSU and Roth scenarios.
+        """
+        one = _answers.get(field_name)
+        if one is None:
+            return None
+        stated.append(f"{field_name}: {one.answer} (answered)")
+        return one.answer
 
     def settle(field_name: str, default_field: Optional[str] = None) -> Optional[str]:
-        """Stated wins; otherwise a *versioned* default; otherwise a question."""
+        """Stated wins; then a user's answer; then a *versioned* default;
+        otherwise a question.
+
+        An answer outranks a default and is recorded as stated, not inferred.
+        Ordering it after the description is deliberate: if the text already
+        says something, that is what the user wrote, and an answer to a
+        question the text had already settled is not a question that was asked.
+        """
         found = parsed.value_of(field_name)
         if found:
             return found.value
+        supplied = answered(field_name)
+        if supplied is not None:
+            return supplied
         entry = defaults.get(default_field or field_name)
         if entry:
             inferred.append(Inference(field=field_name, value=entry.value,
@@ -540,10 +591,13 @@ def compile_scenario(
         ))
 
     cadence_rec = parsed.value_of("cadence")
-    if not amount_seen:
+    cadence_value = cadence_rec.value if cadence_rec else answered("cadence")
+    amount_value = (float(amount_seen.value) if amount_seen
+                    else _as_amount(answered("amount")))
+    if amount_value is None:
         question, why = _QUESTIONS["amount"]
         unresolved.append(Unresolved("amount", question, why))
-    if not cadence_rec and amount_seen:
+    if not cadence_value and amount_value:
         unresolved.append(Unresolved(
             "cadence", "How often does that contribution arrive?",
             "Contribution timing changes the money-weighted return even when the "
@@ -552,8 +606,8 @@ def compile_scenario(
 
     funding = parsed.value_of("funding_source")
     flows = FlowSchedule(
-        cadence=cadence_rec.value if cadence_rec else "once",
-        amount=float(amount_seen.value) if amount_seen else 0.0,
+        cadence=cadence_value or "once",
+        amount=amount_value or 0.0,
         day_rule=day_rule or "first_session_of_period",
         funding_source=funding.value if funding else "contribution",
     )
@@ -611,7 +665,11 @@ def compile_scenario(
         **{**scenario.__dict__,
            "provenance": Provenance(stated=tuple(stated), inferred=tuple(inferred),
                                     contradictions=tuple(contradictions),
-                                    unresolved=tuple(unresolved))},
+                                    unresolved=tuple(
+                                        one for one in unresolved
+                                        if one.field not in _excluded_items),
+                                    amended=tuple(amendments),
+                                    excluded=tuple(exclusions))},
     )
 
     status = ("BLOCKED" if contradictions else

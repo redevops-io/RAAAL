@@ -35,6 +35,22 @@ def run_id_for(plan_id: str, scenario_hash: str, ran_at: str) -> str:
     return f"run-{plan_id}-{digest}"
 
 
+def new_plan_id() -> str:
+    """An opaque, server-generated plan identity.
+
+    The confirmation form used to hardcode `plan_id=my-plan`, so a user could
+    never save a second plan. Deriving one from the title or the description
+    would have replaced that with a subtler version of the same problem: two
+    plans legitimately share a title, titles get edited, and an identity that
+    moves when a title does breaks every run and worksheet pointing at it.
+
+    Same reasoning as `new_worksheet_id` — an identifier that carries meaning
+    is an identifier that leaks it, and one derived from user wording is
+    guessable across tenants.
+    """
+    return f"plan-{uuid.uuid4().hex}"
+
+
 def new_worksheet_id() -> str:
     """An opaque, server-generated identity.
 

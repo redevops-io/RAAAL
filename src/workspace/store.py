@@ -531,7 +531,15 @@ class WorkspaceStore:
 
     def save_plan(self, *, plan_id: str, owner: str, scenario, stated_text: str,
                   saved_at: str, intent_id: Optional[str] = None,
-                  parse: Optional[Dict[str, Any]] = None) -> str:
+                  parse: Optional[Dict[str, Any]] = None,
+                  title: str = "") -> str:
+        """Persist a confirmed plan.
+
+        `title` is the user's own name for it and is stored separately from
+        `plan_id`, which the server generates. Identity never derives from
+        wording: two plans may share a title, a title may be edited, and runs
+        and worksheets keep pointing at the same opaque id either way.
+        """
         if not scenario.is_runnable:
             raise NotSaveable(
                 f"{scenario.artifact_id} contradicts itself: "
@@ -562,7 +570,7 @@ class WorkspaceStore:
                    (plan_id, owner, title, scenario, intent, stated_text,
                     saved_at, rule_hash, content_hash, parse)
                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                (plan_id, owner, scenario.name, Json(payload), intent_id,
+                (plan_id, owner, title or scenario.name, Json(payload), intent_id,
                  stated_text, saved_at, scenario.rule_hash, scenario.content_hash,
                  Json(parse) if parse is not None else None),
             )

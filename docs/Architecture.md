@@ -1044,6 +1044,56 @@ Three properties make such a vocabulary trustworthy:
   vocabulary. The false positive was reachable only through a route returning a
   normal 404, which is precisely what the narrow envelope tests never do.
 
+## Closed pilot scope
+
+Two scenarios, both complete through the deployed HTTP journey:
+
+```text
+description -> rendered confirmation -> amendments / exclusions
+            -> opaque plan id -> run -> worksheet -> reopened plan
+```
+
+- historical account and contribution replay
+- Roth contribution analysis
+
+**Equity compensation is explicitly unavailable.** `RSUDeclaration` is consumed
+by the route that builds it, the card that renders it, and their tests.
+Nothing turns a declaration into a scenario, a run or a worksheet: vest events
+are not cash flows the compiler understands, and there is no
+`compile_rsu_declaration`. The confirmation card was therefore a polished
+surface in front of an unimplemented feature — a declaration with no reachable
+behaviour, which is the shape this document spends its length removing.
+
+Building the form would have produced a submit button with nothing to submit
+to. `/workspace/new` returns `501` with a message naming what was recognised
+and what does work, and writes no plan-shaped record: a draft that cannot
+become a plan is a record whose only purpose is to look like progress. The 157
+component tests are untouched, because the work exists and has not been
+assembled into a product path — a different statement from it being absent.
+
+**The confirmation screen was decorative.** The answer and inference radios
+rendered *outside* the form that submitted, so a user could read every
+question, click every answer, press Save and send none of it. For a scenario
+with an open question the button did not render at all and the journey
+dead-ended. Every backend test passed, because each built its POST body by
+hand — the defect lived exactly in the gap between "the backend accepts a valid
+payload" and "a user can produce that payload".
+
+What holds now:
+
+| rule | why |
+|---|---|
+| one form around the whole surface | a control the browser will not submit is a control the user cannot use |
+| answers are `ScenarioAmendment`s | stated by the user, later than the description, never merged into it |
+| unsupported prose is `ScenarioExclusion` | proceeding is explicit, preserved, and narrows the stated scope |
+| identity is server-generated | two plans may share a title; a title may be edited; runs keep pointing at the same id |
+| one feasibility service | the screen and the save path cannot hold different opinions about whether a plan can run |
+
+`assess` refuses a plan that would save with zero runs, and `blockers` names
+every outstanding item with what can be done about it — a required
+clarification, a separable exclusion, or a material capability limit. "Ready"
+may never mean an executable plan does not exist.
+
 ## Telemetry is expendable, and was never delivered
 
 ```text

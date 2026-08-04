@@ -9,8 +9,8 @@ seed: 20260801
 # Content digest, not file bytes: Parquet embeds its writer version, so the same
 # data written by a different Arrow release has different bytes and identical
 # content. See src/market_data/integrity.py.
-content_digest: "mdv1:a6af2dae24827061c03111e7dced3879d669d8d18a65eb5864ede14e96d82831"
-file_sha256: "5e1cc466f1fef74a1fedf1e8b99cd6af6e1bc79599c31ec27fd7272ba0da2caf"          # informational only; changes on an Arrow upgrade
+content_digest: "mdv1:64dee8ad59c7f05b316d33fa3df0c7d890665c8e3ffa81871368478e38c43655"
+file_sha256: "e4ce5c9e89dcf929593873b5c1cbb57e775c39184a4efc6c72b2a1db53deac42"          # informational only; changes on an Arrow upgrade
 
 schema_version: "1"
 calendar: calendar/nyse@1

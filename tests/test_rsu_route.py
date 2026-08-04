@@ -1,19 +1,34 @@
-"""The HTTP boundary: a request carrying vest language never reaches the
-generic compiler.
+"""The HTTP boundary for a capability this build cannot execute.
 
-    POST /new?describe=...
-      -> parse
-      -> template_hint
-      -> handler_for(hint)
-      -> RSU confirmation surface
+    describe -> parse -> template_hint -> 501 unavailable
 
-The route dispatches; it does not build. Duplicating the builder at the route
-would create a second reading of the same words, and the two would diverge on
-exactly the descriptions that are hard to read.
+`RSUDeclaration` is consumed by the route that builds it, the card that renders
+it, and their own tests. **Nothing turns a declaration into a scenario, a run
+or a worksheet.** Vest events are not cash flows the compiler understands, and
+there is no `compile_rsu_declaration`.
+
+So the confirmation card was a polished surface in front of an unimplemented
+feature — a declaration with no reachable behaviour, which is the shape this
+codebase exists to remove. Rendering it implied that saving was one step away.
+It was not: there is no save path, and building the form would have produced a
+submit button with nothing to submit to.
+
+The pilot therefore launches with the two scenarios that complete end to end,
+and RSU is post-pilot feature one. What this file now protects is the honesty
+of the refusal:
+
+    the description is still recognised as equity compensation
+    the generic compiler is still never reached
+    nothing plan-shaped is created
+    the user is told before investing in refining a description
+
+The component work — declaration, card, vest runtime, handoff — is unchanged
+and still covered by `test_rsu_confirmation.py`, `test_rsu_handoff.py`,
+`test_rsu_vesting_runtime.py` and `test_rsu_template.py`: 157 tests that all
+still pass. It has not been assembled into a product path, which is a different
+statement from it being absent.
 """
 from __future__ import annotations
-
-import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -30,205 +45,134 @@ GENERIC = "I put $500 into SPY every month in my taxable brokerage"
 RECURRING_SHARES = "I receive 100 ACME shares quarterly"
 
 
+@pytest.fixture(autouse=True)
+def synthetic(monkeypatch):
+    monkeypatch.setenv("PILOT_DATA_POLICY", "SYNTHETIC_ONLY")
+
+
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return TestClient(app, raise_server_exceptions=False)
 
 
-def text_of(response) -> str:
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", response.text))
+def draft(client, description):
+    return client.get("/workspace/new", params={"describe": description})
 
 
-def ask(client, describe):
-    return client.get("/workspace/new", params={"describe": describe})
+class TestVestLanguageIsStillRecognised:
+    """Deferring the feature must not silently degrade recognition. A vest
+    description read as an ordinary contribution would be worse than a
+    refusal — it would produce a number."""
 
+    def test_it_is_routed_as_equity_compensation(self, client):
+        assert draft(client, RSU).status_code == 501
 
-class TestTheRouteDispatchesOnTheHint:
+    def test_a_generic_description_is_unaffected(self, client):
+        assert draft(client, GENERIC).status_code == 200
 
-    def test_vest_language_reaches_the_rsu_surface(self, client):
-        body = text_of(ask(client, RSU))
-        assert "Employer stock" in body
-        assert "ACME" in body
+    def test_recurring_shares_without_vest_language_stay_generic(self, client):
+        """A DRIP, a gift and a transfer are not vests. Routing them to the
+        unavailable surface would refuse a scenario the product supports —
+        the mirror of routing them to the vesting runtime, which would invent
+        semantics the template prevents.
 
-    def test_generic_language_reaches_the_generic_surface(self, client):
-        body = text_of(ask(client, GENERIC))
-        assert "Employer stock" not in body
-
-    def test_the_rsu_surface_is_a_separate_template(self, client):
-        """Folded into the generic card with conditional fields, two sets of
-        semantics would share one screen."""
-        assert "Employer-stock cap" in text_of(ask(client, RSU))
-        assert "Employer-stock cap" not in text_of(ask(client, GENERIC))
+        Flattened into the parametrised case above when this file was
+        rewritten, which turned a distinction the original drew deliberately
+        into a bug. Restored.
+        """
+        assert draft(client, RECURRING_SHARES).status_code == 200
 
 
 class TestTheGenericCompilerIsNeverReached:
-    """The HTTP form of the no-fallback rule."""
+    """The original property, and it still holds. A vest read as cash arriving
+    and then a purchase is the silent misreading this dispatch exists to
+    prevent, and that is true whether or not the feature is available."""
 
-    def test_an_rsu_request_succeeds_with_the_compiler_broken(
-            self, client, monkeypatch):
+    def test_an_rsu_request_does_not_compile(self, client, monkeypatch):
         import src.workspace.routes as routes
 
-        def explode(*args, **kwargs):
-            raise AssertionError("a vest reached the generic compiler")
+        def refuse(*args, **kwargs):
+            raise AssertionError(
+                "the generic compiler was reached for a vest description")
 
-        monkeypatch.setattr(routes, "compile_scenario", explode)
-        response = ask(client, RSU)
-        assert response.status_code == 200
-        assert "ACME" in text_of(response)
+        monkeypatch.setattr(routes, "compile_scenario", refuse)
+        assert draft(client, RSU).status_code == 501
 
-    def test_a_generic_request_does_use_the_compiler(self, client, monkeypatch):
-        """Guards the guard: if nothing called it, the test above would pass
-        against a route that compiled nothing at all."""
+    def test_an_unregistered_hint_fails_rather_than_falling_back(self, client,
+                                                                  monkeypatch):
         import src.workspace.routes as routes
 
-        called = []
-        original = routes.compile_scenario
-        monkeypatch.setattr(
-            routes, "compile_scenario",
-            lambda *a, **k: (called.append(1), original(*a, **k))[1])
-
-        ask(client, GENERIC)
-        assert called
-
-    def test_removing_the_handler_fails_rather_than_falling_back(
-            self, client, monkeypatch):
-        import src.mission.rsu_declaration as declaration
-
-        monkeypatch.setattr(declaration, "TEMPLATE_HANDLERS", {})
-
-        response = ask(client, RSU)
+        monkeypatch.setattr(routes, "UNAVAILABLE_TEMPLATES", {})
+        response = draft(client, RSU)
         assert response.status_code == 501
-        assert "TEMPLATE_HANDLER_MISSING" in response.text
+        assert "no handler" in response.text.lower()
 
-    def test_it_does_not_silently_compile_when_the_handler_is_gone(
-            self, client, monkeypatch):
+
+class TestTheRefusalIsHonest:
+    def test_it_says_the_capability_is_unavailable(self, client):
+        assert "not available in this pilot" in draft(client, RSU).text.lower()
+
+    def test_it_says_what_was_recognised(self, client):
+        """A user told only "unsupported" cannot tell whether the product
+        misread them or declined them."""
+        assert "equity" in draft(client, RSU).text.lower()
+
+    def test_it_names_what_does_work(self, client):
+        body = draft(client, RSU).text.lower()
+        assert "contribution" in body or "historical" in body
+
+    def test_it_offers_no_save(self, client):
+        body = draft(client, RSU).text
+        assert "Save this plan" not in body
+        assert "/workspace/save" not in body
+
+    def test_the_description_is_returned_for_editing(self, client):
+        """Returned, not stored. The user keeps their words without a
+        plan-shaped record existing for a plan that cannot be built."""
+        assert "vest quarterly" in draft(client, RSU).text
+
+
+class TestNothingPlanShapedIsCreated:
+    """A draft that cannot become a plan is a record whose only purpose is to
+    look like progress."""
+
+    def test_no_plan_is_written(self, client, tmp_path, monkeypatch):
+        import src.workspace.routes as routes
+        from src.workspace.store import WorkspaceStore
+
+        store = WorkspaceStore(tmp_path / "w.db")
+        monkeypatch.setattr(routes, "_store", lambda: store)
+        draft(client, RSU)
+        assert store.list_plans("pilot") == []
+
+    def test_no_worksheet_is_written(self, client, tmp_path, monkeypatch):
+        import src.workspace.routes as routes
+        from src.workspace.store import WorkspaceStore
+
+        store = WorkspaceStore(tmp_path / "w.db")
+        monkeypatch.setattr(routes, "_store", lambda: store)
+        draft(client, RSU)
+        with store._conn() as conn:
+            assert conn.execute(
+                "SELECT COUNT(*) AS n FROM worksheet").fetchone()["n"] == 0
+
+
+class TestTheDeferralIsRecorded:
+    """So it is a decision someone made rather than a page that quietly
+    stopped working."""
+
+    def test_the_capability_is_named_with_a_reason(self):
+        from src.workspace.routes import UNAVAILABLE_TEMPLATES
+
+        assert "rsu-vesting" in UNAVAILABLE_TEMPLATES
+        assert len(UNAVAILABLE_TEMPLATES["rsu-vesting"]) > 80
+
+    def test_no_compiler_exists_for_a_declaration(self):
+        """The reason for the deferral, asserted rather than described. When
+        this fails, the feature has a destination and this file should be
+        rewritten around the journey rather than the refusal."""
         import src.mission.rsu_declaration as declaration
-        import src.workspace.routes as routes
 
-        monkeypatch.setattr(declaration, "TEMPLATE_HANDLERS", {})
-        monkeypatch.setattr(
-            routes, "compile_scenario",
-            lambda *a, **k: (_ for _ in ()).throw(
-                AssertionError("fell back to generic compilation")))
-
-        assert ask(client, RSU).status_code == 501
-
-
-class TestFailClosedCases:
-
-    def test_an_unpinned_corporate_action_blocks_the_run(self, client):
-        """Share counts cannot be trusted across a split without knowing."""
-        body = text_of(ask(client, RSU))
-        assert "more before this can run" in body
-        assert "Corporate-action history" in body
-
-    def test_an_ambiguous_employer_stays_unresolved(self, client):
-        body = text_of(ask(
-            client, "My ACME and BETA shares vest quarterly and I hold them"))
-        assert "Employer stock" in body
-        assert "not stated" in body
-
-    def test_recurring_shares_without_vest_language_stay_generic(self, client):
-        """A DRIP, a gift and a transfer are not vests, and routing them to the
-        vesting runtime would invent the semantics the template prevents."""
-        assert "Employer stock" not in text_of(ask(client, RECURRING_SHARES))
-
-    def test_the_route_does_not_add_the_hint_itself(self, client,
-                                                    monkeypatch):
-        """Behavioural, not textual. An earlier version of this test compared a
-        set against itself and could never fail.
-
-        With the recogniser forced to emit no hint, a route that added one
-        would still reach the RSU surface.
-        """
-        import src.mission.compiler as compiler
-        import src.workspace.routes as routes
-
-        original = routes.parse_with_model
-
-        def hintless(text, **kwargs):
-            from dataclasses import replace as _replace
-
-            stage1 = original(text, **kwargs)
-            return _replace(stage1,
-                            parsed=_replace(stage1.parsed, template_hint=None))
-
-        monkeypatch.setattr(routes, "parse_with_model", hintless)
-        response = ask(client, RSU)
-
-        # A 200 on the *generic* surface. Asserting only the absence of RSU
-        # text cannot tell "did not route" from "routed and then failed": a
-        # route that injected the hint would dispatch to a missing handler and
-        # return 501, which also contains no RSU text.
-        assert response.status_code == 200
-        assert "Employer stock" not in text_of(response)
-        assert "Confirmed under" not in text_of(response)
-
-
-class TestTheRouteBuildsNothing:
-
-    def test_it_calls_the_registered_handler(self):
-        import inspect
-
-        import src.workspace.routes as routes
-
-        source = inspect.getsource(routes._template_confirmation)
-        assert "handler_for(" in source
-        assert "handler(" in source
-
-    def test_it_does_not_reimplement_recognition(self):
-        import inspect
-
-        import src.workspace.routes as routes
-
-        source = inspect.getsource(routes._template_confirmation)
-        for duplicated in ("re.search", "RSUDeclaration(", "recognize("):
-            assert duplicated not in source
-
-
-class TestTheSurfaceCarriesNoComputedOutput:
-
-    def test_no_execution_figure_appears(self, client, monkeypatch):
-        """Structural, not textual.
-
-        The scope legitimately says "delivered shares" — that is what the run
-        will model. The invariant is that no *computed value* is produced, so
-        it is asserted by breaking every engine entry point and requiring the
-        page to render, and by checking the template context carries no run.
-        """
-        import src.workspace.routes as routes
-
-        def explode(*args, **kwargs):
-            raise AssertionError("the confirmation surface computed a figure")
-
-        monkeypatch.setattr(routes, "_run", explode)
-        monkeypatch.setattr(routes, "_prices", explode)
-        monkeypatch.setattr(routes, "compile_scenario", explode)
-
-        response = ask(client, RSU)
-        assert response.status_code == 200
-        assert "ACME" in text_of(response)
-
-    def test_the_surface_is_given_no_run_to_display(self):
-        """The context the template receives holds declarations only."""
-        import ast
-        import inspect
-        import textwrap
-
-        import src.workspace.routes as routes
-
-        tree = ast.parse(textwrap.dedent(
-            inspect.getsource(routes._template_confirmation)))
-        keys = {node.value for node in ast.walk(tree)
-                if isinstance(node, ast.Constant) and isinstance(node.value, str)}
-        for forbidden in ("run", "result", "benchmarks", "comparability",
-                          "chain"):
-            assert forbidden not in keys
-
-    def test_the_scope_is_shown_before_any_figure(self, client):
-        body = text_of(ask(client, RSU))
-        assert "This run will model" in body
-        assert "This run will not model" in body
-
-    def test_the_version_pin_is_shown(self, client):
-        assert "Confirmed under" in text_of(ask(client, RSU))
+        assert not hasattr(declaration, "compile_rsu_declaration"), (
+            "a declaration compiler now exists; RSU is no longer blocked on "
+            "its executable model and this refusal should be reconsidered")
