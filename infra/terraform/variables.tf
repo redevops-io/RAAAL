@@ -5,7 +5,13 @@
 variable "project" {
   description = "Name prefix for every resource."
   type        = string
-  default     = "quantify-test"
+
+  # Not "quantify-test". Every name is built as "${project}-${environment}",
+  # so that default produced `quantify-test-test/database-password` and a log
+  # group of `/quantify-test/test/application` for anyone who did not override
+  # it. The example tfvars happened to set it correctly, which is exactly how
+  # a bad default survives review.
+  default = "quantify"
 }
 
 variable "environment" {
