@@ -82,6 +82,16 @@ TABLE_MUTABILITY: Mapping[str, Mutability] = {
                       "revisited next year must show that figure, not one "
                       "recomputed against rules that have since moved."),
         Mutability(
+            table="market_data_access_event", kind=TableClass.IMMUTABLE_ARTIFACT,
+            immutable_columns=("frame_digest", "provenance_digest",
+                               "selected_columns", "row_count", "snapshot_id",
+                               "access_decision", "accessed_at", "run_id",
+                               "content_hash"),
+            rationale="A historical fact about a delivery that happened. There "
+                      "is no state it can legitimately move to, and every "
+                      "column is the evidence — a mutable field here would be "
+                      "a field that can be edited to make a run verify."),
+        Mutability(
             table="plan", kind=TableClass.IMMUTABLE_ARTIFACT,
             immutable_columns=("scenario", "parse", "content_hash"),
             rationale="The compiled scenario and the stage 1 parse are pinned. "

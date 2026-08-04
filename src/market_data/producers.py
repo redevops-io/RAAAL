@@ -92,6 +92,16 @@ PRODUCERS: Mapping[str, Producer] = {
             reason="The figures. A run is where market data becomes a number, "
                    "so it is where the record of which data belongs."),
         Producer(
+            table="market_data_access_event",
+            ownership=ProvenanceOwnership.DIRECT,
+            provenance_path="provenance_digest",
+            reason="Not a figure, but the record of the delivery a figure came "
+                   "from — it names its own provenance by digest rather than "
+                   "citing another artifact's, because it is the artifact a "
+                   "run cites. Classifying it REFERENCED would point at the "
+                   "run, and the run points here: the pair would each claim "
+                   "the other held the answer."),
+        Producer(
             table="worksheet", ownership=ProvenanceOwnership.REFERENCED,
             reference_path="payload.benchmark_run_refs",
             reference_table="plan_run",

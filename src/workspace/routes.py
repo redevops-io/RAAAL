@@ -176,11 +176,24 @@ def _prices() -> Optional[pd.DataFrame]:
     return resolve(context="pilot scenario run").frame
 
 
-def _market_data(context: str):
-    """The frame and its provenance, for anything that will persist a figure."""
-    from ..market_data.access import resolve
+def _market_data(context: str, *, plan_id: str = "", scenario=None,
+                 ran_at: str = ""):
+    """The frame, its provenance and the record of this delivery, together.
 
-    return resolve(context=context)
+    The run identity is computed *before* the data is resolved, wherever the
+    caller knows what it will store. That is what lets the delivery name the
+    execution it was made for, without a second write to connect them later —
+    and a chain with a second write has a half-connected state that a crash can
+    find. `run_id_for` is deterministic over exactly these three inputs, so
+    this is the same identity `generate` will derive, not a guess at it.
+    """
+    from ..market_data.access import resolve
+    from .generate import run_id_for
+
+    run_id = (run_id_for(plan_id, scenario.content_hash, ran_at)
+              if plan_id and scenario is not None and ran_at else None)
+    return resolve(context=context, run_id=run_id,
+                   request_id=f"{context}:{plan_id or 'anonymous'}")
 
 
 def _approved_snapshot():
@@ -412,8 +425,31 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
     if pins.unpinned:
         scope = {**scope, "unpinned_runtimes": pins.limitations()}
 
+    # What the engine was actually given, digested at the moment it is given.
+    #
+    # The delivery digest proves the resolver returned these rows. It cannot
+    # prove that nothing between here and `simulate` dropped, reordered,
+    # mutated or substituted them — so this closes the remaining span by
+    # digesting the frame at the call itself:
+    #
+    #     resolved_frame_digest -> execution_input_digest -> result
+    #
+    # Equal digests mean the transformation was the identity. They are equal
+    # today because `simulate` receives the delivered frame unchanged and the
+    # instrument selection travels in `program` rather than in the data. If a
+    # future path slices or adjusts the frame, this records that it did, and
+    # the difference must then name a declared, versioned transformation rather
+    # than pass unnoticed.
+    from ..market_data.access_event import frame_digest
+
+    execution_input = frame_digest(prices)
     result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
                       cash_policy=policy, modelling_scope=scope)
+    if access.access_event is not None:
+        scope = {**scope, "execution_input_digest": execution_input,
+                 "execution_input_matches_delivery":
+                     execution_input == access.access_event.frame_digest}
+        result = dataclasses_replace(result, modelling_scope=scope)
     # Attached here rather than by each caller. `_run` is the only place that
     # knows which access produced these figures, and a caller that has to
     # remember to attach it is a caller that can forget — which is how the live
@@ -623,7 +659,8 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = "",
     # The run is persisted before the worksheet that cites it. A worksheet
     # written first and back-filled would briefly name artifacts that were not
     # there, and "briefly" is exactly when a crash happens.
-    access = _market_data("saving a scenario")
+    access = _market_data("saving a scenario", plan_id=plan_id,
+                          scenario=scenario, ran_at=saved_at)
     if access.usable:
         run = _run(scenario, access)
         if run.get("result") is not None:
@@ -632,7 +669,7 @@ def save_plan(describe: str, plan_id: str, confirm_all: str = "",
                 run=run["result"].to_json(),
                 comparison={**(run.get("payload") or {}),
                             **(run.get("comparability_records") or {})},
-                ran_at=saved_at, title=plan_id)
+                ran_at=saved_at, title=plan_id, access=access)
 
     return RedirectResponse(f"/workspace/plans/{plan_id}", status_code=303)
 
@@ -928,7 +965,14 @@ def accept_worksheet_proposal(worksheet_id: str, proposal_id: str):
             # refuse rather than write a revision citing runs that never
             # happened.
             run_candidate=(_candidate_runner(access, store, worksheet_id)
-                           if access.usable else None))
+                           if access.usable else None),
+            # The same access the runner closes over. Passed explicitly so the
+            # delivery is recorded once and every candidate cites it, rather
+            # than each candidate carrying its own — a fan-out whose members
+            # cited different deliveries would be claiming they were measured
+            # on different data, which is the one thing comparing them assumes
+            # is untrue.
+            access=access)
     except StaleProposal as stale:
         raise HTTPException(status_code=409, detail=str(stale)) from stale
     except ApplyRefused as refused:

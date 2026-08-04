@@ -69,12 +69,31 @@ class TestTheModelMatchesTheShippedSchema:
         conn.executescript(SHIPPED_DDL)
         return conn
 
+    #: Tables introduced after `_SCHEMA` was shipped, with the reason. The
+    #: oracle is the *shipped* schema, so a legitimate new table appears here
+    #: as a declaration rather than by widening the comparison — an accidental
+    #: table still fails.
+    DELIBERATELY_ADDED_TABLES = {
+        "market_data_access_event":
+            "the factual record that one execution received one realized "
+            "frame. A stored run previously cited only what its producer "
+            "declared it had used, and the producer is the component a defect "
+            "would corrupt.",
+    }
+
     def test_every_table_is_modelled(self, shipped):
         live = {row["name"] for row in shipped.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' "
             "AND name NOT LIKE 'sqlite_%'")}
-        assert live == set(schema.metadata.tables), (
+        modelled = set(schema.metadata.tables)
+        added = (modelled - live) & set(self.DELIBERATELY_ADDED_TABLES)
+        assert live == modelled - added, (
             "the model and the database disagree about which tables exist")
+
+    def test_each_added_table_records_why(self):
+        for table, reason in self.DELIBERATELY_ADDED_TABLES.items():
+            assert table in schema.metadata.tables, f"{table} no longer exists"
+            assert len(reason.strip()) > 40, table
 
     #: Columns added after shipping, with the reason. Enumerated so an
     #: accidental addition still fails the comparison.
@@ -83,10 +102,19 @@ class TestTheModelMatchesTheShippedSchema:
         # question was a join, and deletion was one forgotten cascade away
         # from keeping every run while reporting success.
         ("plan_run", "owner"),
+        # Which delivery produced these figures. Nullable: runs recorded before
+        # deliveries were captured cite none, and back-filling one from today's
+        # configuration would manufacture the evidence the column exists to
+        # provide.
+        ("plan_run", "access_event_id"),
     }
 
     def test_every_column_is_modelled(self, shipped):
         for table in sorted(schema.metadata.tables):
+            if table in self.DELIBERATELY_ADDED_TABLES:
+                # No shipped counterpart to compare against; the table itself
+                # is declared above, and its shape is the model's own.
+                continue
             live = {row["name"] for row in
                     shipped.execute(f"PRAGMA table_info({table})")}
             modelled = {column.name
@@ -118,6 +146,12 @@ class TestTheModelMatchesTheShippedSchema:
     def test_primary_keys_match(self, shipped):
         """The conflict target of every upsert depends on this being right."""
         for table in sorted(schema.metadata.tables):
+            if table in self.DELIBERATELY_ADDED_TABLES:
+                # Asserted directly, for the same reason as `plan_run` below:
+                # there is no shipped key to compare against.
+                assert schema.primary_key_columns(table)[0] == "owner", (
+                    f"{table} is not keyed by owner first")
+                continue
             if table == "plan_run":
                 # Had no owner column at all before the ownership migration,
                 # so there is no shipped key to compare against. Its identity

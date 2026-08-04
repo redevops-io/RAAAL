@@ -268,6 +268,43 @@ confirmation_event = Table(
     Column("defaults_ref", Text),
 )
 
+# What a specific execution was actually delivered, as opposed to which source
+# it was authorised to read. Append-only: a row here is a historical fact about
+# a delivery that happened, and there is no state it can legitimately move to.
+#
+# `run_id` is a plain column, not a foreign key, and that is deliberate. The
+# event is written *before* the run it names, so the run does not exist to point
+# at yet — allocating the run identity first is what removes the second write
+# that would otherwise be needed to connect them, and a chain with a second
+# write has a half-connected state that a crash can find. The direction that
+# does carry a constraint is `plan_run.access_event_id`, below.
+market_data_access_event = Table(
+    "market_data_access_event", metadata,
+    Column("owner", Text, primary_key=True),
+    Column("access_event_id", Text, primary_key=True),
+    Column("request_id", Text, nullable=False),
+    Column("run_id", Text),
+    Column("snapshot_id", Text),
+    # Which provenance record, not merely which snapshot: two provenances
+    # differing only in access time are different records, and a snapshot id
+    # cannot tell them apart.
+    Column("provenance_digest", Text, nullable=False),
+    Column("frame_digest", Text, nullable=False),
+    Column("selected_columns", JsonText, nullable=False),
+    Column("row_count", Integer, nullable=False),
+    Column("range_start", Text),
+    Column("range_end", Text),
+    Column("policy_version", Text, nullable=False),
+    Column("access_decision", Text, nullable=False),
+    Column("accessed_at", Text, nullable=False),
+    # Over the whole event body, so an edited field is detectable rather than
+    # merely unlikely.
+    Column("content_hash", Text, nullable=False),
+)
+
+Index("access_event_run", market_data_access_event.c.owner,
+      market_data_access_event.c.run_id)
+
 plan_run = Table(
     "plan_run", metadata,
     Column("owner", Text, primary_key=True),
@@ -276,6 +313,13 @@ plan_run = Table(
     Column("ran_at", Text, nullable=False),
     Column("result", JsonText, nullable=False),
     Column("comparison", JsonText, nullable=False),
+    # Which delivery produced these figures. Nullable because runs recorded
+    # before access events existed have none, and a placeholder would claim a
+    # delivery nobody recorded — the same reason `NOT_RECORDED` is a status
+    # rather than an empty provenance. A live producer may not leave it null;
+    # that is enforced in `generate`, where the distinction between "historical
+    # absence" and "this code declined to" is knowable.
+    Column("access_event_id", Text),
     # `plan_run` used to carry no owner and was reachable only through its
     # plan. That made the production schema weaker than it needed to be —
     # tenant-unsafe run ids, a join on every ownership question, and an
@@ -407,6 +451,19 @@ RELATIONSHIPS: Tuple[Relationship, ...] = (
                   "`retention.py` reaches it only through `plan.owner` — so the "
                   "constraint holds the application to deleting runs first, "
                   "which is the order `delete_workspace` already uses."),
+    Relationship(
+        table="plan_run", columns=("owner", "access_event_id"),
+        parent="market_data_access_event",
+        parent_columns=("owner", "access_event_id"),
+        policy=DeletePolicy.RESTRICT,
+        rationale="The event is the evidence that this run consumed this exact "
+                  "frame. Cascading from it would let deleting the evidence "
+                  "delete the finding, and RESTRICT is stronger still: while a "
+                  "run exists, the delivery it cites cannot be removed, so a "
+                  "stored figure can never become unverifiable by a deletion "
+                  "elsewhere. The column is nullable — runs recorded before "
+                  "access events existed cite none — and a foreign key does "
+                  "not constrain NULL."),
     Relationship(
         table="event_reconciliation", columns=("owner", "worksheet_id",
                                                "planned_event_id"),

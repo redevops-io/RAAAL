@@ -85,14 +85,21 @@ class ApplyResult:
 
 def accept(store, *, proposal_id: str, owner: str, worksheet_id: str,
            proposal: WorksheetProposal, at: str, actor: str = "pilot",
-           run_candidate: Optional[Callable[[Sequence[str]], Mapping[str, Any]]] = None
-           ) -> ApplyResult:
+           run_candidate: Optional[Callable[[Sequence[str]], Mapping[str, Any]]] = None,
+           access=None) -> ApplyResult:
     """Apply a reviewed proposal, or refuse with a reason.
 
     `run_candidate` simulates one candidate and returns its result payload. It
     is injected rather than imported so the apply path can be tested against a
     failing run without a price file, and so a caller cannot accidentally get a
     scenario change applied without one.
+
+    `access` is the one `MarketDataAccess` every candidate was simulated
+    against. It is passed here rather than left inside the runner's closure
+    because the delivery must be *recorded* once and cited by every candidate
+    run: a fan-out where each candidate carried its own event would say the
+    candidates were measured on different data, and comparing them is the only
+    thing the fan-out is for.
     """
     if not proposal.applicable:
         raise ApplyRefused(
@@ -106,7 +113,8 @@ def accept(store, *, proposal_id: str, owner: str, worksheet_id: str,
         return _apply(
             store, proposal_id=proposal_id, owner=owner,
             worksheet_id=worksheet_id, proposal=proposal, at=at, actor=actor,
-            run_candidate=run_candidate, runs=runs, derived=derived)
+            run_candidate=run_candidate, runs=runs, derived=derived,
+            access=access)
     except ApplyRefused:
         raise
     except Exception as exc:
@@ -132,7 +140,7 @@ def accept(store, *, proposal_id: str, owner: str, worksheet_id: str,
 
 
 def _apply(store, *, proposal_id, owner, worksheet_id, proposal, at, actor,
-           run_candidate, runs, derived) -> ApplyResult:
+           run_candidate, runs, derived, access=None) -> ApplyResult:
     with store.transaction():
         # Lock first, then read everything that authorizes the acceptance.
         #
@@ -178,13 +186,29 @@ def _apply(store, *, proposal_id, owner, worksheet_id, proposal, at, actor,
                 raise ApplyRefused(
                     "a scenario change requires a run, and no runner was "
                     "supplied. No run means no revision")
+            # One delivery, recorded once, cited by every candidate. Inside
+            # the transaction with the runs, so a fan-out is atomic: there is
+            # no committed state where some candidates cite evidence and the
+            # rest do not.
+            #
+            # The event's own `run_id` is left unset for a fan-out — it was
+            # resolved for the acceptance, not for any one candidate — and
+            # `record_run` accepts that while still refusing an event recorded
+            # *for a different* run. Naming one candidate would make the other
+            # citations look like the substitution this is built to detect.
+            event = getattr(access, "access_event", None)
+            event_id = None
+            if event is not None:
+                event_id = store.record_access_event(event, owner=owner)
+
             for index, change in enumerate(proposal.changes):
                 candidate = change.value
                 result = run_candidate(candidate)
                 run_id = f"{proposal_id}-run-{index}"
                 store.record_run(run_id=run_id, plan_id=worksheet.scenario_ref,
                                  ran_at=at, result=dict(result),
-                                 comparison={"candidate": list(candidate)})
+                                 comparison={"candidate": list(candidate)},
+                                 access_event_id=event_id)
                 runs.append(run_id)
 
         elif proposal.edit_effect == "DERIVED_ANALYSIS":

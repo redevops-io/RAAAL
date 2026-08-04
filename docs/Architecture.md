@@ -831,6 +831,95 @@ a unit test with more setup, and would have found nothing the unit test did not.
 
 ---
 
+## Content-bound execution
+
+A stored figure must trace to the frame that produced it, not to the source its
+producer said it had used.
+
+```text
+run_id allocated
+  -> resolve() digests the frame it returns
+    -> MarketDataAccessEvent
+      -> execution_input_digest
+        -> run cites the event
+```
+
+**Provenance and delivery answer different questions.** `MarketDataProvenance`
+describes an authorized source and the decision that permitted it, and is
+reusable — two runs a month apart under one policy carry identical records, so
+identical records are not evidence of the same delivery.
+`MarketDataAccessEvent` is the delivery: this request, these columns, this many
+rows, this digest, at this instant.
+
+The gap that closed is narrow and was load-bearing. Until this existed, a run
+cited what its *producer declared*, and the producer is the one component whose
+claim is not independent evidence — it is precisely what a defect corrupts.
+This run path had already been caught dropping the resolver's answer while
+every unit test passed.
+
+**The digest is computed inside `resolve`, over the frame it is about to
+return.** A caller computing it afterwards would digest whatever the caller was
+holding, and whether that is still what was delivered is the entire question.
+
+**What a digest does not prove.** It proves the resolver returned exactly these
+canonical rows. It does not prove that downstream code did not drop, reorder,
+mutate or substitute them. That span is closed separately by
+`execution_input_digest`, taken over the frame handed to the engine: equal
+digests mean the transformation was the identity, and an unequal pair must name
+a declared, versioned transformation or the run does not verify.
+
+**Three checks, kept apart**, because two can hold while the third fails and one
+boolean would hide which:
+
+| check | what a failure means |
+|---|---|
+| event integrity | the stored body is not the body its hash was taken over |
+| run binding | the delivery is evidence about a different execution |
+| declared consistency | the run's own claim and the delivery record disagree |
+
+**Canonicalisation is versioned and representation-independent.** The digest is
+taken over sorted columns, sorted index and `repr` of Python floats — never over
+`to_string()` or a pickle, which change with the library and would report every
+stored run as tampered on an upgrade. `.tolist()` rather than cell-by-cell
+indexing is a correctness decision as much as a speed one: `repr(np.float64(1.0))`
+is `'np.float64(1.0)'` on numpy 2 and `'1.0'` on numpy 1.
+
+**The evidence cannot be deleted out from under a figure.** `plan_run` cites the
+event under RESTRICT, so while a run exists the delivery it cites cannot be
+removed — a stored figure never becomes unverifiable because something else was
+deleted.
+
+**Where the fan-out assertion was vacuous.** The journey produces one run, so
+"every run cites the same delivery" held trivially there; the falsification pass
+found it by mutating the fan-out and watching nothing fail. The claim now has a
+constructed fan-out behind it, with `test_the_fan_out_produced_several_runs`
+asserting the premise so the rest cannot quietly become vacuous again.
+
+**The adjacent lifecycle is where a new table actually fails.** The access-event
+logic was proven where it is written; deletion, export, transfer, retry and
+rollback all iterate table inventories, and the new table joins those by
+derivation from the registry and the relationship graph rather than by anyone
+remembering it. Derivation is why it should work, and
+`tests/test_access_event_lifecycle.py` is why it is known to — the eight cases
+each answer a question that could be wrong without any access-event test
+failing. Two guards fired on their own: export refused the unclassified table
+until retention classified it, and the tenancy lane refused a new store write
+method it had never captured.
+
+**The crash mode is chosen, not inherited.** The delivery is written before the
+run, so a crash between them leaves an orphan delivery — inert, and cleanable.
+The reverse, a stored figure citing evidence that was never written, is what the
+constraint makes impossible. Cleanup does not exist yet; when it does, the
+database is what stops it removing a cited row, so the guarantee is tested
+against the constraint rather than against a policy nobody has written.
+
+> **Closure.** Every market-derived run traces to an immutable access event
+> holding the digest of the exact frame delivered, and its modelling scope holds
+> the digest of the exact frame consumed. A shared candidate fan-out cites one
+> delivery. Stored provenance, delivery and execution input stay distinct and
+> independently verifiable, and none of the three is re-derived from current
+> configuration when a stored figure is read.
+
 ## The invariants, and where they came from
 
 These are not principles chosen in advance. Each was named after the same

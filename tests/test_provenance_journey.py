@@ -268,3 +268,171 @@ class TestAMixedProvenanceSetIsVisible:
                    for run in stored_runs(fresh_store())]
         assert "a-different-snapshot" in {one.snapshot_id for one in records}, (
             "a divergent cited run went unnoticed")
+
+
+class TestTheStoredRunCitesTheDeliveryItConsumed:
+    """The gap this closed: a stored run cited what its *producer declared*.
+
+    Declared provenance and a delivery record fail differently. Provenance is
+    reusable — two runs under one policy carry identical records — so it cannot
+    distinguish "this run received this frame" from "this run was written by
+    code that believed it had". The event is the delivery itself, digested by
+    the resolver over the frame it returned.
+    """
+
+    def events(self, store):
+        with store._conn() as conn:
+            return [dict(row) for row in conn.execute(
+                "SELECT * FROM market_data_access_event WHERE owner = ?",
+                (OWNER,)).fetchall()]
+
+    def test_the_run_cites_a_delivery(self, journey):
+        for run in stored_runs(fresh_store()):
+            assert run["access_event_id"], (
+                f"{run['run_id']} reached PostgreSQL citing no delivery; its "
+                "only evidence is its own producer's claim")
+
+    def test_the_delivery_is_in_postgresql(self, journey):
+        store = fresh_store()
+        assert self.events(store), "no delivery record reached the database"
+
+    def test_the_chain_verifies(self, journey):
+        store = fresh_store()
+        for run in stored_runs(store):
+            assert store.verify_access_chain(run["run_id"], OWNER) == [], (
+                f"{run['run_id']} does not verify against its delivery")
+
+    def test_the_delivery_names_the_run_it_was_resolved_for(self, journey):
+        """Allocated before computation, so no second write binds them."""
+        store = fresh_store()
+        runs = {run["run_id"] for run in stored_runs(store)}
+        named = {event["run_id"] for event in self.events(store)
+                 if event["run_id"]}
+        assert named & runs, (
+            "no delivery names the run it was made for; the identity was "
+            "allocated after computation and bound afterwards")
+
+    def test_the_execution_input_matched_the_delivery(self, journey):
+        """`resolved_frame_digest -> execution_input_digest -> result`.
+
+        The delivery digest proves the resolver returned these rows. This
+        proves the engine was handed those rows and not something they had
+        become on the way.
+        """
+        for run in stored_runs(fresh_store()):
+            scope = run["result"].get("modelling_scope") or {}
+            assert scope.get("execution_input_digest"), run["run_id"]
+            assert scope["execution_input_matches_delivery"] is True, (
+                f"{run['run_id']} simulated a frame that is not the one it was "
+                "delivered; the transformation between them is undeclared")
+
+    def test_the_stored_digest_is_the_resolver_digest(self, journey):
+        """Recomputed from the snapshot, so the stored value is checked against
+        the data rather than against itself."""
+        from src.market_data.access import resolve
+        from src.market_data.access_event import frame_digest
+
+        store = fresh_store()
+        live = frame_digest(resolve(context="verification").frame)
+        assert {event["frame_digest"] for event in self.events(store)} == {live}
+
+
+class TestOneResolutionIsOneDelivery:
+    """SHARED_ACCESS: candidates compared against each other must have been
+    measured on the same data, and citing separate deliveries would say they
+    were not."""
+
+    def test_every_run_cites_the_same_delivery(self, journey):
+        cited = {run["access_event_id"] for run in stored_runs(fresh_store())}
+        assert len(cited) == 1, (
+            f"{len(cited)} deliveries across runs that share one resolution; "
+            "comparing figures drawn from different deliveries is the thing "
+            "the fan-out assumes cannot happen")
+
+    def test_one_delivery_row_exists(self, journey):
+        store = fresh_store()
+        with store._conn() as conn:
+            count = conn.execute(
+                "SELECT COUNT(*) AS n FROM market_data_access_event "
+                "WHERE owner = ?", (OWNER,)).fetchone()["n"]
+        assert count == 1, f"{count} delivery rows for one resolution"
+
+
+class TestReadingNeverReDigests:
+    def test_reopening_does_not_recompute_a_digest(self, journey, monkeypatch):
+        """Reopening must read the stored delivery, not re-derive one. A
+        re-derived digest would silently agree with whatever is configured now,
+        which is the failure verification exists to catch."""
+        import src.market_data.access_event as event_module
+
+        store = fresh_store()
+        monkeypatch.setattr(event_module, "frame_digest", _refuse)
+        assert store.list_plans(OWNER)
+        for run in stored_runs(store):
+            assert store.verify_access_chain(run["run_id"], OWNER) == []
+
+    def test_exporting_does_not_recompute_a_digest(self, journey, monkeypatch):
+        import src.market_data.access_event as event_module
+
+        from src.db.transfer import export_bundle
+
+        store = fresh_store()
+        monkeypatch.setattr(event_module, "frame_digest", _refuse)
+        bundle = export_bundle(store, exported_at="2026-08-01T00:00:00Z")
+        assert bundle["manifest"]["counts"]["market_data_access_event"] >= 1
+
+
+def _refuse(*args, **kwargs):
+    raise AssertionError(
+        "a digest was recomputed while reading stored state; the answer must "
+        "come from the record")
+
+
+class TestTamperingBreaksTheChain:
+    def test_an_edited_delivery_is_detected(self, journey):
+        store = fresh_store()
+        runs = stored_runs(store)
+        assert runs
+        with store._conn() as conn:
+            conn.execute(
+                "UPDATE market_data_access_event SET frame_digest = ? "
+                "WHERE owner = ?", ("mdf1:swapped-after-the-fact", OWNER))
+        problems = store.verify_access_chain(runs[0]["run_id"], OWNER)
+        assert any("edited since it was written" in one for one in problems)
+
+    def test_the_delivery_cannot_be_deleted_while_a_run_cites_it(self, journey):
+        """RESTRICT, on the deployed engine. A stored figure must not become
+        unverifiable because something else was deleted."""
+        store = fresh_store()
+        assert stored_runs(store)
+        # Asserted on SQLSTATE rather than on an exception class: the driver
+        # raises `psycopg.errors.ForeignKeyViolation` here and
+        # `sqlite3.IntegrityError` on the unit lane, and a test that named one
+        # class would pass on one engine while proving nothing on the other.
+        with pytest.raises(Exception) as refusal:               # noqa: PT011
+            with store._conn() as conn:
+                conn.execute(
+                    "DELETE FROM market_data_access_event WHERE owner = ?",
+                    (OWNER,))
+        assert getattr(refusal.value, "sqlstate", "23503") == "23503", (
+            f"the delete failed for something other than the constraint: "
+            f"{type(refusal.value).__name__}")
+        # And still there afterwards, so the refusal was a refusal rather than
+        # a partial delete that raised on its way out.
+        assert _events(store)
+
+    def test_a_policy_change_does_not_alter_the_stored_delivery(self, journey,
+                                                                 monkeypatch):
+        store = fresh_store()
+        before = [dict(row) for row in _events(store)]
+        monkeypatch.setenv("PILOT_DATA_POLICY",
+                           "market-data-egress/pilot-vendor-approved@1")
+        after = [dict(row) for row in _events(fresh_store())]
+        assert after == before
+
+
+def _events(store):
+    with store._conn() as conn:
+        return conn.execute(
+            "SELECT * FROM market_data_access_event WHERE owner = ?",
+            (OWNER,)).fetchall()

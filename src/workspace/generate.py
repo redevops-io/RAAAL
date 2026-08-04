@@ -102,14 +102,66 @@ def _require_recorded_provenance(run_id: str, market_data) -> None:
                 "which should not have yielded data at all.")
 
 
+def _require_delivery(run_id: str, market_data, access_event) -> None:
+    """A run that used market data must cite the delivery it received.
+
+    Same asymmetry as `_require_recorded_provenance` above, one step further
+    along the chain. The store accepts a null `access_event_id`, because runs
+    written before deliveries were captured have none and a migration must
+    carry them through unchanged. A *live* producer leaving it null would
+    produce a row indistinguishable from those, claiming historical absence for
+    an omission it made a moment ago.
+
+    **Only where a figure is market-derived.** A `NOT_APPLICABLE` run consumed
+    no frame, so there is no delivery for it to cite and demanding one would
+    refuse a legitimate result. The condition is read from the provenance the
+    run carries rather than from whether an event happens to be present, so a
+    market-derived run cannot escape the requirement by arriving without one —
+    which is the direction that matters.
+    """
+    from ..market_data.provenance import ProvenanceStatus, from_json
+
+    if from_json(market_data).status is not ProvenanceStatus.RECORDED:
+        return
+
+    if access_event is None:
+        raise UnattributableRun(
+            f"run {run_id} cites no market-data delivery. This is a live "
+            "producer: it holds the access event the resolver returned and "
+            "may not store a figure without it.")
+    if access_event.run_id and access_event.run_id != run_id:
+        raise UnattributableRun(
+            f"run {run_id} was handed a delivery recorded for run "
+            f"{access_event.run_id!r}. A frame delivered to one execution is "
+            "not evidence about another.")
+    if not access_event.identifies_delivery:
+        raise UnattributableRun(
+            f"run {run_id} cites a delivery that names no realized frame. An "
+            "event without a digest describes a source, which the provenance "
+            "already does, and proves nothing about what was consumed.")
+
+
 def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any],
              comparison: Mapping[str, Any], ran_at: str,
-             title: str = "", provenance=None) -> Optional[ResearchWorksheet]:
-    """Persist the run, then create or revise the worksheet that cites it.
+             title: str = "", provenance=None, access=None
+             ) -> Optional[ResearchWorksheet]:
+    """Persist the delivery, then the run, then the worksheet that cites it.
 
     Returns `None` when there is no run to cite. A worksheet whose performance
     block can never be filled is worse than no worksheet: it looks like a
     result that has not loaded.
+
+    The order is the point and it is enforced by the foreign key: a run may not
+    cite a delivery that is not yet recorded. Writing the run first and
+    back-filling would leave a window in which a stored figure names evidence
+    that does not exist, and "a window" is where a crash lands.
+
+    The writes are separate statements, so a crash between them is possible and
+    its outcome is deliberate: an orphan delivery record that no run cites.
+    That is inert — append-only evidence of a read that happened — and it is
+    the direction the ordering chooses. The reverse, a stored figure citing
+    evidence that was never written, is the one the constraint makes
+    impossible.
     """
     if not run:
         return None
@@ -121,8 +173,14 @@ def generate(store, *, plan_id: str, owner: str, scenario, run: Mapping[str, Any
     if provenance is not None and "market_data" not in body:
         body["market_data"] = provenance.to_json()
     _require_recorded_provenance(identifier, body.get("market_data"))
+
+    event = getattr(access, "access_event", None)
+    _require_delivery(identifier, body.get("market_data"), event)
+    if event is not None:
+        store.record_access_event(event, owner=owner)
     store.record_run(run_id=identifier, plan_id=plan_id, ran_at=ran_at,
-                     result=body, comparison=dict(comparison or {}))
+                     result=body, comparison=dict(comparison or {}),
+                     access_event_id=event.access_event_id if event else None)
 
     # Found by what it cites, not by an id computed from the plan name. With an
     # opaque identity there is nothing to recompute, and looking it up by

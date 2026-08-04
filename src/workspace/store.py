@@ -568,9 +568,150 @@ class WorkspaceStore:
             )
         return plan_id
 
+    def record_access_event(self, event, *, owner: str) -> str:
+        """Persist one market-data delivery. Append-only.
+
+        Written *before* the run that cites it, so the run's foreign key has
+        something to point at. That ordering is also why `run_id` here carries
+        no constraint: the run does not exist yet.
+
+        Redelivery is by content, matching every other immutable artifact here
+        — the same identity with the same body is the same event arriving
+        twice, and the same identity with a different body is two different
+        deliveries claiming one name, which is exactly what the digest exists
+        to make impossible to do quietly.
+        """
+        from ..market_data.access_event import verify as _verify_event
+
+        body = event.to_json()
+        problems = _verify_event({**body, "content_hash": event.content_hash()})
+        if problems:
+            raise NotSaveable(
+                f"access event {event.access_event_id} is not a coherent "
+                "delivery record: " + "; ".join(problems))
+
+        digest = event.content_hash()
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT content_hash FROM market_data_access_event "
+                "WHERE access_event_id = ? AND owner = ?",
+                (event.access_event_id, owner)).fetchone()
+            if existing is not None:
+                if existing["content_hash"] == digest:
+                    return event.access_event_id          # idempotent redelivery
+                raise NotSaveable(
+                    f"access event {event.access_event_id} is already stored "
+                    "with a different body. A delivery record is a fact about "
+                    "what happened; replacing it would let a run be made to "
+                    "verify against data it never received")
+            span = event.time_range
+            conn.execute(
+                """INSERT INTO market_data_access_event
+                   (owner, access_event_id, request_id, run_id, snapshot_id,
+                    provenance_digest, frame_digest, selected_columns,
+                    row_count, range_start, range_end, policy_version,
+                    access_decision, accessed_at, content_hash)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (owner, event.access_event_id, event.request_id, event.run_id,
+                 event.snapshot_id, event.provenance_digest, event.frame_digest,
+                 Json(list(event.selected_columns)), event.row_count,
+                 span.start if span else None, span.end if span else None,
+                 event.policy_version, event.access_decision.value,
+                 event.accessed_at, digest))
+        return event.access_event_id
+
+    def get_access_event(self, access_event_id: str,
+                         owner: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM market_data_access_event "
+                "WHERE access_event_id = ? AND owner = ?",
+                (access_event_id, owner)).fetchone()
+        return self._access_event_row(row) if row is not None else None
+
+    @staticmethod
+    def _access_event_row(row) -> Dict[str, Any]:
+        """The stored row as the event's own JSON shape.
+
+        Reassembled here rather than by each reader, so `verify` compares a
+        stored body against a stored hash rather than against whatever shape a
+        particular caller happened to build.
+        """
+        span = ({"start": row["range_start"], "end": row["range_end"]}
+                if row["range_start"] else None)
+        return {"access_event_id": row["access_event_id"],
+                "request_id": row["request_id"], "run_id": row["run_id"],
+                "snapshot_id": row["snapshot_id"],
+                "provenance_digest": row["provenance_digest"],
+                "frame_digest": row["frame_digest"],
+                "selected_columns": loads(row["selected_columns"], []),
+                "row_count": row["row_count"], "time_range": span,
+                "policy_version": row["policy_version"],
+                "access_decision": row["access_decision"],
+                "accessed_at": row["accessed_at"],
+                "version": "market-data-access-event@1",
+                "content_hash": row["content_hash"]}
+
+    def verify_access_chain(self, run_id: str, owner: str) -> List[str]:
+        """Whether a stored run's data claim is supported by a delivery record.
+
+        Three independent questions, because two of them can hold while the
+        third fails and a single boolean would hide which:
+
+            event integrity   is the stored event internally coherent, and is
+                              its body the body its hash was taken over
+            run binding       does the event name this run, and this owner
+            declared consistency
+                              does the provenance the run carries digest to the
+                              provenance the event says it was delivered under
+
+        Reads only stored rows. A check that consulted the current snapshot
+        would report every run made under a previous one as broken, which is
+        the failure mode that makes a verifier get switched off.
+        """
+        from ..market_data.access_event import from_json as event_from_json
+        from ..market_data.access_event import verify as verify_event
+        from ..market_data.provenance import from_json as provenance_from_json
+        from ..market_data.access_event import provenance_digest
+
+        run = self.get_run(run_id, owner)
+        if run is None:
+            return [f"no run {run_id!r} for this owner"]
+
+        event_id = run.get("access_event_id")
+        if not event_id:
+            # Absence is a fact, not a failure: runs recorded before deliveries
+            # were captured cite none. `generate` refuses to *create* one.
+            return []
+
+        stored = self.get_access_event(event_id, owner)
+        if stored is None:
+            return [f"run {run_id} cites access event {event_id!r}, which is "
+                    "not in this workspace"]
+
+        problems = list(verify_event(stored))
+
+        event = event_from_json(stored)
+        if event.run_id and event.run_id != run_id:
+            problems.append(
+                f"run {run_id} cites an event recorded for run "
+                f"{event.run_id!r}; a delivery to one execution is not "
+                "evidence about another")
+
+        declared = (run.get("result") or {}).get("market_data")
+        if declared:
+            carried = provenance_digest(provenance_from_json(declared))
+            if carried != event.provenance_digest:
+                problems.append(
+                    "the provenance stored with the run is not the provenance "
+                    "the delivery was made under; the run's own claim and the "
+                    "record of what it received disagree")
+        return problems
+
     def record_run(self, *, run_id: str, plan_id: str, ran_at: str,
                    result: Dict[str, Any], comparison: Dict[str, Any],
-                   owner: Optional[str] = None) -> str:
+                   owner: Optional[str] = None,
+                   access_event_id: Optional[str] = None) -> str:
         """Persist a historical run so its verdict survives later changes.
 
         Same reason the public ledger stores verdicts rather than recomputing
@@ -638,14 +779,36 @@ class WorkspaceStore:
                         f"to {len(rows)} owners. A run must belong to exactly "
                         "one; pass `owner` explicitly")
                 owner = rows[0]["owner"]
-            digest = canonical_hash({"result": result, "comparison": comparison})
+            # A cited delivery must exist, belong to this owner, and name this
+            # run. Checked before the insert rather than left to the foreign
+            # key: the constraint proves the row exists, and none of the three
+            # things that make it *evidence about this run*.
+            if access_event_id:
+                cited = conn.execute(
+                    "SELECT run_id FROM market_data_access_event "
+                    "WHERE access_event_id = ? AND owner = ?",
+                    (access_event_id, owner)).fetchone()
+                if cited is None:
+                    raise NotSaveable(
+                        f"run {run_id} cites access event {access_event_id!r}, "
+                        "which is not in this workspace. Record the delivery "
+                        "before the run that consumed it")
+                if cited["run_id"] and cited["run_id"] != run_id:
+                    raise NotSaveable(
+                        f"run {run_id} cites a delivery recorded for run "
+                        f"{cited['run_id']!r}. A frame delivered to one "
+                        "execution is not evidence about another")
+
+            digest = canonical_hash({"result": result, "comparison": comparison,
+                                     "access_event_id": access_event_id})
             existing = conn.execute(
-                "SELECT result, comparison FROM plan_run "
+                "SELECT result, comparison, access_event_id FROM plan_run "
                 "WHERE run_id = ? AND owner = ?", (run_id, owner)).fetchone()
             if existing is not None:
                 stored = canonical_hash({
                     "result": loads(existing["result"], {}),
-                    "comparison": loads(existing["comparison"], {})})
+                    "comparison": loads(existing["comparison"], {}),
+                    "access_event_id": existing["access_event_id"]})
                 if stored == digest:
                     return run_id            # idempotent redelivery
                 raise NotSaveable(
@@ -655,9 +818,11 @@ class WorkspaceStore:
                     "cited. Record a new run instead")
             conn.execute(
                 """INSERT INTO plan_run
-                   (owner, run_id, plan_id, ran_at, result, comparison)
-                   VALUES (?,?,?,?,?,?)""",
-                (owner, run_id, plan_id, ran_at, Json(result), Json(comparison)),
+                   (owner, run_id, plan_id, ran_at, result, comparison,
+                    access_event_id)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (owner, run_id, plan_id, ran_at, Json(result), Json(comparison),
+                 access_event_id),
             )
         return run_id
 

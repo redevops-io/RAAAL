@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 
+from .access_event import MarketDataAccessEvent
 from .provenance import MarketDataProvenance, ProvenanceStatus
 
 #: Every file a production request is permitted to obtain market data from is
@@ -44,25 +45,66 @@ class MarketDataAccess:
     frame: Optional[Any]
     provenance: "MarketDataProvenance"
 
+    access_event: Optional["MarketDataAccessEvent"] = None
+    """The factual record of *this* delivery, digested from the frame beside
+    it. `None` only where nothing was delivered — a denial, a missing snapshot,
+    an unloadable file — because an event describing no frame would be a claim
+    with nothing behind it. Provenance says which source was authorised; this
+    says what arrived."""
+
     @property
     def usable(self) -> bool:
         return self.frame is not None
 
+    @property
+    def access_event_id(self) -> Optional[str]:
+        return self.access_event.access_event_id if self.access_event else None
+
+    def matches_delivery(self, frame: Any) -> bool:
+        """Whether `frame` is byte-for-byte the canonical content delivered.
+
+        How execution proves it simulated what it was given rather than
+        something it later became. A digest recomputed by the caller over the
+        caller's own frame would answer a different question.
+        """
+        from .access_event import frame_digest
+
+        if self.access_event is None:
+            return False
+        return frame_digest(frame) == self.access_event.frame_digest
+
     def __iter__(self):
-        """Unpacks as a pair, for callers that want only one half."""
+        """Unpacks as a pair, for callers that want only one half.
+
+        Deliberately still a pair. Widening it to three would silently give
+        every existing `frame, provenance = resolve(...)` a third value or an
+        unpacking error, and the event has a named accessor precisely so it is
+        reached on purpose.
+        """
         return iter((self.frame, self.provenance))
 
 
-def resolve(*, context: str, accessed_at: Optional[str] = None
+def resolve(*, context: str, accessed_at: Optional[str] = None,
+            request_id: Optional[str] = None, run_id: Optional[str] = None
             ) -> "MarketDataAccess":
-    """Prices and the provenance of the data behind them, together.
+    """Prices, their provenance and the record of this delivery, together.
 
     Returned as one object so a caller cannot obtain a figure without the
     record of where it came from. A separate "and also fetch the provenance"
     call is one a producer can forget, and the figure it forgot on looks
     exactly like one it did not.
+
+    `run_id` is accepted so the execution that will consume this frame can be
+    named *before* it runs. Binding afterwards would need a second write to
+    connect them, and a chain with a second write has a state where it is half
+    connected — which is the state a crash finds.
+
+    The frame digest is computed here, over the frame about to be returned.
+    A caller computing it later would digest whatever the caller was holding,
+    and whether that is still what was delivered is the whole question.
     """
     import datetime as dt
+    import uuid
 
     from .provenance import (
         AccessDecision,
@@ -71,6 +113,7 @@ def resolve(*, context: str, accessed_at: Optional[str] = None
     )
     from .loader import load_prices, synthetic_snapshot
     from ..deploy.context import current
+    from .access_event import build as build_event
     from .pilot_policy import PilotDataDenied, PilotDataPolicy, authorise
 
     stamp = accessed_at or (
@@ -118,9 +161,18 @@ def resolve(*, context: str, accessed_at: Optional[str] = None
         return MarketDataAccess(None, not_recorded(
             f"snapshot {snapshot.snapshot_id} could not be loaded"))
 
-    return MarketDataAccess(frame.sort_index(), recorded(
-        snapshot, policy_version=policy.value, decision=decision,
-        accessed_at=stamp, reason=context))
+    # Sorted first, then digested, then described — in that order, over one
+    # object. The frame handed to the caller and the frame the digest describes
+    # are the same value, not two values that ought to be equal.
+    delivered = frame.sort_index()
+    provenance = recorded(snapshot, policy_version=policy.value,
+                          decision=decision, accessed_at=stamp, reason=context)
+    event = build_event(
+        access_event_id=f"mdae-{uuid.uuid4().hex}",
+        request_id=request_id or f"unattributed-{uuid.uuid4().hex[:12]}",
+        run_id=run_id, frame=delivered, provenance=provenance,
+        policy_version=policy.value, decision=decision, accessed_at=stamp)
+    return MarketDataAccess(delivered, provenance, event)
 
 
 def resolve_prices(*, context: str) -> Optional[Any]:

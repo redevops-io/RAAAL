@@ -140,7 +140,7 @@ class TestALiveCallerStoresRealProvenance:
         generate(store, plan_id="p-1", owner="alice", scenario=scenario,
                  run={"modelling_scope": {"excludes": []}, "final_value": 1.0,
                       "market_data": access.provenance.to_json()},
-                 comparison={}, ran_at="2026-01-01T00:00:00Z")
+                 comparison={}, ran_at="2026-01-01T00:00:00Z", access=access)
 
         runs = store.runs_for("p-1", "alice")
         assert runs
@@ -174,15 +174,19 @@ class TestGenerateEnforcesItsOwnClassification:
         return store, scenario
 
     def run_with(self, prepared, market_data, omit=False):
+        from src.market_data.access import resolve
         from src.workspace.generate import generate
 
         store, scenario = prepared
         body = {"modelling_scope": {"excludes": []}, "final_value": 1.0}
         if not omit:
             body["market_data"] = market_data
+        # A real delivery, so these cases exercise the provenance guard rather
+        # than tripping the delivery guard on their way to it.
+        access = resolve(context="a run", accessed_at="2026-01-01T00:00:00Z")
         return generate(store, plan_id="p-1", owner="alice", scenario=scenario,
                         run=body, comparison={},
-                        ran_at="2026-01-01T00:00:00Z")
+                        ran_at="2026-01-01T00:00:00Z", access=access)
 
     def test_an_omitted_record_is_refused(self, prepared):
         from src.workspace.generate import UnattributableRun

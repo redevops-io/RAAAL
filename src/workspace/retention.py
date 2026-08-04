@@ -206,6 +206,24 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
             contains_model_content=False,
             sensitive_fields=("result", "comparison")),
         RecordClass(
+            table="market_data_access_event",
+            # PERSONAL_RECORD despite holding no personal content. It holds
+            # digests, column names, row counts and timestamps — nothing the
+            # user wrote. What makes it personal is that it exists *because*
+            # this user ran something, and when it was resolved says so.
+            # Classifying it SHARED_PUBLIC because the market data behind it is
+            # shared would be exactly the reasoning the retention rule forbids:
+            # a personal record is not retained merely because its subject is
+            # shared.
+            data_class=DataClass.PERSONAL_RECORD,
+            owner_scope=OwnerScope.DIRECT, owner_column="owner",
+            retention_policy=ACTIVE_ACCOUNT,
+            deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
+            export_behaviour="included in a workspace export, so an exported "
+                             "run stays verifiable",
+            contains_sensitive_financial_data=False,
+            contains_model_content=False),
+        RecordClass(
             table="proposal", data_class=DataClass.PERSONAL_RECORD,
             owner_scope=OwnerScope.DIRECT, owner_column="owner",
             retention_policy=ACTIVE_ACCOUNT,

@@ -143,9 +143,16 @@ def every_write(store, owner):
     call("save_plan", lambda: store.save_plan(
         plan_id=PLAN, owner=owner, scenario=scenario_for(), stated_text="x",
         saved_at="2026-01-01T00:00:00Z"))
+    # The delivery before the run that cites it, as production does — so the
+    # tenancy capture sees the real pairing rather than a run with no evidence.
+    access = _access_for(owner, RUN)
+    call("record_access_event", lambda: store.record_access_event(
+        access.access_event, owner=owner))
     call("record_run", lambda: store.record_run(
-        run_id=RUN, plan_id=PLAN, ran_at="2026-01-01T00:00:00Z", result=RESULT,
-        comparison={}, owner=owner))
+        run_id=RUN, plan_id=PLAN, ran_at="2026-01-01T00:00:00Z",
+        result={**RESULT, "market_data": access.provenance.to_json()},
+        comparison={}, owner=owner,
+        access_event_id=access.access_event_id))
     call("save_worksheet", lambda: store.save_worksheet(create(
         worksheet_id=WORKSHEET, owner_id=owner, scenario_ref=PLAN,
         primary_run_ref=RUN, created_at="2026-01-01T00:00:00Z")))
@@ -211,6 +218,10 @@ READ_ONLY = {
     "worksheet_intents", "worksheet_revisions", "worksheet_for_scenario",
     "confirmation_events", "transaction", "rsu_context_of",
     "lock_worksheet_proposal",
+    # Reads a stored run and the delivery it cites, and compares them. It
+    # writes nothing — but it is owner-scoped, so `every_read` exercises it
+    # and the read layer checks the scoping.
+    "get_access_event", "verify_access_chain",
 }
 
 
@@ -221,8 +232,37 @@ def write_methods():
             and name not in READ_ONLY}
 
 
+#: Deliberately shared between tenants, like `PLAN` and `RUN` above. This file
+#: exists to force identifier collision: two owners holding the same id is the
+#: state under which an unscoped write silently overwrites the other's row, and
+#: an isolation failure that needs distinct ids to appear is one nobody would
+#: hit in the field either.
+ACCESS_EVENT = "mdae-shared"
+
+
+def _access_for(owner, run_id):
+    """A delivery with a fixed identity and a fixed instant.
+
+    Stable across passes on purpose. `every_write` runs several times per
+    owner, and a fresh event id each pass would change the run body and turn
+    the second write into a conflict — the store refusing correctly, and the
+    tenancy capture never reaching the statements it exists to inspect.
+    """
+    import dataclasses
+
+    from src.market_data.access import resolve
+
+    access = resolve(context="tenancy capture", run_id=run_id,
+                     accessed_at="2026-01-01T00:00:00Z",
+                     request_id="req-shared")
+    return dataclasses.replace(
+        access, access_event=dataclasses.replace(
+            access.access_event, access_event_id=ACCESS_EVENT))
+
+
 def every_read(store, owner):
     store.get_worksheet(WORKSHEET, owner)
+    store.get_run(RUN, owner)
     store.get_run(RUN, owner)
     store.runs_for(PLAN, owner)
     store.list_plans(owner)
@@ -232,6 +272,7 @@ def every_read(store, owner):
     store.reconciliations(WORKSHEET, owner)
     store.worksheet_intents(WORKSHEET, owner)
     store.confirmation_events(owner)
+    store.verify_access_chain(RUN, owner)
     export_workspace(store, owner)
 
 
