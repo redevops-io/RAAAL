@@ -21,6 +21,8 @@ be whichever the save path happened to hold.
 """
 from __future__ import annotations
 
+from . import historical_lots
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Sequence, Tuple
@@ -103,6 +105,11 @@ class OpenItem:
     def subject(self) -> str:
         if self.field.startswith("unclear:"):
             return self.field[len("unclear:"):]
+        if self.field.startswith(historical_lots.HISTORICAL_LOTS_NOT_AVAILABLE):
+            # The code is for an operator; the user gets a sentence. Rendering
+            # the field verbatim put "historical lots not available:units
+            # held" on the page as though it were English.
+            return "an existing holding"
         return self.field.replace("_", " ")
 
     def to_json(self) -> dict:
@@ -300,10 +307,32 @@ class Blockers:
                 "detail": self.detail()}
 
 
-def blockers(scenario: Any, *, executable: bool = True) -> Blockers:
-    """What is outstanding, sorted by what the user can do about it."""
+def blockers(scenario: Any, *, executable: bool = True,
+             stated_text: str = "") -> Blockers:
+    """What is outstanding, sorted by what the user can do about it.
+
+    `stated_text` is read for described holdings the compiler has no field
+    for. Without it, "I already own 500 shares of AAPL that I bought in 2019
+    at $50" produced no material blocker at all and the holding was silently
+    dropped; a description mentioning a past purchase was asked how much it
+    was *starting with*, folding a share count into a cash amount.
+    """
     provenance = scenario.provenance
-    items = classify(provenance.unresolved, executable=executable)
+    items = list(classify(provenance.unresolved, executable=executable))
+
+    text = stated_text or getattr(scenario, "stated_text", "") or ""
+    for signal in historical_lots.detect(text):
+        items.append(OpenItem(
+            field=f"{historical_lots.HISTORICAL_LOTS_NOT_AVAILABLE}:{signal.matched}",
+            question=signal.question,
+            why_it_matters=signal.why_it_matters,
+            # Material, and therefore not dismissible. An existing holding is
+            # not extra prose alongside the request — it is a claim about what
+            # the figure covers, and excluding it answers a question the user
+            # did not ask.
+            resolution=Resolution.MATERIAL))
+
+    items = tuple(items)
     return Blockers(
         material=tuple(one for one in items
                        if one.resolution is Resolution.MATERIAL),

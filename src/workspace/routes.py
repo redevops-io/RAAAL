@@ -54,6 +54,7 @@ from ..mission.scenario import UNSIMULATED
 from ..mission.spec import ScenarioAmendment
 from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
+from . import historical_lots
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
 from .confirmation import build as build_confirmation
 from .comparability_record import as_payload as comparability_payload
@@ -693,7 +694,8 @@ def new_plan(request: Request, describe: str = ""):
             "feasibility": feasibility,
             "open_items": open_items,
             "blockers": blockers(compiled.scenario,
-                                 executable=feasibility.can_execute),
+                                 executable=feasibility.can_execute,
+                                 stated_text=describe),
             "confirmation": compiled.confirmation(),
             "view": build_confirmation(compiled, text=describe),
             "suggested_title": _suggested_title(describe),
@@ -815,6 +817,18 @@ async def save_plan(request: Request, describe: str = Form(...),
     from .feasibility import assess, blockers
 
     verdict = assess(scenario, _market_data("feasibility check").frame)
+    # Before the market-data verdict, because this refusal is unconditional
+    # and that one is not. Asked to model 500 shares of AAPL, the feasibility
+    # check answered "there is no price history for AAPL" — true, and
+    # misleading: the plan would not run with prices either. A user takes that
+    # message as an instrument problem and tries a different ticker.
+    described_holding = historical_lots.detect(describe)
+    if described_holding:
+        raise HTTPException(
+            status_code=422,
+            detail=("This describes an existing holding. " +
+                    described_holding[0].why_it_matters))
+
     if not verdict.can_execute:
         raise HTTPException(status_code=422, detail=verdict.detail)
 
@@ -823,7 +837,11 @@ async def save_plan(request: Request, describe: str = Form(...),
     # about which item stopped them or whether anything could be done — the
     # blocker was a forward projection the engine does not model, and the
     # message did not say so.
-    outstanding = blockers(scenario, executable=verdict.can_execute)
+    # The description is passed, not inferred. The scenario does not carry its
+    # own text, so a guard reading `scenario.stated_text` would have been a
+    # control on a path nothing takes — dead in exactly the place it matters.
+    outstanding = blockers(scenario, executable=verdict.can_execute,
+                           stated_text=describe)
     if outstanding.any:
         raise HTTPException(status_code=422, detail=outstanding.detail())
 
