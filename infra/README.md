@@ -98,6 +98,35 @@ cache, or a `-vvv` run. The controller renders a template containing
 hash is full of `$`, and a bare `envsubst` would eat the credential it was
 installing.
 
+## Where the database password is, and is not
+
+Audited before the first apply, by exercising each path rather than reading
+it. The URL-substitution defect was real, so "it should be fine" was not good
+enough for the places the value could surface.
+
+| Surface | Result |
+|---|---|
+| `terraform output` | absent — outputs carry secret *names*, never values |
+| `/tmp/quantify.json` | absent — `ansible_variables` names the secret only |
+| generated compose YAML | absent — `env_file`, no inline environment |
+| Ansible output, render task | `no_log`, and the script prints only CHANGED/UNCHANGED |
+| Ansible output, migration task | verified absent: a failed connect raises `OperationalError` with no URL, and SQLAlchemy renders the engine as `postgresql+psycopg://quantify:***@…` |
+| Alembic | present in the config object in memory — unavoidable, it must connect — but absent from upgrade output at root DEBUG |
+| CloudWatch startup proof | absent — the proof reports `"database": {"engine": "postgresql"}` and nothing else: no host, no user, no credential |
+| acceptance evidence | absent |
+
+`DatabaseTarget.display` renders `postgresql://***@host:5432/quantify`, which
+is what any operator-facing surface gets.
+
+The host-rendered `/opt/quantify/.env` is the only plaintext copy, at `0600`
+in a `0750` directory, and Terraform state — encrypted in S3, which is why
+`backend.hcl.example` sets `encrypt = true`.
+
+One wrinkle worth knowing before a scanner surprises you: `acceptance.json`
+contains the literal string `postgresql://` — inside the *name* of the check
+`"an error does not leak 'postgresql://'"`. A naive secret-scanner flags the
+evidence file for carrying the string it exists to prove absent.
+
 ## The deploy-time journeys, and when they decline
 
 The playbook runs both supported journeys against the real image, the real

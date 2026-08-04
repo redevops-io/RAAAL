@@ -30,7 +30,7 @@ registry_host     = "ghcr.io"
 # --- build identity --------------------------------------------------------
 # The preflight refuses to serve without all four. The image digest is taken
 # from application_image above, so it is not repeated here.
-build_commit      = "46ad230"
+build_commit      = "d795997"
 build_release_ref = "feat/quantify-repository-baseline"
 build_snapshot_id = "syn-2026-08"
 
