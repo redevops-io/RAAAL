@@ -56,6 +56,31 @@ services:
         awslogs-stream: "proxy"
         awslogs-create-group: "false"
 
+  # The only ingress path. `cloudflared` dials out to Cloudflare and holds the
+  # connection open; nothing listens on a public address anywhere in this
+  # deployment. Its ingress rules live in Cloudflare (config_src = "cloudflare"
+  # on the tunnel resource), so routing is one declarative thing rather than a
+  # copy here that can disagree with it.
+  #
+  # Pinned by digest, like the application image. `:latest` on the component
+  # that terminates every user request is the same moving target, and a
+  # connector that silently changed version would be indistinguishable from a
+  # deployment that did not.
+  tunnel:
+    image: cloudflare/cloudflared@sha256:b77d84e8704db38db22c22661cf7e56468c526e3a6a5fe9c8b7c151452fa1472
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "--metrics", "0.0.0.0:2000", "run"]
+    # TUNNEL_TOKEN only. Written on the host at 0600, never in this file.
+    env_file: [/opt/quantify/tunnel.env]
+    depends_on: [proxy]
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: "{{ quantify_region }}"
+        awslogs-group: "{{ quantify_log_group }}"
+        awslogs-stream: "tunnel"
+        awslogs-create-group: "false"
+
 volumes:
   caddy-data:
   caddy-config:

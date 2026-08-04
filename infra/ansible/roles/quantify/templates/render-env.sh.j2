@@ -16,6 +16,7 @@ TEMPLATE="/opt/quantify/env.template"
 TARGET="/opt/quantify/.env"
 CADDY_TEMPLATE="/opt/quantify/Caddyfile.template"
 CADDY_TARGET="/opt/quantify/Caddyfile"
+TUNNEL_TARGET="/opt/quantify/tunnel.env"
 
 secret() {
   aws secretsmanager get-secret-value \
@@ -57,6 +58,15 @@ if [ -z "$QUANTIFY_BASIC_AUTH_HASH" ]; then
   exit 1
 fi
 
+TUNNEL_SECRET="$(secret '{{ quantify_secret_tunnel_token }}')"
+TUNNEL_TOKEN="$(printf '%s' "$TUNNEL_SECRET" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("token",""))')"
+
+if [ -z "$TUNNEL_TOKEN" ]; then
+  echo "The Cloudflare tunnel token secret is empty." >&2
+  echo "Without it cloudflared cannot connect and the site has no ingress." >&2
+  exit 1
+fi
+
 export QUANTIFY_DB_PASSWORD QUANTIFY_MODEL_KEY
 export QUANTIFY_BASIC_AUTH_USER QUANTIFY_BASIC_AUTH_HASH
 
@@ -81,6 +91,18 @@ render() {
 
 render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY}'
 render "$CADDY_TEMPLATE" "$CADDY_TARGET" 0644 '${QUANTIFY_BASIC_AUTH_USER} ${QUANTIFY_BASIC_AUTH_HASH}'
+
+# The tunnel token, written directly rather than through a template: it is one
+# line and one value, and a template would be a second file holding it.
+TUNNEL_RENDERED="$(mktemp)"
+printf 'TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" > "$TUNNEL_RENDERED"
+if [ -f "$TUNNEL_TARGET" ] && cmp -s "$TUNNEL_RENDERED" "$TUNNEL_TARGET"; then
+  rm -f "$TUNNEL_RENDERED"
+else
+  install -m 0600 -o root -g root "$TUNNEL_RENDERED" "$TUNNEL_TARGET"
+  rm -f "$TUNNEL_RENDERED"
+  CHANGED=1
+fi
 
 # Verify the assembled connection string actually parses back to the password
 # that went into it.

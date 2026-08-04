@@ -73,8 +73,16 @@ def fetch(base, path, headers=None):
     `--record` never ran, so the one run that most needed recording, the one
     where the deployment would not serve, was the one that left no evidence.
     """
-    request = urllib.request.Request(base.rstrip("/") + path,
-                                     headers=headers or {})
+    # Identify the tool. Behind a CDN with bot protection, the default
+    # `Python-urllib/3.x` agent is refused before the request reaches the
+    # application — Cloudflare returns 403 with error 1010, and every check
+    # then reads the block page instead of the deployment. Five checks failed
+    # against a site that was serving correctly, which is a checklist
+    # reporting on the wrong thing rather than a broken deployment.
+    sent = {"User-Agent": "quantify-acceptance/1 (+deploy/acceptance.py)",
+            "Accept": "*/*"}
+    sent.update(headers or {})
+    request = urllib.request.Request(base.rstrip("/") + path, headers=sent)
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
             return response.status, response.read().decode("utf-8", "replace"), \
@@ -178,7 +186,14 @@ def main(base, record_to=None):
           "against the public URL: pointed straight at the application it "
           "bypasses the proxy that holds the credential, and passes nothing")
 
-    status, body, headers = fetch(base, "/workspace/nonexistent-page")
+    # An unauthenticated path that still reaches the application.
+    #
+    # This probed `/workspace/nonexistent-page`, which the proxy rejects with a
+    # 401 and an empty body before the application sees it. The correlation
+    # check then failed — correctly, there was no application response — and,
+    # worse, the five leak checks below passed against an empty string. Five
+    # green ticks proving nothing is the more dangerous half of that.
+    status, body, headers = fetch(base, "/nonexistent-page")
     # Case-insensitively: the header goes out lowercased on the wire, and a
     # check that only matched the spelling in our source would have reported a
     # missing correlation id on a deployment that had one.

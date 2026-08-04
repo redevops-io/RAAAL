@@ -1,20 +1,17 @@
 # Three security groups in a chain, and an instance profile that can read
 # exactly three secrets.
 #
-# The chain is the whole isolation story: the internet reaches only the load
-# balancer, the load balancer reaches only the application, and the
-# application is the only thing that reaches the database. Each rule names a
-# security group rather than a CIDR, so widening one does not silently widen
-# the next.
+# The chain is the whole isolation story, and with a Cloudflare tunnel it has
+# no public end at all: nothing on the internet can reach any of these. The
+# tunnel client on the application host reaches the internal load balancer,
+# the load balancer reaches the application, and the application is the only
+# thing that reaches the database. Each rule names a security group rather
+# than a CIDR, so widening one does not silently widen the next.
 
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
-  description = "Public entry point"
+  description = "Internal load balancer. Reachable only from the tunnel client."
   vpc_id      = aws_vpc.main.id
-
-  # No ingress rules here. They are separate resources below so that an empty
-  # `operator_cidrs` produces a load balancer nothing can reach, rather than
-  # an inline block that a default would quietly fill in.
 
   egress {
     description     = "To the application host"
@@ -27,26 +24,17 @@ resource "aws_security_group" "alb" {
   tags = { Name = "${local.name}-alb" }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "alb_https" {
-  for_each = toset(var.operator_cidrs)
-
-  security_group_id = aws_security_group.alb.id
-  description       = "HTTPS from an allowlisted operator or pilot user"
-  cidr_ipv4         = each.value
-  from_port         = 443
-  to_port           = 443
-  ip_protocol       = "tcp"
-}
-
-resource "aws_vpc_security_group_ingress_rule" "alb_http_redirect" {
-  for_each = toset(var.operator_cidrs)
-
-  security_group_id = aws_security_group.alb.id
-  description       = "HTTP, redirected to HTTPS"
-  cidr_ipv4         = each.value
-  from_port         = 80
-  to_port           = 80
-  ip_protocol       = "tcp"
+# The only client is `cloudflared`, which runs on the application host. There
+# is no CIDR here and no public rule: with a tunnel there is nothing to
+# allowlist, which also removes the problem that a CIDR allowlist would have
+# created for pilot users on mobile networks and changing home addresses.
+resource "aws_vpc_security_group_ingress_rule" "alb_from_tunnel" {
+  security_group_id            = aws_security_group.alb.id
+  description                  = "HTTP from cloudflared on the application host"
+  referenced_security_group_id = aws_security_group.app.id
+  from_port                    = 80
+  to_port                      = 80
+  ip_protocol                  = "tcp"
 }
 
 resource "aws_security_group" "app" {
@@ -132,12 +120,34 @@ resource "aws_iam_role_policy" "secrets" {
           aws_secretsmanager_secret.database_password.arn,
           aws_secretsmanager_secret.model_api_key.arn,
           aws_secretsmanager_secret.workspace_basic_auth.arn,
+          aws_secretsmanager_secret.tunnel_token.arn,
         ]
       },
       {
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"]
         Resource = "${aws_cloudwatch_log_group.application.arn}:*"
+      },
+      # Pull the application image.
+      #
+      # This was missing, and the deployment reached the point of logging in
+      # to the registry before anything noticed: the role could read every
+      # secret and write every log, and could not fetch the one artifact it
+      # exists to run. The token call is account-wide by API design; the layer
+      # reads are scoped to this repository.
+      {
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchCheckLayerAvailability",
+        ]
+        Resource = "arn:aws:ecr:${var.region}:${data.aws_caller_identity.current.account_id}:repository/quantify"
       },
     ]
   })

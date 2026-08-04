@@ -97,5 +97,15 @@ infra/terraform/environments/*.tfvars
 infra/terraform/.terraform.lock.hcl
 !infra/terraform/environments/*.tfvars.example
 
-# Deployment evidence holds a real hostname; keep it out unless deliberate.
-evidence/
+# Deployment evidence. Named individually, not as `evidence/`: that directory
+# already holds six tracked invariant-evidence YAML files, and a blanket rule
+# there hides new ones from anybody who adds them later.
+evidence/acceptance.json
+evidence/startup-proof.txt
+evidence/dns-record-replaced.json
+evidence/workspace-credential.txt
+
+# Saved plan files carry state (and therefore secrets) in their tfstate
+# members on every plan after the first. Keep the redacted text view instead.
+infra/terraform/*.tfplan
+infra/terraform/*.tfplan.txt

@@ -32,6 +32,7 @@ output "secret_ids" {
     database_password    = aws_secretsmanager_secret.database_password.name
     model_api_key        = aws_secretsmanager_secret.model_api_key.name
     workspace_basic_auth = aws_secretsmanager_secret.workspace_basic_auth.name
+    tunnel_token         = aws_secretsmanager_secret.tunnel_token.name
   }
 }
 
@@ -69,5 +70,8 @@ output "ansible_variables" {
     quantify_secret_database       = aws_secretsmanager_secret.database_password.name
     quantify_secret_model_key      = aws_secretsmanager_secret.model_api_key.name
     quantify_secret_basic_auth     = aws_secretsmanager_secret.workspace_basic_auth.name
+    quantify_secret_tunnel_token   = aws_secretsmanager_secret.tunnel_token.name
+    quantify_alb_dns               = aws_lb.main.dns_name
+    quantify_ssm_bucket            = aws_s3_bucket.deploy_transfer.bucket
   }
 }

@@ -120,33 +120,11 @@ resource "aws_cloudwatch_metric_alarm" "database_storage" {
 }
 
 # --- spend -----------------------------------------------------------------
-
-# Infrastructure only. This does not and cannot bound model spend: Gate 8 is
-# open, nothing in the application caps what a pilot user can cause the parser
-# to bill, and that bill arrives from Anthropic rather than AWS. Set the
-# provider-side budget alert as well — the runbook requires it before the
-# first invitation.
-resource "aws_budgets_budget" "monthly" {
-  name         = "${local.name}-monthly"
-  budget_type  = "COST"
-  limit_amount = tostring(var.monthly_budget_usd)
-  limit_unit   = "USD"
-  time_unit    = "MONTHLY"
-
-  cost_filter {
-    name   = "TagKeyValue"
-    values = ["user:Project$${var.project}"]
-  }
-
-  dynamic "notification" {
-    for_each = [80, 100]
-
-    content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_email_addresses = [var.alert_email]
-    }
-  }
-}
+#
+# There is deliberately no `aws_budgets_budget` here: the deploying identity
+# has no budgets:* permission, and a resource that always fails to apply is
+# worse than an absent one. Set the AWS budget in the console, and — more
+# importantly — set the **provider-side** model budget alert, which no AWS
+# budget can see. Gate 8 is open: nothing in this code caps what a pilot user
+# can cause the parser to bill. docs/Runbook.md requires it before the first
+# invitation.

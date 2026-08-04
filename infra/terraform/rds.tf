@@ -13,16 +13,23 @@ resource "aws_db_parameter_group" "main" {
   name   = "${local.name}-pg16"
   family = "postgres16"
 
+  # `apply_method` is stated on both. Left off, AWS reports back the method it
+  # chose, Terraform sees a value its configuration does not have, and every
+  # future plan shows this group being modified in place. A diff that appears
+  # on every plan and never means anything is how a team learns to skim plans.
   parameter {
-    name  = "log_min_duration_statement"
-    value = "1000"
+    name         = "log_min_duration_statement"
+    value        = "1000"
+    apply_method = "immediate"
   }
 
   # Refuse unencrypted connections. The application reaches the database
   # across a private subnet, which is not the same as reaching it privately.
+  # Static: it takes effect on reboot, not on apply.
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
 
   lifecycle {

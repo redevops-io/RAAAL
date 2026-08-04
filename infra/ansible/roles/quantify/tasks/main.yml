@@ -87,7 +87,11 @@
     executable: /bin/bash
   become: true
   changed_when: true
-  no_log: true
+  # Deliberately *not* no_log. The token goes to `docker login` on stdin, so
+  # it never appears in argv or in the output — and `no_log` here hid the
+  # actual failure, an IAM role with no ecr:GetAuthorizationToken, behind
+  # "output has been hidden". A control that conceals a diagnostic without
+  # concealing a secret costs something and protects nothing.
 
 - name: Note a non-ECR registry
   when: quantify_registry_host | length > 0 and 'ecr' not in quantify_registry_host
@@ -193,8 +197,8 @@
 - name: Fail if the database is not at the code head
   ansible.builtin.assert:
     that:
-      - (migration.stdout | regex_search('MIGRATED_TO=(\\S+)', '\\1') | first)
-        == (migration.stdout | regex_search('CODE_HEAD=(\\S+)', '\\1') | first)
+      - (migration.stdout | regex_findall('MIGRATED_TO=(\\S+)') | first)
+        == (migration.stdout | regex_findall('CODE_HEAD=(\\S+)') | first)
     fail_msg: >-
       The database is not at the migration head this image expects. The
       application would refuse to serve with MIGRATION_MISMATCH.
@@ -219,7 +223,16 @@
 # observable build, declared parser.
 - name: Wait for the application to report ready
   ansible.builtin.uri:
-    url: http://127.0.0.1:8000/health/ready
+    # Port 80, through Caddy — not 8000. The AWS compose file `expose`s the
+    # api port to the compose network rather than publishing it to the host,
+    # so nothing is listening on 127.0.0.1:8000 and the check failed thirty
+    # times against a deployment that was serving correctly.
+    #
+    # Going through the proxy is the better check anyway: it proves the path
+    # the load balancer actually uses, including that Caddy leaves /health
+    # unauthenticated. An authenticated health endpoint would make every
+    # target look unhealthy.
+    url: http://127.0.0.1:80/health/ready
     status_code: 200
   register: readiness
   retries: 30
@@ -255,17 +268,52 @@
   ansible.builtin.debug:
     var: startup_proof.stdout_lines
 
-- name: Confirm the deployed configuration is the planned one
+- name: Confirm the deployed build is the planned one
   # The proof states what the process resolved. Comparing it against what this
   # playbook intended is the difference between "a configuration was logged"
   # and "the configuration we deployed is the one running".
   ansible.builtin.assert:
     that:
       - quantify_build_commit in startup_proof.stdout
-      - quantify_parser_mode in startup_proof.stdout
+      - '"\"result\": \"READY\"" in startup_proof.stdout'
     fail_msg: >-
-      The running deployment does not report the commit or parser mode this
-      playbook deployed. Something else is serving on this host.
+      The running deployment does not report the commit this playbook
+      deployed, or did not reach READY. Something else is serving on this host.
+
+# The parser is checked separately because the startup proof does not carry
+# it. The proof reports build, database and result — asserting a parser mode
+# against it failed against a deployment that was configured correctly, which
+# is a check reporting on the wrong source rather than a bad deployment.
+#
+# Reading the resolved context inside the running container is the right
+# source anyway: it is what the process would use to interpret a description,
+# not what the environment file asked for.
+- name: Read the parser identity the running container resolved
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T api python -c "
+    import json
+    from src.deploy.context import resolve
+    print('PARSER=' + json.dumps(resolve().model.identity()))
+    "
+  args:
+    executable: /bin/bash
+  become: true
+  register: parser_identity
+  changed_when: false
+
+- name: Confirm the parser is the planned one
+  ansible.builtin.assert:
+    that:
+      - quantify_parser_mode in parser_identity.stdout
+      - quantify_parser_model in parser_identity.stdout
+    fail_msg: >-
+      The running container resolved a different parser than this playbook
+      deployed. A plan saved now would record an interpretation nobody chose.
+
+- name: Show the parser identity
+  ansible.builtin.debug:
+    msg: "{{ parser_identity.stdout_lines | select('search', '^PARSER=') | list }}"
 
 # --- retention -------------------------------------------------------------
 
@@ -302,8 +350,13 @@
 
 - name: Decide whether the deploy-time journeys may run
   ansible.builtin.set_fact:
+    # `regex_findall`, not `regex_search` with a '\1' group reference. In a
+    # YAML block scalar the backslash is literal, so '\\1' reaches Jinja as two
+    # backslashes and the group never resolves — the filter returns None and
+    # the play dies on a deployment that answered correctly. findall returns
+    # the groups directly and has nothing to escape.
     quantify_workspace_empty: >-
-      {{ (plan_count.stdout | regex_search('PLANS=(\d+)', '\\1') | first | int) == 0 }}
+      {{ (plan_count.stdout | regex_findall('PLANS=([0-9]+)') | first | int) == 0 }}
 
 # The pilot has one owner and no per-plan deletion, so a smoke journey writes
 # into the same workspace a real user reads. On a first deploy that is empty

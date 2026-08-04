@@ -34,29 +34,29 @@ variable "vpc_cidr" {
   default     = "10.42.0.0/16"
 }
 
-variable "operator_cidrs" {
-  description = <<-EOT
-    CIDRs permitted to reach the load balancer. Defaults to nobody.
-
-    A closed pilot is closed. The workspace is behind basic auth, but an
-    allowlist here is the difference between "a credential stands between the
-    internet and the pilot" and "the internet cannot reach the pilot at all".
-    Set it to your own address plus the pilot users'; set it to
-    ["0.0.0.0/0"] deliberately, and know that you did.
-  EOT
-  type        = list(string)
-  default     = []
-}
-
-# --- dns and tls -----------------------------------------------------------
+# --- dns, tls and ingress ---------------------------------------------------
+# Cloudflare owns both. There is no ACM certificate and no Route 53 record:
+# `cloudflared` dials out from the host, so the pilot has no public listener.
 
 variable "domain_name" {
-  description = "Fully-qualified hostname the pilot is served on."
+  description = "Hostname the pilot is served on, e.g. quantify.club."
   type        = string
 }
 
-variable "hosted_zone_id" {
-  description = "Route 53 zone ID that owns domain_name."
+variable "cloudflare_account_id" {
+  description = "Cloudflare account that owns the tunnel."
+  type        = string
+}
+
+variable "cloudflare_zone_id" {
+  description = <<-EOT
+    Zone ID for domain_name.
+
+    Passed explicitly rather than read from CLOUDFLARE_ZONE_ID: that variable
+    is commonly set to whichever zone was last worked on, and a DNS record
+    written into the wrong zone is a mistake nobody notices until the name
+    fails to resolve.
+  EOT
   type        = string
 }
 
@@ -221,17 +221,4 @@ variable "build_snapshot_id" {
 variable "alert_email" {
   description = "Address that receives CloudWatch alarms and budget notices."
   type        = string
-}
-
-variable "monthly_budget_usd" {
-  description = <<-EOT
-    Monthly AWS budget. Alarms at 80% and 100% of it.
-
-    This bounds infrastructure spend only. It does not bound model spend —
-    Gate 8 is open, so nothing in this code caps what a pilot user can cause
-    the parser to bill. Set a provider-side budget alert as well; the runbook
-    lists it as required before the first invitation.
-  EOT
-  type        = number
-  default     = 150
 }

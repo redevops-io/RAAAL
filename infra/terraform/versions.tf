@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.52"
+    }
   }
 
   # Bootstrapped separately — see backend.hcl.example. State holds the RDS

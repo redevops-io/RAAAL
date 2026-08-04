@@ -80,3 +80,30 @@ resource "aws_secretsmanager_secret_version" "workspace_basic_auth" {
     ignore_changes = [secret_string]
   }
 }
+
+# --- cloudflare tunnel -----------------------------------------------------
+
+# The tunnel's shared secret, and the connector token derived from it.
+#
+# Unlike the model key and the workspace credential, this one *is* generated
+# by Terraform: it is not a value a human chose or holds anywhere else, and
+# the tunnel resource needs it at create time. It reaches the host through
+# Secrets Manager like everything else, never through a variable or an output.
+resource "random_password" "tunnel" {
+  length  = 64
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "tunnel_token" {
+  name        = "${local.name}/cloudflare-tunnel-token"
+  description = "Connector token for the Cloudflare tunnel"
+
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "tunnel_token" {
+  secret_id = aws_secretsmanager_secret.tunnel_token.id
+  secret_string = jsonencode({
+    token = cloudflare_zero_trust_tunnel_cloudflared.pilot.tunnel_token
+  })
+}
