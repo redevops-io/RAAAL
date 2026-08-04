@@ -80,6 +80,38 @@ def install(app) -> None:
     """Route every database failure through one translation."""
     from fastapi.responses import JSONResponse
 
+    @app.middleware("http")
+    async def _correlate(request, call_next):
+        """Every response carries an id; every failure leaves a log line.
+
+        The handlers below cover the failures this code raises deliberately.
+        They do not cover the failure a pilot user is most likely to meet — a
+        stale or mistyped link — because a routing 404 never reaches them. The
+        runbook tells an operator to grep for the id the user quoted, and for
+        that class of error there was no id and no line to find.
+
+        Stamping happens here rather than in each handler so the guarantee is
+        about *responses*, not about the paths somebody remembered. The body is
+        never touched: an HTML page stays HTML and a JSON envelope keeps the
+        `request_id` its handler already put there. Only 4xx and 5xx are
+        logged, and only the route template — the resolved path carries
+        user-chosen identifiers.
+        """
+        request_id = request_id_for(request)
+        # Handlers run inside this call and re-derive the id from the same
+        # headers, so a supplied id stays the same value throughout; a
+        # generated one is regenerated identically only because the handler
+        # sees the failure's own id first. Where neither applies, the header
+        # below is the caller's copy.
+        response = await call_next(request)
+        response.headers.setdefault(REQUEST_ID_HEADER, request_id)
+        if response.status_code >= 400:
+            _record("request failed", {
+                "request_id": response.headers.get(REQUEST_ID_HEADER, request_id),
+                "status": response.status_code,
+                "path": _safe_path(request)})
+        return response
+
     from ..db.errors import DatabaseFailure
     from ..workspace.apply import ProposalConflict, TransitionIntegrityError
 

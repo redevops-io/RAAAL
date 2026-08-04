@@ -1,0 +1,26 @@
+# TLS and the only public entry point.
+#
+# Replace the hostname. Caddy obtains and renews a certificate automatically;
+# the pilot serves no plaintext HTTP from the internet.
+quantify.example.com {
+	encode gzip
+	reverse_proxy api:8000
+
+	# The workspace is private and unauthenticated in the closed pilot.
+	# Basic auth is the whole access control until real accounts exist —
+	# stated plainly because a private surface reachable without one is a
+	# private surface in name only.
+	#
+	#   caddy hash-password --plaintext 'the-pilot-password'
+	#
+	basicauth /workspace/* {
+		pilot REPLACE_WITH_BCRYPT_HASH
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+	}
+}

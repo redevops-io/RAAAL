@@ -1482,3 +1482,127 @@ class TestTheLoggerCannotTakeTheResponseDownWithIt:
         emitted = capsys.readouterr().err
         assert "operator-log-unavailable" in emitted
         assert "MISSING_PARENT" in emitted
+
+
+class TestEveryResponseCanBeCorrelated:
+    """The runbook tells an operator to grep for the id the user quoted.
+
+    That procedure was false for the error a pilot user is most likely to
+    meet. The handlers cover the failures this code raises deliberately; a
+    stale or mistyped link is routed to a 404 by Starlette and reaches none of
+    them, so it carried no id and left no line — an operator searching for
+    what the user read would have found nothing and concluded the log was
+    broken.
+
+    Found by running `deploy/acceptance.py` against a live instance rather
+    than by reading the handler, which is the point of having an executable
+    checklist: the claim and the deployment disagreed, and only one of them
+    was being tested.
+    """
+
+    @pytest.fixture
+    def client(self):
+        from src.web.failure import install
+
+        app = FastAPI()
+        install(app)
+
+        @app.get("/fine")
+        def fine():
+            return {"ok": True}
+
+        @app.get("/refused")
+        def refused():
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404, detail="no such plan")
+
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_a_routing_404_carries_an_id(self, client):
+        """The exact case the acceptance run failed on."""
+        response = client.get("/no-such-route")
+        assert response.status_code == 404
+        assert response.headers.get("x-request-id")
+
+    def test_a_route_raised_404_carries_an_id(self, client):
+        response = client.get("/refused")
+        assert response.status_code == 404
+        assert response.headers.get("x-request-id")
+
+    def test_the_id_a_user_reads_is_the_id_in_the_log(self, client,
+                                                      operator_log):
+        """Correlation is the whole guarantee: an id in the response that is
+        absent from the log is a support conversation that dead-ends."""
+        response = client.get("/no-such-route")
+        quoted = response.headers["x-request-id"]
+        assert any(quoted in line for line in operator_log), (
+            f"the user can quote {quoted} and the operator cannot find it")
+
+    def test_a_supplied_id_is_the_one_echoed(self, client):
+        """A caller correlating their own retries keeps their id."""
+        response = client.get("/no-such-route",
+                              headers={"X-Request-ID": "req-mine-123"})
+        assert response.headers.get("x-request-id") == "req-mine-123"
+
+    def test_a_database_failure_keeps_its_handler_id(self, client, tmp_path):
+        """The middleware must not overwrite an id a handler already chose —
+        the body and the header would then name different incidents."""
+        from src.web.failure import install
+
+        app = FastAPI()
+        install(app)
+
+        @app.get("/boom")
+        def boom():
+            from src.workspace.store import WorkspaceStore
+
+            store = WorkspaceStore(tmp_path / "w.db")
+            with store._conn() as conn:
+                conn.execute(
+                    "INSERT INTO plan_run (owner, run_id, plan_id, ran_at, "
+                    "result, comparison) VALUES (?,?,?,?,?,?)",
+                    ("alice", "r-1", "no-such-plan", "t", "{}", "{}"))
+
+        response = TestClient(app, raise_server_exceptions=False).get("/boom")
+        assert response.status_code == 409
+        assert response.headers["x-request-id"] == response.json()["request_id"]
+
+    def test_a_success_is_not_logged_as_a_failure(self, client, operator_log):
+        """Stamping every response must not turn the operator log into an
+        access log — a channel that records everything records nothing."""
+        response = client.get("/fine")
+        assert response.status_code == 200
+        assert response.headers.get("x-request-id")
+        assert not operator_log, f"a 200 was written to the failure channel: {operator_log}"
+
+    def test_the_logged_path_is_the_template_not_the_identifier(
+            self, operator_log):
+        """The resolved path carries user-chosen identifiers, and the operator
+        log would then be a second place they have to be redacted from.
+
+        This needs a route with a *parameter* in it. Written first against a
+        fixed path, it asserted on the exception's detail text and passed
+        against a version logging the fully resolved path — a check for a
+        distinction on a URL that has no distinction to make.
+        """
+        from src.web.failure import install
+
+        app = FastAPI()
+        install(app)
+
+        @app.get("/plans/{plan_id}")
+        def plan(plan_id: str):
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404, detail="no such plan")
+
+        TestClient(app, raise_server_exceptions=False).get(
+            "/plans/my-divorce-settlement")
+
+        assert operator_log, "nothing was logged, so this proves nothing"
+        assert not any("my-divorce-settlement" in line
+                       for line in operator_log), (
+            "the operator log recorded the identifier the user chose")
+        assert any("{plan_id}" in line for line in operator_log), (
+            "the route template is what makes the line useful at all")
