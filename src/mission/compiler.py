@@ -442,6 +442,44 @@ def _as_amount(raw: Optional[str]) -> Optional[float]:
         return None
 
 
+#: Words a model uses when it is describing a field the compiler already owns.
+#:
+#: Conservative on purpose: a phrase is only suppressed when the field it
+#: names is *also* being asked or confirmed on the same page, so nothing is
+#: lost by a match — the user answers the structured control instead. A missed
+#: match costs an extra acknowledgement, which is the safe direction.
+_CONCEPT_MARKERS = {
+    "moving_average_kind": ("simple or exponential", "exponential moving average",
+                            "type of moving average", "simple vs exponential"),
+    "trigger_semantics": ("one-time crossing", "persistent condition",
+                          "buying repeatedly", "every time the condition",
+                          "one time or repeated"),
+    "cadence": ("cadence", "frequency of the", "how often"),
+    "funding_source": ("new contribution vs", "source of the",
+                       "existing cash"),
+    "account_type": ("account type",),
+    "amount": ("amount to invest", "how much is invested"),
+    "starting_capital": ("starting capital", "initial balance"),
+    "dividends": ("dividend treatment", "dividends are reinvested"),
+    "execution_timing": ("when orders execute", "execution timing"),
+}
+
+
+def _covered_by(phrase: str, raised: set) -> Optional[str]:
+    """The structured field this phrase is describing, if it is already asked.
+
+    Returns the field name only when that field is genuinely on the page.
+    Matching a marker for a field nobody asked about would silently drop a
+    question the user never gets to answer.
+    """
+    lowered = phrase.lower()
+    for field, markers in _CONCEPT_MARKERS.items():
+        if field in raised and any(marker in lowered for marker in markers):
+            return field
+    return None
+
+
+
 def compile_scenario(
     text: str,
     *,
@@ -577,19 +615,6 @@ def compile_scenario(
             why_it_matters=why,
         ))
 
-    # Phrases stage 1 could not place. Each becomes a question rather than a
-    # default — the rule the whole compiler rests on, applied to whatever a
-    # model hands back that the vocabulary has no home for.
-    for phrase in parsed.unclear:
-        unresolved.append(Unresolved(
-            field=f"unclear:{phrase}",
-            question=f"What did you mean by '{phrase}'?",
-            why_it_matters=(
-                "This part of your description did not map onto anything the "
-                "compiler can simulate, so it is currently having no effect on "
-                "the result."),
-        ))
-
     cadence_rec = parsed.value_of("cadence")
     cadence_value = cadence_rec.value if cadence_rec else answered("cadence")
     amount_value = (float(amount_seen.value) if amount_seen
@@ -660,6 +685,38 @@ def compile_scenario(
         Contradiction(between=("holdings_policy", "allocation_rule"), detail=conflict)
         for conflict in scenario.self_conflicts()
     ]
+
+    # Phrases stage 1 could not place. Raised last, once every structured
+    # question and inference exists, because most of them are not unplaceable
+    # at all — they are the model describing, in prose, a field the compiler
+    # already asks about properly.
+    #
+    # A live pilot page carried "What did you mean by 'account type in which
+    # the purchases occur is not specified'?" — offering only "continue
+    # without modelling it" — directly beneath the account-type question and
+    # its five radio buttons. Same for the moving-average kind, the trigger
+    # semantics, the cadence and the funding source. The user was asked to
+    # abandon something the page was simultaneously offering to settle, with
+    # no way to tell which question would actually be answered.
+    #
+    # So a phrase is dropped when the field it describes is already on the
+    # page. Only then: if nothing covers it, it is genuinely unplaceable and
+    # the acknowledgement is the honest control.
+    _raised = {one.field for one in unresolved} | {one.field for one in inferred}
+    for phrase in parsed.unclear:
+        covered = _covered_by(phrase, _raised)
+        if covered:
+            stated.append(
+                f"{covered}: asked directly rather than as unplaceable prose")
+            continue
+        unresolved.append(Unresolved(
+            field=f"unclear:{phrase}",
+            question=f"What did you mean by '{phrase}'?",
+            why_it_matters=(
+                "This part of your description did not map onto anything the "
+                "compiler can simulate, so it is currently having no effect on "
+                "the result."),
+        ))
 
     scenario = ScenarioSpecification(
         **{**scenario.__dict__,
