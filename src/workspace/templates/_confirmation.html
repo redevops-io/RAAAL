@@ -73,6 +73,8 @@
     {% for question in view.questions %}
     <div class="question">
       <div><strong>{{ question.question }}</strong></div>
+      {% set matching = (open_items or [])
+           | selectattr("field", "equalto", question.field) | list %}
       {% if question.choices %}
       <ul class="choices">
         {% for choice in question.choices %}
@@ -80,6 +82,19 @@
                           value="{{ choice.value }}"> {{ choice.label }}</label></li>
         {% endfor %}
       </ul>
+      {% elif matching and matching[0].answerable %}
+      {# A question with no finite answers still has to be answerable.
+         Rendering choices only meant "how much are you contributing?" appeared
+         with no control at all: the user could read the question, could not
+         answer it, and had to go back and rewrite the whole description. The
+         compiler already accepts these — `answered()` records them as stated
+         and `_as_amount` parses "$1,000" — so the gap was the page, not the
+         engine. #}
+      <label class="answer-free" style="display:block;margin:6px 0">
+        <input type="text" name="answer:{{ question.field }}"
+               inputmode="{{ 'decimal' if question.field in ('amount', 'starting_capital') else 'text' }}"
+               placeholder="Your answer" autocomplete="off">
+      </label>
       {% endif %}
       {% if question.routing %}
       <div class="routing small">{{ question.routing }}</div>
@@ -139,6 +154,17 @@
               {{ choice.label }}</label></li>
         {% endfor %}
       </ul>
+      {% else %}
+      {# An inference with no alternative still has to be confirmable. Gated on
+         choices alone, "when orders execute" was presented as a decision made
+         on the user's behalf with no way to accept it — and a plan cannot save
+         while an inference is unconfirmed. The user could read the assumption,
+         agree with it, and still be refused with nothing to click. #}
+      <label class="small" style="display:block;margin-top:6px">
+        <input type="checkbox" name="confirm:{{ inference.field }}"
+               value="{{ inference.value }}">
+        Keep this assumption
+      </label>
       {% endif %}
       <div class="controls">controls {{ inference.field }}</div>
     </div>

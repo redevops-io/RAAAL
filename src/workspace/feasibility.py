@@ -86,10 +86,28 @@ class OpenItem:
     question: str
     why_it_matters: str
     resolution: Resolution
+    #: Whether the plan can produce a result at all. Carried on the item so
+    #: that "you cannot set this aside" and "this is not something we model"
+    #: stay separate reasons.
+    executable: bool = True
 
     @property
     def dismissible(self) -> bool:
-        return self.resolution is Resolution.UNSUPPORTED_SEPARABLE
+        # Nothing may be set aside while the plan cannot run at all: the
+        # result of dismissing every item would still be no result.
+        return (self.resolution is Resolution.UNSUPPORTED_SEPARABLE
+                and self.executable)
+
+    @property
+    def answerable(self) -> bool:
+        """Whether supplying a value here would move the plan forward.
+
+        A required field the user can answer, as against a phrase the
+        compiler could not place. The confirmation screen renders an input for
+        the first and not the second — asking a question with no way to answer
+        it is what forces somebody back to rewriting their description.
+        """
+        return self.resolution is Resolution.REQUIRED_CLARIFICATION
 
     @property
     def label(self) -> str:
@@ -135,13 +153,20 @@ def classify(unresolved: Sequence[Any], *, executable: bool = True
         question = getattr(one, "question", "")
         why = getattr(one, "why_it_matters", "")
         items.append(OpenItem(field, question, why,
-                              _resolution_for(field, executable)))
+                              _resolution_for(field, executable),
+                              executable=executable))
     return tuple(items)
 
 
 def _resolution_for(field: str, executable: bool) -> Resolution:
-    if not executable:
-        return Resolution.MATERIAL
+    # A plan that cannot run does not turn its open questions into unmodelled
+    # capabilities. This returned MATERIAL for everything when `executable`
+    # was false, so a missing price for SPX made "how much are you
+    # contributing?" read as "a capability Quantify does not currently model".
+    # Amount is modelled. The plan simply had nothing to price.
+    #
+    # Non-dismissibility while unrunnable is still correct, and is now carried
+    # by `dismissible` rather than by rewriting what the item *is*.
     if field.startswith("unclear:"):
         subject = field[len("unclear:"):].lower()
         if any(marker in subject for marker in _MATERIAL_MARKERS):
@@ -330,7 +355,8 @@ def blockers(scenario: Any, *, executable: bool = True,
             # not extra prose alongside the request — it is a claim about what
             # the figure covers, and excluding it answers a question the user
             # did not ask.
-            resolution=Resolution.MATERIAL))
+            resolution=Resolution.MATERIAL,
+            executable=executable))
 
     items = tuple(items)
     return Blockers(
