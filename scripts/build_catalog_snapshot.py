@@ -31,6 +31,8 @@ import sys
 import yaml
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 MAPPING = REPO / "data" / "catalog_instruments.yaml"
 
 #: The ticker whose trading days define the calendar. Every other series is
@@ -57,48 +59,20 @@ def main() -> int:
     parser.add_argument("--snapshot-id", default=None)
     arguments = parser.parse_args()
 
-    import yfinance
+    from src.market_data import ingest
 
     mapping = yaml.safe_load(MAPPING.read_text())
     tickers = tickers_from(mapping)
     print(f"{len(tickers)} tickers from {MAPPING.name}")
 
-    frame = yfinance.download(tickers, start=arguments.start, auto_adjust=True,
-                              progress=False, threads=True)
-    close = frame["Close"] if "Close" in frame.columns.get_level_values(0) else frame
-    close = close.dropna(how="all").sort_index()
+    # One ingestion path. The retries, the calendar and the corporate-action
+    # capture all live in `src.market_data.ingest`, so this script cannot
+    # quietly grow a second policy for any of them.
+    panel = ingest.fetch(tickers, start=arguments.start,
+                         session_reference=SESSION_REFERENCE)
+    close = panel.prices
+    inception = {c: close[c].first_valid_index() for c in close.columns}
 
-    # --- put the frame on a trading calendar --------------------------------
-    #
-    # `BTC-USD` trades every calendar day. Taking the union of every ticker's
-    # index therefore produces weekends, on which every equity is NaN — 1210 of
-    # them in the first build of this file. The manifest still said
-    # `calendar: nyse` and counted them as sessions.
-    #
-    # The damage is not missing data, it is arithmetic: a 200-row window on a
-    # calendar-day index spans 199 days rather than the 292 that 200 NYSE
-    # sessions actually cover. Every moving average, every volatility estimate
-    # and every drawdown would be computed over the wrong horizon and would
-    # still look entirely reasonable.
-    if SESSION_REFERENCE not in close.columns:
-        print(f"{SESSION_REFERENCE} is required to define the session calendar",
-              file=sys.stderr)
-        return 1
-    sessions = close.index[close[SESSION_REFERENCE].notna()]
-    close = close.reindex(sessions)
-
-    # Forward-fill inside each ticker's own life, never before it. A ticker
-    # that listed in 2020 has no 2015 price, and inventing one by back-filling
-    # would put a figure where the instrument did not exist.
-    inception = {}
-    for column in close.columns:
-        first = close[column].first_valid_index()
-        inception[column] = first
-        if first is not None:
-            close.loc[first:, column] = close.loc[first:, column].ffill()
-
-    # A ticker that silently returned nothing would become a column of NaN and
-    # a plan naming it would price to nothing while looking configured.
     empty = [c for c in close.columns if close[c].notna().sum() == 0]
     if empty:
         print(f"no data returned for: {empty}", file=sys.stderr)
@@ -108,11 +82,46 @@ def main() -> int:
         print(f"absent from the response entirely: {missing}", file=sys.stderr)
         return 1
 
+    # A move no split accounts for is either a real session or a stitched
+    # series. Reported, never fatal: BTC-USD and ^VIX have genuine ones.
+    for ticker, moves in ingest.unexplained(panel).items():
+        print(f"  unexplained move  {ticker}: "
+              f"{', '.join(f'{d.date()} {v:+.1%}' for d, v in moves.items())}")
+
     out = pathlib.Path(arguments.out)
     out.mkdir(parents=True, exist_ok=True)
     today = dt.date.today()
     snapshot_id = arguments.snapshot_id or f"prices-catalog-{today:%Y%m%d}"
     parquet = out / f"{snapshot_id}.parquet"
+
+    # Compare against the newest snapshot already here before writing over the
+    # question. A split legitimately rewrites every earlier price; anything
+    # else is the vendor revising history, and a stored run cited the old
+    # numbers.
+    existing = sorted(out.glob("prices-catalog-*.parquet"))
+    if existing:
+        import pandas
+        previous = pandas.read_parquet(existing[-1])
+        # The previous manifest's split table, so an action already applied
+        # there cannot be used to excuse a fresh rewrite.
+        previous_manifest = existing[-1].with_suffix(".yaml")
+        previous_splits = {}
+        if previous_manifest.exists():
+            stored = yaml.safe_load(previous_manifest.read_text()) or {}
+            previous_splits = (stored.get("corporate_actions") or {}).get("splits") or {}
+        result = ingest.reconcile(previous, panel, previous_splits=previous_splits)
+        print(f"  reconciled against {existing[-1].name}: "
+              f"{sum(result.changed.values())} values changed, "
+              f"{sum(result.explained.values())} explained by an action")
+        if not result.clean:
+            for ticker, dates in result.unexplained_changes.items():
+                print(f"  UNEXPLAINED REWRITE  {ticker}: {len(dates)} values, "
+                      f"{dates.min().date()} -> {dates.max().date()}",
+                      file=sys.stderr)
+            print("  Refusing to overwrite. A stored run cited the old values.",
+                  file=sys.stderr)
+            return 2
+
     close.to_parquet(parquet)
 
     # The claim `calendar/nyse@1` has to be true of the file, not of the
@@ -138,6 +147,16 @@ def main() -> int:
         "coverage": {"start": close.index.min().date().isoformat(),
                      "end": close.index.max().date().isoformat()},
         "provider": "yahoo",
+        "fetched_at": panel.fetched_at.isoformat(timespec="seconds"),
+        "adjustment": panel.adjustment,
+        # The vendor's own corporate-action tables, kept beside the prices.
+        # They are what makes a later fetch's differences explainable rather
+        # than merely different.
+        "corporate_actions": {
+            "splits": {t: {d.date().isoformat(): float(v) for d, v in s.items()}
+                       for t, s in sorted(panel.splits.items())},
+            "dividend_dates": {t: len(d) for t, d in sorted(panel.dividends.items())},
+        },
         "license_class": "vendor-terms",
         "redistributable": False,
         "license_review_status": "OPEN",
