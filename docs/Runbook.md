@@ -331,6 +331,31 @@ Re-record after any configuration change. A failed run is worth keeping too:
 "we re-ran it until it passed" is part of the history, and evidence that only
 exists when the answer was good is not evidence.
 
+### Reading the transcript
+
+The record is meant to be readable a year later without the script beside it:
+
+| Field | Meaning |
+|---|---|
+| `target` | the URL that answered |
+| `checked_at` | UTC, to the second |
+| `outcome` | `PASSED`, `CHECKS_FAILED` or `UNREACHABLE` |
+| `failure_category` | `null` when passed; `INVENTORY_DRIFTED` if the script's own inventory disagreed with what it ran |
+| `checks` | every check attempted, with its detail |
+| `not_attempted` | the checks that never ran, by name |
+| `checks_declared` | how many exist in total |
+
+`not_attempted` is the field that makes an abandoned run legible. An unreachable
+deployment stops at the first check, and a record holding one failed check
+describes itself as a one-check suite — which reads, later, as a thorough run
+that found one problem. It should read as sixteen checks of which fifteen never
+happened.
+
+The script reconciles its declared inventory against what it actually ran, and
+fails if they differ in either direction. Without that, a check added and not
+declared would silently make every abandoned record understate what it
+skipped — a wrong number in precisely the file being kept as proof.
+
 ---
 
 ## Before inviting anyone

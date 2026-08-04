@@ -36,6 +36,34 @@ import urllib.request
 
 TIMEOUT = 20
 
+#: The facts `/health` must not publish, and the tokens an error must not carry.
+#: Named once because the checks below and the inventory beneath them are both
+#: built from these — two hand-written copies would drift, and the copy that
+#: drifts silently is the one describing what was *not* run.
+PRIVATE_BUILD_FACTS = ("image_digest", "commit", "migration_head", "snapshot_id")
+LEAK_TOKENS = ("psycopg", "sqlite3", "Traceback", "DETAIL:", "postgresql://")
+
+#: Every check this script performs, in order, whether or not it gets that far.
+#: A record of an abandoned run has to say what was skipped: "one check, failed"
+#: reads as a one-check suite rather than a sixteen-check suite that stopped.
+ALL_CHECKS = (
+    "liveness answers",
+    "readiness reports ready",
+    "readiness says nothing about why",
+    "build reports observable",
+    *(f"build does not publish {fact}" for fact in PRIVATE_BUILD_FACTS),
+    "personalisation is off",
+    "the private surface requires a credential",
+    "an error carries a correlation id",
+    *(f"an error does not leak {token!r}" for token in LEAK_TOKENS),
+)
+
+#: Final outcomes, and the category of failure when there is one.
+PASSED = "PASSED"
+UNREACHABLE = "UNREACHABLE"
+CHECKS_FAILED = "CHECKS_FAILED"
+INVENTORY_DRIFTED = "INVENTORY_DRIFTED"
+
 
 def fetch(base, path, headers=None):
     """Never raises. A status of 0 means the deployment was not reachable.
@@ -59,21 +87,32 @@ def fetch(base, path, headers=None):
         return 0, f"unreachable: {type(error).__name__}: {error}", {}
 
 
-def _write_record(record_to, base, results):
+def _write_record(record_to, base, results, outcome, category=None):
     """The pilot's deployment evidence: what was checked, and what answered.
 
-    A failed run is recorded too. Evidence that only exists when the answer was
-    good is not evidence — the question a month from now is what configuration
-    was live when the cohort began, and "we re-ran it until it passed" is part
-    of that answer.
+    A failed run is recorded too, and an abandoned one. Evidence that only
+    exists when the answer was good is not evidence — the question a month from
+    now is what configuration was live when the cohort began, and "we re-ran it
+    until it passed" is part of that answer.
+
+    The record has to be readable without the script beside it, so it carries
+    what was *not* attempted as well as what was. A run that stopped at the
+    first check and recorded only that check describes itself as a one-check
+    suite, which is the reading that makes an abandoned run look like a
+    thorough one.
     """
+    attempted = [name for name, _, _ in results]
     written = {
         "target": base,
         "checked_at": datetime.datetime.now(
             datetime.timezone.utc).isoformat(timespec="seconds"),
-        "passed": all(passed for _, passed, _ in results),
+        "outcome": outcome,
+        "failure_category": category,
+        "passed": outcome == PASSED,
         "checks": [{"name": name, "passed": passed, "detail": detail}
                    for name, passed, detail in results],
+        "not_attempted": [name for name in ALL_CHECKS if name not in attempted],
+        "checks_declared": len(ALL_CHECKS),
         "startup_proof": (
             "NOT CAPTURED HERE. The build identity, migration head and "
             "snapshot id are withheld from /health on purpose — this script "
@@ -101,9 +140,11 @@ def main(base, record_to=None):
         # Every later check would fail for the same single reason, and sixteen
         # failures read like sixteen problems. Say the one true thing.
         print(f"FAIL  {base} is not reachable — {body}")
-        print("\nNothing else was checked. Fix reachability and re-run.")
+        skipped = len(ALL_CHECKS) - len(results)
+        print(f"\n{skipped} of {len(ALL_CHECKS)} checks were not attempted. "
+              "Fix reachability and re-run.")
         if record_to:
-            _write_record(record_to, base, results)
+            _write_record(record_to, base, results, UNREACHABLE, UNREACHABLE)
         return 1
 
     status, body, _ = fetch(base, "/health/ready")
@@ -121,7 +162,7 @@ def main(base, record_to=None):
     build = health.get("build", {})
     check("build reports observable", build.get("observable") is True,
           "all four build stamps must be set in production")
-    for private in ("image_digest", "commit", "migration_head", "snapshot_id"):
+    for private in PRIVATE_BUILD_FACTS:
         check(f"build does not publish {private}", private not in build,
               "these describe how to attack the deployment")
 
@@ -145,8 +186,17 @@ def main(base, record_to=None):
     check("an error carries a correlation id",
           "request_id" in body.lower() or "x-request-id" in lowered,
           "a user must be able to quote something an operator can find")
-    for leak in ("psycopg", "sqlite3", "Traceback", "DETAIL:", "postgresql://"):
+    for leak in LEAK_TOKENS:
         check(f"an error does not leak {leak!r}", leak not in body)
+
+    # The inventory and the run must agree. `not_attempted` is derived by
+    # subtracting one from the other, so a check added above and not declared
+    # in ALL_CHECKS would quietly make every abandoned record understate what
+    # it skipped — a wrong answer in exactly the file kept as evidence.
+    drift = set(name for name, _, _ in results).symmetric_difference(ALL_CHECKS)
+    if drift:
+        check("the checklist inventory matches the run", False,
+              f"declared and executed sets differ: {sorted(drift)}")
 
     width = max(len(name) for name, _, _ in results)
     failed = 0
@@ -156,7 +206,11 @@ def main(base, record_to=None):
         failed += 0 if passed else 1
 
     if record_to:
-        _write_record(record_to, base, results)
+        _write_record(
+            record_to, base, results,
+            PASSED if not failed else CHECKS_FAILED,
+            None if not failed
+            else INVENTORY_DRIFTED if drift else CHECKS_FAILED)
 
     print()
     if failed:
