@@ -33,6 +33,11 @@ import yaml
 REPO = pathlib.Path(__file__).resolve().parents[1]
 MAPPING = REPO / "data" / "catalog_instruments.yaml"
 
+#: The ticker whose trading days define the calendar. Every other series is
+#: reindexed onto it. A liquid, continuously-listed US equity ETF is the right
+#: choice; anything that trades on weekends is the wrong one.
+SESSION_REFERENCE = "SPY"
+
 
 def tickers_from(mapping: dict) -> list[str]:
     """Every ticker the catalog needs, from the mapping and the aliases.
@@ -63,6 +68,35 @@ def main() -> int:
     close = frame["Close"] if "Close" in frame.columns.get_level_values(0) else frame
     close = close.dropna(how="all").sort_index()
 
+    # --- put the frame on a trading calendar --------------------------------
+    #
+    # `BTC-USD` trades every calendar day. Taking the union of every ticker's
+    # index therefore produces weekends, on which every equity is NaN — 1210 of
+    # them in the first build of this file. The manifest still said
+    # `calendar: nyse` and counted them as sessions.
+    #
+    # The damage is not missing data, it is arithmetic: a 200-row window on a
+    # calendar-day index spans 199 days rather than the 292 that 200 NYSE
+    # sessions actually cover. Every moving average, every volatility estimate
+    # and every drawdown would be computed over the wrong horizon and would
+    # still look entirely reasonable.
+    if SESSION_REFERENCE not in close.columns:
+        print(f"{SESSION_REFERENCE} is required to define the session calendar",
+              file=sys.stderr)
+        return 1
+    sessions = close.index[close[SESSION_REFERENCE].notna()]
+    close = close.reindex(sessions)
+
+    # Forward-fill inside each ticker's own life, never before it. A ticker
+    # that listed in 2020 has no 2015 price, and inventing one by back-filling
+    # would put a figure where the instrument did not exist.
+    inception = {}
+    for column in close.columns:
+        first = close[column].first_valid_index()
+        inception[column] = first
+        if first is not None:
+            close.loc[first:, column] = close.loc[first:, column].ffill()
+
     # A ticker that silently returned nothing would become a column of NaN and
     # a plan naming it would price to nothing while looking configured.
     empty = [c for c in close.columns if close[c].notna().sum() == 0]
@@ -80,6 +114,13 @@ def main() -> int:
     snapshot_id = arguments.snapshot_id or f"prices-catalog-{today:%Y%m%d}"
     parquet = out / f"{snapshot_id}.parquet"
     close.to_parquet(parquet)
+
+    # The claim `calendar/nyse@1` has to be true of the file, not of the
+    # intention. The first build asserted it while carrying 1210 weekends.
+    weekends = int((close.index.dayofweek >= 5).sum())
+    if weekends:
+        print(f"{weekends} weekend rows survived the reindex", file=sys.stderr)
+        return 1
 
     digest = hashlib.sha256(parquet.read_bytes()).hexdigest()
     manifest = {
@@ -113,6 +154,11 @@ def main() -> int:
                     "the six licensing questions answered and a named policy "
                     "version."),
         "symbols": sorted(close.columns),
+        # Recorded, not hidden. A backtest that starts before a ticker listed
+        # is a backtest of an instrument that did not exist, and the engine
+        # needs to be able to refuse it rather than price a gap.
+        "inception": {c: (d.date().isoformat() if d is not None else None)
+                      for c, d in sorted(inception.items())},
     }
     manifest_path = out / f"{snapshot_id}.yaml"
     manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
