@@ -373,6 +373,31 @@ gate closed:
 
 ---
 
+## What is not modelled
+
+Stated as a boundary rather than a gap, because the failure is silent.
+
+**Historical security purchases, tax lots, realized gains, tax-loss
+harvesting, direct indexing, and equity-compensation lots are not modelled.**
+The two supported journeys describe contributions going forward; neither
+accepts a holding acquired in the past, and no surface claims a tax-lot
+result.
+
+That boundary is load-bearing. A share count recorded before a corporate
+action is recorded in units that no longer exist: ten NVDA bought at $1,209 in
+May 2024 are a hundred shares today, and valuing the stored ten against a
+split-adjusted price gives $1,210 for a position worth $12,100. Off by the
+split ratio, and entirely ordinary on the page.
+
+`src/holdings/` now carries the ledger that answers it — immutable acquisition
+lots, corporate-action resolution, disposition allocation, and three price
+series that refuse each other's questions by name. It is not wired into a user
+surface, and until it is, **the pilot must not accept an existing position.**
+The moment it does, a share-count-only model is materially unsafe rather than
+merely incomplete.
+
+---
+
 ## What this pilot does not have
 
 Stated so nobody discovers it during an incident:
