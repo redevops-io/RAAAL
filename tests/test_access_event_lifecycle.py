@@ -377,7 +377,7 @@ class TestAFailedFanOutLeavesNothingBehind:
         store = harness.prepared.__wrapped__(harness, tmp_path, monkeypatch)
         return harness, store
 
-    def failing_accept(self, harness, store, fail_on=1):
+    def failing_accept(self, harness, store, fail_on=1, attempts=None):
         from src.workspace.apply import accept
         from src.workspace.intent import plan
         from src.workspace.proposal import propose
@@ -405,6 +405,19 @@ class TestAFailedFanOutLeavesNothingBehind:
                 raise RuntimeError("this candidate could not be simulated")
             return body
 
+        # A premise witness. "Nothing survived the rollback" is free if
+        # nothing was ever written, which is exactly how the telemetry
+        # independence claim passed for the life of that suite. Counting the
+        # attempted write proves the transaction had something to discard.
+        if attempts is not None:
+            original = store.record_access_event
+
+            def counted(event, *, owner):
+                attempts.append(event.access_event_id)
+                return original(event, owner=owner)
+
+            store.record_access_event = counted
+
         with pytest.raises(Exception):                           # noqa: PT011
             accept(store, proposal_id="p1", owner=harness.OWNER,
                    worksheet_id="ws-1", proposal=proposal, at="t1",
@@ -413,7 +426,12 @@ class TestAFailedFanOutLeavesNothingBehind:
 
     def test_no_delivery_survives_the_rollback(self, staged):
         harness, store = staged
-        self.failing_accept(harness, store)
+        attempts = []
+        self.failing_accept(harness, store, attempts=attempts)
+        assert attempts, (
+            "no delivery write was attempted, so this case proves nothing "
+            "about rollback — it would pass against a fan-out that records "
+            "no evidence at all")
         assert events(store, harness.OWNER) == [], (
             "a delivery record outlived the transaction that wrote it; the "
             "run it was written for does not exist")

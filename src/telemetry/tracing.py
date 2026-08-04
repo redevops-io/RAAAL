@@ -89,10 +89,17 @@ class Recorder:
             __import__("datetime").timezone.utc).isoformat(timespec="seconds"))
         self._stack: List[str] = []
         self.produced: List[str] = []
+        self._started = False
+        self._finished = False
 
     # ---- lifecycle -------------------------------------------------------
 
     def start(self) -> "Recorder":
+        """Open the trace. Idempotent, so the service can guarantee the spine
+        exists without a caller that already started one writing it twice."""
+        if self._started:
+            return self
+        self._started = True
         self._guard(lambda: self.store.start_trace(
             trace_id=self.trace_id, conversation_id=self.conversation_id,
             request_id=self.request_id, tenant=self.tenant,
@@ -100,6 +107,10 @@ class Recorder:
         return self
 
     def finish(self, status: str = "OK") -> None:
+        """Close it. Also idempotent, for the same reason."""
+        if self._finished or not self._started:
+            return
+        self._finished = True
         self._guard(lambda: self.store.end_trace(
             self.trace_id, ended_at=self._clock(), status=status,
             produced=self.produced))

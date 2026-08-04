@@ -174,11 +174,19 @@ class TestTheChainVerifies:
         """Below the store, because the store's own writer refuses this —
         which is the point. The guard is what a direct database edit meets."""
         store, _ = planned
-        a_run(store, an_access())
+        access = a_run(store, an_access())
+        before = store.get_access_event(
+            store.get_run("run-1", OWNER)["access_event_id"], OWNER)
         with store._conn() as conn:
             conn.execute(
                 "UPDATE market_data_access_event SET frame_digest = ?",
                 ("mdf1:swapped-after-the-fact",))
+        # A premise witness: the edit must have changed the stored form, or
+        # "tampering is detected" is a claim about an edit that did not happen.
+        after = store.get_access_event(
+            store.get_run("run-1", OWNER)["access_event_id"], OWNER)
+        assert after["frame_digest"] != before["frame_digest"]
+
         problems = store.verify_access_chain("run-1", OWNER)
         assert any("edited since it was written" in one for one in problems)
 

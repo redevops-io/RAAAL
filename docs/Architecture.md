@@ -1044,6 +1044,47 @@ Three properties make such a vocabulary trustworthy:
   vocabulary. The false positive was reachable only through a route returning a
   normal 404, which is precisely what the narrow envelope tests never do.
 
+## Telemetry is expendable, and was never delivered
+
+```text
+route -> Recorder(store=deployment telemetry) -> trace -> span
+                                                       -> decision
+```
+
+Until Gate 6 nothing in `src/` constructed a `TraceStore`. The one production
+entry point called `plan_and_record(...)` without a recorder, and that function
+substituted `Recorder(store=None)`, so every span, trace and decision the
+runtime assembled was dropped. Twenty-five telemetry tests passed because each
+built a recorder *with* a store in its own fixture.
+
+**That made the independence claim vacuous rather than true.** "Deleting every
+trace changes nothing about what a worksheet means" holds trivially when there
+are no traces. The property worth having is the harder one — with recording
+live, breaking it must still cost nothing — and it needed the mechanism to be
+reached before it could be asserted at all.
+
+**A second one underneath it.** `Recorder.start()` and `finish()` were called
+by nothing in `src/` either. The test helper called them. Spans and decisions
+would have been written against a `trace_id` with no `trace` row, so the
+correlation spine — the reason a conversation can outlive a request — existed
+only in the fixture, and every read API would have returned nothing in a
+deployment. Both calls are now idempotent and owned by the service, so a caller
+cannot forget and a caller who already opened one is not punished.
+
+**What independence now means, tested:** the same instruction planned in two
+identical fresh workspaces, one recording normally and one with telemetry
+deleted, read-only, or raising on every write, must produce the same answer and
+the same persisted artifacts. Not two sequential plans against one workspace —
+planning twice legitimately differs, because the trial total counts the first.
+
+`Recorder.failures` counts writes that did not land. Swallowed *and unreported*
+would make a dead trace store indistinguishable from a quiet one, which is
+precisely the state this gate found.
+
+**Retention resolves and nothing performs it.** `purge_before` works when
+called, the period is configurable, and no deployment schedules it. That is a
+strict `xfail` rather than an absence: the gap is a recorded decision.
+
 ## Discriminating strictness
 
 > **A control that cannot distinguish prohibited behaviour from valid behaviour

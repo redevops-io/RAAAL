@@ -159,6 +159,32 @@ def _store() -> WorkspaceStore:
     return WorkspaceStore(current().database.url)
 
 
+def _recorder(*, worksheet_id: str = "", conversation_id: str = ""):
+    """A recorder wired to the deployment's trace store.
+
+    Until Gate 6 nothing in `src/` ever constructed a `TraceStore`. The only
+    production entry point took `recorder=None` and `plan_and_record`
+    substituted `Recorder(store=None)`, so every span, trace and decision the
+    runtime carefully assembled was dropped. Twenty-five telemetry tests passed
+    because each built a recorder *with* a store in its own fixture — the
+    mechanism proven, and nothing reaching it.
+
+    That also made the independence claim vacuous rather than true. "Deleting
+    every trace changes nothing" holds trivially when there are no traces.
+
+    Failures here cost a trace and never an edit: `TelemetryTarget.store`
+    returns `None` if the store cannot be opened, and `Recorder._guard` counts
+    a failed write instead of raising.
+    """
+    from ..deploy.context import current
+    from ..telemetry import Recorder
+
+    return Recorder(store=current().telemetry.store(),
+                    conversation_id=conversation_id or None,
+                    worksheet_id=worksheet_id or None,
+                    tenant=PILOT_OWNER)
+
+
 def _prices() -> Optional[pd.DataFrame]:
     """Prices for a pilot request, through the pilot data gate.
 
@@ -922,7 +948,8 @@ def plan_worksheet_intent(worksheet_id: str, instruction: str = Form(...),
             instruction=instruction,
             intent_id=f"{worksheet_id}-intent-{stamp}",
             proposal_id=f"{worksheet_id}-proposal-{stamp}",
-            at=stamp, source_revision=source_revision)
+            at=stamp, source_revision=source_revision,
+            recorder=_recorder(worksheet_id=worksheet_id))
     except StaleInstruction as stale:
         raise HTTPException(status_code=409, detail=str(stale)) from stale
     except UntrustworthyHistory as broken:

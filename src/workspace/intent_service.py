@@ -94,6 +94,42 @@ def plan_and_record(store, *, worksheet_id: str, owner: str, instruction: str,
                     target_run: str = "",
                     store_instruction: bool = False,
                     recorder=None) -> PlannedIntent:
+    """Plan one instruction, with the trace opened and closed around it.
+
+    The service owns the lifecycle rather than its caller. Nothing in `src/`
+    called `start()` or `finish()`: spans and decisions were written against a
+    `trace_id` with no `trace` row, so the correlation spine — the reason a
+    conversation can outlive a request — existed only in the test fixture,
+    which did the wiring production omitted. Every read API would have returned
+    nothing in a deployment.
+
+    Both calls are idempotent, so a caller that already opened one is not
+    punished for it and a caller that forgets cannot produce orphan spans.
+    """
+    from ..telemetry import Recorder
+
+    recorder = recorder or Recorder(store=None)
+    recorder.start()
+    try:
+        planned = _plan_and_record(
+            store, worksheet_id=worksheet_id, owner=owner,
+            instruction=instruction, intent_id=intent_id,
+            proposal_id=proposal_id, at=at, source_revision=source_revision,
+            target_run=target_run, store_instruction=store_instruction,
+            recorder=recorder)
+    except Exception:
+        recorder.finish(status="ERROR")
+        raise
+    recorder.finish()
+    return planned
+
+
+def _plan_and_record(store, *, worksheet_id: str, owner: str, instruction: str,
+                     intent_id: str, proposal_id: str, at: str,
+                     source_revision: Optional[int] = None,
+                     target_run: str = "",
+                     store_instruction: bool = False,
+                     recorder=None) -> PlannedIntent:
     """Plan one instruction against the worksheet's persisted chain.
 
     `source_revision` is read from the stored worksheet by default rather than

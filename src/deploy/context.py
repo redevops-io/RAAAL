@@ -41,6 +41,27 @@ from typing import Any, Mapping, Optional
 from .preflight import Profile, configured_profile
 
 
+#: Where operational traces are written. Set empty to disable recording — an
+#: explicit choice a deployment can make, distinct from the variable being
+#: absent, which keeps the default.
+TRACE_PATH_VAR = "QUANTIFY_TRACE_PATH"
+
+TRACE_RETENTION_VAR = "QUANTIFY_TRACE_RETENTION_DAYS"
+
+
+def _retention(raw: Optional[str]) -> int:
+    """Days, or the default. An unreadable value keeps the default rather than
+    raising: a malformed retention setting must not stop a deployment serving,
+    because telemetry is the expendable half."""
+    from ..telemetry.trace_store import DEFAULT_RETENTION_DAYS
+
+    try:
+        days = int(str(raw))
+    except (TypeError, ValueError):
+        return DEFAULT_RETENTION_DAYS
+    return days if days > 0 else DEFAULT_RETENTION_DAYS
+
+
 def _redact(url: str) -> str:
     """A connection identity safe to log, print or put in a proof record."""
     return re.sub(r"://[^@/]*@", "://***@", url or "")
@@ -128,6 +149,53 @@ class ModelTarget:
 
 
 @dataclass(frozen=True)
+class TelemetryTarget:
+    """Where operational traces go, and whether they go anywhere.
+
+    Separate from `database` on purpose, and not merely as a different file.
+    Telemetry is expendable: it expires on a retention policy while financial
+    artifacts do not, and it must be able to fail without taking a request with
+    it. One target would make retention a per-table convention some future
+    query forgets, and would put deletable rows in the transaction that writes
+    permanent ones.
+
+    Omitted from the first version of this context because nothing consumed it.
+    That was right at the time — a declared field no producer fills is the
+    defect `discriminating strictness` names — and it is here now because
+    `plan_and_record` reaches it.
+    """
+
+    path: Optional[str]
+    """`None` disables recording entirely, which is what every financial test
+    runs under: the system must behave identically whether or not it is being
+    watched."""
+
+    retention_days: int = 90
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.path)
+
+    def store(self):
+        """A `TraceStore`, or `None`. Constructing it can fail — a read-only
+        volume, a full disk — and that failure must not reach a request, so it
+        is caught here rather than at the call site that merely wanted to
+        record a span."""
+        if not self.path:
+            return None
+        try:
+            from ..telemetry.trace_store import TraceStore
+
+            return TraceStore(self.path)
+        except Exception:                                        # noqa: BLE001
+            return None
+
+    def to_json(self) -> dict:
+        return {"enabled": self.enabled,
+                "retention_days": self.retention_days}
+
+
+@dataclass(frozen=True)
 class DeploymentContext:
     """What this deployment is. Immutable, and resolved exactly once."""
 
@@ -135,6 +203,7 @@ class DeploymentContext:
     database: DatabaseTarget
     market_data: MarketDataTarget
     model: ModelTarget
+    telemetry: "TelemetryTarget"
     build: Any
     """The `BuildManifest`, which already resolves itself from the environment
     and is carried here so nothing re-reads it."""
@@ -149,6 +218,7 @@ class DeploymentContext:
                 "database": self.database.to_json(),
                 "market_data": self.market_data.to_json(),
                 "model": self.model.to_json(),
+                "telemetry": self.telemetry.to_json(),
                 "build": {"observable": getattr(self.build, "observable", None)}}
 
 
@@ -206,6 +276,10 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
     )
     from ..market_data.loader import CACHE_VARIABLE
     from ..market_data.pilot_policy import PilotPolicyMissing, configured_policy
+    from ..telemetry.trace_store import (
+        DEFAULT_PATH as DEFAULT_TRACE_PATH,
+        DEFAULT_RETENTION_DAYS,
+    )
     from .manifest import read_manifest
 
     source = os.environ if environ is None else environ
@@ -238,4 +312,7 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
             cache_directory=source.get(CACHE_VARIABLE)),
         model=ModelTarget(_api_key=source.get("ANTHROPIC_API_KEY"),
                           model=source.get("QUANTIFY_PARSER_MODEL")),
+        telemetry=TelemetryTarget(
+            path=source.get(TRACE_PATH_VAR, str(DEFAULT_TRACE_PATH)) or None,
+            retention_days=_retention(source.get(TRACE_RETENTION_VAR))),
         build=read_manifest(source))
