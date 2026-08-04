@@ -1,0 +1,124 @@
+#!/bin/bash
+# Expand the environment template with secrets read on this host.
+#
+# The secrets never reach the Ansible controller. This script runs under the
+# instance profile, fetches the two values it needs, writes the file under
+# `umask 077`, and reports whether anything actually changed so a deploy that
+# changes nothing does not restart a healthy service.
+#
+# It prints CHANGED or UNCHANGED and nothing else. It must never echo a value:
+# the whole reason for fetching on the host is that the values stay here.
+set -euo pipefail
+umask 077
+
+REGION="{{ quantify_region }}"
+TEMPLATE="/opt/quantify/env.template"
+TARGET="/opt/quantify/.env"
+CADDY_TEMPLATE="/opt/quantify/Caddyfile.template"
+CADDY_TARGET="/opt/quantify/Caddyfile"
+
+secret() {
+  aws secretsmanager get-secret-value \
+    --region "$REGION" --secret-id "$1" \
+    --query SecretString --output text
+}
+
+QUANTIFY_DB_PASSWORD="$(secret '{{ quantify_secret_database }}')"
+MODEL_SECRET="$(secret '{{ quantify_secret_model_key }}')"
+QUANTIFY_MODEL_KEY="$(printf '%s' "$MODEL_SECRET" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("api_key",""))')"
+
+{% if quantify_parser_mode == "MODEL_ASSISTED" %}
+# Fail here rather than at startup. Terraform creates this secret empty on
+# purpose — `terraform apply` must not be the thing that knows the key — so an
+# unset value is the expected first-deploy state, and it deserves a sentence
+# that says what to do instead of a REFUSED_CONFIGURATION in a container log.
+if [ -z "$QUANTIFY_MODEL_KEY" ]; then
+  echo "The model API key secret is empty, and the parser mode is MODEL_ASSISTED." >&2
+  echo "Set it, then re-run this playbook:" >&2
+  echo "  aws secretsmanager put-secret-value --region $REGION \\" >&2
+  echo "    --secret-id {{ quantify_secret_model_key }} \\" >&2
+  echo "    --secret-string '{\"api_key\":\"sk-ant-...\"}'" >&2
+  exit 1
+fi
+{% endif %}
+
+BASIC_AUTH_SECRET="$(secret '{{ quantify_secret_basic_auth }}')"
+QUANTIFY_BASIC_AUTH_USER="$(printf '%s' "$BASIC_AUTH_SECRET" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("username",""))')"
+QUANTIFY_BASIC_AUTH_HASH="$(printf '%s' "$BASIC_AUTH_SECRET" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("password_hash",""))')"
+
+if [ -z "$QUANTIFY_BASIC_AUTH_HASH" ]; then
+  echo "The workspace basic-auth secret has no password_hash." >&2
+  echo "Without it Caddy has no credential to enforce, and the pilot" >&2
+  echo "workspace would be readable by anyone who reaches the hostname." >&2
+  echo "  caddy hash-password --plaintext 'the-pilot-password'" >&2
+  echo "  aws secretsmanager put-secret-value --region $REGION \\" >&2
+  echo "    --secret-id {{ quantify_secret_basic_auth }} \\" >&2
+  echo "    --secret-string '{\"username\":\"pilot\",\"password_hash\":\"\$2a\$14\$...\"}'" >&2
+  exit 1
+fi
+
+export QUANTIFY_DB_PASSWORD QUANTIFY_MODEL_KEY
+export QUANTIFY_BASIC_AUTH_USER QUANTIFY_BASIC_AUTH_HASH
+
+CHANGED=0
+
+render() {
+  local source="$1" target="$2" mode="$3" variables="$4"
+  local rendered
+  rendered="$(mktemp)"
+  # Only the named placeholders. A bare `envsubst` expands anything shaped
+  # like a shell variable, and a bcrypt hash is full of '$' — it would be
+  # eaten by the very mechanism meant to install it.
+  envsubst "$variables" < "$source" > "$rendered"
+  if [ -f "$target" ] && cmp -s "$rendered" "$target"; then
+    rm -f "$rendered"
+    return 0
+  fi
+  install -m "$mode" -o root -g root "$rendered" "$target"
+  rm -f "$rendered"
+  CHANGED=1
+}
+
+render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY}'
+render "$CADDY_TEMPLATE" "$CADDY_TARGET" 0644 '${QUANTIFY_BASIC_AUTH_USER} ${QUANTIFY_BASIC_AUTH_HASH}'
+
+# Verify the assembled connection string actually parses back to the password
+# that went into it.
+#
+# Terraform generates a URL-safe password, but a hand-rotated one is the
+# obvious next step for an operator and nothing about `put-secret-value`
+# suggests that '#' or '@' will quietly truncate a connection string. Without
+# this, the symptom is the application refusing with DATABASE_UNAVAILABLE
+# against a database that is up — and the failure is intermittent across
+# deployments, because it depends on the password.
+#
+# The password is compared inside Python and never printed.
+QUANTIFY_DB_PASSWORD="$QUANTIFY_DB_PASSWORD" python3 - "$TARGET" <<'PYTHON' || exit 1
+import os
+import re
+import sys
+from urllib.parse import urlsplit, unquote
+
+target = sys.argv[1]
+expected = os.environ["QUANTIFY_DB_PASSWORD"]
+
+url = ""
+with open(target, encoding="utf-8") as handle:
+    for line in handle:
+        if line.startswith("QUANTIFY_DATABASE_URL="):
+            url = line.split("=", 1)[1].strip()
+
+parts = urlsplit(url)
+actual = unquote(parts.password or "")
+
+if actual != expected or parts.hostname is None or parts.path != "/quantify":
+    sys.stderr.write(
+        "The database password does not survive being placed in the "
+        "connection string.\n"
+        "Characters such as @ # % ? / are legal in an RDS password and "
+        "corrupt a URL.\n"
+        "Rotate it to one using only letters, digits and !$&*()-_=+\n")
+    sys.exit(1)
+PYTHON
+
+if [ "$CHANGED" -eq 1 ]; then echo "CHANGED"; else echo "UNCHANGED"; fi

@@ -1,0 +1,401 @@
+---
+# Deploy the pinned image, migrate, start, and prove the deployment serves.
+#
+# Every step is re-runnable. The environment file is rendered on the host and
+# compared before writing, so a deploy that changes nothing restarts nothing —
+# a playbook that bounces a healthy service on every run is one people stop
+# running, and then stop trusting.
+
+- name: Wait for cloud-init to finish
+  ansible.builtin.command: cloud-init status --wait
+  register: cloud_init
+  changed_when: false
+  failed_when: cloud_init.rc not in [0, 2] # 2 is "done, with warnings"
+
+- name: Install host packages
+  ansible.builtin.apt:
+    name:
+      - gettext-base # envsubst, for rendering secrets on the host
+      - unzip
+      - python3
+      - curl
+    state: present
+    update_cache: true
+  become: true
+
+- name: Check for the AWS CLI
+  ansible.builtin.command: aws --version
+  register: aws_cli
+  changed_when: false
+  failed_when: false
+
+- name: Install the AWS CLI
+  when: aws_cli.rc != 0
+  become: true
+  block:
+    - name: Download the AWS CLI
+      ansible.builtin.get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+        mode: "0644"
+
+    - name: Unpack the AWS CLI
+      ansible.builtin.unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: true
+
+    - name: Install the AWS CLI
+      ansible.builtin.command: /tmp/aws/install --update
+      changed_when: true
+
+- name: Ensure Docker is running
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+  become: true
+
+# --- layout ----------------------------------------------------------------
+
+- name: Create the application directory
+  ansible.builtin.file:
+    path: /opt/quantify
+    state: directory
+    owner: root
+    group: root
+    # Not world-readable. The rendered environment file lives here.
+    mode: "0750"
+  become: true
+
+- name: Create the telemetry directory
+  ansible.builtin.file:
+    path: /var/lib/quantify
+    state: directory
+    mode: "0755"
+  become: true
+
+# --- registry --------------------------------------------------------------
+
+- name: Authenticate to the image registry
+  when: quantify_registry_host | length > 0 and 'ecr' in quantify_registry_host
+  ansible.builtin.shell: |
+    set -euo pipefail
+    aws ecr get-login-password --region {{ quantify_region }} \
+      | docker login --username AWS --password-stdin {{ quantify_registry_host }}
+  args:
+    executable: /bin/bash
+  become: true
+  changed_when: true
+  no_log: true
+
+- name: Note a non-ECR registry
+  when: quantify_registry_host | length > 0 and 'ecr' not in quantify_registry_host
+  ansible.builtin.debug:
+    msg: >-
+      {{ quantify_registry_host }} is not ECR. If the image is private, run
+      `docker login` on the host once; the credential persists in
+      /root/.docker/config.json and this playbook does not manage it.
+
+# --- configuration ---------------------------------------------------------
+
+- name: Install the environment template
+  ansible.builtin.template:
+    src: production.env.j2
+    dest: /opt/quantify/env.template
+    owner: root
+    group: root
+    mode: "0640"
+  become: true
+  notify: Restart the application
+
+- name: Install the Caddy template
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /opt/quantify/Caddyfile.template
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: Restart the application
+
+- name: Install the render script
+  ansible.builtin.template:
+    src: render-env.sh.j2
+    dest: /opt/quantify/render-env.sh
+    owner: root
+    group: root
+    mode: "0750"
+  become: true
+
+- name: Render the environment and Caddy configuration on the host
+  # The secrets are fetched here, under the instance profile, and never reach
+  # the controller. `no_log` covers the failure path: the script prints only
+  # CHANGED or UNCHANGED, but a traceback from the AWS CLI could carry more.
+  ansible.builtin.command: /opt/quantify/render-env.sh
+  become: true
+  register: rendered
+  changed_when: "'CHANGED' in rendered.stdout"
+  no_log: true
+  notify: Restart the application
+
+- name: Report what the render did
+  ansible.builtin.debug:
+    msg: "configuration {{ 'changed' if rendered.changed else 'unchanged' }}"
+
+- name: Install the compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/quantify/docker-compose.yml
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: Restart the application
+
+# --- image -----------------------------------------------------------------
+
+- name: Pull the pinned image
+  ansible.builtin.command: docker pull {{ quantify_image }}
+  become: true
+  register: pulled
+  changed_when: "'Downloaded newer image' in pulled.stdout"
+
+# --- migrations ------------------------------------------------------------
+
+# Before the service starts. The application refuses to serve a database at
+# the wrong head, so an unmigrated deployment fails readiness rather than
+# serving a schema it does not understand — but it fails as an outage, and
+# this makes it a deploy step instead.
+- name: Run migrations against RDS
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker run --rm --env-file /opt/quantify/.env {{ quantify_image }} \
+      python -c "
+    from src.db import migrate
+    from src.db.engine import Database
+    import os
+    database = Database(os.environ['QUANTIFY_DATABASE_URL'])
+    migrate.upgrade(database)
+    print('MIGRATED_TO=' + str(migrate.applied_revision(database)))
+    print('CODE_HEAD=' + migrate.code_head())
+    "
+  args:
+    executable: /bin/bash
+  become: true
+  register: migration
+  changed_when: true
+
+- name: Show the migration result
+  ansible.builtin.debug:
+    msg: "{{ migration.stdout_lines | select('search', '^(MIGRATED_TO|CODE_HEAD)=') | list }}"
+
+- name: Fail if the database is not at the code head
+  ansible.builtin.assert:
+    that:
+      - (migration.stdout | regex_search('MIGRATED_TO=(\\S+)', '\\1') | first)
+        == (migration.stdout | regex_search('CODE_HEAD=(\\S+)', '\\1') | first)
+    fail_msg: >-
+      The database is not at the migration head this image expects. The
+      application would refuse to serve with MIGRATION_MISMATCH.
+
+# --- run -------------------------------------------------------------------
+
+- name: Start the stack
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans
+    chdir: /opt/quantify
+  become: true
+  register: compose_up
+  changed_when: "'Started' in compose_up.stderr or 'Created' in compose_up.stderr"
+
+- name: Apply any pending restart before verifying
+  ansible.builtin.meta: flush_handlers
+
+# --- proof -----------------------------------------------------------------
+
+# Readiness, not liveness. `/health/live` answers that a process exists; this
+# waits for the preflight to have passed — migrated database, matching schema,
+# observable build, declared parser.
+- name: Wait for the application to report ready
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8000/health/ready
+    status_code: 200
+  register: readiness
+  retries: 30
+  delay: 5
+  until: readiness.status is defined and readiness.status == 200
+  # Runs on the host, against the api container's own port. That asks whether
+  # the application is serving — not whether the proxy is configured or the
+  # load balancer is routing. Those are the public path, and the public path
+  # is what deploy/acceptance.py checks, from outside.
+
+- name: Read the startup proof from the container log
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml logs api 2>&1 \
+      | grep -F "deployment proof" | tail -5 || true
+  args:
+    executable: /bin/bash
+  become: true
+  register: startup_proof
+  changed_when: false
+
+- name: Fail if the deployment left no startup proof
+  ansible.builtin.assert:
+    that:
+      - startup_proof.stdout | length > 0
+    fail_msg: >-
+      The application is ready but logged no deployment proof. The operator
+      channel is the only record of what configuration is live, and the
+      migration that disabled it once already shipped silently — see
+      tests/test_error_surface.py::TestTheOperatorChannelSurvivesAMigration.
+
+- name: Show the startup proof
+  ansible.builtin.debug:
+    var: startup_proof.stdout_lines
+
+- name: Confirm the deployed configuration is the planned one
+  # The proof states what the process resolved. Comparing it against what this
+  # playbook intended is the difference between "a configuration was logged"
+  # and "the configuration we deployed is the one running".
+  ansible.builtin.assert:
+    that:
+      - quantify_build_commit in startup_proof.stdout
+      - quantify_parser_mode in startup_proof.stdout
+    fail_msg: >-
+      The running deployment does not report the commit or parser mode this
+      playbook deployed. Something else is serving on this host.
+
+# --- retention -------------------------------------------------------------
+
+# There is deliberately no scheduling subsystem in the application. A cron
+# entry is the whole requirement, and installing it at deploy time is the
+# difference between a documented procedure and a running one.
+- name: Install the trace purge cron job
+  ansible.builtin.cron:
+    name: quantify-trace-purge
+    minute: "17"
+    hour: "3"
+    job: >-
+      cd /opt/quantify && /usr/bin/docker compose exec -T api
+      python -m src.telemetry.purge >> /var/log/quantify-purge.log 2>&1
+    user: root
+  become: true
+
+# --- journeys --------------------------------------------------------------
+
+- name: Count the plans already in the pilot workspace
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T api python -c "
+    import os
+    from src.workspace.store import WorkspaceStore
+    store = WorkspaceStore(os.environ['QUANTIFY_DATABASE_URL'])
+    print('PLANS=' + str(len(store.list_plans('pilot'))))
+    "
+  args:
+    executable: /bin/bash
+  become: true
+  register: plan_count
+  changed_when: false
+
+- name: Decide whether the deploy-time journeys may run
+  ansible.builtin.set_fact:
+    quantify_workspace_empty: >-
+      {{ (plan_count.stdout | regex_search('PLANS=(\d+)', '\\1') | first | int) == 0 }}
+
+# The pilot has one owner and no per-plan deletion, so a smoke journey writes
+# into the same workspace a real user reads. On a first deploy that is empty
+# and safe; on a redeploy it would put test plans in someone's list, and the
+# cleanup available — whole-workspace erasure — would take their data with it.
+#
+# So this runs only against an empty workspace and refuses otherwise. A check
+# that cannot run safely should decline, not run anyway.
+- name: Explain why the journeys are being skipped
+  when: not (quantify_workspace_empty | bool)
+  ansible.builtin.debug:
+    msg: >-
+      The pilot workspace already holds plans, so the deploy-time journeys are
+      skipped: they would write into live user data, and the only cleanup this
+      build offers is whole-workspace erasure. Verify by hand in a browser —
+      docs/Runbook.md, deployment sequence step 8.
+
+- name: Run both launch journeys against the deployment
+  when: quantify_workspace_empty | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T api python -c "
+    import sys
+    sys.path.insert(0, '/app/tests')
+    from fastapi.testclient import TestClient
+    import src.api as api
+    from conftest import submit_rendered_confirmation
+    from src.workspace.store import WorkspaceStore
+    import os
+
+    JOURNEYS = [
+        ('Roth contribution',
+         'I contribute \$7,000 a year to a Roth IRA in VOO on the first '
+         'trading day of January, reinvesting dividends, and I never sell.'),
+        ('Historical replay',
+         'I put \$500 a month into VTI starting in January 2015 and never '
+         'sold any of it.'),
+    ]
+
+    store = WorkspaceStore(os.environ['QUANTIFY_DATABASE_URL'])
+    with TestClient(api.app) as client:
+        for name, description in JOURNEYS:
+            response, plan_id = submit_rendered_confirmation(
+                client, description, title=name)
+            assert response.status_code == 303, (name, response.status_code)
+            assert plan_id, name
+            runs = store.runs_for(plan_id, 'pilot')
+            assert runs, name + ': the plan saved with no run, so there is no figure'
+            worksheet = store.worksheet_for_scenario(plan_id, 'pilot')
+            assert worksheet is not None, name + ': no worksheet'
+            print('JOURNEY_OK=' + name + ' plan=' + plan_id)
+    "
+  args:
+    executable: /bin/bash
+  become: true
+  register: journeys
+  changed_when: true
+
+- name: Show the journey results
+  when: quantify_workspace_empty | bool
+  ansible.builtin.debug:
+    msg: "{{ journeys.stdout_lines | select('search', '^JOURNEY_OK=') | list }}"
+
+- name: Prove both journeys ran
+  when: quantify_workspace_empty | bool
+  ansible.builtin.assert:
+    that:
+      - (journeys.stdout_lines | select('search', '^JOURNEY_OK=') | list | length) == 2
+    fail_msg: >-
+      Fewer than two journeys completed. A partial pass here is a deployment
+      that serves one of the two supported scenarios.
+
+# The smoke plans are removed so the first real user opens an empty workspace.
+# Safe only because the workspace was empty before this playbook wrote to it —
+# which the fact above established, and which is why that check exists.
+- name: Remove the journey plans
+  when: quantify_workspace_empty | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T api python -c "
+    import os
+    from src.workspace.store import WorkspaceStore
+    from src.workspace.erasure import delete_workspace, verify_deleted
+    store = WorkspaceStore(os.environ['QUANTIFY_DATABASE_URL'])
+    delete_workspace(store, 'pilot', requested_at='deploy-smoke')
+    remaining = verify_deleted(store, 'pilot')
+    assert not any(remaining.values()), remaining
+    print('WORKSPACE_CLEAN=true')
+    "
+  args:
+    executable: /bin/bash
+  become: true
+  register: cleanup
+  changed_when: true
+  failed_when: "'WORKSPACE_CLEAN=true' not in cleanup.stdout"

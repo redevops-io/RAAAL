@@ -87,3 +87,15 @@ package-lock.json
 
 # Provisioning output: bucket name stays out of an AGPL-published repo
 .env.market-data
+
+# Terraform state, and the files that name a real account or hostname.
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/backend.hcl
+infra/terraform/environments/*.tfvars
+infra/terraform/.terraform.lock.hcl
+!infra/terraform/environments/*.tfvars.example
+
+# Deployment evidence holds a real hostname; keep it out unless deliberate.
+evidence/

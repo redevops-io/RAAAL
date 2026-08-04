@@ -1,0 +1,43 @@
+# No TLS here. The ALB terminates it with an ACM certificate and forwards
+# plaintext across a private subnet to this listener.
+#
+# Caddy remains for one job: basic auth on /workspace/*. That is the entire
+# access control for the closed pilot — there are no user accounts, and a
+# single `pilot` owner holds every plan. `deploy/acceptance.py` checks it, and
+# an ALB has no equivalent, so removing this proxy would delete a control
+# while leaving every other part of the deployment looking correct.
+:80 {
+	encode gzip
+
+	# Health checks come from the load balancer and must not be authenticated,
+	# or an unhealthy-looking target is really just an unauthenticated one.
+	handle /health* {
+		reverse_proxy api:8000
+	}
+
+	handle /workspace/* {
+		# Expanded on the host by render-env.sh. A bcrypt hash is not a
+		# plaintext password, but it is offline-crackable, so it travels the
+		# same path as the secrets rather than through the controller.
+		basic_auth {
+			${QUANTIFY_BASIC_AUTH_USER} ${QUANTIFY_BASIC_AUTH_HASH}
+		}
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy api:8000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

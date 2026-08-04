@@ -1,0 +1,60 @@
+---
+# Deploy the pilot to the host Terraform built.
+#
+#   terraform -chdir=../terraform output -json ansible_variables > /tmp/quantify.json
+#   ansible-playbook -i inventory.aws_ec2.yml site.yml -e @/tmp/quantify.json
+#
+# Every variable comes from Terraform's output rather than being restated
+# here. A second copy of the deployed configuration is a second thing that can
+# disagree with what was planned, and the one that drifts is always the copy
+# nobody is reading.
+
+- name: Deploy Quantify
+  hosts: all
+  gather_facts: true
+  become: false
+
+  pre_tasks:
+    - name: Require the Terraform outputs
+      ansible.builtin.assert:
+        that:
+          - quantify_image is defined
+          - quantify_database_host is defined
+          - quantify_build_commit is defined
+          - quantify_secret_database is defined
+        fail_msg: >-
+          Pass Terraform's outputs:
+            terraform -chdir=../terraform output -json ansible_variables > vars.json
+            ansible-playbook -i inventory.aws_ec2.yml site.yml -e @vars.json
+
+    - name: Refuse an image that is not pinned by digest
+      # Terraform validates this too. Repeated because the playbook can be run
+      # against hand-written variables, and a tag here would mean the
+      # acceptance record names a configuration that no longer describes what
+      # is running.
+      ansible.builtin.assert:
+        that:
+          - quantify_image is search('@sha256:[0-9a-f]{64}$')
+        fail_msg: >-
+          Pin the image by digest. A tag is not a deployment identity.
+
+    - name: Refuse to deploy anything but synthetic data
+      ansible.builtin.assert:
+        that:
+          - quantify_data_policy == "SYNTHETIC_ONLY"
+        fail_msg: >-
+          The pilot is synthetic-only until all six vendor licensing questions
+          are resolved and recorded.
+
+  roles:
+    - quantify
+
+  post_tasks:
+    - name: What to do next
+      ansible.builtin.debug:
+        msg:
+          - "The application is serving and both journeys completed."
+          - "Still to do, from your machine:"
+          - "  python deploy/acceptance.py https://{{ quantify_domain }} --record evidence/acceptance.json"
+          - "  aws logs tail {{ quantify_log_group }} --since 15m | grep 'deployment proof' > evidence/startup-proof.txt"
+          - "Then the four browser checks in docs/Runbook.md, and the restore drill."

@@ -1,0 +1,28 @@
+# Dynamic inventory over SSM. The host has no public address and no SSH port,
+# so there is nothing to put in a static inventory and no key to distribute.
+#
+# Selection is by tag, not by name or address: Terraform tags the instance
+# `AnsibleGroup=quantify`, and a replaced instance is found automatically
+# rather than leaving the playbook pointed at a terminated one.
+plugin: amazon.aws.aws_ec2
+
+regions:
+  - us-east-1
+
+filters:
+  tag:AnsibleGroup: quantify
+  instance-state-name: running
+
+hostnames:
+  - instance-id
+
+compose:
+  # community.aws.aws_ssm speaks to the instance through Session Manager.
+  ansible_connection: "'community.aws.aws_ssm'"
+  ansible_aws_ssm_instance_id: instance_id
+  ansible_aws_ssm_region: placement.region
+  ansible_python_interpreter: "'/usr/bin/python3'"
+
+keyed_groups:
+  - key: tags.Environment
+    prefix: env
