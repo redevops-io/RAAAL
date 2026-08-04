@@ -207,6 +207,25 @@ class _Cursor:
         return self._cursor.rowcount
 
 
+def _operation(sql: str) -> str:
+    """A short application-side name for what was attempted.
+
+    Deliberately coarse — `INSERT plan_run`, not the statement. It is written
+    to the operator log beside the driver detail; a full statement there would
+    duplicate what `__cause__` already holds and would put user-supplied values
+    into a second place they have to be redacted from.
+    """
+    words = sql.strip().split()
+    if not words:
+        return ""
+    verb = words[0].upper()
+    for index, word in enumerate(words[:6]):
+        upper = word.upper()
+        if upper in ("FROM", "INTO", "UPDATE", "TABLE") and index + 1 < len(words):
+            return f"{verb} {words[index + 1].strip('(,')}"
+    return verb
+
+
 class Connection:
     """A driver connection with the dialect differences already applied."""
 
@@ -215,13 +234,34 @@ class Connection:
         self.dialect = dialect
 
     def execute(self, sql: str, params: Sequence[Any] = ()) -> _Cursor:
+        """Issue a statement, translating any driver failure on the way out.
+
+        This is the lowest layer that can classify mechanically, and the only
+        one that ever sees a `psycopg` or `sqlite3` exception. Everything above
+        receives a `DatabaseFailure` carrying a public category and a private
+        reason, with the original on `__cause__`.
+
+        Translating here rather than at each caller is the difference between a
+        rule and a habit. A foreign-key violation from
+        `DELETE FROM market_data_access_event` reached a caller as
+        `psycopg.errors.ForeignKeyViolation`, whose text names the constraint,
+        both tables, the key columns, the owner and that owner's object id —
+        and it reached it through a path nobody had thought to wrap, which is
+        how every instance of this class of defect has arrived.
+        """
+        from .errors import translate
+
         bound = tuple(adapt(value, self.dialect.value) for value in params)
-        if self.dialect is Dialect.POSTGRESQL:
-            issued = to_postgres(sql)
-            _record(issued)
+        issued = to_postgres(sql) if self.dialect is Dialect.POSTGRESQL else sql
+        _record(issued)
+        try:
             return _Cursor(self._raw.execute(issued, bound))
-        _record(sql)
-        return _Cursor(self._raw.execute(sql, bound))
+        except Exception as exc:                                 # noqa: BLE001
+            # `operation` is the statement's verb and table, not the statement:
+            # the SQL itself is a deployment detail, and the private record
+            # already carries the driver's own text for an operator.
+            raise translate(exc, operation=_operation(sql)) from exc
+
 
     def commit(self) -> None:
         self._raw.commit()

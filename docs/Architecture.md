@@ -677,7 +677,7 @@ The second form passed while the code it claimed to cover was never called. It
 is not a weak test; it is **self-authored evidence** — the test writes down what
 it believes happened and then checks its own note.
 
-This has now appeared in five shapes, and they are one defect:
+This has now appeared in eight shapes, and they are one defect:
 
 | Claim | How it was authored by the thing it checked |
 |---|---|
@@ -686,6 +686,21 @@ This has now appeared in five shapes, and they are one defect:
 | every diagnostic destination is guarded | parametrized from the list being guarded |
 | every write method is exercised | the exercised set was retyped by hand |
 | consumers preserve composite identity | reported clean having observed no joins |
+| no route reads an operational identity | the scan took its variable list from the assertion |
+| every candidate cites one delivery | the journey produced one candidate |
+| every error category has a producer | the check called a helper nothing else calls |
+
+The last three arrived in three consecutive slices, which is the argument for
+treating this as a class rather than a habit. Each was written *by someone who
+had just read the other two* and still landed the same way.
+
+The third of them recurred immediately after being fixed. Rewritten to scan
+source instead of calling the helper, the check then counted a docstring
+sentence — ``Carries `PublicCode.TRANSITION_INTEGRITY_FAILURE` `` — as a
+producer, so deleting the only real one left it green. Prose satisfying a
+structural test is the same defect wearing the other failure mode this codebase
+keeps hitting. It now walks `ast.Attribute` nodes, and a separate test
+constructs a prose-only module to prove comments do not count.
 
 The last is the sharpest. A checker given nothing to inspect returns no
 violations, and no violations is exactly what a correct system returns. Silence
@@ -920,6 +935,251 @@ against the constraint rather than against a policy nobody has written.
 > independently verifiable, and none of the three is re-derived from current
 > configuration when a stored figure is read.
 
+## Two channels
+
+> Every externally visible failure produces two correlated outputs: a bounded
+> public failure and a durable private diagnostic. **Neither channel is
+> sufficient alone**, and a test that checks only one is incomplete.
+
+```text
+driver exception -> classify(SQLSTATE) -> DatabaseFailure -> envelope
+                 \_ preserved on __cause__ -> operator log
+```
+
+| public | private |
+|---|---|
+| fixed code | original exception chain |
+| safe message | internal reason |
+| retry disposition | SQLSTATE where applicable |
+| request id | operation and correlation id |
+| nothing internal | everything |
+
+Translation lives in `db/engine.py` — the lowest layer that sees the driver
+exception, knows the SQLSTATE, can preserve the cause and can normalise
+PostgreSQL against SQLite. Routes see application exceptions only, and one
+handler serves all 49 of them: a handler that sanitises its own database
+exception is a handler that can forget.
+
+**The public category is what a caller may know; the internal reason is what an
+operator needs.** A missing parent and a cross-tenant reference are both
+`CONSTRAINT_CONFLICT` publicly — separating them is what would disclose that
+another tenant holds an id — and `MISSING_PARENT` against
+`CROSS_SCOPE_REFERENCE` privately, because one is a client ordering mistake and
+the other is an authorization boundary being probed.
+
+**Sanitisation and diagnosability fail independently.** `migrations/env.py`
+called `logging.config.fileConfig(path)`, whose `disable_existing_loggers`
+defaults to True. That disabled `uvicorn.error` — a logger owned by a different
+component — and migrations run in-process at startup, so a migrated deployment
+served perfectly sanitised public errors and recorded nothing about any of them:
+
+```text
+caller   -> sanitised error
+operator -> silence
+```
+
+Worse than an obviously broken handler, because it produces the appearance of
+correct error hygiene while removing the only evidence an incident could be
+diagnosed from. Every public-channel assertion passed. It was found by
+asserting on the private channel, and only in a full-file run — a single
+isolated request test can never reproduce it, because nothing migrates first.
+
+That makes it a **journey completeness** failure as much as an error-handling
+one. Application logging worked. Migration logging worked. Error translation
+worked. The startup *sequence* did not, and no component was individually
+wrong.
+
+`TestTheExactDefect` is the permanent regression: migrate, provoke a real
+PostgreSQL `23503` through a request, and assert both channels in one sequence
+— because each assertion was individually satisfiable while the whole was
+broken. `TestTheStartupJourney` runs the same shape through `create_app()`, so
+the claim covers every stage between process start and first request rather
+than the migration alone.
+
+**Three narrower rules, each from a defect this gate produced rather than
+found:**
+
+*A wrapper must translate connection failures without swallowing domain
+exceptions raised inside its context.* `Ledger._conn` is a `@contextmanager`,
+so an exception from the `with` body arrives at the `yield`; catching
+`Exception` there turned the ledger's own refusal into an opaque database
+failure, and a meaningful 422 into a 500. The engine never had this shape
+because it wraps one `execute` call and has no body to capture.
+
+*A compatibility helper must stay valid after the taxonomy moves beneath it.*
+`apply.py` asks `is_conflict(exc)` to produce a domain refusal. Once the engine
+classified first, that helper was handed a `DatabaseFailure` with no SQLSTATE
+attribute, answered no, and the apply path silently stopped refusing. The layer
+was correct and every consumer above it was looking for the wrong shape.
+
+*Private logging is best-effort and must never change the public answer.* A
+handler raising in `emit` turned a clean 409 into an unhandled 500 — the
+private channel failing cost the caller their result. `_record` contains it and
+falls back to `stderr`, because falling silent would reproduce the migration
+defect from the other direction.
+
+**Enforcement is syntactic, not textual.** Text search failed twice here in
+opposite directions: false positives from modules that merely name a driver
+while connecting or adapting a type, and false evidence from a docstring
+sentence counted as a producer. The syntax tree distinguishes an `except
+psycopg.X` from an import, and an `ast.Attribute` reference from prose.
+
+**A forbidden-output vocabulary is itself a thing that can be wrong**, and it
+fails in a direction that is easy to mistake for rigour. `DETAIL` was on the
+list because PostgreSQL's message contains it — and it collided with FastAPI's
+own `{"detail": ...}` envelope key, so an ordinary, correct 404 failed the
+check. The pressure at that moment is to exempt the test or broaden the
+allow-list, and either would have hollowed out the assertion permanently. The
+token is now `DETAIL:`, which is the server's actual field marker.
+
+Three properties make such a vocabulary trustworthy:
+
+- **one authoritative definition** — the startup journey had written its own
+  second list, which is how the two drifted;
+- **falsified against a real leak**, not merely asserted against safe output —
+  injecting the driver text into the envelope fails eleven of these tests,
+  including `DETAIL:` itself;
+- **exercised against ordinary application responses**, because a list only
+  ever run against the error envelope has never met the framework's own
+  vocabulary. The false positive was reachable only through a route returning a
+  normal 404, which is precisely what the narrow envelope tests never do.
+
+## Discriminating strictness
+
+> **A control that cannot distinguish prohibited behaviour from valid behaviour
+> will eventually be weakened, bypassed or ignored.**
+
+The load-bearing word is *distinguish*. Not "reject everything suspicious" —
+correctly separate the two.
+
+This one is different in kind from the six above it. Those ask whether a
+control exists, runs, is reached, agrees with its neighbours, or composes.
+This asks whether the control **means what it says**, which is a property of
+the verifier rather than of the system being verified:
+
+```text
+Reachability               the control executes
+Constructed invalid state  the control can reject
+Single resolution          the control answers one question
+Journey completeness       the controls compose
+Discriminating strictness  the control rejects only what it intends to
+```
+
+Gate 9 found four defects in the system and **five in its own checks**. Each of
+the five had the same shape — the weaker version *looked stricter*:
+
+| the check | why it looked stronger | why it was weaker |
+|---|---|---|
+| grep for a driver name | scans everything | confuses a reference with behaviour |
+| call the helper to prove reachability | executes real code | authors its own evidence |
+| scan source for a category | reads production files | counts prose as a producer |
+| forbid `DETAIL` | catches more strings | collides with framework vocabulary |
+| a local token list | self-contained | a second authority that drifts |
+
+The failure mode is not laxity. It is a control whose false positives are
+indistinguishable from its true ones, because that is the control someone will
+eventually widen, exempt or delete — and the widening is always locally
+reasonable. `DETAIL` firing on a correct 404 invites exactly two fixes, exempt
+the test or extend an allow-list, and both hollow the assertion out
+permanently. Narrowing to the server's own field marker was the only repair
+that kept it meaning anything.
+
+This generalises past error messages: policy deny-lists, schema checks,
+source-code guards, verification thresholds and anomaly detection all fail this
+way, and all of them fail *quietly*, because a control nobody trusts is not a
+control anybody reports.
+
+The usual framing of false positives is that they are annoying. Operationally
+they are worse than that, and the sequence is mechanical:
+
+```text
+noise -> ignored -> weakened -> removed
+```
+
+Every developer who touches the control experiences it as an obstacle to
+something they know is correct, and each individual widening is locally
+reasonable. That is what nearly happened to `DETAIL`.
+
+**The dual principle.** Broadness is not strength; precision is. Nearly every
+architectural correction recorded in this document moves the same way:
+
+| from | to |
+|---|---|
+| hashes equal | canonical values equal |
+| `proposal_id` | `(owner, proposal_id)` |
+| snapshot label | content digest |
+| frame returned | frame consumed |
+| provenance from configuration | provenance from the record |
+| `grep` | the syntax tree |
+| `DETAIL` | `DETAIL:` |
+
+None of those is a broader check. Each is a narrower one that means something
+the looser version could not distinguish — which is why the system has become
+more precise rather than merely more strict.
+
+**What actually increased is information.** Every replacement above carries
+more of it than the thing it replaced. `(owner, proposal_id)` carries a tenant
+that `proposal_id` had thrown away; a content digest carries a realization that
+a label could not name; a consumed frame carries what an execution received
+rather than what a resolver returned. The same movement runs back through the
+whole project — typed missions over prompts, mission graphs over chat history,
+execution artifacts over conversations, `OwnershipPath` over an inferred join.
+
+> **Correctness comes from preserving semantic information, not from adding
+> validation.** Validation is usually compensating for information discarded
+> earlier, and the compensation is always weaker than the information would
+> have been.
+
+`plan_run` is the clearest case. Without an `owner` column, every ownership
+question became a join, deletion needed a hand-maintained order, and a
+truncated `OwnershipPath` silently deleted another tenant's rows. Three
+separate controls were compensating for one discarded column. Adding the column
+did not make any of them stricter; it made two of them unnecessary and the
+third mechanical.
+
+**The two kinds are not the same, and the split follows the two planes.** Five
+of the seven corrections above preserve more information in the *artifact* —
+that is system-plane work, and the validation genuinely shrinks. Two of them,
+`grep`→AST and `DETAIL`→`DETAIL:`, preserve more information in the *reading*:
+nothing about the system changed, only the verifier's representation of it
+stopped discarding structure. That is verification-plane work, and it does not
+make anything simpler — it makes the check mean what it claimed.
+
+> Preserve semantic information in the artifact wherever the system owns it.
+> Preserve structural information in the observation wherever the verifier
+> reads it.
+
+Both are information-preservation; only the first reduces how much checking is
+needed, which is why the two are worth keeping apart. Stated as one rule it
+would predict that fixing a verifier simplifies the system, and it does not.
+
+**The overlap is where it becomes visible.** Narrow tests keep vocabularies
+apart; the startup journey put four of them in one request —
+
+```text
+framework response language + application error envelope
+    + database driver disclosure + startup logging configuration
+```
+
+— and two of the five defects above were reachable only there.
+
+> **Closure.** Every database failure crossing a public boundary is translated
+> at the engine into one of six stable semantic categories with explicit
+> retryability. The application exposes only fixed safe messages and a
+> correlation id, while operators receive the original chained cause and the
+> internal reason. Driver text, SQLSTATEs, constraint names, key values, paths
+> and tenant-existence details cannot reach callers. Migrations cannot disable
+> the operator channel, logging failures cannot alter the public response, and
+> every declared category has a real production producer.
+
+**What this does not yet prove.** The tests establish the logic against a real
+engine in this process. They do not establish that the *deployed* logging stack
+preserves it — uvicorn installs its own configuration, and the container is
+where a handler is actually attached. Running the same
+migration → request → failure → public response + private log sequence in the
+built-image lane is on the backlog, and is the one claim above that currently
+rests on a process this codebase configures itself.
+
 ## The invariants, and where they came from
 
 These are not principles chosen in advance. Each was named after the same
@@ -933,6 +1193,7 @@ defect appeared enough times to be a shape rather than an incident.
 | Coverage evidence | is the proof produced by the thing it certifies, or written beside it? |
 | Single resolution | do adjacent components resolve the same question once? |
 | Journey completeness | has the composed production path actually run? |
+| Discriminating strictness | does this control reject only what it intends to? |
 
 They overlap at the edges and are not a partition. Two observations about the
 fit, recorded because a taxonomy that is claimed to be exhaustive and is not
@@ -943,8 +1204,30 @@ is not fixing the class — five tenant-key tables found one at a time, two
 routers with the same ungated read, two immutable bodies with the same
 overwrite. The remedy is always an inventory derived from an independent
 source, and every invariant above ends up prescribing one. It may be the
-general case and the six may be its symptoms; that is not yet clear enough to
+general case and the seven may be its symptoms; that is not yet clear enough to
 write down as a law.
+
+**The seventh is about a different subject.** Six describe the system;
+*discriminating strictness* describes the things that check the system:
+
+```text
+System plane        does the system do the right thing
+  reachability of enforcement
+  ownership reachability
+  constructed invalid state
+  coverage evidence
+  single resolution
+  journey completeness
+
+Verification plane  can the check tell what it claims to tell
+  discriminating strictness
+```
+
+That is not a tidy addition to a taxonomy — it is an admission that the
+verifiers are software too, with their own defect classes, and that a suite
+reporting green is evidence about the suite before it is evidence about the
+code. Gate 9 produced more defects in its own checks than in the code they were
+written to check.
 
 **Several defects belong to more than one.** The truncated `OwnershipPath` was
 ownership reachability, single resolution *and* a consumer invalidated by a

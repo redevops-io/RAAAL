@@ -20,6 +20,8 @@ import os
 
 import pytest
 
+from src.db.errors import DatabaseFailure, InternalReason
+
 from src.db.engine import Database
 from src.mission.rsu_reconcile import (
     EventReconciliation,
@@ -222,11 +224,12 @@ class TestTheDatabaseRefusesTheWrongOrder:
     def test_parent_first_is_refused(self, tenants):
         """`plan` before `plan_run` — the constraint is what makes the
         application's ordering a guarantee rather than a habit."""
-        with pytest.raises(Exception) as caught:
+        with pytest.raises(DatabaseFailure) as caught:
             with session()._conn() as conn:
                 conn.execute("DELETE FROM plan WHERE owner = ?", (A,))
-        assert "foreign key" in str(caught.value).lower() or \
-               "violates" in str(caught.value).lower()
+        assert caught.value.reason is InternalReason.MISSING_PARENT, (
+            "the constraint refused for something other than a missing "
+            f"parent: {caught.value.private()}")
 
     def test_the_refusal_leaves_everything_in_place(self, tenants):
         with pytest.raises(Exception):
@@ -236,11 +239,12 @@ class TestTheDatabaseRefusesTheWrongOrder:
                        (A,))[0]["n"] == 1
 
     def test_events_before_their_reconciliation_is_refused(self, tenants):
-        with pytest.raises(Exception) as caught:
+        with pytest.raises(DatabaseFailure) as caught:
             with session()._conn() as conn:
                 conn.execute("DELETE FROM observed_event WHERE owner = ?", (A,))
-        assert "foreign key" in str(caught.value).lower() or \
-               "violates" in str(caught.value).lower()
+        assert caught.value.reason is InternalReason.MISSING_PARENT, (
+            "the constraint refused for something other than a missing "
+            f"parent: {caught.value.private()}")
 
 
 class TestVerificationIsIndependentOfTheDeletion:

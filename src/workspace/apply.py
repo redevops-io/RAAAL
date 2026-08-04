@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
-from ..db.errors import is_conflict
+from ..db.errors import PublicCode, Retry, is_conflict
 from .proposal import WorksheetProposal
 from .worksheet import Block, ResearchWorksheet, from_json, revise
 
@@ -43,6 +43,11 @@ class ApplyRefused(RuntimeError):
 class ProposalConflict(ApplyRefused):
     """Another request resolved this proposal while we were applying it.
 
+    Carries `PublicCode.STALE_TRANSITION`: the statement succeeded and moved no
+    row, so what failed is the assumption it was issued under. The caller must
+    re-read before retrying, which is a different instruction from "the service
+    was busy" — and the reason this is not folded into contention.
+
     A subtype of `ApplyRefused` so callers that handle refusal handle this too,
     and distinct so one that wants to say "someone else got there first" can.
     Raised in place of whatever the database would otherwise have thrown, which
@@ -53,6 +58,8 @@ class ProposalConflict(ApplyRefused):
 
 class TransitionIntegrityError(RuntimeError):
     """A state transition changed a number of rows that cannot be right.
+
+    Carries `PublicCode.TRANSITION_INTEGRITY_FAILURE` and is never retryable.
 
     Deliberately *not* an `ApplyRefused`. A refusal means the request was
     understood and declined; this means the stored state no longer matches what
@@ -81,6 +88,21 @@ class ApplyResult:
         return {"proposal_id": self.proposal_id, "revision": self.revision,
                 "runs": list(self.runs), "derived": list(self.derived),
                 "status": self.status}
+
+
+#: Which public category each refusal becomes. Declared beside the exceptions
+#: rather than in the HTTP layer: the layer that knows a transition moved zero
+#: rows is the layer that knows the caller must re-read, and a route
+#: reconstructing that from a class name would be deciding it a second time.
+#:
+#: Without this, `STALE_TRANSITION` and `TRANSITION_INTEGRITY_FAILURE` were two
+#: declared categories nothing produced — a declaration with no reachable
+#: consumer, which is the defect this codebase keeps finding in other people's
+#: work and had just reintroduced in its own.
+ProposalConflict.public_code = PublicCode.STALE_TRANSITION
+ProposalConflict.retry_disposition = Retry.AFTER_REREAD
+TransitionIntegrityError.public_code = PublicCode.TRANSITION_INTEGRITY_FAILURE
+TransitionIntegrityError.retry_disposition = Retry.NEVER
 
 
 def accept(store, *, proposal_id: str, owner: str, worksheet_id: str,
@@ -268,10 +290,6 @@ def _apply(store, *, proposal_id, owner, worksheet_id, proposal, at, actor,
                 "one was required. A proposal identifies one review, so more "
                 "than one row moving means the stored state no longer matches "
                 "what this code can reason about")
-            raise ProposalConflict(
-                f"proposal {proposal_id} was resolved by another request while "
-                "this one was applying it. Nothing from this attempt was kept; "
-                "read the proposal again to see the outcome that stands")
 
     return ApplyResult(proposal_id=proposal_id, revision=updated.revision,
                        runs=tuple(runs), derived=tuple(derived))

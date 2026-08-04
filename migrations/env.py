@@ -27,7 +27,18 @@ from src.db.schema import metadata  # noqa: E402
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # `disable_existing_loggers` defaults to True, which switches off every
+    # logger already configured in this process — including `uvicorn.error`,
+    # which is where `web.failure` writes the private half of every database
+    # error. Migrations run in-process at startup, so the default meant a
+    # deployment that had migrated served perfectly sanitised public errors
+    # and logged nothing at all about them: the public channel clean, the
+    # operator channel silently dead, which is the exact failure mode the
+    # error taxonomy exists to prevent.
+    #
+    # Found by asserting on the operator channel rather than only on the
+    # response body. A test that checked the response alone would have passed.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = metadata
 

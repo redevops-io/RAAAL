@@ -22,6 +22,8 @@ import os
 
 import pytest
 
+from src.db.errors import DatabaseFailure, InternalReason
+
 from src.db import schema
 from src.db.engine import Database
 from src.workspace.erasure import delete_workspace, export_workspace, verify_deleted
@@ -131,12 +133,13 @@ class TestTheApplicationPathAndTheDatabaseAgree:
         store = (sqlite_store if engine == "sqlite"
                  else request.getfixturevalue("postgres_store"))
         populate(store)
-        with pytest.raises(Exception) as caught:
+        with pytest.raises(DatabaseFailure) as caught:
             with store._conn() as conn:
                 conn.execute("DELETE FROM planned_event WHERE owner = ?",
                              (OWNER,))
-        assert "foreign key" in str(caught.value).lower() or \
-               "violates" in str(caught.value).lower()
+        assert caught.value.reason is InternalReason.MISSING_PARENT, (
+            "the constraint refused for something other than a missing "
+            f"parent: {caught.value.private()}")
 
     @pytest.mark.parametrize("engine", ["sqlite", "postgres"])
     def test_nothing_survives_that_the_ownership_graph_did_not_reach(

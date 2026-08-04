@@ -27,6 +27,8 @@ import os
 
 import pytest
 
+from src.db.errors import DatabaseFailure, InternalReason
+
 from src.db.engine import Database
 from src.mission.rsu_reconcile import (
     EventReconciliation,
@@ -300,7 +302,7 @@ class TestObservationAndReconciliation:
         """The composite foreign key spans owner, so a cross-tenant reference
         is refused by the database rather than merely unqueried."""
         self._record(B)
-        with pytest.raises(Exception) as caught:
+        with pytest.raises(DatabaseFailure) as caught:
             with session()._conn() as conn:
                 conn.execute(
                     "INSERT INTO event_reconciliation (owner, worksheet_id, "
@@ -309,8 +311,9 @@ class TestObservationAndReconciliation:
                     "observed_event_id) VALUES (?,?,?,?,?,?,?,?,?)",
                     (A, WORKSHEET, "rc-steal", "MATCHED", "{}", "m@1", "h",
                      "2026-06-17T00:00:00Z", OBSERVATION))
-        assert "foreign key" in str(caught.value).lower() or \
-               "violates" in str(caught.value).lower()
+        assert caught.value.reason is InternalReason.MISSING_PARENT, (
+            "the constraint refused for something other than a missing "
+            f"parent: {caught.value.private()}")
 
 
 class TestExport:
@@ -434,15 +437,16 @@ class TestTheSamePlanIdUnderTwoTenants:
     def test_a_run_cannot_reference_another_owners_plan(self, tenants):
         """The composite foreign key, not an application convention."""
         self._seed_shared(A)
-        with pytest.raises(Exception) as caught:
+        with pytest.raises(DatabaseFailure) as caught:
             with session()._conn() as conn:
                 conn.execute(
                     "INSERT INTO plan_run (owner, run_id, plan_id, ran_at, "
                     "result, comparison) VALUES (?,?,?,?,?,?)",
                     (B, "r-steal", "p-shared", "2026-01-01T00:00:00Z",
                      "{}", "{}"))
-        assert "foreign key" in str(caught.value).lower() or \
-               "violates" in str(caught.value).lower()
+        assert caught.value.reason is InternalReason.MISSING_PARENT, (
+            "the constraint refused for something other than a missing "
+            f"parent: {caught.value.private()}")
 
     def test_deleting_one_tenant_leaves_the_others_identical_ids(self, tenants):
         self._seed_shared(A)

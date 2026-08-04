@@ -19,6 +19,8 @@ from __future__ import annotations
 import os
 
 import pytest
+
+from src.db.errors import DatabaseFailure, InternalReason
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 
@@ -140,12 +142,14 @@ class TestSqliteEnforcesTheCompositeKey:
                 "VALUES (?,?,?,?,?,?,?,?)",
                 ("p-1", "alice", "t", "{}", "s", "2026-01-01T00:00:00Z",
                  "h", "h"))
-            with pytest.raises(Exception) as caught:
+            with pytest.raises(DatabaseFailure) as caught:
                 conn.execute(
                     "INSERT INTO plan_run (owner, run_id, plan_id, ran_at, "
                     "result, comparison) VALUES (?,?,?,?,?,?)",
                     ("bob", "r-1", "p-1", "2026-01-01T00:00:00Z", "{}", "{}"))
-            assert "foreign key" in str(caught.value).lower()
+            assert caught.value.reason is InternalReason.MISSING_PARENT, (
+            "the constraint refused for something other than a missing "
+            f"parent: {caught.value.private()}")
         finally:
             conn.close()
 
@@ -393,6 +397,9 @@ class TestTheOwnershipMigrationRefusesToGuess:
         with pytest.raises(Exception) as caught:
             migrate.upgrade(database)
         assert "no owner can be established" in str(caught.value)
+        assert not isinstance(caught.value, DatabaseFailure), (
+            "the migration's own refusal was translated into a database "
+            "failure; a caller would lose the reason it stopped")
 
     def test_the_database_is_left_at_the_old_revision(self, tmp_path):
         """A refused migration must not leave a half-applied schema."""
@@ -436,6 +443,7 @@ class TestTheOwnershipMigrationRefusesToGuess:
         with pytest.raises(Exception) as caught:
             migrate.upgrade(database)
         assert "more than one owner" in str(caught.value)
+        assert not isinstance(caught.value, DatabaseFailure)
 
     def test_a_resolvable_database_migrates(self, tmp_path):
         """The check must not refuse data it can resolve."""

@@ -1,6 +1,6 @@
 """The invariants are checkable claims, not a reading list.
 
-`Architecture.md` names six. Each was written after a defect appeared enough
+`Architecture.md` names seven. Each was written after a defect appeared enough
 times to be a shape, and each names a lane that must exist. A document listing
 invariants nothing enforces would be the same failure it warns about — a
 declaration with no reachable consumer.
@@ -26,6 +26,10 @@ INVARIANTS = {
     "Coverage evidence": "tests/test_tenancy_invariant.py",
     "Single resolution": "tests/test_single_resolution.py",
     "Journey completeness": "tests/test_provenance_journey.py",
+    # The verifier's own property rather than the system's: does the control
+    # reject only what it intends to? Its lane is the one that found five
+    # defects in this codebase's own checks.
+    "Discriminating strictness": "tests/test_error_surface.py",
 }
 
 #: The three lanes the document claims find different defect classes.

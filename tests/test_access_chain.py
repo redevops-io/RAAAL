@@ -287,11 +287,19 @@ class TestDeletingEvidenceIsRefusedWhileARunCitesIt:
         store, _ = planned
         access = an_access()
         a_run(store, access)
-        with pytest.raises(sqlite3.IntegrityError):
+        # A `DatabaseFailure`, not `sqlite3.IntegrityError`. Gate 9 moved the
+        # translation into the engine, so no driver exception crosses it —
+        # this assertion was written against the raw class and is what caught
+        # the change reaching the store.
+        from src.db.errors import DatabaseFailure, InternalReason, PublicCode
+
+        with pytest.raises(DatabaseFailure) as refusal:
             with store._conn() as conn:
                 conn.execute(
                     "DELETE FROM market_data_access_event "
                     "WHERE access_event_id = ?", (access.access_event_id,))
+        assert refusal.value.code is PublicCode.CONSTRAINT_CONFLICT
+        assert refusal.value.reason is InternalReason.MISSING_PARENT
 
     def test_deleting_the_run_first_releases_it(self, planned):
         store, _ = planned

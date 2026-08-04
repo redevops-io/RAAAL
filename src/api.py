@@ -222,6 +222,14 @@ app = FastAPI(
 )
 
 
+# One translation for every route. Installed on the application rather than
+# written into handlers: there are 49 handlers and one boundary, and a handler
+# that sanitises its own database exception is a handler that can forget.
+from .web.failure import install as install_failure_handling  # noqa: E402
+
+install_failure_handling(app)
+
+
 # --- service metadata ------------------------------------------------------
 
 app.include_router(ui_router)

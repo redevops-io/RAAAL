@@ -89,11 +89,33 @@ class TraceStore:
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
+        """A connection whose failures are translated, like the engine's.
+
+        This store predates `db.engine` and still opens SQLite directly, so it
+        sits outside the one translation boundary. The application's catch-all
+        handler stops a raw `sqlite3.OperationalError` reaching a caller — its
+        message names the database file's path — but that handler is a final
+        barrier, not a semantic boundary: everything arriving through it is an
+        unclassified 500 with no retry disposition.
+
+        Translating here gives this store the same public categories as the
+        rest without waiting for the port. `This store stays deliberately independent of the workspace database — telemetry must be able to fail without taking a request with it — so the wrapper, not a port, is the fix here.`
+        """
+        from ..db.errors import translate
+
         conn = sqlite3.connect(self.path)
         conn.row_factory = sqlite3.Row
         try:
             yield conn
             conn.commit()
+        except sqlite3.Error as exc:
+            # `sqlite3.Error` only, never `Exception`. A `@contextmanager`
+            # receives whatever the `with` body raised, so catching broadly
+            # here converted the ledger's own `ValueError("... is immutable")`
+            # — a domain refusal a caller must see — into an opaque database
+            # failure. The store's tests caught it; the taxonomy would have
+            # turned a meaningful 422 into a 500.
+            raise translate(exc, operation="trace_store") from exc
         finally:
             conn.close()
 
