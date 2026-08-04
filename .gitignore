@@ -109,3 +109,7 @@ evidence/workspace-credential.txt
 # members on every plan after the first. Keep the redacted text view instead.
 infra/terraform/*.tfplan
 infra/terraform/*.tfplan.txt
+
+# Vendor price snapshots. The mapping and the build script are tracked; the
+# prices are not redistributable and the manifest says so.
+data/snapshots/*.parquet
