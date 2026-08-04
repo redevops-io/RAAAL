@@ -171,3 +171,40 @@ class TestProgressIsReportedByState:
         item = OpenItem("account_type", "q", "w",
                         Resolution.REQUIRED_CLARIFICATION, executable=False)
         assert item.state is ItemState.NEEDS_ANSWER
+
+
+class TestThereIsAlwaysAWayToSubmit:
+    """Answering every question and having nothing to press.
+
+    Found on the live deployment. The template carried a comment saying the
+    button is "always rendered" directly above a condition that hid it
+    whenever the plan could not be priced — the same defect the comment
+    describes, reintroduced through a different test.
+
+    It is worse once submitting is how progress happens: gating the control on
+    executability makes the loop unreachable for exactly the plans that need
+    it.
+    """
+
+    def test_a_blocked_plan_still_offers_the_control(self, client):
+        page = client.get("/workspace/new", params={"describe": BLOCKED})
+        assert page.status_code == 200
+        assert "no instrument that can be priced" in page.text \
+            or "no price history" in page.text, "the premise: this plan is blocked"
+        assert 'type="submit"' in page.text, (
+            "every question answerable and nothing to press")
+
+    def test_a_runnable_but_incomplete_plan_offers_it_too(self, client):
+        page = client.get("/workspace/new", params={"describe": RUNNABLE})
+        assert 'type="submit"' in page.text
+
+    def test_the_re_rendered_page_offers_it(self, client):
+        """The pass after a submission is where a user is most likely to be
+        stranded, having already supplied answers."""
+        body = client.get("/workspace/new", params={"describe": BLOCKED}).text
+        response = submit(client, BLOCKED, body, amount="1000")
+        assert 'type="submit"' in response.text
+
+    def test_the_blocked_plan_says_answers_are_kept(self, client):
+        page = client.get("/workspace/new", params={"describe": BLOCKED})
+        assert "your answers are kept" in page.text.lower()

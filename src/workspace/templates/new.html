@@ -157,23 +157,33 @@
          value="{{ suggested_title }}" required>
 </div>
 
-{# Always rendered. Hiding it until everything is settled left a user with
-   answered questions and no way to submit them — the answers are *how* the
-   remaining items get settled, so the button that sends them cannot be gated
-   on them already being settled. A submission that is still incomplete is
-   refused by the store with a reason. #}
-{% if not feasibility or feasibility.can_execute %}
+{# Always rendered, with no condition at all.
+   The comment above this block used to say "always rendered" while the line
+   beneath it read `{% if not feasibility or feasibility.can_execute %}` — so
+   the button vanished for any plan that could not yet be priced. A user could
+   answer every question on the page and have nothing to press. That is the
+   same defect the comment describes, reintroduced through a different
+   condition, and the live SPX journey landed in exactly it.
+
+   It is worse now that a submission re-renders: submitting is *how* a blocked
+   plan makes progress, so gating the control on executability makes the loop
+   unreachable for the case that motivated it. Nothing incomplete is saved —
+   the server decides that, and answers with a page rather than an error. #}
 <div class="panel">
   <button type="submit">
-    {{ "Save this plan" if confirmation.can_save else "Submit answers and save" }}
+    {{ "Save this plan" if confirmation.can_save else "Submit answers" }}
   </button>
   {% if not confirmation.can_save %}
   <div class="small muted" style="margin-top:6px">
+    {% if feasibility and not feasibility.can_execute %}
+    This plan cannot run yet, but your answers are kept. Submit them and the
+    remaining questions will narrow.
+    {% else %}
     Answer the questions above and confirm each assumption, then submit.
+    {% endif %}
   </div>
   {% endif %}
 </div>
-{% endif %}
 </form>
 
 {% endif %}
