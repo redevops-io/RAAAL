@@ -32,8 +32,17 @@ DUPLICATES = [
 GENUINELY_UNPLACEABLE = [
     "request for calculated total return and accumulated amount over the "
     "past 5 years is a computation request, not a plan attribute",
-    "SP500 etf (ticker not specified)",
     "I would like to feel calmer about money",
+]
+
+#: Phrases that name an asset. These used to land here as unplaceable prose,
+#: offering only "continue without modelling it" — which meant proceeding with
+#: no instrument. They are asked as identity now, with the funds that track
+#: what the user named.
+NAMES_AN_ASSET = [
+    "SP500 etf (ticker not specified)",
+    "SPX ETF",
+    "Nasdaq ETF",
 ]
 
 
@@ -117,3 +126,19 @@ class TestTheCompilerDropsTheDuplicate:
         for phrase in GENUINELY_UNPLACEABLE:
             assert f"unclear:{phrase}" in fields, (
                 f"{phrase} was dropped with no control anywhere")
+
+    @pytest.mark.parametrize("phrase", NAMES_AN_ASSET)
+    def test_a_phrase_naming_an_asset_is_asked_as_identity(self, phrase):
+        """Not filed as unplaceable. Acknowledging one of these meant
+        proceeding with no instrument, which is not a narrower plan — it is no
+        plan."""
+        from src.mission.compiler import ParsedUtterance, compile_scenario
+
+        parsed = ParsedUtterance(text=self.TEXT, unclear=(phrase,))
+        scenario = compile_scenario(
+            self.TEXT, parsed=parsed,
+            priceable=("SPY", "VOO", "IVV", "QQQ")).scenario
+        fields = {one.field for one in scenario.provenance.unresolved}
+
+        assert f"asset_identity:{phrase}" in fields
+        assert f"unclear:{phrase}" not in fields

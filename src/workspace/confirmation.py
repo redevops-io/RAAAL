@@ -82,6 +82,23 @@ ACCOUNT_CONTEXT: Mapping[str, Dict[str, Any]] = {
 #: Closed vocabularies, so a question with known answers offers them instead of
 #: a free-text box. A text field where the options are finite invites a phrasing
 #: the compiler then has to re-read, and re-reading is where meaning is lost.
+def _choices_for(field: str) -> Sequence[Dict[str, str]]:
+    """Options for a question, static or identified.
+
+    Identity is the one field whose options depend on what the user wrote, so
+    they are produced per phrase rather than looked up. Everything else comes
+    from the registry.
+    """
+    if field.startswith("asset_identity:"):
+        from ..mission import asset_identity
+
+        found = asset_identity.identify(field[len("asset_identity:"):])
+        return tuple({"value": one.symbol,
+                      "label": f"{one.symbol} — {one.name}"}
+                     for one in found.candidates)
+    return CHOICES.get(field, ())
+
+
 #: Derived from `mission.vocabulary`, not restated.
 #:
 #: This was a second hand-written list of the same options, and it had already
@@ -387,7 +404,7 @@ def build(result, *, text: str = "") -> ConfirmationView:
     questions = [
         Question(field=u.field, question=u.question,
                  why_it_matters=u.why_it_matters,
-                 choices=CHOICES.get(u.field, ()),
+                 choices=_choices_for(u.field),
                  routing=_routing_for(u.field, text))
         for u in result.unresolved
     ]

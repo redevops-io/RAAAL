@@ -286,4 +286,4 @@ class TestThePageIsForAUserNotADeveloper:
     def test_the_sections_say_what_they_are(self, client):
         page = client.get("/workspace/new", params={"describe": UNRUNNABLE})
         assert "Understood so far" in page.text
-        assert "Needs your input" in page.text
+        assert "Help me finish your plan" in page.text

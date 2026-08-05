@@ -729,12 +729,20 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
 
     stage1 = parse_with_model(describe, mode=_deployment().model.mode.value,
                               client=_parser_client())
+    # What the deployment can price, resolved before compiling: identity
+    # candidates are filtered to it, so the page never offers a fund that
+    # would replace one dead end with a politer one.
+    access = _market_data("draft scenario preview")
+    # `columns or ()` raises on a pandas Index — truthiness is ambiguous, and
+    # the same trap appeared in the corporate-action bridge earlier today.
+    _columns = getattr(access.frame, "columns", None)
+    priceable = tuple(_columns) if _columns is not None else ()
     compiled = compile_scenario(describe, name="draft", version=1,
                                 benchmark_rule=BENCHMARK_RULE,
                                 parsed=stage1.parsed,
                                 amendments=tuple(amendments),
-                                exclusions=tuple(exclusions))
-    access = _market_data("draft scenario preview")
+                                exclusions=tuple(exclusions),
+                                priceable=priceable)
     run = (_run(compiled.scenario, access)
            if compiled.can_simulate and access.usable else None)
     feasibility = assess(compiled.scenario, access.frame)

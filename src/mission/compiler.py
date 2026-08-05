@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from .defaults import DEFAULT_SET, DefaultSet
 from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpecification
 from .representation import representation_gaps
-from . import vocabulary
+from . import asset_identity, vocabulary
 from .spec import Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
 
 
@@ -493,6 +493,7 @@ def compile_scenario(
     parsed: Optional[ParsedUtterance] = None,
     amendments: Sequence["ScenarioAmendment"] = (),
     exclusions: Sequence["ScenarioExclusion"] = (),
+    priceable: Sequence[str] = (),
 ) -> CompilerResult:
     """Stages 1–8. Deterministic from the parse onward.
 
@@ -506,6 +507,10 @@ def compile_scenario(
     represented and chose to proceed without. They drop the corresponding
     question rather than answering it, and the scenario records that its scope
     is narrower than its description.
+
+    `priceable` is what the deployment can actually value. Identity candidates
+    are filtered to it, because offering a fund the pilot cannot price would
+    replace one dead end with a politer one.
 
     `parsed` is the injection point for stage 1. Pass one produced by
     `parse_model.parse_with_model` to widen recognition with a language model, or
@@ -615,9 +620,19 @@ def compile_scenario(
     sells = parsed.value_of("sells_allowed")
     sells_allowed = not (sells and sells.value == "false")
 
+    # Assets the user named by clarification rather than by ticker. They join
+    # the parsed assets rather than replacing the description.
+    identified: List[str] = []
     for ambiguous in parsed.unrecognized:
         question, why = _QUESTIONS["asset_identity"]
         options = AMBIGUOUS_NAMES.get(ambiguous)
+        # An answer settles it. Without this the question was raised, an input
+        # was rendered for it, the reply was recorded as an amendment, and the
+        # same question came back — the field had no settle site at all.
+        chosen = answered(f"asset_identity:{ambiguous}")
+        if chosen:
+            identified.append(chosen)
+            continue
         unresolved.append(Unresolved(
             field=f"asset_identity:{ambiguous}",
             question=(f"{question} You wrote '{ambiguous}' — "
@@ -625,6 +640,32 @@ def compile_scenario(
                       else f"{question} You wrote '{ambiguous}'."),
             why_it_matters=why,
         ))
+
+    # Phrases that name an asset. Asked as identity rather than filed under
+    # "could not place": "SPX ETF" is an index and a fund request in one
+    # breath, and "there is no price history for SPX" answers a question
+    # nobody asked. Offering the funds that track it is the useful reply.
+    _still_unclear = []
+    for phrase in parsed.unclear:
+        found = asset_identity.identify(phrase, priceable=priceable)
+        if not found.candidates:
+            _still_unclear.append(phrase)
+            continue
+        field = f"asset_identity:{phrase}"
+        chosen = answered(field)
+        if chosen:
+            identified.append(chosen)
+            continue
+        offered = " or ".join(
+            f"{one.symbol} ({one.name})" for one in found.candidates)
+        unresolved.append(Unresolved(
+            field=field,
+            question=f"You wrote '{phrase}'. Did you mean {offered}?",
+            why_it_matters=(found.reason or "") + (
+                " Nothing is rewritten — your description keeps the words you "
+                "used, and the plan records which asset you meant."),
+        ))
+
 
     cadence_rec = parsed.value_of("cadence")
     cadence_value = cadence_rec.value if cadence_rec else answered("cadence")
@@ -675,7 +716,7 @@ def compile_scenario(
         event_program=event_program,
         flow_schedule=flows,
         allocation_rule=AllocationRule(
-            assets=parsed.assets,
+            assets=tuple(dict.fromkeys(tuple(parsed.assets) + tuple(identified))),
             weighting=weighting or "equal_weight_at_purchase",
         ),
         holdings_policy=HoldingsPolicy(
@@ -714,7 +755,8 @@ def compile_scenario(
     # page. Only then: if nothing covers it, it is genuinely unplaceable and
     # the acknowledgement is the honest control.
     _raised = {one.field for one in unresolved} | {one.field for one in inferred}
-    for phrase in parsed.unclear:
+
+    for phrase in _still_unclear:
         covered = _covered_by(phrase, _raised)
         if covered:
             stated.append(
