@@ -405,7 +405,7 @@ gate closed:
 |---|---|
 | **Gate 8** — no rate limits or cost caps | Keep the cohort small and invitation-only. Set **provider-side budget alerts** before the first invite; a pilot user can otherwise drive model spend with no ceiling in this code. |
 | **Gate 10** — no egress allowlist | Issue **tightly scoped credentials** — the model key should do nothing but call the model — and monitor outbound requests at the host or network layer. |
-| **Trace retention** — not scheduled | Add the cron entry for `python -m src.telemetry.purge` **before** traces accumulate, not after the volume fills. |
+| **Trace retention** — not scheduled | Add the cron entry for `python -m src.telemetry.purge` **before** traces accumulate, not after the volume fills. This became urgent on 2026-08-05: until then the Plan Builder recorded nothing, so the trace store could not grow and the missing schedule cost nothing. It now writes one trace per journey, and an unscheduled purge is a volume that fills and a retention period that is stated rather than enforced. |
 | **Licensing** — six questions unresolved | Stay `PILOT_DATA_POLICY=SYNTHETIC_ONLY`. The gate fails closed, so this is enforced rather than remembered; the disclosure is the part that depends on nobody quietly removing it. |
 
 ---

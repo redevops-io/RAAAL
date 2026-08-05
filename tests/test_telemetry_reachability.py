@@ -29,6 +29,7 @@ from pathlib import Path
 import pytest
 
 from src.workspace.store import WorkspaceStore
+from tests.test_workspace import COMPLETE
 
 OWNER = "pilot"
 AT = "2026-01-01T00:00:00Z"
@@ -549,3 +550,181 @@ class TestTheHttpRouteItselfRecords:
         response = http.post("/workspace/research/ws-1/intent",
                              data={"instruction": "Replace SPY with VOO"})
         assert response.status_code == 200, response.text
+
+
+class TestThePlanBuilderRecords:
+    """The routes a pilot user actually walks.
+
+    Gate 6 fixed "the only production entry point" and that was true when it
+    was written. The Plan Builder arrived afterwards and did not carry the
+    wiring across, so `GET /workspace/new` and `POST /workspace/save` — every
+    step of the journey an invited user takes — built no recorder at all. A
+    day of live traffic on `quantify.club` produced zero rows in all three
+    tables while the class above passed.
+
+    That is the reachability axis again, and it is the reason this class
+    asserts on the *store* rather than on the route: "the recorder was
+    constructed" is a claim about the code, and the code was never in doubt.
+    The observable property is that a journey leaves rows behind.
+
+    Recorded as OBS-4 and wired under a named exception to the freeze: product
+    behaviour is frozen, instrumentation needed to evaluate the pilot is not.
+    An experiment whose measurement channel is disconnected cannot answer the
+    question it was started to ask.
+    """
+
+    RUNNABLE = "I buy VOO every month and never sell."
+    UNCLEAR = "I put money into tech every so often."
+
+    @pytest.fixture
+    def client(self, tmp_path, deployment, monkeypatch):
+        from fastapi.testclient import TestClient
+
+        import src.api as api
+        import src.workspace.routes as routes
+
+        _, traces = deployment
+        store = WorkspaceStore(tmp_path / "workspace.db")
+        monkeypatch.setattr(routes, "_store", lambda: store)
+        api._bootstrap()
+        return TestClient(api.app), traces
+
+    def draft(self, http, describe):
+        response = http.get("/workspace/new", params={"describe": describe})
+        assert response.status_code == 200, response.text
+        return response.text
+
+    def test_the_empty_form_opens_no_trace(self, client):
+        """A blank page is not a journey. Recording one would make the trace
+        count a page-view metric and the question 'how many people described
+        something' unanswerable."""
+        http, traces = client
+        assert http.get("/workspace/new").status_code == 200
+        assert rows(traces, "trace") == []
+
+    def test_describing_something_writes_a_trace(self, client):
+        http, traces = client
+        self.draft(http, self.RUNNABLE)
+        assert rows(traces, "trace"), (
+            "GET /workspace/new recorded nothing; the Plan Builder is not "
+            "reaching the recorder")
+
+    def test_describing_something_writes_spans(self, client):
+        http, traces = client
+        self.draft(http, self.RUNNABLE)
+        assert rows(traces, "span")
+
+    def test_describing_something_records_a_decision(self, client):
+        http, traces = client
+        self.draft(http, self.RUNNABLE)
+        assert rows(traces, "decision")
+
+    def test_the_questions_asked_are_recorded_by_name(self, client):
+        """Phase 1's actual question. A description with open items must leave
+        the field names behind, or the pilot measures traffic and not
+        understanding."""
+        import re
+
+        http, traces = client
+        body = self.draft(http, self.UNCLEAR)
+        outcomes = {row["outcome"] for row in rows(traces, "decision")}
+        assert "QUESTIONS_PRESENTED" in outcomes, outcomes
+
+        # The expectation comes from the page, not from a list written here.
+        # `assert refs.strip()` passed against a recorder writing `[]` — an
+        # empty JSON array is a non-empty string, and the test was asserting
+        # that a field existed rather than that it named anything.
+        on_screen = set(re.findall(r'data-field="([a-z_]+)"', body))
+        assert on_screen, "this description asked nothing; the case is vacuous"
+        recorded = " ".join(str(row["evidence_refs"])
+                            for row in rows(traces, "decision"))
+        missing = {field for field in on_screen if field not in recorded}
+        assert not missing, (
+            f"the user was asked about {sorted(missing)} and the trace does "
+            f"not name them: {recorded}")
+
+    def test_saving_writes_its_own_trace(self, client):
+        """The second half of the journey. `submit_rendered_confirmation`
+        posts the controls the page actually rendered rather than a payload
+        the test wishes it had — the same reason the class above stopped
+        calling `_recorder` directly."""
+        from tests.conftest import submit_rendered_confirmation
+
+        http, traces = client
+        before = len(rows(traces, "trace"))
+        response, plan_id = submit_rendered_confirmation(http, COMPLETE)
+        assert response.status_code == 303, response.text
+        assert len(rows(traces, "trace")) > before + 1, (
+            "POST /workspace/save recorded nothing beyond the GET that "
+            "preceded it")
+
+    def test_a_saved_plan_is_named_on_its_trace(self, client):
+        """So an operator holding a plan id can find the journey that made it.
+        That is the direction support actually searches: a user reports a
+        figure, never a request id."""
+        from tests.conftest import submit_rendered_confirmation
+
+        http, traces = client
+        response, plan_id = submit_rendered_confirmation(http, COMPLETE)
+        assert response.status_code == 303, response.text
+        produced = " ".join(str(row["produced"]) for row in rows(traces, "trace"))
+        assert plan_id and plan_id in produced
+
+    def test_a_save_that_still_has_questions_records_them(self, client):
+        """The round-trip count Phase 1 is trying to measure. A submission
+        that comes back for more answers must be distinguishable from one that
+        saved, or 'how many rounds did this take' has no answer."""
+        from tests.conftest import submit_rendered_confirmation
+
+        http, traces = client
+        response, _ = submit_rendered_confirmation(
+            http, self.UNCLEAR, acknowledge_all=False)
+        assert response.status_code == 200, response.status_code
+        outcomes = {row["outcome"] for row in rows(traces, "decision")}
+        assert outcomes & {"RETURNED_FOR_ANSWERS", "RETURNED_NOT_EXECUTABLE"}, \
+            outcomes
+
+    def test_the_trace_holds_no_description(self, client):
+        """The guarantee the other layers already keep. Caddy and uvicorn were
+        both leaking this into CloudWatch; the store must not become the third
+        place the sentence survives."""
+        http, traces = client
+        secret = "I buy ZZZCANARY every month and never sell."
+        self.draft(http, secret)
+
+        # The premise first. An empty store contains no canary either, and a
+        # privacy assertion that passes hardest when nothing was recorded is
+        # the shape that let the restore drill certify its own write.
+        assert rows(traces, "span"), "nothing was recorded; absence proves nothing"
+
+        dump = " ".join(
+            str(tuple(sorted(row.items()))) for table in ("trace", "span", "decision")
+            for row in rows(traces, table))
+        assert "ZZZCANARY" not in dump
+        assert "every month" not in dump
+
+    def test_a_broken_store_still_serves_the_builder(self, client, monkeypatch):
+        """Telemetry never breaks the thing it observes — restated for the two
+        routes that now carry it."""
+        import src.telemetry.trace_store as store_module
+
+        http, _ = client
+        monkeypatch.setattr(
+            store_module.TraceStore, "record_span",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unavailable")))
+        assert http.get("/workspace/new",
+                        params={"describe": self.RUNNABLE}).status_code == 200
+
+    @staticmethod
+    def form(body):
+        import html as html_module
+        import re
+
+        found = re.search(r'name="parse" value="([^"]*)"', body)
+        payload = {"describe": TestThePlanBuilderRecords.RUNNABLE,
+                   "title": "Draft",
+                   "parse": html_module.unescape(found.group(1)) if found else ""}
+        for field, value in re.findall(
+                r'name="confirm:([a-z_]+)"[^>]*value="([A-Z]+)"[^>]*checked', body):
+            payload[f"confirm:{field}"] = value
+        return payload

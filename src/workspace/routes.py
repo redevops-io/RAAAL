@@ -241,6 +241,43 @@ def _recorder(*, worksheet_id: str = "", conversation_id: str = ""):
                     tenant=PILOT_OWNER)
 
 
+def _record_questions(recorder, *, fields, outcome: str) -> None:
+    """Record which clarification questions one journey produced.
+
+    Phase 1 asks which questions users receive. That is a question about the
+    compiler's vocabulary — `cadence`, `asset_identity`, `trigger` — not about
+    anyone's answer, so only field names are written. An answer may carry a
+    free-text amount, an employer or an instrument nobody has heard of, and
+    this store is the one place that must not hold them.
+
+    Both Plan Builder routes record it through here rather than each assembling
+    its own. Two constructions of the same fact is the drift `_builder_context`
+    was written to end, and the one nobody looks at is the one that breaks.
+    """
+    from ..telemetry.decisions import DecisionKind
+
+    asked = sorted(set(fields))
+    recorder.decide(
+        DecisionKind.CONFIRMATION,
+        outcome=outcome,
+        reason=("asked about " + ", ".join(asked)) if asked
+               else "nothing was left to settle",
+        evidence_refs=tuple(asked))
+
+
+def _blocking_fields(outstanding) -> tuple:
+    """The field names in a `Blockers`, from every category it separates.
+
+    `separable` is included deliberately. It was left out of an earlier count
+    inside `feasibility` itself and the result was a report of "nothing
+    blocking" against a store that refused the save.
+    """
+    return tuple(one.field for one in (outstanding.material
+                                       + outstanding.required
+                                       + outstanding.separable)) \
+        + tuple(outstanding.unconfirmed)
+
+
 def _prices() -> Optional[pd.DataFrame]:
     """Prices for a pilot request, through the pilot data gate.
 
@@ -657,37 +694,72 @@ def _template_confirmation(request: Request, describe: str, stage1):
 
 @router.get("/new", response_class=HTMLResponse)
 def new_plan(request: Request, describe: str = ""):
-    """The confirmation screen. Nothing is saved and nothing is committed."""
+    """The confirmation screen. Nothing is saved and nothing is committed.
+
+    A request with no description is a blank form, not a journey, and opens no
+    trace. Everything after that point is one, so the recorder is constructed
+    here and the drafting work happens under it.
+    """
     if not describe.strip():
         return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
 
+    recorder = _recorder().start()
+    try:
+        response = _draft(request, describe, recorder=recorder)
+    except Exception:
+        recorder.finish(status="ERROR")
+        raise
+    recorder.finish()
+    return response
+
+
+def _draft(request: Request, describe: str, *, recorder):
+    """Read a description and build the page, under an open trace."""
     from ..deploy.context import current as _deployment
 
-    stage1 = parse_with_model(describe, mode=_deployment().model.mode.value,
-                              client=_parser_client())
+    with recorder.span("plan_draft") as drafting:
+        stage1 = parse_with_model(describe, mode=_deployment().model.mode.value,
+                                  client=_parser_client())
 
-    # Dispatch *before* generic compilation, not after. Compiled first and
-    # branched afterwards, a vest would already have been read as cash arriving
-    # and then a purchase, and the RSU surface would be describing a scenario
-    # built by the wrong semantics.
-    if stage1.parsed.template_hint:
-        return _template_confirmation(request, describe, stage1)
+        # Dispatch *before* generic compilation, not after. Compiled first and
+        # branched afterwards, a vest would already have been read as cash arriving
+        # and then a purchase, and the RSU surface would be describing a scenario
+        # built by the wrong semantics.
+        if stage1.parsed.template_hint:
+            drafting.set(template_hint=stage1.parsed.template_hint)
+            _record_questions(recorder, fields=(), outcome="TEMPLATE_DISPATCH")
+            return _template_confirmation(request, describe, stage1)
 
-    access = _market_data("draft scenario preview")
-    _columns = getattr(access.frame, "columns", None)
-    priceable = tuple(_columns) if _columns is not None else ()
-    compiled = compile_scenario(describe, name="draft", version=1,
-                                benchmark_rule=BENCHMARK_RULE,
-                                parsed=stage1.parsed,
-                                priceable=priceable)
-    run = (_run(compiled.scenario, access)
-           if compiled.can_simulate and access.usable else None)
+        access = _market_data("draft scenario preview")
+        _columns = getattr(access.frame, "columns", None)
+        priceable = tuple(_columns) if _columns is not None else ()
+        compiled = compile_scenario(describe, name="draft", version=1,
+                                    benchmark_rule=BENCHMARK_RULE,
+                                    parsed=stage1.parsed,
+                                    priceable=priceable)
+        run = (_run(compiled.scenario, access)
+               if compiled.can_simulate and access.usable else None)
 
-    from .feasibility import assess, blockers, classify
+        from .feasibility import assess, blockers, classify
 
-    feasibility = assess(compiled.scenario, access.frame)
-    open_items = classify(compiled.scenario.provenance.unresolved,
-                          executable=feasibility.can_execute)
+        feasibility = assess(compiled.scenario, access.frame)
+        open_items = classify(compiled.scenario.provenance.unresolved,
+                              executable=feasibility.can_execute)
+
+        # Everything the screen asks about, which is both kinds of question.
+        # Recording only `unresolved` named three of the five controls on the
+        # page: an inference awaiting confirmation — "we read this as
+        # reinvesting dividends, is that right?" — is a question the user
+        # receives, and Phase 1 counts it as one.
+        awaiting = tuple(one.field for one in compiled.scenario.provenance.inferred
+                         if not one.confirmed)
+        asked = tuple(one.field for one in open_items) + awaiting
+        drafting.set(open_items=len(open_items), unconfirmed=len(awaiting),
+                     executable=feasibility.can_execute,
+                     simulated=run is not None)
+        _record_questions(
+            recorder, fields=asked,
+            outcome="QUESTIONS_PRESENTED" if asked else "READY_TO_SAVE")
 
     return TEMPLATES.TemplateResponse(
         request, "new.html",
@@ -834,6 +906,27 @@ def _progress(open_items, feasibility):
 async def save_plan(request: Request, describe: str = Form(...),
                     title: str = Form(default=""),
                     parse: str = Form(default="")):
+    """The saved-plan submission, under an open trace.
+
+    A submission has three ends — saved, returned for more answers, refused —
+    and Phase 1 is asking how often each happens and over how many rounds. The
+    span is opened here so that every one of them, including the refusals that
+    leave by exception, closes a trace rather than dropping one.
+    """
+    recorder = _recorder().start()
+    try:
+        with recorder.span("plan_save") as saving:
+            response = await _save(request, describe=describe, title=title,
+                                   parse=parse, recorder=recorder, span=saving)
+    except Exception:
+        recorder.finish(status="ERROR")
+        raise
+    recorder.finish()
+    return response
+
+
+async def _save(request: Request, *, describe: str, title: str, parse: str,
+                recorder, span):
     """Commit what the user read, answered and confirmed.
 
     Everything arrives in one POST body from one form. It used to arrive in
@@ -963,13 +1056,16 @@ async def save_plan(request: Request, describe: str = Form(...),
         # page as a banner — but the questions beside it are still answerable,
         # and answering them now means the plan is ready the moment the
         # instrument is one we can price.
+        unrunnable = blockers(scenario, executable=False,
+                              stated_text=describe)
+        span.set(answers=len(amendments), outcome="NOT_EXECUTABLE")
+        _record_questions(recorder, fields=_blocking_fields(unrunnable),
+                          outcome="RETURNED_NOT_EXECUTABLE")
         return _render_builder(request, describe=describe, title=title,
                                parse=parse, answers=answers,
                                confirmations=confirmations,
                                exclusions=submitted_exclusions,
-                               outstanding=blockers(
-                                   scenario, executable=False,
-                                   stated_text=describe))
+                               outstanding=unrunnable)
 
     # Name what is blocking, from the same classification the screen rendered.
     # "still has unconfirmed inferences or open questions" told a user nothing
@@ -992,6 +1088,9 @@ async def save_plan(request: Request, describe: str = Form(...),
         # description is still immutable and the answers are still amendments
         # — they are simply carried forward instead of thrown away, and the
         # question list shrinks with each pass.
+        span.set(answers=len(amendments), outcome="RETURNED_FOR_ANSWERS")
+        _record_questions(recorder, fields=_blocking_fields(outstanding),
+                          outcome="RETURNED_FOR_ANSWERS")
         return _render_builder(request, describe=describe, title=title,
                                parse=parse, answers=answers,
                                confirmations=confirmations,
@@ -1025,6 +1124,11 @@ async def save_plan(request: Request, describe: str = Form(...),
                             **(run.get("comparability_records") or {})},
                 ran_at=saved_at, title=title.strip() or plan_id, access=access)
 
+    # Named so a trace can be found from the plan, which is the direction an
+    # operator actually searches: a user reports a figure, not a request id.
+    recorder.produced_artifact(plan_id)
+    span.set(answers=len(amendments), outcome="SAVED")
+    _record_questions(recorder, fields=(), outcome="READY_TO_SAVE")
     return RedirectResponse(f"/workspace/plans/{plan_id}", status_code=303)
 
 

@@ -121,3 +121,49 @@ understanding, or wire the recorder into the two Plan Builder routes first.
 The second is small — `_recorder()` already exists and already fails safe —
 but it is engineering work during a declared freeze, so it is the operator's
 call rather than an implementation detail.
+
+### Resolved — 2026-08-05, under a named exception to the freeze
+
+The operator classified this as an **instrumentation defect** rather than a
+bug, and amended the freeze to read:
+
+> Product behavior is frozen. Operational correctness and instrumentation
+> required to evaluate the pilot remain in scope until the first external users
+> are invited.
+
+The distinction that made it decidable: a defect in what the product *does*
+waits for users; a defect in what the product *observes* cannot, because it is
+what the waiting is for. "Closer to fixing a broken thermometer before starting
+an experiment than changing the experiment."
+
+Scope held to the two routes. No schema change, no new decision kinds, no new
+event types, no dashboard. `DecisionKind.CONFIRMATION` already existed and
+already meant this.
+
+**What is recorded.** One trace per journey; `plan_draft` and `plan_save`
+spans; one decision per screen naming the fields the user was asked about, with
+an outcome from a fixed set — `QUESTIONS_PRESENTED`, `READY_TO_SAVE`,
+`RETURNED_FOR_ANSWERS`, `RETURNED_NOT_EXECUTABLE`, `TEMPLATE_DISPATCH`. A saved
+plan's id is written to `produced`, so a trace can be found from the artifact
+rather than only from a request id.
+
+**Field names only, never answers.** `cadence` and `asset_identity` are the
+compiler's vocabulary; an answer may carry an amount, an employer or an
+instrument nobody has heard of. This store must not become the third place a
+user's sentence survives after Caddy and uvicorn were closed.
+
+**Two defects found by wiring it**, both by the falsification pass rather than
+by the change itself:
+
+- The privacy assertion passed hardest when nothing was recorded — an empty
+  store contains no canary either. It now witnesses its premise before
+  claiming absence proves anything. Same shape as the restore drill certifying
+  its own write.
+- `assert refs.strip()` passed against a recorder writing `[]`, because an
+  empty JSON array is a non-empty string. Replaced with a comparison against
+  the fields the *page* rendered — and that immediately showed the recorder
+  naming three of five controls: inferences awaiting confirmation are
+  questions the user receives, and were not being counted as any.
+
+An empty `GET /workspace/new` opens no trace. A blank form is not a journey,
+and recording one would turn the trace count into a page-view metric.
