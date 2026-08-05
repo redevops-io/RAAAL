@@ -673,10 +673,13 @@ def new_plan(request: Request, describe: str = ""):
     if stage1.parsed.template_hint:
         return _template_confirmation(request, describe, stage1)
 
+    access = _market_data("draft scenario preview")
+    _columns = getattr(access.frame, "columns", None)
+    priceable = tuple(_columns) if _columns is not None else ()
     compiled = compile_scenario(describe, name="draft", version=1,
                                 benchmark_rule=BENCHMARK_RULE,
-                                parsed=stage1.parsed)
-    access = _market_data("draft scenario preview")
+                                parsed=stage1.parsed,
+                                priceable=priceable)
     run = (_run(compiled.scenario, access)
            if compiled.can_simulate and access.usable else None)
 
@@ -697,7 +700,8 @@ def new_plan(request: Request, describe: str = ""):
                                  executable=feasibility.can_execute,
                                  stated_text=describe),
             "confirmation": compiled.confirmation(),
-            "view": build_confirmation(compiled, text=describe),
+            "view": build_confirmation(compiled, text=describe,
+                                       priceable=priceable),
             "suggested_title": _suggested_title(describe),
             "parse": json.dumps(stage1.parsed.to_json()),
             "parse_provenance": stage1.provenance,
@@ -758,7 +762,8 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
                              executable=feasibility.can_execute,
                              stated_text=describe),
         "confirmation": compiled.confirmation(),
-        "view": build_confirmation(compiled, text=describe),
+        "view": build_confirmation(compiled, text=describe,
+                                       priceable=priceable),
         "suggested_title": title or _suggested_title(describe),
         "parse": json.dumps(stage1.parsed.to_json()),
         "parse_provenance": stage1.provenance,

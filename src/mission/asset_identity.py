@@ -46,6 +46,9 @@ class Candidate:
     symbol: str
     name: str
     score: float
+    #: Why it ranked where it did. A list of tickers in an order nobody can
+    #: account for is a recommendation wearing a resolution's clothes.
+    reasons: Tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -59,6 +62,10 @@ class Identification:
     #: true of SPX and explains nothing; "that is the index, not a fund you
     #: can buy" is the actual problem.
     reason: str = ""
+    #: The registry that produced this reading. Pinned on the plan, so a
+    #: stored interpretation can say which catalogue it came from.
+    registry_digest: str = ""
+    concept_id: str = ""
 
     @property
     def best(self) -> Optional[Candidate]:
@@ -168,66 +175,36 @@ def _alias_table() -> Mapping[str, str]:
 def identify(observed: str, *, priceable: Sequence[str] = ()) -> Identification:
     """What this phrase might be, and how sure we are.
 
-    `priceable` filters candidates to what the deployment can actually value.
-    Offering a fund the pilot cannot price would replace one dead end with a
-    politer one.
+    A thin adapter over `resolver.resolve` now. The tables that used to live
+    here — phrase to funds, symbol to name — were a flat map answering several
+    questions at once, and the registry separates them: a concept is what the
+    user meant, an instrument is what can satisfy it, and an alias observation
+    carries the facets (vehicle, issuer) that a `phrase -> ticker` dictionary
+    could not hold.
+
+    `priceable` filters candidates to what the deployment can value. Offering
+    a fund the pilot cannot price would replace one dead end with a politer
+    one.
     """
-    cleaned = _clean(observed)
-    key = re.sub(r"\s+", " ", cleaned).strip().upper()
-    named_a_fund = bool(_ETF_WORDS.search(observed))
+    from . import resolver
 
-    symbols: Tuple[str, ...] = ()
-    reason = ""
+    found = resolver.resolve(observed, priceable=priceable)
+    if not found.candidates:
+        return Identification(
+            observed=observed, candidates=(), confidence=Confidence.LOW,
+            reason=found.mismatch or (
+                "This did not match any instrument the pilot can price."),
+            registry_digest=found.registry_digest)
 
-    bare = _NOISE.sub(" ", key)
-    bare = re.sub(r"\s+", " ", bare).strip()
-
-    for table, explain in ((_INDEX_FUNDS, True), (_THEMES, False)):
-        for phrase, funds in table.items():
-            if phrase == bare or phrase == key:
-                symbols = funds
-                if explain:
-                    reason = (
-                        f"{phrase} is an index — a measurement, not something "
-                        f"you can buy" + (
-                            ". You asked for a fund, so this is which fund."
-                            if named_a_fund else
-                            ". These funds track it."))
-                break
-        if symbols:
-            break
-
-    if not symbols:
-        # The catalog's own alias table, which maps the way people write things
-        # to a single ticker. It was read by a function nobody called: sixteen
-        # aliases the catalog already knew — "total bond market", "ex-US",
-        # "US large cap" — resolved to nothing here, because the knowledge had
-        # been copied into a smaller hardcoded table instead of used.
-        table = _alias_table()
-        single = table.get(key) or table.get(bare)
-        if single:
-            symbols = (single,)
-
-    if priceable:
-        symbols = tuple(s for s in symbols if s in set(priceable))
-
-    if not symbols:
-        return Identification(observed=observed, candidates=(),
-                              confidence=Confidence.LOW,
-                              reason=reason or (
-                                  "This did not match any instrument the pilot "
-                                  "can price."))
-
-    # One fund with no rival is a reading worth stating; several are a
-    # question. The score is ordinal, not a probability — presenting a made-up
-    # percentage as though it were measured would be its own defect.
-    step = 0.06
     candidates = tuple(
-        Candidate(symbol, NAMES.get(symbol, symbol), round(0.95 - index * step, 2))
-        for index, symbol in enumerate(symbols))
-    confidence = Confidence.HIGH if len(candidates) == 1 else Confidence.MEDIUM
-    return Identification(observed=observed, candidates=candidates,
-                          confidence=confidence, reason=reason)
+        Candidate(one.symbol, one.name, one.score, one.reasons)
+        for one in found.candidates)
+    confidence = (Confidence.HIGH if len(candidates) == 1
+                  else Confidence.MEDIUM)
+    return Identification(
+        observed=observed, candidates=candidates, confidence=confidence,
+        reason=found.mismatch, registry_digest=found.registry_digest,
+        concept_id=found.concept_id or "")
 
 
 def aliases() -> Mapping[str, str]:

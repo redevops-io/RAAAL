@@ -82,7 +82,7 @@ ACCOUNT_CONTEXT: Mapping[str, Dict[str, Any]] = {
 #: Closed vocabularies, so a question with known answers offers them instead of
 #: a free-text box. A text field where the options are finite invites a phrasing
 #: the compiler then has to re-read, and re-reading is where meaning is lost.
-def _choices_for(field: str) -> Sequence[Dict[str, str]]:
+def _choices_for(field: str, priceable: Sequence[str] = ()) -> Sequence[Dict[str, str]]:
     """Options for a question, static or identified.
 
     Identity is the one field whose options depend on what the user wrote, so
@@ -92,7 +92,12 @@ def _choices_for(field: str) -> Sequence[Dict[str, str]]:
     if field.startswith("asset_identity:"):
         from ..mission import asset_identity
 
-        found = asset_identity.identify(field[len("asset_identity:"):])
+        # Filtered to what the deployment can price. Resolved without it, the
+        # page could offer a fund the compiler would then reject — one dead
+        # end replaced by a politer one, which is the failure this whole slice
+        # exists to remove.
+        found = asset_identity.identify(field[len("asset_identity:"):],
+                                        priceable=priceable)
         return tuple({"value": one.symbol,
                       "label": f"{one.symbol} — {one.name}"}
                      for one in found.candidates)
@@ -389,8 +394,15 @@ def _over_limit(scenario) -> Optional[Dict[str, Any]]:
     }
 
 
-def build(result, *, text: str = "") -> ConfirmationView:
-    """Prepare the confirmation screen from a compiled result."""
+def build(result, *, text: str = "",
+          priceable: Sequence[str] = ()) -> ConfirmationView:
+    """Prepare the confirmation screen from a compiled result.
+
+    `priceable` is what the deployment can value. Identity candidates are
+    filtered to it here as well as in the compiler, because the page and the
+    compiler disagreeing about which funds exist is the same class of defect
+    as the page and the compiler disagreeing about which values a field takes.
+    """
     scenario = result.scenario
     summary = _summary_rows(scenario)
 
@@ -404,7 +416,7 @@ def build(result, *, text: str = "") -> ConfirmationView:
     questions = [
         Question(field=u.field, question=u.question,
                  why_it_matters=u.why_it_matters,
-                 choices=_choices_for(u.field),
+                 choices=_choices_for(u.field, priceable),
                  routing=_routing_for(u.field, text))
         for u in result.unresolved
     ]

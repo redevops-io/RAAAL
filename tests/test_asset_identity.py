@@ -139,9 +139,20 @@ class TestThePageOffersTheCandidates:
     def test_the_view_renders_them_as_choices(self):
         from src.workspace.confirmation import _choices_for
 
-        offered = _choices_for(f"asset_identity:{OBSERVED}")
-        assert [one["value"] for one in offered][:2] == ["SPY", "VOO"]
+        offered = _choices_for(f"asset_identity:{OBSERVED}", PRICEABLE)
+        symbols = [one["value"] for one in offered]
+        # SPY leads because the catalogue declares it the default for this
+        # concept, not because of where it sits in a file or in the alphabet.
+        assert symbols[0] == "SPY"
+        assert set(symbols) <= set(PRICEABLE)
         assert "SPDR" in offered[0]["label"]
+
+    def test_the_page_offers_nothing_the_deployment_cannot_price(self):
+        """The page and the compiler must agree about which funds exist."""
+        from src.workspace.confirmation import _choices_for
+
+        offered = _choices_for(f"asset_identity:{OBSERVED}", ("VOO",))
+        assert [one["value"] for one in offered] == ["VOO"]
 
     def test_a_static_field_still_uses_the_registry(self):
         from src.workspace.confirmation import _choices_for
