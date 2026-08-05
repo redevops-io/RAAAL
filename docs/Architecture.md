@@ -1263,6 +1263,42 @@ Both are information-preservation; only the first reduces how much checking is
 needed, which is why the two are worth keeping apart. Stated as one rule it
 would predict that fixing a verifier simplifies the system, and it does not.
 
+**The sharper form, arrived at from the other end.** Preservation says what to
+keep. It does not say when a decision is allowed to be made at all:
+
+> Every irreversible decision must either be deterministic, or become an
+> immutable observation.
+
+Parser output and user clarifications are observations; registry resolution,
+candidate ranking, execution planning, market replay, holdings resolution and
+export are deterministic. Nothing else is permitted to decide anything that
+cannot be undone.
+
+That is why silent substitution keeps appearing as the anti-pattern. Rewriting
+"SPX ETF" to SPY is neither: not deterministic, because it depends on whatever
+the catalogue says today, and not an observation, because nothing recorded it.
+A substitution that was recorded would be auditable and one that was
+deterministic would be reproducible; being neither leaves the output as the
+only trace, and the output looks correct.
+
+**Three axes, and they are not peers.** A preservation mechanism has to be
+semantically right, reachable by something that consumes it, and verified by
+evidence that can itself fail. Each certifies the one before it, so the danger
+increases with the layer: a missing mechanism leaves an unknown, which invites
+investigation; a wrong one produces a wrong result, which reality can
+sometimes surface; an unfalsifiable verifier produces confidence, which
+suppresses both. It is the only failure mode that actively prevents its own
+correction.
+
+**And the invariant does not cover reachability.** An amendment recorded and
+never consumed satisfies it exactly — the decision became an immutable
+observation — while the system still behaves as though the user said nothing.
+That was the largest class of defect in the pilot work: the registry reader
+never called, the answer collected and discarded, the identification computed
+after the object it should have informed. An observation nothing reads is
+indistinguishable from one never made, and the invariant cannot tell them
+apart. Only exercising the live path can.
+
 **The overlap is where it becomes visible.** Narrow tests keep vocabularies
 apart; the startup journey put four of them in one request —
 
