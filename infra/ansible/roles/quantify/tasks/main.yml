@@ -159,6 +159,39 @@
 
 # --- image -----------------------------------------------------------------
 
+# Before the pull, not after.
+#
+# Nine deploys of a 4GB image filled a 29GB volume and the tenth failed
+# mid-extract with "no space left on device" — a deployment that works
+# repeatedly and then does not, for a reason that has nothing to do with the
+# change being deployed. Pruning afterwards would not have helped: the pull
+# that runs out of space is the one that needed the room.
+#
+# `-a` removes every image no container is using, which by construction spares
+# the running one. The tunnel and proxy images are in use and survive.
+- name: Reclaim space from superseded images
+  ansible.builtin.command: docker image prune -af
+  become: true
+  register: pruned
+  changed_when: "'Total reclaimed space: 0B' not in pruned.stdout"
+
+- name: Report what was reclaimed
+  ansible.builtin.debug:
+    msg: "{{ pruned.stdout_lines | select('search', 'Total reclaimed') | list }}"
+
+- name: Refuse to deploy onto a full disk
+  # A pull needs room for the compressed layers and the extracted tree at
+  # once. Failing here names the problem; failing in the middle of an extract
+  # reports a missing shared object.
+  ansible.builtin.shell: |
+    set -euo pipefail
+    df --output=avail -BG / | tail -1 | tr -d ' G'
+  args:
+    executable: /bin/bash
+  register: free_space
+  changed_when: false
+  failed_when: (free_space.stdout | int) < 8
+
 - name: Pull the pinned image
   ansible.builtin.command: docker pull {{ quantify_image }}
   become: true
