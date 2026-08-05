@@ -155,6 +155,16 @@ def _clean(observed: str) -> str:
     return re.sub(r"[^A-Za-z0-9&\s.-]", " ", without_notes).strip()
 
 
+_ALIAS_CACHE: Optional[Mapping[str, str]] = None
+
+
+def _alias_table() -> Mapping[str, str]:
+    global _ALIAS_CACHE
+    if _ALIAS_CACHE is None:
+        _ALIAS_CACHE = aliases()
+    return _ALIAS_CACHE
+
+
 def identify(observed: str, *, priceable: Sequence[str] = ()) -> Identification:
     """What this phrase might be, and how sure we are.
 
@@ -186,6 +196,17 @@ def identify(observed: str, *, priceable: Sequence[str] = ()) -> Identification:
                 break
         if symbols:
             break
+
+    if not symbols:
+        # The catalog's own alias table, which maps the way people write things
+        # to a single ticker. It was read by a function nobody called: sixteen
+        # aliases the catalog already knew — "total bond market", "ex-US",
+        # "US large cap" — resolved to nothing here, because the knowledge had
+        # been copied into a smaller hardcoded table instead of used.
+        table = _alias_table()
+        single = table.get(key) or table.get(bare)
+        if single:
+            symbols = (single,)
 
     if priceable:
         symbols = tuple(s for s in symbols if s in set(priceable))

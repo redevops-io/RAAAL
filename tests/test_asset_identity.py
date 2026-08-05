@@ -148,3 +148,52 @@ class TestThePageOffersTheCandidates:
 
         assert [one["value"] for one in _choices_for("dividends")] == \
             ["reinvested", "held_as_cash"]
+
+
+class TestTheTwoTablesAgree:
+    """The catalog and the identifier hold overlapping knowledge.
+
+    `data/catalog_instruments.yaml` maps an alias to one ticker, for building
+    the price snapshot. `_INDEX_FUNDS` maps a phrase to candidates, for asking
+    the user. Eleven keys are in both, and nothing made them agree — the
+    identifier had a reader for the catalog table that was never called, so
+    sixteen aliases the catalog already knew resolved to nothing.
+    """
+
+    def catalog_aliases(self):
+        import yaml
+
+        loaded = yaml.safe_load(
+            open("data/catalog_instruments.yaml", encoding="utf-8"))
+        return {str(k).upper(): str(v) for k, v in loaded["aliases"].items()}
+
+    def test_the_catalog_has_aliases_to_check(self):
+        assert len(self.catalog_aliases()) > 20
+
+    def test_an_overlapping_key_leads_with_the_catalog_ticker(self):
+        """Where both know a phrase, the catalog's answer must be the first
+        candidate. Disagreeing would mean the snapshot prices one fund and the
+        page offers another first."""
+        overlapping = {k: v for k, v in self.catalog_aliases().items()
+                       if k in asset_identity._INDEX_FUNDS}
+        assert overlapping, "the check found no overlap and proves nothing"
+
+        for phrase, ticker in overlapping.items():
+            candidates = asset_identity._INDEX_FUNDS[phrase]
+            assert candidates[0] == ticker, (
+                f"{phrase}: catalog says {ticker}, identifier leads with "
+                f"{candidates[0]}")
+
+    @pytest.mark.parametrize("phrase,expected", [
+        ("total bond market", "BND"),
+        ("ex-US", "VXUS"),
+        ("US large cap", "SPY"),
+        ("small cap", "IWM"),
+    ])
+    def test_a_catalog_only_alias_now_resolves(self, phrase, expected):
+        found = identify(phrase, priceable=PRICEABLE + ("BND", "IWM"))
+        assert found.best is not None, f"{phrase} still resolves to nothing"
+        assert found.best.symbol == expected
+
+    def test_an_alias_the_deployment_cannot_price_is_not_offered(self):
+        assert identify("total bond market", priceable=("SPY",)).candidates == ()
