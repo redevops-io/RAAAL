@@ -1,0 +1,61 @@
+# Pilot observations
+
+Things seen, not things owed. An observation records what happened and what is
+not yet known about whether it matters; it becomes work when evidence says so.
+
+The distinction is load-bearing. "TODO: fix worksheet generation" asserts that
+something is broken and should be repaired. "Plan execution completed, figures
+rendered, worksheet absent for this plan shape, no evidence users depend on
+it" asserts only what was seen — and leaves the decision to the people who
+will actually be affected.
+
+Format: what was observed, under what conditions, and what would make it
+actionable.
+
+---
+
+## OBS-1 — Worksheet absent for a conditional-trigger plan
+
+**Observed** 2026-08-05, live deployment `90ccc99`.
+
+The original-prompt journey completed end to end: nine questions answered, the
+plan saved, and the plan page rendered figures — $1,000 contributions, $5,160
+accumulated, $4,248. `worksheet_present` was `False` for that plan.
+
+The run happened; the figures are on the page. Whatever renders a worksheet
+did not produce one for this plan shape. Both supported launch journeys
+(contribution replay, Roth) produce worksheets, and the deploy-time journey
+check asserts it — so this is specific to the conditional-trigger shape rather
+than general.
+
+**Not yet known.** Whether any user opens a worksheet, and whether the figures
+on the plan page are what they actually read.
+
+**Would become actionable if** a pilot user asks where the detail is, or
+reports the figures without being able to say how they were reached. Both are
+severity 2 — misleading certainty — and neither will arrive as a bug report.
+
+---
+
+## OBS-2 — Model re-parse on every round trip
+
+**Observed** 2026-08-04, live deployment.
+
+Each submission in the Plan Builder re-parses the description with the model:
+the save route verifies the posted parse by re-parsing, and the re-render
+parses again. A round trip is therefore two provider calls, taking tens of
+seconds.
+
+`moving_average_kind` disappeared between two passes without being answered,
+and `cadence` appeared. Some of that is legitimate — supplying an amount makes
+"how often" newly relevant — but model non-determinism across calls means the
+question set is not wholly attributable to what the user did.
+
+**Not yet known.** Whether users notice, and whether the drift is large enough
+to break the sense that answering made progress.
+
+**Would become actionable if** a user says the questions changed for no
+reason, or if latency is the thing they complain about. The fix is available
+and cheap: the pinned `parse` token is already posted and already verified, so
+the re-render can use it rather than re-deriving it. It is not done because
+nothing yet says it matters more than the things ahead of it.

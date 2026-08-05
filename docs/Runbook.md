@@ -117,7 +117,20 @@ because a key happens to be in the shell.
     model that interpreted it.
 11. **Take and restore one backup** — the procedure below — before inviting
     anyone.
-12. **Run the acceptance checks** against the public URL, not the container:
+12. **Run the end-to-end fixture** before anything else:
+
+    ```bash
+    python -m pytest tests/test_the_original_prompt.py -q
+    ```
+
+    One sentence, and it exercises the parser, the clarification loop, the
+    field vocabulary, the instrument registry, amendments, the compiler, the
+    market snapshot, the moving-average indicator, the replay window,
+    execution and persistence. It is not special; it is the widest single
+    path through the system, which makes it the cheapest way to find out that
+    one of those stopped agreeing with the others.
+
+13. **Run the acceptance checks** against the public URL, not the container:
 
     ```bash
     python deploy/acceptance.py https://YOUR-HOST --record evidence/acceptance.json
