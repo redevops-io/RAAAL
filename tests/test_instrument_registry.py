@@ -43,6 +43,26 @@ class TestTheRegistryCompilesAndHoldsTogether:
     def test_the_digest_is_stable_across_compilations(self, compiled):
         assert compile_registry().digest == compiled.digest
 
+    def test_the_digest_changes_when_a_value_changes(self, compiled, tmp_path):
+        """Not only when a key is added.
+
+        The first digest hashed identifiers alone, so changing a concept's
+        default instrument — the exact drift a pinned digest exists to catch —
+        left it identical. Adding a concept moved a key and passed; the change
+        that matters did not.
+        """
+        for name in ("concepts.yaml", "instruments.yaml", "aliases.yaml"):
+            (tmp_path / name).write_text(
+                (reg.SOURCE_DIR / name).read_text(encoding="utf-8"),
+                encoding="utf-8")
+        loaded = yaml.safe_load((tmp_path / "concepts.yaml").read_text())
+        for concept in loaded["concepts"]:
+            if concept["concept_id"] == "INDEX:SP500":
+                concept["default_instrument"] = "US:NYSEARCA:VOO"
+        (tmp_path / "concepts.yaml").write_text(yaml.safe_dump(loaded))
+
+        assert compile_registry(tmp_path).digest != compiled.digest
+
     def test_the_digest_changes_when_the_content_does(self, compiled, tmp_path):
         """A digest that never moves cannot pin anything."""
         for name in ("concepts.yaml", "instruments.yaml", "aliases.yaml"):
@@ -54,16 +74,11 @@ class TestTheRegistryCompilesAndHoldsTogether:
             "concept_id": "INDEX:TEST", "kind": "INDEX",
             "canonical_name": "Test", "aliases": ["a test index"]})
         (tmp_path / "concepts.yaml").write_text(yaml.safe_dump(loaded))
-        try:
-            assert compile_registry(tmp_path).digest != compiled.digest
-        finally:
-            reg.SOURCE_DIR = (pathlib.Path(reg.__file__).resolve().parents[2]
-                              / "data" / "instruments")
+        assert compile_registry(tmp_path).digest != compiled.digest
 
 
 class TestTheCompilerRefusesWhatWouldMisresolve:
     def written(self, tmp_path, concepts=None, instruments=None, aliases=None):
-        source = reg.SOURCE_DIR
         base = {
             "concepts.yaml": concepts if concepts is not None else {
                 "version": 1, "concepts": [{
@@ -81,10 +96,7 @@ class TestTheCompilerRefusesWhatWouldMisresolve:
         }
         for name, payload in base.items():
             (tmp_path / name).write_text(yaml.safe_dump(payload))
-        try:
-            return compile_registry(tmp_path)
-        finally:
-            reg.SOURCE_DIR = source
+        return compile_registry(tmp_path)
 
     def test_a_dangling_relationship(self, tmp_path):
         """An ETF pointing at a concept nobody defined is a candidate list
@@ -203,7 +215,6 @@ class TestProposedAliasesNeverResolve:
     """One user's clarification must not change everyone's reading."""
 
     def test_a_proposed_alias_is_not_indexed(self, tmp_path):
-        source = reg.SOURCE_DIR
         (tmp_path / "concepts.yaml").write_text(yaml.safe_dump(
             {"version": 1, "concepts": [{
                 "concept_id": "INDEX:X", "kind": "INDEX",
@@ -214,8 +225,5 @@ class TestProposedAliasesNeverResolve:
             {"version": 1, "aliases": [{
                 "phrase": "s and p tracker", "target_kind": "CONCEPT",
                 "target_id": "INDEX:X", "source": "PROPOSED"}]}))
-        try:
-            built = compile_registry(tmp_path)
-            assert "s and p tracker" not in built.phrase_index
-        finally:
-            reg.SOURCE_DIR = source
+        built = compile_registry(tmp_path)
+        assert "s and p tracker" not in built.phrase_index

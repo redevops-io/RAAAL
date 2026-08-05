@@ -133,8 +133,8 @@ def normalize(phrase: str) -> str:
     return re.sub(r"\s+", " ", cleaned).strip()
 
 
-def _load(name: str) -> dict:
-    path = SOURCE_DIR / name
+def _load(directory: pathlib.Path, name: str) -> dict:
+    path = directory / name
     if not path.exists():
         raise RegistryError(f"{path} is missing")
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -148,12 +148,14 @@ def compile_registry(source_dir: Optional[pathlib.Path] = None) -> Registry:
     relationship means a concept resolves to nothing, and a phrase claimed by
     two targets means the resolution depends on iteration order.
     """
-    global SOURCE_DIR
-    if source_dir is not None:
-        SOURCE_DIR = source_dir
+    # The directory is a parameter, not a global reassignment. Setting the
+    # module-level SOURCE_DIR made compiling one registry redirect every later
+    # load in the process — a test registry silently became the production
+    # one, which is the shape of bug that only shows up in whatever ran next.
+    directory = source_dir if source_dir is not None else SOURCE_DIR
 
     concepts: Dict[str, AssetConcept] = {}
-    for raw in _load("concepts.yaml").get("concepts", []):
+    for raw in _load(directory, "concepts.yaml").get("concepts", []):
         concept_id = raw["concept_id"]
         if concept_id in concepts:
             raise RegistryError(f"duplicate concept {concept_id}")
@@ -166,7 +168,7 @@ def compile_registry(source_dir: Optional[pathlib.Path] = None) -> Registry:
         )
 
     instruments: Dict[str, Instrument] = {}
-    for raw in _load("instruments.yaml").get("instruments", []):
+    for raw in _load(directory, "instruments.yaml").get("instruments", []):
         instrument_id = raw["instrument_id"]
         if instrument_id in instruments:
             raise RegistryError(f"duplicate instrument {instrument_id}")
@@ -208,7 +210,7 @@ def compile_registry(source_dir: Optional[pathlib.Path] = None) -> Registry:
             seen_provider[key] = one.instrument_id
 
     aliases: list[AliasObservation] = []
-    for raw in _load("aliases.yaml").get("aliases", []):
+    for raw in _load(directory, "aliases.yaml").get("aliases", []):
         aliases.append(AliasObservation(
             normalized_phrase=normalize(raw["phrase"]),
             target_kind=raw["target_kind"], target_id=raw["target_id"],
@@ -255,11 +257,34 @@ def compile_registry(source_dir: Optional[pathlib.Path] = None) -> Registry:
                 f"{existing[1]} and {observation.target_id}")
         phrase_index[observation.normalized_phrase] = target
 
+    # Over the content, not the keys.
+    #
+    # The first version hashed `sorted(concepts)` and `sorted(instruments)` —
+    # the identifiers alone. Changing a concept's default instrument, which is
+    # precisely the drift a pinned digest exists to detect, moved no key and
+    # left the digest identical. A fingerprint that misses the most likely
+    # change is a fingerprint that certifies nothing.
     payload = json.dumps({
-        "concepts": sorted(concepts),
-        "instruments": sorted(instruments),
-        "aliases": sorted(a.normalized_phrase + "|" + a.target_id
-                          for a in aliases),
+        "concepts": [
+            {"id": c.concept_id, "kind": c.kind.value,
+             "name": c.canonical_name, "aliases": sorted(c.aliases),
+             "default": c.default_instrument}
+            for c in sorted(concepts.values(), key=lambda c: c.concept_id)],
+        "instruments": [
+            {"id": i.instrument_id, "symbol": i.symbol, "name": i.name,
+             "type": i.instrument_type, "exchange": i.exchange,
+             "currency": i.currency, "issuer": i.issuer,
+             "providers": dict(sorted(i.provider_symbols.items())),
+             "tracks": i.tracks_index, "delivers": i.delivers_exposure}
+            for i in sorted(instruments.values(),
+                            key=lambda i: i.instrument_id)],
+        "aliases": [
+            {"phrase": a.normalized_phrase, "kind": a.target_kind,
+             "target": a.target_id, "source": a.source.value,
+             "vehicle": a.vehicle_hint.value if a.vehicle_hint else None,
+             "issuer": a.issuer_hint}
+            for a in sorted(aliases, key=lambda a: (a.normalized_phrase,
+                                                    a.target_id))],
     }, sort_keys=True).encode()
     digest = "reg1:" + hashlib.sha256(payload).hexdigest()[:32]
 

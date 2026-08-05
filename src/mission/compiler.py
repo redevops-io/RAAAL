@@ -37,7 +37,7 @@ from .defaults import DEFAULT_SET, DefaultSet
 from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpecification
 from .representation import representation_gaps
 from . import asset_identity, vocabulary
-from .spec import Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
+from .spec import AssetResolution, Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
 
 
 class Origin(str, Enum):
@@ -646,6 +646,7 @@ def compile_scenario(
     # breath, and "there is no price history for SPX" answers a question
     # nobody asked. Offering the funds that track it is the useful reply.
     _still_unclear = []
+    asset_resolutions: List[AssetResolution] = []
     for phrase in parsed.unclear:
         found = asset_identity.identify(phrase, priceable=priceable)
         if not found.candidates:
@@ -653,6 +654,22 @@ def compile_scenario(
             continue
         field = f"asset_identity:{phrase}"
         chosen = answered(field)
+        # Recorded whether or not it has been answered yet. The alternatives a
+        # user was shown are part of what happened, and a plan that stores
+        # only the outcome cannot say what the choice was between.
+        record = AssetResolution(
+            observed_phrase=phrase,
+            registry_digest=found.registry_digest,
+            resolved_concept_id=found.concept_id,
+            concept_name=found.reason.split(" is an index")[0]
+            if " is an index" in found.reason else "",
+            candidates_shown=tuple(one.symbol for one in found.candidates),
+            chosen_instrument_id=chosen or "",
+            ranking_reasons=tuple(
+                f"{one.symbol}: {'; '.join(one.reasons)}"
+                for one in found.candidates),
+        )
+        asset_resolutions.append(record)
         if chosen:
             identified.append(chosen)
             continue
@@ -779,7 +796,8 @@ def compile_scenario(
                                         one for one in unresolved
                                         if one.field not in _excluded_items),
                                     amended=tuple(amendments),
-                                    excluded=tuple(exclusions))},
+                                    excluded=tuple(exclusions),
+                                    asset_resolutions=tuple(asset_resolutions))},
     )
 
     status = ("BLOCKED" if contradictions else

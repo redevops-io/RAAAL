@@ -197,6 +197,42 @@ def exclusion_from_json(payload: Mapping[str, Any]) -> "ScenarioExclusion":
 
 
 @dataclass(frozen=True)
+class AssetResolution:
+    """How a phrase became an instrument, and under which catalogue.
+
+    Stored rather than re-derived. Reopening a plan and asking the *current*
+    registry what "SP500 ETF" means would answer with today's catalogue: the
+    chosen ticker would survive, and the alternatives the user was shown and
+    the reasons they were ranked that way would quietly become whatever the
+    registry says now. A plan has to be able to state what it actually
+    offered.
+    """
+
+    observed_phrase: str
+    registry_digest: str
+    resolved_concept_id: str = ""
+    concept_name: str = ""
+    candidates_shown: Tuple[str, ...] = ()
+    """Instrument ids, in the order they were offered."""
+
+    chosen_instrument_id: str = ""
+    ranking_reasons: Tuple[str, ...] = ()
+    vehicle_requested: str = ""
+
+    def to_json(self) -> dict:
+        return {
+            "observed_phrase": self.observed_phrase,
+            "registry_digest": self.registry_digest,
+            "resolved_concept_id": self.resolved_concept_id,
+            "concept_name": self.concept_name,
+            "candidates_shown": list(self.candidates_shown),
+            "chosen_instrument_id": self.chosen_instrument_id,
+            "ranking_reasons": list(self.ranking_reasons),
+            "vehicle_requested": self.vehicle_requested,
+        }
+
+
+@dataclass(frozen=True)
 class Provenance:
     """Who decided what. The whole reason a Mission is not just a config file."""
 
@@ -211,6 +247,10 @@ class Provenance:
     excluded: Sequence[ScenarioExclusion] = ()
     """Parts of the description the compiler could not represent and the user
     chose to proceed without. Narrows the scope of the result, and says so."""
+
+    asset_resolutions: Sequence[AssetResolution] = ()
+    """How each named-but-unrecognised phrase became an instrument, pinned to
+    the registry that read it."""
 
     @property
     def unconfirmed(self) -> List[Inference]:
