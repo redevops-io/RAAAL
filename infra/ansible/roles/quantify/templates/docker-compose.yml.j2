@@ -8,8 +8,17 @@ services:
   api:
     image: "{{ quantify_image }}"
     restart: unless-stopped
+    # `--no-access-log`, because uvicorn logs the full request line including
+    # the query string — and the description is a query parameter, so a user's
+    # financial words were reaching CloudWatch from here as well as from the
+    # proxy. Redacting one and not the other would have left the leak while
+    # looking fixed.
+    #
+    # Only `uvicorn.access` is silenced. `uvicorn.error` is the operator
+    # channel that carries sanitised failures and correlation ids, and it
+    # keeps working; the proxy's redacted log is the access record.
     command: ["uvicorn", "src.api:create_app", "--factory",
-              "--host", "0.0.0.0", "--port", "8000",
+              "--host", "0.0.0.0", "--port", "8000", "--no-access-log",
               "--proxy-headers", "--forwarded-allow-ips", "*"]
     env_file: [/opt/quantify/.env]
     expose: ["8000"]

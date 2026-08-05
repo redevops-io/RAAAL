@@ -44,8 +44,24 @@
 		Referrer-Policy no-referrer
 	}
 
+	# The description is a query parameter, and Caddy logs the full URI.
+	#
+	# A pilot user's financial description was therefore landing verbatim in
+	# CloudWatch with thirty-day retention — readable by anyone with log
+	# access, and exactly the "raw prompts" the error-surface work was written
+	# to keep out of the operator channel. The application already logs the
+	# route template rather than the resolved path for this reason; the proxy
+	# was undoing it one layer out.
 	log {
 		output stdout
-		format json
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace describe REDACTED
+					replace title REDACTED
+				}
+			}
+		}
 	}
 }

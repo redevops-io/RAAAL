@@ -59,3 +59,28 @@ reason, or if latency is the thing they complain about. The fix is available
 and cheap: the pinned `parse` token is already posted and already verified, so
 the re-render can use it rather than re-deriving it. It is not done because
 nothing yet says it matters more than the things ahead of it.
+
+
+---
+
+## OBS-3 — The description travels in the URL
+
+**Observed** 2026-08-05, closing the log leak above.
+
+`/workspace/new?describe=…` puts the user's financial description in the query
+string. The proxy log and the uvicorn access log both recorded it verbatim,
+and both are now redacted — but a query string also reaches places no
+server-side redaction can follow: browser history, the address bar, a
+screenshot, a pasted link, and any intermediary that keeps URLs.
+
+For synthetic-data evaluation this is minor. For a user describing real
+holdings it is not, and OBS-1 aside, this is the surface most likely to matter
+once the pilot lifts its data boundary.
+
+**Not yet known.** Whether pilot users share links, and whether they type
+descriptions they would mind appearing in their own browser history.
+
+**Would become actionable if** the pilot moves past synthetic data, or a user
+shares a plan link. The fix is a POST for the describe form with a redirect to
+an opaque draft id — a change to one route and one template, not to the
+compiler.
