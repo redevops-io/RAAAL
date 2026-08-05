@@ -687,7 +687,15 @@ class TestThePlanBuilderRecords:
     def test_the_trace_holds_no_description(self, client):
         """The guarantee the other layers already keep. Caddy and uvicorn were
         both leaking this into CloudWatch; the store must not become the third
-        place the sentence survives."""
+        place the sentence survives.
+
+        This case covers the ordinary description, where every field id comes
+        from the vocabulary. It cannot cover the dangerous one: the
+        deterministic parse emits no `unclear` list, so no description here
+        ever builds a field id out of the user's words. That path needs a
+        stubbed model and has its own case below — which is the case that
+        would have caught the production leak.
+        """
         http, traces = client
         secret = "I buy ZZZCANARY every month and never sell."
         self.draft(http, secret)
@@ -702,6 +710,57 @@ class TestThePlanBuilderRecords:
             for row in rows(traces, table))
         assert "ZZZCANARY" not in dump
         assert "every month" not in dump
+
+    def test_an_unplaceable_phrase_is_hashed_rather_than_stored(
+            self, client, monkeypatch):
+        """The leak the production canary found, through the live route.
+
+        The stub parser is what makes this reachable at all: the deterministic
+        parse produces no `unclear` list, so no test description could ever
+        build a field id out of the user's words. Production runs
+        MODEL_ASSISTED and the very first request wrote two of them.
+        """
+        import json as _json
+
+        import src.workspace.routes as routes
+
+        class Model:
+            def complete(self, *, system, user):
+                return _json.dumps({
+                    "recognitions": [], "assets": [],
+                    "unclear": ["ZZZCANARY every so often (unclear cadence)"]})
+
+        http, traces = client
+        monkeypatch.setattr(routes, "_parser_client", lambda: Model())
+        self.draft(http, "I put ZZZCANARY into tech every so often.")
+
+        refs = " ".join(str(row["evidence_refs"]) for row in rows(traces, "decision"))
+        assert "unclear:#" in refs, (
+            f"the unplaceable phrase never reached the recorder: {refs}")
+        assert "ZZZCANARY" not in refs, (
+            f"the user's own words were written into the trace store: {refs}")
+
+    def test_hashing_a_phrase_keeps_it_countable(self):
+        """Redaction that destroyed identity would answer 'something was
+        unclear' and never 'this was unclear twice'. The same phrase must
+        produce the same reference, and different phrases different ones."""
+        from src.workspace.routes import _safe_field
+
+        once = _safe_field("unclear:tech (unspecified asset/sector)")
+        again = _safe_field("unclear:tech (unspecified asset/sector)")
+        other = _safe_field("unclear:every so often (unclear cadence)")
+        assert once == again and once != other
+        assert once.startswith("unclear:#")
+
+    def test_a_vocabulary_field_is_recorded_verbatim(self):
+        """The allowlist has to let the useful case through, or the fix would
+        have made every question anonymous and the pilot unable to answer
+        which ones users receive."""
+        from src.mission.vocabulary import FIELDS
+        from src.workspace.routes import _safe_field
+
+        for name in FIELDS:
+            assert _safe_field(name) == name
 
     def test_a_broken_store_still_serves_the_builder(self, client, monkeypatch):
         """Telemetry never breaks the thing it observes — restated for the two

@@ -256,13 +256,46 @@ def _record_questions(recorder, *, fields, outcome: str) -> None:
     """
     from ..telemetry.decisions import DecisionKind
 
-    asked = sorted(set(fields))
+    asked = sorted({_safe_field(one) for one in fields})
     recorder.decide(
         DecisionKind.CONFIRMATION,
         outcome=outcome,
         reason=("asked about " + ", ".join(asked)) if asked
                else "nothing was left to settle",
         evidence_refs=tuple(asked))
+
+
+def _safe_field(field: str) -> str:
+    """A field name safe to persist, hashing anything that is not vocabulary.
+
+    Not every unresolved item is named in the compiler's vocabulary. An
+    unplaceable phrase becomes `unclear:{phrase}` where the phrase is the
+    user's own words with a model-written reason appended — so the first
+    production canary wrote `unclear:every so often (unclear cadence)` and
+    `unclear:tech (unspecified asset/sector, not a ticker)` into the store that
+    is documented to hold no instruction text. Caddy and uvicorn were closed
+    the same day; this would have been the third layer, reached through the
+    field name rather than the value.
+
+    An allowlist rather than a rule against `unclear:`, because the next
+    dynamic field id would arrive without one. A blocklist has to be updated
+    by whoever adds the thing it does not yet know about, and that is the
+    person least likely to be thinking about it.
+
+    The hash keeps what the count needs — the same phrase recurring across
+    journeys is still the same reference — and the store's own schema says
+    structured fields and hashes only.
+    """
+    import hashlib
+
+    from ..mission.vocabulary import FIELDS
+
+    if field in FIELDS:
+        return field
+    prefix = field.split(":", 1)[0] if ":" in field else "other"
+    if prefix not in FIELDS and prefix != "unclear":
+        prefix = "other"
+    return f"{prefix}:#{hashlib.sha256(field.encode()).hexdigest()[:12]}"
 
 
 def _blocking_fields(outstanding) -> tuple:
