@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from .defaults import DEFAULT_SET, DefaultSet
 from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpecification
 from .representation import representation_gaps
-from . import asset_identity, vocabulary
+from . import asset_identity, time_window, vocabulary
 from .spec import AssetResolution, Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
 
 
@@ -645,9 +645,18 @@ def compile_scenario(
     # "could not place": "SPX ETF" is an index and a fund request in one
     # breath, and "there is no price history for SPX" answers a question
     # nobody asked. Offering the funds that track it is the useful reply.
+    # The temporal instruction, from the description itself. Recognised before
+    # the unclear loop so that a phrase describing it is not also filed as
+    # unplaceable prose the user can only acknowledge away.
+    window = time_window.detect(text)
+
     _still_unclear = []
     asset_resolutions: List[AssetResolution] = []
     for phrase in parsed.unclear:
+        # A phrase that *is* the time window has a home now.
+        if window is not None and time_window.detect(phrase) is not None:
+            stated.append(f"time window: {window.label} (from the description)")
+            continue
         found = asset_identity.identify(phrase, priceable=priceable)
         if not found.candidates:
             _still_unclear.append(phrase)
@@ -708,6 +717,16 @@ def compile_scenario(
     if flows.amount <= 0 and flows.starting_capital <= 0:
         question, why = _QUESTIONS["starting_capital"]
         unresolved.append(Unresolved("starting_capital", question, why))
+
+    if window is not None and not window.supported:
+        unresolved.append(Unresolved(
+            field=f"time_window:{window.kind.value}",
+            question=(f"You wrote '{window.observed}'. This build can replay a "
+                      f"trailing period — 'the past 5 years' — but not that."),
+            why_it_matters=(
+                "Reading it as a trailing window would answer a different "
+                "question with a number that looks right. The description is "
+                "unchanged; say a trailing period instead and the plan runs.")))
 
     if benchmark_rule is None:
         question, why = _QUESTIONS["benchmark_set"]
@@ -797,7 +816,8 @@ def compile_scenario(
                                         if one.field not in _excluded_items),
                                     amended=tuple(amendments),
                                     excluded=tuple(exclusions),
-                                    asset_resolutions=tuple(asset_resolutions))},
+                                    asset_resolutions=tuple(asset_resolutions),
+                                    time_window=window)},
     )
 
     status = ("BLOCKED" if contradictions else

@@ -252,6 +252,11 @@ class Provenance:
     """How each named-but-unrecognised phrase became an instrument, pinned to
     the registry that read it."""
 
+    time_window: Optional[object] = None
+    """The temporal instruction, preserved as an instruction. A trailing
+    five-year window and the dates it resolves to today are not the same
+    thing: one moves next month and the other does not."""
+
     @property
     def unconfirmed(self) -> List[Inference]:
         return [i for i in self.inferred if not i.confirmed]
