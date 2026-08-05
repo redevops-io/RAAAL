@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
-from agentic_os.discovery import Signal  # noqa: F401 (re-export convenience)
-from agentic_os.discovery.detectors import (
+from agentic_os_enterprise.discovery import Signal  # noqa: F401 (re-export convenience)
+from agentic_os_enterprise.discovery.detectors import (
     BaselineDetector,
     Detection,
     Detector,
@@ -21,8 +21,8 @@ from agentic_os.discovery.detectors import (
     RateOfChangeDetector,
     ThresholdDetector,
 )
-from agentic_os.discovery import baselines as B
-from agentic_os.discovery.signals import SignalStore
+from agentic_os_enterprise.discovery import baselines as B
+from agentic_os_enterprise.discovery.signals import SignalStore
 
 from ..config import MANDATE_CONSTRAINTS
 

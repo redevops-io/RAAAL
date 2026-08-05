@@ -19,7 +19,7 @@ def _digest(obj: object) -> str:
 def representation_plans(objectives: List[str]) -> Dict[str, dict]:
     """Per objective, the Execution Planner's representation decision + EXPLAIN (guarded import)."""
     try:
-        from agentic_os.planner.domains import investment_investigation, investment_planner
+        from agentic_os_enterprise.planner.domains import investment_investigation, investment_planner
     except Exception:  # pragma: no cover - runtime without agentic_os
         return {}
     planner = investment_planner()

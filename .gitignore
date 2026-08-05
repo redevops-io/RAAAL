@@ -63,3 +63,4 @@ package-lock.json
 
 # vendored shared runtime (see scripts/vendor_agentic_os.sh)
 /agentic_os/
+/agentic_os_enterprise/

@@ -25,6 +25,7 @@ COPY src ./src
 COPY app ./app
 # vendored shared runtime (see scripts/vendor_agentic_os.sh)
 COPY agentic_os ./agentic_os
+COPY agentic_os_enterprise ./agentic_os_enterprise
 
 RUN mkdir -p /data/state reports data/history
 

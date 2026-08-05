@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from agentic_os.discovery import DiscoveryRuntime
-from agentic_os.discovery.policies import ProposalPolicy
+from agentic_os_enterprise.discovery import DiscoveryRuntime
+from agentic_os_enterprise.discovery.policies import ProposalPolicy
 
 from .detectors import investment_detectors
 from .signals import PortfolioObservation, build_signals

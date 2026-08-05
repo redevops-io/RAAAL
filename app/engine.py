@@ -161,7 +161,7 @@ class PortfolioEngine:
     def learning(self) -> dict:
         if self._learn is None:
             try:
-                from agentic_os.learning.bindings import investment as inv
+                from agentic_os_enterprise.learning.bindings import investment as inv
                 rt = inv.build_runtime(shadow=True)
                 inv.seed_demo(rt, rounds=80)
                 self._learn = rt

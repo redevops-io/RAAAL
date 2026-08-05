@@ -6,7 +6,7 @@ Replaces the single `reports/state.json` file with:
   3. MissionLedger              - append-only evidence snapshot + ExecutionPlan + approvals + outcomes (replayable).
 
 Dependency-free (json + pathlib). Manifest validation optionally cross-checks the shared
-`agentic_os.manifest` when importable, but never hard-depends on it.
+`agentic_os_enterprise.manifest` when importable, but never hard-depends on it.
 """
 from __future__ import annotations
 
@@ -98,7 +98,7 @@ class InvestmentProjectManifest:
                 errs.append(f"constraints.{key} is required")
         # optional cross-check against the shared runtime manifest validator
         try:  # pragma: no cover - only when agentic_os is installed
-            from agentic_os import manifest as _m  # type: ignore
+            from agentic_os_enterprise import manifest as _m  # type: ignore
             _ = _m  # presence check; the shared validator uses a different schema shape
         except Exception:
             pass

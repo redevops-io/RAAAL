@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from agentic_os.discovery import Signal
+from agentic_os_enterprise.discovery import Signal
 
 from ..config import UNIVERSE
 
