@@ -201,13 +201,27 @@ seconds, and that number is about `psql`, not about recovery. On RDS,
 on 2026-08-05 for a pilot-sized database, plus about a minute of verification.
 Budget ten minutes.
 
-**Restore a snapshot taken after the data you are verifying.** The first
-production drill used the latest automated snapshot, which predated any saved
-plan; "plans came across" failed correctly, the run wrote one to test writing,
-and re-running against that same instance then passed every data check by
-reading what it had just written. Take a manual snapshot, restore it once, and
-do not re-run against an instance the drill has already written to. Recorded in
-`evidence/restore-drill-2026-08-05.md`.
+**Name the artifact before you restore.** Write down a plan id, a run id and a
+parser identity from production *first*, then restore, then assert those exact
+values are present. "One plan came across" is not evidence; "plan-b1ffe… came
+across, with MODEL_ASSISTED and its run" is.
+
+The reason is a real failure, recorded in
+`evidence/restore-drill-2026-08-05.md`. The first production drill used the
+latest automated snapshot, which predated any saved plan. "Plans came across"
+failed correctly, the run then wrote a plan to test writing, and re-running
+against that same instance passed every data check by reading what it had just
+written. The drill certified its own write.
+
+The rule that prevents it, in general form:
+
+> Every recovery verification must identify an artifact known to predate the
+> recovery. Anything written during the verification is ineligible as
+> evidence.
+
+So: take a manual snapshot after the data exists, record the identifiers you
+expect, restore once, and never re-run against an instance the drill has
+already written to.
 
 **Backup credentials** live in the same secret store as the database URL.
 **Run the drill monthly**, and after any schema migration.
