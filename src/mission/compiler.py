@@ -36,6 +36,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from .defaults import DEFAULT_SET, DefaultSet
 from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpecification
 from .representation import representation_gaps
+from . import vocabulary
 from .spec import Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
 
 
@@ -536,6 +537,16 @@ def compile_scenario(
         """
         one = _answers.get(field_name)
         if one is None:
+            return None
+        # An answer outside the field's vocabulary is not an answer.
+        #
+        # Nothing checked this: `cadence=banana` removed the question and
+        # recorded "cadence: banana (answered)" as a stated fact, so a saved
+        # plan could carry a cadence the renderer has no word for and the
+        # engine no schedule for. Treated as unanswered, the question survives
+        # and the user is asked again — which is the honest outcome for a
+        # value the system cannot use.
+        if not vocabulary.accepts(field_name, one.answer):
             return None
         stated.append(f"{field_name}: {one.answer} (answered)")
         return one.answer

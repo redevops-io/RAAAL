@@ -196,6 +196,21 @@ def submit_rendered_confirmation(client, description, *, title="Test plan",
         offered.setdefault(name, value)
         if "checked" in rest:
             chosen[name] = value
+
+    # Selects submit their selected option, or the first one when none is
+    # marked. Reading only radios left every confirmation empty the moment the
+    # page moved to dropdowns, and the plan then failed to save for a reason
+    # that had nothing to do with what was being tested.
+    for name, options in re.findall(
+            r'<select name="([^"]+)"[^>]*>(.*?)</select>', body, re.S):
+        picked = re.search(r'<option value="([^"]*)"[^>]*selected', options)
+        if picked:
+            chosen[name] = picked.group(1)
+        else:
+            first = re.search(r'<option value="([^"]+)"', options)
+            if first:
+                offered.setdefault(name, first.group(1))
+
     for name, first in offered.items():
         chosen.setdefault(name, first)
     fields.update(chosen)

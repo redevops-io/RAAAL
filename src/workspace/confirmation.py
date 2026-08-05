@@ -23,6 +23,8 @@ copy in the template is the one that drifts.
 """
 from __future__ import annotations
 
+from ..mission import vocabulary
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -80,45 +82,20 @@ ACCOUNT_CONTEXT: Mapping[str, Dict[str, Any]] = {
 #: Closed vocabularies, so a question with known answers offers them instead of
 #: a free-text box. A text field where the options are finite invites a phrasing
 #: the compiler then has to re-read, and re-reading is where meaning is lost.
+#: Derived from `mission.vocabulary`, not restated.
+#:
+#: This was a second hand-written list of the same options, and it had already
+#: drifted: `cadence` and `execution_timing` were asked by the compiler and
+#: absent here, so the page offered no choices for either. Worse, nothing
+#: validated an answer against either list — the page could offer one set, the
+#: compiler accept anything at all, and a plan store a value neither
+#: recognised.
 CHOICES: Mapping[str, Sequence[Dict[str, str]]] = {
-    "account_type": (
-        {"value": "TAXABLE", "label": "Taxable brokerage account"},
-        {"value": "TRADITIONAL_IRA", "label": "Traditional IRA"},
-        {"value": "ROTH", "label": "Roth IRA"},
-        {"value": "TRADITIONAL_401K", "label": "401(k)"},
-        {"value": "ROTH_401K", "label": "Roth 401(k)"},
-    ),
-    "trigger_semantics": (
-        {"value": "persistent_condition",
-         "label": "Every day the condition holds"},
-        {"value": "crossing_event",
-         "label": "Only on the day it first becomes true"},
-    ),
-    "funding_source": (
-        {"value": "contribution", "label": "Out of the regular contribution"},
-        {"value": "additional_cash", "label": "Additional money on top"},
-    ),
-    "weighting": (
-        {"value": "equal_weight_at_purchase",
-         "label": "Equal dollars at each purchase"},
-        {"value": "equal_weight_maintained",
-         "label": "Keep the positions equal over time"},
-    ),
-    "dividends": (
-        {"value": "reinvested", "label": "Reinvest them"},
-        {"value": "held_as_cash", "label": "Hold them as cash"},
-    ),
-    "contribution_day_rule": (
-        {"value": "first_session_of_period",
-         "label": "First trading day of the period"},
-        {"value": "calendar_first_rolled_forward",
-         "label": "First calendar day of the month"},
-    ),
-    "moving_average_kind": (
-        {"value": "simple", "label": "Simple moving average"},
-        {"value": "exponential", "label": "Exponential moving average"},
-    ),
+    name: tuple({"value": option.value, "label": option.label}
+                for option in field.options)
+    for name, field in vocabulary.FIELDS.items() if field.options
 }
+
 
 #: Accounts the compiler recognises as a *phrase* but cannot simulate. Routed
 #: rather than refused: a donor-advised fund is a real thing a user has, and

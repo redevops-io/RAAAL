@@ -76,12 +76,17 @@
       {% set matching = (open_items or [])
            | selectattr("field", "equalto", question.field) | list %}
       {% if question.choices %}
-      <ul class="choices">
+      {# A select, not a radio list. Five accounts and eight cadences as
+         stacked radios pushed the page to several screens and buried the
+         questions that had no options at all between them. The values are the
+         engine's vocabulary — `mission.vocabulary` — and an answer outside it
+         is refused rather than stored. #}
+      <select name="answer:{{ question.field }}" class="answer-select">
+        <option value="">Choose…</option>
         {% for choice in question.choices %}
-        <li><label><input type="radio" name="answer:{{ question.field }}"
-                          value="{{ choice.value }}"> {{ choice.label }}</label></li>
+        <option value="{{ choice.value }}">{{ choice.label }}</option>
         {% endfor %}
-      </ul>
+      </select>
       {% elif matching and matching[0].answerable %}
       {# A question with no finite answers still has to be answerable.
          Rendering choices only meant "how much are you contributing?" appeared
@@ -146,14 +151,13 @@
       <div><strong>{{ inference.label }}</strong> — {{ inference.value }}</div>
       <div class="small muted">{{ inference.why }}</div>
       {% if inference.choices %}
-      <ul class="choices">
+      <select name="confirm:{{ inference.field }}" class="answer-select">
         {% for choice in inference.choices %}
-        <li><label><input type="radio" name="confirm:{{ inference.field }}"
-                          value="{{ choice.value }}"
-                          {% if choice.value == inference.value %}checked{% endif %}>
-              {{ choice.label }}</label></li>
+        <option value="{{ choice.value }}"
+                {% if choice.value == inference.value %}selected{% endif %}>
+          {{ choice.label }}</option>
         {% endfor %}
-      </ul>
+      </select>
       {% else %}
       {# An inference with no alternative still has to be confirmable. Gated on
          choices alone, "when orders execute" was presented as a decision made
