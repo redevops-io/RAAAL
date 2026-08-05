@@ -167,3 +167,41 @@ by the change itself:
 
 An empty `GET /workspace/new` opens no trace. A blank form is not a journey,
 and recording one would turn the trace count into a page-view metric.
+
+### The production canary found a leak the suite could not — 2026-08-05
+
+The first request against the newly-wired recorder proved reachability
+(`trace 0→1, span 0→1, decision 0→1`) and in the same breath wrote this:
+
+```
+unclear:every so often (unclear cadence)
+unclear:tech (unspecified asset/sector, not a ticker)
+```
+
+The user's own words, in the store documented to hold none. Not every
+unresolved item is vocabulary: an unplaceable phrase becomes
+`unclear:{phrase}`, the user's text with a model-written reason appended — and
+the reason string appears nowhere in this codebase, because it comes back from
+the model. **"Record field names, never answers" was not the guarantee it
+sounded like.** The leak arrived through the name.
+
+Fixed in `b0f529e` by hashing anything not in `vocabulary.FIELDS`. An allowlist
+rather than a rule against `unclear:`, because the next dynamic field id would
+arrive without one, added by whoever is least likely to be thinking about this.
+
+**Why no test could have caught it, which is the part worth keeping.** The
+privacy case described something the compiler fully understood, so it produced
+no unplaceable phrase. Choosing a better description would not have helped: the
+deterministic parse emits no `unclear` list *at all*. Only `MODEL_ASSISTED`
+does, and that is what production runs.
+
+So this was not a missing assertion or a badly chosen input. **The test
+environment lacked the capability that produces the dangerous input.** Three
+vacuous checks were found in this one slice — an expectation derived from
+itself, an observation derived from itself, and now an environment that cannot
+generate the case. The third is the one to watch for, because reading the test
+carefully does not reveal it; only running the real configuration does.
+
+The new case stubs the model client so the live route builds the field id out
+of the canary, then asserts both that it reached the recorder and that the
+words did not.

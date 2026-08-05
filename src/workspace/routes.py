@@ -282,6 +282,16 @@ def _safe_field(field: str) -> str:
     by whoever adds the thing it does not yet know about, and that is the
     person least likely to be thinking about it.
 
+    The rule this enforces is not "field names are safe" — that is what looked
+    true and was not, because a `field_id` can be partly user-controlled:
+
+        Only identifiers drawn from a closed, reviewed vocabulary may enter
+        telemetry. Everything else is represented by a digest and a typed
+        category.
+
+    `vocabulary.FIELDS` is the closed vocabulary, and it is read here rather
+    than copied, so adding a field cannot leave this behind.
+
     The hash keeps what the count needs — the same phrase recurring across
     journeys is still the same reference — and the store's own schema says
     structured fields and hashes only.
