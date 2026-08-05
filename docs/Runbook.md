@@ -195,9 +195,19 @@ the *system* did, and a missing constraint or stale sequence only shows on the
 next write. A restore nobody has written to is a restore nobody has finished
 testing.
 
-**Expected recovery time:** minutes for a pilot-sized database — the drill
-above completes in about 15 seconds against a workspace with a handful of
-plans. Budget for provisioning the replacement instance, not for the restore.
+**Expected recovery time.** The local drill above completes in about 15
+seconds, and that number is about `psql`, not about recovery. On RDS,
+`restore-db-instance-from-db-snapshot` to `available` measured **523 seconds**
+on 2026-08-05 for a pilot-sized database, plus about a minute of verification.
+Budget ten minutes.
+
+**Restore a snapshot taken after the data you are verifying.** The first
+production drill used the latest automated snapshot, which predated any saved
+plan; "plans came across" failed correctly, the run wrote one to test writing,
+and re-running against that same instance then passed every data check by
+reading what it had just written. Take a manual snapshot, restore it once, and
+do not re-run against an instance the drill has already written to. Recorded in
+`evidence/restore-drill-2026-08-05.md`.
 
 **Backup credentials** live in the same secret store as the database URL.
 **Run the drill monthly**, and after any schema migration.

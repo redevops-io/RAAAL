@@ -113,3 +113,6 @@ infra/terraform/*.tfplan.txt
 # Vendor price snapshots. The mapping and the build script are tracked; the
 # prices are not redistributable and the manifest says so.
 data/snapshots/*.parquet
+
+# Drill evidence names a real endpoint and a real plan.
+evidence/restore-drill-*.md
