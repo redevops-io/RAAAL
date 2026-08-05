@@ -116,7 +116,10 @@ class TestProseToConfirmation:
         page = text(client.get("/workspace/new", params={"describe": INFERRING}).text)
 
         assert "understood directly from what you wrote" in page
-        assert "Please confirm" in page
+        # The heading names the act rather than the mood. "Please confirm" sat
+        # beside a separate count of "questions" and read as a different kind
+        # of obligation; both are the same thing — supply a value.
+        assert "Chosen for you" in page
 
     def test_a_fully_specified_plan_infers_nothing(self, client):
         """Asking about choices the user already made is noise, and asking about

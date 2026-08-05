@@ -118,3 +118,62 @@ class TestTheGapsThatStartedThis:
         for option in vocabulary.FIELDS["cadence"].options:
             assert option.value in _CADENCE_WORDS, (
                 f"{option.value} is offered and has no rendering")
+
+
+class TestNoFieldFallsBackToAGenericBox:
+    """Every field the compiler can leave unresolved is accounted for.
+
+    Two outcomes and no third: a registry entry that backs a real control, or
+    a named exemption for something a deployment settles. Without this, adding
+    a question to the compiler silently produced a free-text box that the
+    validation then had nothing to check against — which is how `cadence` and
+    `execution_timing` came to be asked with no options at all.
+    """
+
+    def compiler_fields(self):
+        """Derived from the compiler's own call sites, not restated here."""
+        import ast
+        import pathlib
+
+        tree = ast.parse(pathlib.Path("src/mission/compiler.py").read_text())
+        found = set()
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)):
+                continue
+            if (node.func.id in ("settle", "answered") and node.args
+                    and isinstance(node.args[0], ast.Constant)):
+                found.add(node.args[0].value)
+            if node.func.id == "Unresolved":
+                if node.args and isinstance(node.args[0], ast.Constant):
+                    found.add(node.args[0].value)
+                for keyword in node.keywords:
+                    if (keyword.arg == "field"
+                            and isinstance(keyword.value, ast.Constant)):
+                        found.add(keyword.value.value)
+        return found
+
+    def test_the_derivation_finds_something(self):
+        """A silent zero here would make every assertion below vacuous."""
+        assert len(self.compiler_fields()) >= 10
+
+    def test_every_field_is_backed_or_exempt(self):
+        unaccounted = sorted(
+            name for name in self.compiler_fields()
+            if name not in vocabulary.FIELDS
+            and name not in vocabulary.POLICY_SETTLED)
+        assert not unaccounted, (
+            f"{unaccounted} would render as a generic text box with nothing "
+            f"to validate against")
+
+    def test_a_closed_field_has_options(self):
+        """A CHOICE entry with no options is a dropdown with nothing in it."""
+        for name, field in vocabulary.FIELDS.items():
+            if field.kind is vocabulary.FieldKind.CHOICE:
+                assert field.options, f"{name} is a choice with no choices"
+
+    def test_the_exemption_list_is_not_a_dumping_ground(self):
+        """An exemption is a claim that a deployment settles the field. If it
+        also has a registry entry, one of the two is wrong."""
+        for name in vocabulary.POLICY_SETTLED:
+            assert name not in vocabulary.FIELDS

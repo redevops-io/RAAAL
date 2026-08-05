@@ -8,8 +8,13 @@
   <h2>{{ view.headline }}</h2>
 
   {# 1. The summary answers the only question that matters first: did you
-     understand my plan? Everything below is how we know. #}
+     understand my plan? Everything below is how we know.
+
+     Titled, because unlabelled it read as an assertion of what *will* run
+     rather than as a report of what was understood — and a reader who
+     disagrees with a row needs to know which of those it is. #}
   <div class="panel summary">
+    <h3 style="margin-top:0">Understood so far</h3>
     <table class="plan">
       {% for row in view.summary %}
       <tr><th>{{ row.label }}</th><td>{{ row.value }}</td></tr>
@@ -67,11 +72,18 @@
   {# 3. Questions, with their options rather than a text box. A free-text field
      where the answers are finite invites a phrasing the compiler then has to
      re-read, and re-reading is where meaning is lost. #}
+  {# --- Needs your input ---------------------------------------------------
+     One heading for everything the user can settle, rather than a count of
+     "questions" beside a separate block of "please confirm" that reads as a
+     different kind of obligation. Both are the same act: supply a value. #}
   {% if view.questions %}
   <div class="group ask">
-    <h3>{{ view.questions|length }} question{{ '' if view.questions|length == 1 else 's' }}</h3>
+    <h3>Needs your input</h3>
+    <p class="small muted" style="margin:0 0 10px">
+      {{ view.questions|length }} to settle. Nothing is saved until you submit.
+    </p>
     {% for question in view.questions %}
-    <div class="question">
+    <div class="question" data-field="{{ question.field }}">
       <div><strong>{{ question.question }}</strong></div>
       {% set matching = (open_items or [])
            | selectattr("field", "equalto", question.field) | list %}
@@ -104,7 +116,12 @@
       {% if question.routing %}
       <div class="routing small">{{ question.routing }}</div>
       {% endif %}
-      <div class="small muted">{{ question.why_it_matters }}</div>
+      {# Behind a disclosure rather than inline. Every question repeating a
+         full paragraph turned the page into several screens of prose in which
+         the controls were the hard part to find. #}
+      <details class="why"><summary class="small muted">Why this matters</summary>
+        <div class="small muted">{{ question.why_it_matters }}</div>
+      </details>
       {# Ordinary extra prose must not be a dead end. Where the feasibility
          service classifies an item as separable, the user may proceed without
          it — recorded as an exclusion that narrows the plan's scope, never as
@@ -135,7 +152,6 @@
         </div>
         {% endif %}
       {% endfor %}
-      <div class="controls">controls {{ question.field }}</div>
     </div>
     {% endfor %}
   </div>
@@ -145,11 +161,16 @@
      the system decided something on the user's behalf. #}
   {% if view.inferences %}
   <div class="group inferred">
-    <h3>Please confirm</h3>
+    <h3>Chosen for you — confirm or change</h3>
+    <p class="small muted" style="margin:0 0 10px">
+      Each changes the result. None is saved until you submit.
+    </p>
     {% for inference in view.inferences %}
-    <div class="inference">
+    <div class="inference" data-field="{{ inference.field }}">
       <div><strong>{{ inference.label }}</strong> — {{ inference.value }}</div>
-      <div class="small muted">{{ inference.why }}</div>
+      <details class="why"><summary class="small muted">Why this matters</summary>
+        <div class="small muted">{{ inference.why }}</div>
+      </details>
       {% if inference.choices %}
       <select name="confirm:{{ inference.field }}" class="answer-select">
         {% for choice in inference.choices %}
@@ -170,7 +191,6 @@
         Keep this assumption
       </label>
       {% endif %}
-      <div class="controls">controls {{ inference.field }}</div>
     </div>
     {% endfor %}
     <p class="small muted" style="margin:10px 0 0">

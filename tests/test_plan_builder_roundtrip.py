@@ -21,7 +21,7 @@ BLOCKED = "I buy SPX every month and never sell."
 
 
 def asked(body):
-    return set(re.findall(r'controls ([a-z_]+)</div>', body))
+    return set(re.findall(r'data-field="([a-z_]+)"', body))
 
 
 def carried(body):

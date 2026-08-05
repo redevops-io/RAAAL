@@ -119,6 +119,17 @@ FIELDS: Mapping[str, Field] = {
 }
 
 
+#: Fields a *deployment* settles, never a user.
+#:
+#: `benchmark_set` is supplied by `BENCHMARK_RULE` at every entry point the
+#: pilot serves; it becomes unresolved only where no policy was configured,
+#: which is a deployment fault rather than a question. Listing it explicitly
+#: rather than letting it fall through is the point: the guard admits exactly
+#: two outcomes for a compiler field — a registry entry or a named exemption —
+#: and there is no third that quietly becomes a text box.
+POLICY_SETTLED: Tuple[str, ...] = ("benchmark_set",)
+
+
 def field_for(name: str) -> Optional[Field]:
     """The field behind a question id.
 

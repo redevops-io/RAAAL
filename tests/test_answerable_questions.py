@@ -93,7 +93,7 @@ class TestThePageRendersAControlForEveryQuestion:
         # inferences post `confirm:` — the first version of this regex looked
         # only for `answer:` and reported the inference blocks as
         # unanswerable, which would have been a defect in the test.
-        asked = set(re.findall(r'controls ([a-z_]+)</div>', body))
+        asked = set(re.findall(r'data-field="([a-z_]+)"', body))
         answered = set(re.findall(r'name="answer:([a-z_]+)"', body))
         confirmed = set(re.findall(r'name="confirm:([a-z_]+)"', body))
         unanswerable = asked - answered - confirmed
@@ -111,7 +111,7 @@ class TestThePageRendersAControlForEveryQuestion:
         import re
 
         body = client.get("/workspace/new", params={"describe": UNRUNNABLE}).text
-        asked = set(re.findall(r'controls ([a-z_]+)</div>', body))
+        asked = set(re.findall(r'data-field="([a-z_]+)"', body))
         answered = set(re.findall(r'name="answer:([a-z_]+)"', body))
         confirmed = set(re.findall(r'name="confirm:([a-z_]+)"', body))
         assert not (asked - answered - confirmed)
@@ -236,3 +236,54 @@ class TestNoControlPromisesMoreThanTheCompilerDelivers:
             assert field in consumed, f"{field} is no longer read by the compiler"
             item = OpenItem(field, "q", "w", Resolution.REQUIRED_CLARIFICATION)
             assert item.answerable
+
+
+class TestThePageIsForAUserNotADeveloper:
+    """Field identifiers are implementation detail, not page content.
+
+    Every question and inference carried a monospace `controls <field>` line.
+    It is genuinely useful — in an HTML name, an accessibility attribute, a
+    log, a test — and none of those is the middle of a sentence a person is
+    reading.
+    """
+
+    @pytest.fixture
+    def client(self, tmp_path, monkeypatch):
+        import src.api as api
+        import src.web.routes as web_routes
+        import src.workspace.routes as workspace_routes
+        from src.ledger import Ledger
+        from src.workspace.store import WorkspaceStore
+
+        ledger = Ledger(tmp_path / "public.db")
+        monkeypatch.setattr(api, "_ledger", ledger)
+        monkeypatch.setattr(web_routes, "Ledger", lambda *a, **k: ledger)
+        store = WorkspaceStore(tmp_path / "workspace.db")
+        monkeypatch.setattr(workspace_routes, "_store", lambda: store)
+        api._bootstrap()
+        return TestClient(api.app)
+
+    def test_no_controls_line_reaches_the_page(self, client):
+        page = client.get("/workspace/new", params={"describe": UNRUNNABLE})
+        assert "controls account_type" not in page.text
+        assert ">controls " not in page.text
+
+    def test_the_identifier_is_still_recoverable(self, client):
+        """Removing it from the prose must not remove it from the machine:
+        a bug report, a screen reader and these tests all need it."""
+        page = client.get("/workspace/new", params={"describe": UNRUNNABLE})
+        assert 'data-field="account_type"' in page.text
+        assert 'name="answer:account_type"' in page.text
+
+    def test_the_rationale_is_present_but_collapsed(self, client):
+        """Behind a disclosure, not deleted. A user who wants to know why the
+        account type matters must still be able to find out."""
+        page = client.get("/workspace/new", params={"describe": UNRUNNABLE})
+        assert "<details" in page.text
+        assert "Why this matters" in page.text
+        assert "Tax treatment changes the result" in page.text
+
+    def test_the_sections_say_what_they_are(self, client):
+        page = client.get("/workspace/new", params={"describe": UNRUNNABLE})
+        assert "Understood so far" in page.text
+        assert "Needs your input" in page.text
