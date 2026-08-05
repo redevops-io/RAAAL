@@ -1290,6 +1290,30 @@ sometimes surface; an unfalsifiable verifier produces confidence, which
 suppresses both. It is the only failure mode that actively prevents its own
 correction.
 
+**Inference is not banished downstream; it is made attributable.** The tidy
+version of this architecture would say inference happens once, at the model
+boundary, and everything after is deterministic. That is not what is built and
+would be worse if it were. `compile_scenario` infers — `dividends =
+reinvested`, `contribution_day_rule = first_session_of_period` — deterministically
+and from a versioned default set. A compiler that refused to infer would either
+ask about every field, which nobody would finish, or apply defaults silently,
+which is the failure the whole provenance model exists to prevent.
+
+So the boundary is not inference against no inference. It is *who decided, and
+were they told*:
+
+    stated     the user said it
+    inferred   the system chose it, deterministically, and says so —
+               unconfirmed until they agree
+    amended    the user answered a question about it
+
+The confirmation screen exists because of the middle row. `execution_timing`
+was nobody's decision but the compiler's, and it is shown, reasoned about and
+confirmable rather than applied. What is prohibited is not inference but
+*undisclosed* inference — a decision with no author on the page. The model's
+non-determinism is bounded to one observation; the compiler's determinism is
+bounded to choices the user can see and overturn.
+
 **And the invariant does not cover reachability.** An amendment recorded and
 never consumed satisfies it exactly — the decision became an immutable
 observation — while the system still behaves as though the user said nothing.
