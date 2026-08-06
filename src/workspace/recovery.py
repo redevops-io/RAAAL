@@ -286,6 +286,20 @@ def assess(record: Dict[str, Any], *, context: str = "plan recovery") -> PlanRec
             outcome = RECOVERABLE
             why = ("absent, and determined by the description and the pinned "
                    "parse alone")
+        elif questions:
+            # Absent, and a recompile did not produce it — but the recompile
+            # is also still asking. A derived field can be blocked on an
+            # unanswered question rather than lost: the production plan's
+            # funding policy needs an instrument, the instrument needs the
+            # owner's choice between two funds, and until that is made no
+            # policy can be built from any amount of structure.
+            #
+            # Reported as historical at first, which is the one reading that
+            # is actively harmful — it tells an operator to stop, when four
+            # answers would recover the field.
+            outcome = NEEDS_OWNER
+            why = ("absent, and blocked on a question the recompile is still "
+                   "asking rather than on anything lost")
         else:
             outcome = HISTORICAL
             why = "absent, and no recompile produces it"

@@ -248,6 +248,34 @@ class TestTheThreeOutcomes:
             "classed as answerable, but a recompile asks nothing — then there "
             "is no question to put to the owner and this is history")
 
+    def test_a_derivation_blocked_on_a_question_is_not_called_historical(
+            self, legacy):
+        """Found by running the matrix against the real production plan.
+
+        Its funding policy is absent and a recompile does not produce one —
+        but only because the instrument is unresolved, and resolving it is a
+        question the owner can answer. Reporting that as history tells an
+        operator to abandon a field that four answers would restore. The
+        distinction is whether the recompile is still asking.
+        """
+        from src.mission.spec import AssetResolution
+
+        # An unresolved instrument: the description names a fund the compiler
+        # cannot place, so no funding subject exists and no policy is built.
+        unresolved = {**legacy, "stated_text":
+                      "I buy $1,000 of the SP500 ETF whenever it crosses "
+                      "below its 200-day moving average."}
+        body = json.loads(json.dumps(legacy["scenario"]))
+        body.get("flows", {}).pop("funding", None)
+        assessed = recovery.assess({**unresolved, "scenario": body},
+                                   context="recovery test")
+        assert assessed.open_questions, (
+            "the premise failed: this description resolves cleanly, so it "
+            "cannot show the difference between blocked and lost")
+        one = _field(assessed, "funding")
+        assert not one.rederived
+        assert one.outcome == recovery.NEEDS_OWNER, one.why
+
     def test_a_legacy_plan_may_not_migrate_automatically(self, legacy):
         assert not recovery.assess(legacy, context="recovery test").automatic
 
