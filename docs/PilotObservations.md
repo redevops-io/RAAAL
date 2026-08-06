@@ -205,3 +205,64 @@ carefully does not reveal it; only running the real configuration does.
 The new case stubs the model client so the live route builds the field id out
 of the canary, then asserts both that it reached the recorder and that the
 words did not.
+
+---
+
+## OBS-5 — A declared rule was never executed, and the figure looked authoritative
+
+**Observed** 2026-08-05 by a pilot user opening a saved plan, not by any test.
+
+    I buy $1,000 of SP500 ETF every time the S&P 500 crosses below its
+    200-day moving average for the past 5 years.
+
+The page showed $5,160 and +18.09% — identical, to the penny, to "Your basket,
+bought and held" and to "Contribute to S&P 500" — beside a disclosure reading
+*"every dimension outside the investment rule was held identical… a difference
+between these figures is attributable to the rule."*
+
+There was no difference and no rule. `_run` called
+`simulate(..., program=buy_and_hold(tradeable))` regardless of what the
+scenario declared, and nothing ever converted `event_program` into an
+`EventProgram`. The user noticed because $1,000 contributed could not support a
+rule that fires repeatedly — the arithmetic was visible even though the defect
+was not.
+
+Fifth instance of the reachability shape in this codebase, and the first that
+moves money. `simulate` takes a `program` argument; the engine has always been
+able to run one. The live path did not reach it.
+
+### Two further defects the fix uncovered
+
+**The disclosure that should have caught it had never rendered.**
+`declare_unsimulated` writes `declared_but_not_simulated`; `_scope.html` reads
+`scope.not_modelled`. Computed correctly, attached to the result, stored, and
+displayed by a template reading a different key — so both columns of "What this
+simulation models" were empty, and the `dividend_policy` disclosure had been
+invisible for its entire life too.
+
+**`declare_unsimulated` derived its inventory from a one-entry dict** while its
+docstring claimed the opposite: *"derived from the scenario rather than
+hardcoded, so… one that is added starts being disclosed without anyone
+remembering to edit this function."* The claim to be exhaustive is what made
+the omission dangerous rather than merely incomplete.
+
+### Why no test caught any of it
+
+`test_the_original_prompt.py` is a permanent fixture for this exact sentence
+and passed throughout. It asserts parsing, asset identity and the time window —
+whether the system *understood* the user, never whether it *did* what it
+understood.
+
+The missing-producer class again, and sharper this time: the compiler only
+builds an `event_program` once `trigger_semantics` is settled, so a test using
+the bare description compiles to zero steps and exercises none of this. The new
+suite settles the trigger by amendment and asserts the premise first.
+
+**Deployment 1** (this commit) stops the wrong number: no figure, no benchmark
+table, the rule named under "Not modelled", `STRATEGY_EFFECT` refused at the
+classifier, and affected runs invalidated from an inventory derived from stored
+artifacts rather than a list of plan ids someone read off a page.
+
+**Deployment 2** executes the rule and reports a timeline — which is also the
+independent witness that it ran, because one purchase and $1,000 total cannot
+support a repeating rule and would be visible as such.

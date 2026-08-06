@@ -516,6 +516,17 @@ def migration_for(plan_id: str, stored: Dict[str, Any], compiled):
     return proposal.to_json() if proposal else None
 
 
+#: Shown instead of a result, never beside one. Defined once so the page, the
+#: refusal to record a run and the invalidation of an existing run all say the
+#: same thing — three wordings of one fact is how a caveat gets softened in the
+#: place nobody is reading.
+STRATEGY_NOT_EXECUTED = (
+    "This result is unavailable. The plan contains a conditional purchase "
+    "rule, but this version of Quantify did not execute that rule. No strategy "
+    "result is shown. Your description and clarifications remain saved."
+)
+
+
 def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
                         ) -> Dict[str, Any]:
     """Add every declared-but-unsimulated behaviour to the modelling scope.
@@ -529,12 +540,39 @@ def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
     declared = {
         "dividend_policy": scenario.holdings_policy.dividend_policy,
     }
+    # The event program was absent from this dict while the docstring above
+    # claimed the disclosure was derived rather than hardcoded. It was derived
+    # — from a dict with one entry — so a plan whose entire strategy went
+    # unexecuted rendered an empty NOT MODELLED column. The claim to be
+    # exhaustive is what made the omission dangerous rather than merely
+    # incomplete.
+    if scenario.event_program:
+        declared["event_program"] = f"{len(scenario.event_program)} step(s)"
     not_modelled = {
         field: {"declared": value, "why": UNSIMULATED[field]}
         for field, value in declared.items() if field in UNSIMULATED
     }
     if not_modelled:
         scope["declared_but_not_simulated"] = not_modelled
+        # And in the shape the page reads.
+        #
+        # `declared_but_not_simulated` is the machine-readable record and was
+        # the only thing written. `_scope.html` renders `scope.not_modelled`,
+        # so this disclosure has never appeared on a page in its life: computed
+        # correctly, attached to the result, stored, and displayed by a
+        # template reading a different key. Both columns of "What this
+        # simulation models" were empty on the plan that prompted this work.
+        #
+        # Kept as two keys rather than renamed. The stored form is a record
+        # older results already carry, and the rendered form is a list a
+        # template can iterate; collapsing them would either break the archive
+        # or put presentation into the artifact.
+        rendered = list(scope.get("not_modelled") or ())
+        rendered.extend(
+            {"reason": entry["why"], "declared": entry["declared"],
+             "field": field}
+            for field, entry in sorted(not_modelled.items()))
+        scope["not_modelled"] = rendered
     return scope
 
 
@@ -559,6 +597,31 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
     policy = CashPolicy.idle()
     assets = list(scenario.allocation_rule.assets)
     tradeable = [a for a in assets if a in prices.columns]
+
+    # A declared conditional rule that this engine does not execute produces no
+    # figure at all.
+    #
+    # `simulate` is called with `program=buy_and_hold(tradeable)` regardless of
+    # what the scenario declares, and nothing converts `event_program` into an
+    # `EventProgram`. A plan reading "buy $1,000 every time SPY crosses below
+    # its 200-day average" was therefore replayed as a single purchase held to
+    # the end — and returned a figure identical to the buy-and-hold benchmark
+    # beside a disclosure saying the difference was attributable to the rule.
+    #
+    # A caveat under the number is not enough, and this is the one place that
+    # can be certain of it: people remember $5,160 and forget the sentence
+    # beneath it. So the number is not produced.
+    # Before the price-history check, and unconditionally. Ordered the other
+    # way, a plan naming an instrument we cannot price reported the data gap —
+    # so the user corrects the ticker, the gap closes, and the reward for
+    # fixing it is a figure for a rule that still never ran. The same ordering
+    # argument as `historical_lots.detect`: the unconditional refusal goes
+    # first, because the conditional one reads as the whole problem.
+    if scenario.event_program:
+        return {"result": None, "benchmarks": [], "payload": None,
+                "comparability": None,
+                "strategy_not_executed": True,
+                "unavailable": STRATEGY_NOT_EXECUTED}
 
     if not tradeable or not flows:
         return {"result": None, "benchmarks": [], "payload": None,
@@ -630,6 +693,12 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
         period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
         allocation_rule_hash=scenario.rule_hash,
         data_snapshot=snapshot,
+        # `None` rather than `True`: this engine executes no event program at
+        # all, so a plan with no rule has nothing unexecuted, and one with a
+        # rule no longer reaches here. Stating `True` would be the engine
+        # certifying its own behaviour — exactly the claim the classifier
+        # exists to stop resting on assertion.
+        declared_rule_executed=(False if scenario.event_program else None),
     )
     # One verdict per benchmark, computed here and stored with the run. The
     # worksheet reads them; it never recomputes. Every benchmark shares the
@@ -1278,8 +1347,16 @@ def plan_detail(request: Request, plan_id: str):
                           store.list_proposals(plan_id, PILOT_OWNER)],
             "observations": [o["payload"] for o in
                              store.list_observations(plan_id, PILOT_OWNER)],
+            # With no result there is no result-borne scope, and the page used
+            # to fall through to `scope` — which is None for any plan without a
+            # template hint. So the plan whose entire strategy went unmodelled
+            # rendered an empty NOT MODELLED column: the disclosure existed,
+            # and the only page that needed it had nowhere to read it from.
             "scope": (run.get("result").to_json()["modelling_scope"]
-                      if run and run.get("result") else scope),
+                      if run and run.get("result")
+                      else declare_unsimulated(
+                          scenario_from_stored(stored, compiled.scenario),
+                          scope)),
             "disclosures": _disclosures(compiled, run),
             "chain": build_scenario_chain(
                 subject=plan_id, scenario=compiled.scenario,
@@ -1371,6 +1448,7 @@ def counterfactual(request: Request, plan_id: str, constraint: str = "a blackout
         period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
         allocation_rule_hash=scenario.rule_hash,
         data_snapshot=snapshot,
+        declared_rule_executed=(False if scenario.event_program else None),
     )
     verdict = classify_counterfactual(
         RunConditions(**common, execution_lag=1),

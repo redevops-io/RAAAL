@@ -141,6 +141,15 @@ PRODUCERS: Mapping[str, Producer] = {
             reason="A compiled scenario specification. It states what to do, "
                    "and holds no result."),
         Producer(
+            table="run_invalidation",
+            ownership=ProvenanceOwnership.NOT_APPLICABLE,
+            reason="A judgement about a run, not a figure. It says that a "
+                   "stored result must not be read as a strategy result and "
+                   "why, and holds no price, value or quantity of its own. "
+                   "The provenance question belongs to the run it names, "
+                   "which keeps its own — and keeps it precisely so a "
+                   "withdrawn figure stays checkable."),
+        Producer(
             table="worksheet_intent", ownership=ProvenanceOwnership.NOT_APPLICABLE,
             reason="A classified request. It records what was asked before "
                    "anything ran."),

@@ -245,6 +245,16 @@ CREATE TABLE IF NOT EXISTS plan_run (
     comparison TEXT NOT NULL,
     FOREIGN KEY (plan_id) REFERENCES plan (plan_id)
 );
+CREATE TABLE IF NOT EXISTS run_invalidation (
+    owner          TEXT NOT NULL,
+    run_id         TEXT NOT NULL,
+    plan_id        TEXT NOT NULL,
+    classification TEXT NOT NULL,
+    reason         TEXT NOT NULL,
+    engine_version TEXT NOT NULL,
+    invalidated_at TEXT NOT NULL,
+    PRIMARY KEY (owner, run_id)
+);
 """
 
 
@@ -1306,11 +1316,79 @@ class WorkspaceStore:
                 "ORDER BY ran_at DESC",
                 (plan_id, owner),
             ).fetchall()
+        invalid = self.invalidations_for(plan_id, owner)
         return [
             {**dict(r), "result": loads(r["result"]),
-             "comparison": loads(r["comparison"])}
+             "comparison": loads(r["comparison"]),
+             # Attached here rather than left to each caller to join. A reader
+             # that has to remember to check a second table is a reader that
+             # will render an invalidated figure as an ordinary one.
+             "invalidation": invalid.get(r["run_id"])}
             for r in rows
         ]
+
+    # ---- invalidated runs -------------------------------------------------
+
+    def invalidate_run(self, *, run_id: str, plan_id: str, owner: str,
+                       classification: str, reason: str, engine_version: str,
+                       at: str) -> bool:
+        """Record that a stored run must not be read as a strategy result.
+
+        The run itself is kept. Deleting it would destroy the evidence that the
+        defect happened and what was shown to whom, and a plan whose history
+        silently loses a run is a plan whose record disagrees with the user's
+        memory of it.
+
+        `classification` is the runtime's own vocabulary — `RULE_NOT_EXECUTED`
+        — not prose, because this is the field an operator groups by when
+        asking how far a defect reached.
+
+        **The first withdrawal stands.** Re-running the sweep is a no-op rather
+        than a rewrite: `INSERT OR REPLACE` would move `invalidated_at` to the
+        date of the latest sweep, erasing when users were first told, and would
+        let a reason be quietly softened on a later pass. The table is
+        classified `IMMUTABLE_ARTIFACT` and this is what makes that true rather
+        than merely declared.
+
+        Returns whether a row was written, so a sweep can report what it
+        actually did instead of counting rows it left alone.
+        """
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT 1 FROM run_invalidation WHERE owner = ? AND run_id = ?",
+                (owner, run_id)).fetchone()
+            if existing:
+                return False
+            conn.execute(
+                """INSERT INTO run_invalidation
+                   (owner, run_id, plan_id, classification, reason,
+                    engine_version, invalidated_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (owner, run_id, plan_id, classification, reason,
+                 engine_version, at))
+        return True
+
+    def invalidations_for(self, plan_id: str, owner: str) -> Dict[str, Any]:
+        """Invalidations for one plan, keyed by run id."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM run_invalidation WHERE plan_id = ? AND owner = ?",
+                (plan_id, owner)).fetchall()
+        return {r["run_id"]: dict(r) for r in rows}
+
+    def all_runs(self, owner: str) -> List[Dict[str, Any]]:
+        """Every stored run for a tenant, for deriving an affected inventory.
+
+        Exists so a sweep reads the artifacts rather than a list of plan ids
+        someone typed after looking at one page. An inventory that is restated
+        is an inventory that is incomplete.
+        """
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT run_id, plan_id, ran_at, result FROM plan_run "
+                "WHERE owner = ? ORDER BY ran_at",
+                (owner,)).fetchall()
+        return [{**dict(r), "result": loads(r["result"])} for r in rows]
 
     # ---- proposals --------------------------------------------------------
 

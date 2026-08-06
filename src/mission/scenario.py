@@ -79,6 +79,14 @@ class HoldingsPolicy:
 #: so where one cannot be honoured yet it is named here rather than left to look
 #: enforced. Every entry must appear in a result's modelling scope.
 UNSIMULATED = {
+    "event_program": (
+        "The engine replays a flow schedule against a buy-and-hold program. "
+        "The declared conditional rule — a trigger, its condition and the "
+        "purchase it causes — is recorded, hashed into the methodology and "
+        "shown on the page, and is not executed. A figure produced beside it "
+        "is the figure for holding the instruments, not for following the "
+        "rule, and reads as though the rule had been evaluated."
+    ),
     "dividend_policy": (
         "The engine runs on price series only, so dividends are neither paid "
         "nor reinvested. The choice is recorded and distinguishes two "

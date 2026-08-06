@@ -305,6 +305,37 @@ market_data_access_event = Table(
 Index("access_event_run", market_data_access_event.c.owner,
       market_data_access_event.c.run_id)
 
+run_invalidation = Table(
+    "run_invalidation", metadata,
+    Column("owner", Text, primary_key=True),
+    Column("run_id", Text, primary_key=True),
+    Column("plan_id", Text, nullable=False),
+    # The runtime's own vocabulary — RULE_NOT_EXECUTED — not prose. This is the
+    # column an operator groups by when asking how far a defect reached, and
+    # prose does not group.
+    Column("classification", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    # Which engine produced the invalid run, so a replacement can say what
+    # changed rather than merely being newer.
+    Column("engine_version", Text, nullable=False),
+    Column("invalidated_at", Text, nullable=False),
+)
+"""A stored run that must not be read as a strategy result.
+
+The run itself is kept. Deleting it would destroy the evidence that the defect
+happened and what was shown, and the correction here is not that a number was
+mistyped — it is that the number answers a different question than the plan
+asked. A user who remembers $5,160 must be able to find the record of having
+been shown it.
+
+**No foreign key to `plan_run`.** A retention policy that later purges runs
+must not be blocked by, or silently delete, the record that one of them was
+wrong. The pairing is by id and may outlive the row it names.
+"""
+
+Index("run_invalidation_plan", run_invalidation.c.owner,
+      run_invalidation.c.plan_id)
+
 plan_run = Table(
     "plan_run", metadata,
     Column("owner", Text, primary_key=True),

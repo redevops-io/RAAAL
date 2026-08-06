@@ -82,6 +82,19 @@ TABLE_MUTABILITY: Mapping[str, Mutability] = {
                       "revisited next year must show that figure, not one "
                       "recomputed against rules that have since moved."),
         Mutability(
+            table="run_invalidation", kind=TableClass.IMMUTABLE_ARTIFACT,
+            immutable_columns=("classification", "reason", "engine_version",
+                               "invalidated_at"),
+            rationale="A withdrawal is a historical statement: on this date we "
+                      "determined this figure must not be read as a result. "
+                      "Classifying it MUTABLE_LIFECYCLE was the lazy answer — "
+                      "it protected no column, so the classification enforced "
+                      "nothing. Overwriting `invalidated_at` on a re-run of "
+                      "the sweep would move the date users were first told, "
+                      "and rewriting the reason would let a withdrawal be "
+                      "quietly softened. A revised judgement is a new "
+                      "classification value, not an edit to the old one."),
+        Mutability(
             table="market_data_access_event", kind=TableClass.IMMUTABLE_ARTIFACT,
             immutable_columns=("frame_digest", "provenance_digest",
                                "selected_columns", "row_count", "snapshot_id",

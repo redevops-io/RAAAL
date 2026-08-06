@@ -362,7 +362,12 @@ class TestClassifierV2:
         verdict = classify(self.conditions(), self.conditions())
         assert verdict.classifier_version == CLASSIFIER_VERSION
         assert verdict.to_json()["classifier_version"] == CLASSIFIER_VERSION
-        assert CLASSIFIER_VERSION.endswith("@2")
+        # `@3` adds the refusal for a declared-but-unexecuted rule. Pinned to a
+        # specific version rather than merely "not empty", because the point of
+        # the field is that a reader can tell which rules produced a verdict —
+        # and a test that accepted any value would let the version stop moving
+        # while the rules kept changing.
+        assert CLASSIFIER_VERSION.endswith("@3")
 
 
 class TestWorkspaceRunsPinTheirRuntimes:

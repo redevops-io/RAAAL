@@ -145,13 +145,30 @@ class TestRecognizedIsNotRepresented:
 
     def test_every_unsimulated_declaration_is_disclosed(self):
         """Derived from the scenario, not hardcoded, so a behaviour that becomes
-        simulatable stops being disclosed by deleting one entry."""
+        simulatable stops being disclosed by deleting one entry.
+
+        The scenario must declare every entry, which it did trivially while
+        `UNSIMULATED` held one. With `event_program` added, a dividends-only
+        description discloses one of two — correctly, since it declares no
+        rule — and asserting equality against a scenario that cannot produce
+        the second entry would have forced the registry back down to what the
+        fixture happened to exercise.
+        """
         from src.mission.scenario import UNSIMULATED
+        from src.mission.spec import ScenarioAmendment
         from src.workspace.routes import declare_unsimulated
 
-        compiled = compile_scenario(self.BASE.format(d="reinvesting the dividends"),
-                                    name="s", version=1,
-                                    benchmark_rule=BENCHMARK_RULE)
+        compiled = compile_scenario(
+            self.BASE.format(d="reinvesting the dividends")
+            + " I also buy $500 more every time VTI crosses below its 200-day "
+              "moving average.",
+            name="s", version=1, benchmark_rule=BENCHMARK_RULE,
+            amendments=(ScenarioAmendment(question_id="trigger_semantics",
+                                          answer="crossing_event",
+                                          recorded_at="2026-08-05T00:00:00Z"),))
+        assert compiled.scenario.event_program, (
+            "this description declares no rule, so the assertion below would "
+            "hold against a registry entry nothing can ever disclose")
         disclosed = declare_unsimulated(
             compiled.scenario, None)["declared_but_not_simulated"]
         assert set(disclosed) == set(UNSIMULATED)

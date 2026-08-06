@@ -102,9 +102,34 @@ def export_workspace(store, owner: str) -> Dict[str, Any]:
     with store._conn() as conn:
         for record in owner_scoped_tables():
             payload["tables"][record.table] = _rows_for(conn, record, owner)
+    _mark_withdrawn_runs(payload["tables"])
     payload["counts"] = {name: len(rows)
                          for name, rows in payload["tables"].items()}
     return payload
+
+
+def _mark_withdrawn_runs(tables: Dict[str, Any]) -> None:
+    """Attach each withdrawal to the run it withdraws.
+
+    `run_invalidation` is exported as its own table because the inventory says
+    so, and that alone is not enough: a consumer reading `plan_run` sees a
+    figure with nothing on it, and would have to know to join a second table
+    before believing the number. A reader who must remember to check is a
+    reader who will quote the figure — which is precisely how a withdrawn
+    result regains authority by leaving the interface that withdrew it.
+
+    The same fix as `WorkspaceStore.runs_for`. Marked rather than removed: the
+    user is entitled to everything their account holds, including the record
+    that they were once shown a figure and what was wrong with it.
+    """
+    withdrawals = {row.get("run_id"): row
+                   for row in tables.get("run_invalidation") or ()}
+    if not withdrawals:
+        return
+    for row in tables.get("plan_run") or ():
+        withdrawal = withdrawals.get(row.get("run_id"))
+        if withdrawal is not None:
+            row["invalidation"] = withdrawal
 
 
 def delete_workspace(store, owner: str, *, requested_at: str,

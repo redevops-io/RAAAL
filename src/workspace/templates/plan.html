@@ -36,6 +36,9 @@
 </p>
 
 {% if run and run.unavailable %}
+{# No figures in this branch, deliberately. A number beside a caveat is a
+   number: people remember $5,160 and forget the sentence under it. #}
+<h2>Historically</h2>
 <div class="blocked">{{ run.unavailable }}</div>
 {% elif run and run.result %}
 <h2>Historically</h2>
@@ -51,6 +54,35 @@
 
 <h2>Compared with</h2>
 {% include "_comparison.html" %}
+{% endif %}
+
+{% set invalidated = runs|selectattr("invalidation")|list %}
+{% if invalidated %}
+<h2>Withdrawn results</h2>
+<div class="panel">
+  <p class="small">
+    {{ invalidated|length }} earlier result{{ "" if invalidated|length == 1 else "s" }}
+    for this plan {{ "has" if invalidated|length == 1 else "have" }} been
+    invalidated. The run{{ "" if invalidated|length == 1 else "s" }}
+    {{ "is" if invalidated|length == 1 else "are" }} kept rather than deleted,
+    so the record of what was shown survives.
+  </p>
+  <div class="scroll"><table class="small">
+    <tr><th>Run</th><th>Ran</th><th>Classification</th><th>Why</th></tr>
+    {% for one in invalidated %}
+    <tr>
+      <td class="mono">{{ one.run_id[:16] }}…</td>
+      <td class="mono">{{ one.ran_at[:19] }}</td>
+      <td class="mono">{{ one.invalidation.classification }}</td>
+      <td class="small muted">{{ one.invalidation.reason }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p class="small muted" style="margin:12px 0 0">
+    Produced by engine
+    <span class="mono">{{ invalidated[0].invalidation.engine_version }}</span>.
+  </p>
+</div>
 {% endif %}
 
 <h2>Modelling scope</h2>

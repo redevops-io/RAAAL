@@ -71,7 +71,17 @@ DISCLOSURE_VERSION = "comparability-disclosure@1"
 #: `@2` additionally refuses `attribution_isolated` while any dimension required
 #: to be equal was never evaluated: a comparison may still be shown, but it
 #: cannot claim the strategy was isolated.
-CLASSIFIER_VERSION = "comparability/classifier@2"
+#:
+#:     @3  refuses `attribution_isolated` when a run declared an investment rule
+#:         that was not executed. Every dimension can match and every one be
+#:         checked, and the claim still be false — because "the difference is
+#:         attributable to the rule" presumes a rule ran. A plan declaring "buy
+#:         when SPY crosses below its 200-day average" was replayed as
+#:         buy-and-hold and returned the buy-and-hold figure, under a disclosure
+#:         saying the difference was the rule. There was no difference and no
+#:         rule; @2 had nothing to object to, because it only ever compared
+#:         conditions.
+CLASSIFIER_VERSION = "comparability/classifier@3"
 
 
 class DimensionStatus(str, Enum):
@@ -224,6 +234,20 @@ class RunConditions:
     answer without changing anything the user did, and a comparison across two
     snapshots silently attributes a data revision to a decision."""
 
+    declared_rule_executed: Optional[bool] = None
+    """Whether a declared investment rule was actually executed.
+
+    Three states, and the third is the one that matters. `None` means no rule
+    was declared, so there is nothing to have run — an ordinary buy-and-hold
+    plan. `True` means one was declared and executed. `False` means one was
+    declared and the engine did not run it, which makes "the difference is
+    attributable to the rule" false no matter how many dimensions match.
+
+    Not a dimension, and deliberately absent from `dimension_map`. Dimensions
+    ask whether two runs were held equal; this asks whether either run did what
+    it said. A comparison of two identically-broken runs would pass every
+    dimension check."""
+
     def dimension_map(self) -> Dict[str, Any]:
         return {
             "allocation_rule": self.allocation_rule_hash,
@@ -285,6 +309,24 @@ def classify_counterfactual(actual: RunConditions, counterfactual: RunConditions
     )
 
 
+def _not_isolated_detail(unchecked: Sequence[str], unexecuted: bool) -> str:
+    """Why attribution failed, naming the actual cause.
+
+    The two causes are different and a reader must be able to tell them apart:
+    an unchecked dimension is a hole in the evidence, while an unexecuted rule
+    means there was no rule effect to attribute anything to.
+    """
+    if unexecuted:
+        return ("one of these runs declared an investment rule that was not "
+                "executed, so there is no rule effect to attribute a "
+                "difference to")
+    return ("every checked dimension is identical, but "
+            f"{', '.join(unchecked)} "
+            + ("was" if len(unchecked) == 1 else "were")
+            + " never evaluated, so the difference cannot be attributed to "
+              "the rule alone")
+
+
 def classify(left: RunConditions, right: RunConditions) -> ComparabilityVerdict:
     """Compare two runs' conditions and say what a difference between them means.
 
@@ -325,21 +367,24 @@ def classify(left: RunConditions, right: RunConditions) -> ComparabilityVerdict:
     differing = [d for d in checkable
                  if by_status[d] is DimensionStatus.NOT_MATCHED]
 
+    # Classifier @3. A rule that was declared and never executed defeats
+    # attribution before any dimension is consulted: there is no rule effect to
+    # isolate. Computed here rather than folded into `unchecked` because it is
+    # a different failure — every dimension may be present and matched.
+    unexecuted = (left.declared_rule_executed is False
+                  or right.declared_rule_executed is False)
+
     if not differing:
         # Isolation requires that every dimension outside the rule was actually
         # checked. An unevaluated one is a hole in the attribution claim, so the
         # comparison is still shown and the claim is not made.
-        isolated = not unchecked
+        isolated = not unchecked and not unexecuted
         return ComparabilityVerdict(
             comparison_class=ComparisonClass.STRATEGY_EFFECT,
             comparable=True, attribution_isolated=isolated,
             differing_dimensions=(),
             detail=("every dimension outside the rule is identical" if isolated
-                    else ("every checked dimension is identical, but "
-                          f"{', '.join(unchecked)} "
-                          + ("was" if len(unchecked) == 1 else "were")
-                          + " never evaluated, so the difference cannot be "
-                          "attributed to the rule alone")),
+                    else _not_isolated_detail(unchecked, unexecuted)),
             isolates="the investment rule" if isolated else "",
             unchecked_dimensions=unchecked, dimension_results=tuple(results),
         )

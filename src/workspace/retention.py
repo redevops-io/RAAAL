@@ -206,6 +206,23 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
             contains_model_content=False,
             sensitive_fields=("result", "comparison")),
         RecordClass(
+            table="run_invalidation", data_class=DataClass.PERSONAL_RECORD,
+            # PERSONAL_RECORD, like the run it names. It holds no content the
+            # user wrote — a run id, a classification and a sentence written by
+            # us — but it exists because this user ran something, and a record
+            # that survives the deletion of the run it refers to would be a
+            # dangling statement about a person whose data is gone.
+            owner_scope=OwnerScope.DIRECT, owner_column="owner",
+            retention_policy=ACTIVE_ACCOUNT,
+            deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
+            export_behaviour="included in a workspace export",
+            # The reason names what was wrong with an engine, never what the
+            # user described. A withdrawal notice that quoted the plan would
+            # reproduce the content it exists to stop being trusted.
+            contains_sensitive_financial_data=False,
+            contains_model_content=False,
+            sensitive_fields=()),
+        RecordClass(
             table="market_data_access_event",
             # PERSONAL_RECORD despite holding no personal content. It holds
             # digests, column names, row counts and timestamps — nothing the

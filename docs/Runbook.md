@@ -450,3 +450,33 @@ Stated so nobody discovers it during an incident:
   are inert.
 - **The container lane reuses a fixed container name**; a failed run can leave
   one behind and make the next run fail for an unrelated reason.
+
+---
+
+## Withdrawing a run whose declared rule was never executed
+
+    python -m src.workspace.invalidate --dry-run
+    python -m src.workspace.invalidate
+
+Reads every stored run for the tenant and withdraws the ones whose plan
+declares an `event_program` and whose result records no executed rule events.
+The inventory is derived from the artifacts, never from a list of plan ids read
+off a page: the affected plan was found by one user opening one page, and there
+is no way to know from a page how many others carried the same defect.
+
+**Re-running is a no-op, not a rewrite.** `run_invalidation` is classified
+`IMMUTABLE_ARTIFACT`, and `invalidate_run` returns `False` rather than replacing
+a row that already exists. A second sweep must not move `invalidated_at` to
+today — that would erase when users were first told — and must not let a reason
+be softened on a later pass. The command reports how many it wrote and how many
+were already withdrawn.
+
+**The run itself is kept.** Deleting it would destroy the evidence that the
+defect happened and what was shown to whom. A user who remembers a figure must
+be able to find the record of having been shown it.
+
+**Forward compatible.** Once the engine executes event programs and records
+`rule_events`, a correct run stops matching without this command being edited.
+An absent `rule_events` reads as unknown rather than zero: a run recorded
+before the field existed is affected by what its plan declared, not by a count
+it never had the vocabulary for.
