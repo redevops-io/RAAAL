@@ -54,7 +54,7 @@ from ..mission.scenario import UNSIMULATED
 from ..mission.spec import ScenarioAmendment
 from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
-from . import historical_lots
+from . import draft, historical_lots
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
 from .confirmation import build as build_confirmation
 from .comparability_record import as_payload as comparability_payload
@@ -640,6 +640,27 @@ def _timeline_chart(scenario, prices, ledger, *, width=720, height=180):
             "average": polyline(average), "marks": marks}
 
 
+def _resolve_window(scenario, prices):
+    """The declared period, resolved against the snapshot's own calendar.
+
+    `None` when the plan declares no period, or declares one this build does
+    not support — the compiler has already refused the unsupported kinds, and
+    resolving one here would be a second opinion about what it meant.
+    """
+    from ..mission import time_window
+    from ..mission.signals import warmup_sessions
+
+    window = getattr(scenario.provenance, "time_window", None)
+    if window is None or not getattr(window, "supported", False):
+        return None
+
+    warmup = 0
+    if getattr(scenario, "is_event_funded", False):
+        warmup = warmup_sessions(scenario.funding.trigger.window)
+    return time_window.resolve(
+        window, [one.date() for one in prices.index], warmup_sessions=warmup)
+
+
 def _funding_events(scenario, prices, sessions):
     """Contributions from the scenario's funding policy, or a reason it cannot.
 
@@ -673,15 +694,22 @@ def _funding_events(scenario, prices, sessions):
         # Zero crossings is a legitimate answer and a very misleading figure:
         # the plan contributes nothing, holds nothing, and would report a 0%
         # return that reads as the strategy having performed.
+        # Names the period actually evaluated, not "the available history".
+        # With the window now applied, a three-month plan legitimately finds no
+        # crossing — and telling that user their condition never occurred in
+        # "the available history" describes a search they did not ask for.
+        window = getattr(scenario.provenance, "time_window", None)
+        period = (f"over {window.label}" if getattr(window, "label", "")
+                  else "over the period evaluated")
         return None, signals, skipped, (
-            "The condition never occurred over the available history, so no "
-            "purchase was ever triggered and there is no result to report. "
-            f"{len(signals)} signal(s) were detected.")
+            f"The condition never occurred {period}, so no purchase was "
+            f"triggered and there is no result to report. {len(signals)} "
+            f"signal(s) were detected in the sessions examined.")
     return events, signals, skipped, None
 
 
-def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
-         ) -> Dict[str, Any]:
+def _run(scenario, access, scope: Optional[Dict[str, Any]] = None,
+         stated_text: str = "") -> Dict[str, Any]:
     """Simulate a scenario and its benchmarks under identical conditions.
 
     Takes the `MarketDataAccess` rather than a bare frame, so the record of
@@ -690,12 +718,31 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
     forget, and the run it forgot on looks exactly like one it did not.
     """
     from ..market_data.access import MarketDataAccess
+    from ..mission import coverage as coverage_module
 
     if not isinstance(access, MarketDataAccess):
         raise TypeError(
             "_run needs the MarketDataAccess the frame came from, not the "
             "frame alone; the provenance is not reconstructable afterwards")
     prices = access.frame
+
+    # The evaluation period the user asked for, applied.
+    #
+    # `time_window.detect` has always run and always refused the kinds this
+    # build cannot replay. `time_window.resolve` — which turns a supported
+    # instruction into start, end and warm-up dates — had no callers at all,
+    # so "over the past 3 months" replayed 2,488 sessions of history and
+    # returned $25,000 contributed. Sixth instance of a mechanism that was
+    # present, correct and unreached.
+    #
+    # The warm-up is kept *outside* the reported period and inside the frame:
+    # a 200-session average needs 200 sessions before the first day of the
+    # window, or the earliest crossings cannot be evaluated at all.
+    resolved_window = _resolve_window(scenario, prices)
+    if resolved_window is not None:
+        first = resolved_window.warmup_start or resolved_window.start
+        prices = prices.loc[str(first):str(resolved_window.end)]
+
     sessions = prices.index
     policy = CashPolicy.idle()
     assets = list(scenario.allocation_rule.assets)
@@ -710,7 +757,7 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
     if funding_error is not None:
         return {"result": None, "benchmarks": [], "payload": None,
                 "comparability": None, "strategy_not_executed": True,
-                "unavailable": funding_error}
+                "coverage": None, "unavailable": funding_error}
     flows = (tuple(CashFlow(date=event.session, amount=float(event.amount))
                    for event in events)
              if events is not None
@@ -743,7 +790,7 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
         return {"result": None, "benchmarks": [], "payload": None,
                 "comparability": None,
                 "strategy_not_executed": True,
-                "unavailable": STRATEGY_NOT_EXECUTED}
+                "coverage": None, "unavailable": STRATEGY_NOT_EXECUTED}
 
     if not tradeable or not flows:
         return {"result": None, "benchmarks": [], "payload": None,
@@ -875,6 +922,26 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
         # reaches is the one that rots.
         declared_rule_executed=(True if scenario.event_program else None),
     )
+    # Declared-to-executed coverage, and the gate.
+    #
+    # A figure may exist only when every material declared element either ran
+    # with evidence, or was excluded by the user. Three prompts once returned
+    # an identical $103,393 while each quietly dropped a different declared
+    # element — a three-month period, a monthly contribution, a sell leg — and
+    # each omission was individually defensible while the shared result was
+    # not. This asks the general question rather than guarding each element.
+    coverage = coverage_module.assess(
+        scenario, stated_text=stated_text, resolved_window=resolved_window,
+        frame_sessions=len(sessions), ledger=execution_ledger,
+        excluded_items=[one.item for one in
+                        (scenario.provenance.excluded or ())])
+    if not coverage.publishable:
+        return {"result": None, "benchmarks": [], "payload": None,
+                "comparability": None, "coverage": coverage,
+                "ledger": execution_ledger, "reconciliation": reconciliation,
+                "strategy_not_executed": True,
+                "unavailable": coverage.refusal()}
+
     # One verdict per benchmark, computed here and stored with the run. The
     # worksheet reads them; it never recomputes. Every benchmark shares the
     # strategy's flows, period and account treatment by construction — `compare`
@@ -901,6 +968,7 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
             platform_generated_action=False,
             portfolio_selection_performed=False,
         ),
+        "coverage": coverage,
         "ledger": execution_ledger,
         "reconciliation": reconciliation,
         "unavailable": None,
@@ -1019,21 +1087,23 @@ def _draft(request: Request, describe: str, *, recorder):
             _record_questions(recorder, fields=(), outcome="TEMPLATE_DISPATCH")
             return _template_confirmation(request, describe, stage1)
 
-        access = _market_data("draft scenario preview")
-        _columns = getattr(access.frame, "columns", None)
-        priceable = tuple(_columns) if _columns is not None else ()
-        compiled = compile_scenario(describe, name="draft", version=1,
-                                    benchmark_rule=BENCHMARK_RULE,
-                                    parsed=stage1.parsed,
-                                    priceable=priceable)
-        run = (_run(compiled.scenario, access)
-               if compiled.can_simulate and access.usable else None)
-
-        from .feasibility import assess, blockers, classify
-
-        feasibility = assess(compiled.scenario, access.frame)
-        open_items = classify(compiled.scenario.provenance.unresolved,
-                              executable=feasibility.can_execute)
+        # Through `_builder_context`, which is what every other entry point
+        # uses. This function used to assemble the page itself, and the copy
+        # drifted in three ways at once: no `progress`, no draft token, and
+        # `_run` called without `stated_text` — so the declared-to-executed
+        # coverage gate was applied on the re-render and not on the screen
+        # where a user first meets a figure. That is the same defect class as
+        # F11, one page earlier, and it is why the equivalence gate found it.
+        #
+        # `stage1` is passed rather than re-derived: the parse happened above,
+        # on this request, and letting `_pinned_or_parse` replay it would
+        # record `PINNED_REPLAY` provenance for a model call that did happen.
+        context = _builder_context(request, describe=describe, title="",
+                                   parse="", stage1=stage1)
+        compiled = context["result"]
+        run = context["run"]
+        feasibility = context["feasibility"]
+        open_items = context["open_items"]
 
         # Everything the screen asks about, which is both kinds of question.
         # Recording only `unresolved` named three of the five controls on the
@@ -1050,38 +1120,50 @@ def _draft(request: Request, describe: str, *, recorder):
             recorder, fields=asked,
             outcome="QUESTIONS_PRESENTED" if asked else "READY_TO_SAVE")
 
-    return TEMPLATES.TemplateResponse(
-        request, "new.html",
-        {
-            "describe": describe,
-            "result": compiled,
-            "feasibility": feasibility,
-            "open_items": open_items,
-            "blockers": blockers(compiled.scenario,
-                                 executable=feasibility.can_execute,
-                                 stated_text=describe),
-            "confirmation": compiled.confirmation(),
-            "view": build_confirmation(compiled, text=describe,
-                                       priceable=priceable),
-            "suggested_title": _suggested_title(describe),
-            "parse": json.dumps(stage1.parsed.to_json()),
-            "parse_provenance": stage1.provenance,
-            "chain": build_scenario_chain(
-                subject="draft", scenario=compiled.scenario,
-                result=run["result"] if run else None,
-                benchmarks=run["benchmarks"] if run else (),
-                comparability=run["comparability"] if run else None,
-            ),
-            "run": run,
-            "chain_order": SCENARIO_CHAIN_ORDER,
-        },
-    )
+    return TEMPLATES.TemplateResponse(request, "new.html", context)
 
+
+
+def _pinned_or_parse(describe: str, parse: str):
+    """The stored reading of this description, or a new one if there is none.
+
+    A journey parses once. The token the form carries is re-verified against
+    the description on the way in — `parse_from_stored` refuses a parse that
+    does not match the text — so replaying it is not trusting the client, it is
+    trusting a check that already ran.
+
+    `_builder_context` has always taken `parse` and always ignored it, calling
+    the model again on every round trip. Two consequences, both observed in a
+    recorded journey: each submission cost a provider call, and the reading
+    drifted — the model reworded its own account of an unplaceable phrase, and
+    with the field id built from that wording, the same question returned six
+    times under six different ids.
+    """
+    from ..deploy.context import current as _deployment
+    from ..mission.parse_model import ParseProvenance, VerifiedParse
+
+    if parse and parse.strip():
+        try:
+            stored = parse_from_stored(json.loads(parse), describe)
+        except (ValueError, json.JSONDecodeError):
+            stored = None       # mismatched or malformed; re-read the words
+        if stored is not None:
+            # The provenance says the reading was replayed rather than
+            # re-derived. Reporting the live parser's identity here would
+            # attribute this compile to a model call that did not happen.
+            return VerifiedParse(
+                parsed=stored,
+                provenance=ParseProvenance(
+                    mode="PINNED_REPLAY", model=None, model_available=False,
+                    model_error=""))
+
+    return parse_with_model(describe, mode=_deployment().model.mode.value,
+                            client=_parser_client())
 
 
 def _builder_context(request, *, describe, title, parse, amendments=(),
-                     exclusions=()):
-    """The plan-builder page context, built once for both entry points.
+                     exclusions=(), stage1=None):
+    """The plan-builder page context, built once for every entry point.
 
     The GET and the re-render assembled this separately at first and the
     second was missing `chain`, `run`, `parse_provenance` and `chain_order` —
@@ -1092,8 +1174,21 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
     from ..deploy.context import current as _deployment
     from .feasibility import assess, blockers, classify
 
-    stage1 = parse_with_model(describe, mode=_deployment().model.mode.value,
-                              client=_parser_client())
+    # The pinned parse, not a fresh one.
+    #
+    # This function has always taken `parse` and always ignored it, calling the
+    # model again on every round trip. Two consequences, both observed: each
+    # submission cost a provider call, and the parse drifted — questions
+    # appeared and vanished between rounds for reasons the user had not caused,
+    # and the model's wording of an unplaceable phrase changed under them.
+    #
+    # Stage 1 runs once, on the first GET. Everything after it is the
+    # deterministic compile applied to that same reading plus the answers.
+    # A caller that has already parsed on this request supplies its own
+    # `stage1`, so the provenance keeps saying a model call happened. Deriving
+    # it here from a token this function had just been handed would record
+    # `PINNED_REPLAY` for a reading that was not replayed.
+    stage1 = stage1 if stage1 is not None else _pinned_or_parse(describe, parse)
     # What the deployment can price, resolved before compiling: identity
     # candidates are filtered to it, so the page never offers a fund that
     # would replace one dead end with a politer one.
@@ -1102,13 +1197,17 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
     # the same trap appeared in the corporate-action bridge earlier today.
     _columns = getattr(access.frame, "columns", None)
     priceable = tuple(_columns) if _columns is not None else ()
-    compiled = compile_scenario(describe, name="draft", version=1,
-                                benchmark_rule=BENCHMARK_RULE,
-                                parsed=stage1.parsed,
-                                amendments=tuple(amendments),
-                                exclusions=tuple(exclusions),
-                                priceable=priceable)
-    run = (_run(compiled.scenario, access)
+    # Through `compile_draft`, not `compile_scenario`. The save path compiled
+    # the same description with a different argument set and the page showed a
+    # plan the store could not run — see `draft`. `priceable` above is still
+    # needed for the confirmation view, which filters identity candidates to
+    # it; it is no longer this function's decision what the compiler receives.
+    compiled = draft.compile_draft(describe, name="draft", version=1,
+                                   parsed=stage1.parsed,
+                                   amendments=tuple(amendments),
+                                   exclusions=tuple(exclusions),
+                                   context="draft scenario preview")
+    run = (_run(compiled.scenario, access, stated_text=describe)
            if compiled.can_simulate and access.usable else None)
     feasibility = assess(compiled.scenario, access.frame)
     open_items = classify(compiled.scenario.provenance.unresolved,
@@ -1128,6 +1227,15 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
         "suggested_title": title or _suggested_title(describe),
         "parse": json.dumps(stage1.parsed.to_json()),
         "parse_provenance": stage1.provenance,
+        # What this page rendered, and what it compiled to render it, so the
+        # save can replay the second and prove it reaches the first. Neither
+        # is ever read back as a stored value.
+        "draft_token": draft.token_for(
+            compiled.scenario, describe, parsed=stage1.parsed,
+            amendments=tuple(amendments), exclusions=tuple(exclusions)),
+        "draft_inputs": draft.DraftInputs.of(
+            amendments=tuple(amendments),
+            exclusions=tuple(exclusions)).encode(),
         "chain": build_scenario_chain(
             subject="draft", scenario=compiled.scenario,
             result=run["result"] if run else None,
@@ -1291,16 +1399,25 @@ async def _save(request: Request, *, describe: str, title: str, parse: str,
     # agreement as a statement would credit the user with saying something the
     # system suggested; recording a correction as a confirmed inference would
     # credit the system with proposing what the user supplied.
-    compiled = compile_scenario(describe, name=title or "plan", version=1,
-                                benchmark_rule=BENCHMARK_RULE, parsed=parsed,
-                                amendments=amendments)
+    # Compiled through `draft.compile_draft`, the same function the preview
+    # uses. This route used to call `compile_scenario` itself and omitted
+    # `priceable`, so `_funding_policy` could find no subject and every saved
+    # plan was written with `funding=None`: the page showed a working plan and
+    # the stored artifact could never execute. The production plan that
+    # started this work has exactly that shape. Passing the argument at three
+    # call sites would have fixed the instance; there is one call now, so
+    # there is no second argument list to keep in step.
+    def _compile(these_amendments, these_exclusions=()):
+        return draft.compile_draft(
+            describe, name=title or "plan", version=1, parsed=parsed,
+            amendments=these_amendments, exclusions=these_exclusions,
+            context="compiling a scenario to save")
+
+    compiled = _compile(amendments)
 
     exclusions = _permitted_exclusions(compiled, acknowledged, answered_at)
     if exclusions:
-        compiled = compile_scenario(describe, name=title or "plan", version=1,
-                                    benchmark_rule=BENCHMARK_RULE,
-                                    parsed=parsed, amendments=amendments,
-                                    exclusions=exclusions)
+        compiled = _compile(amendments, exclusions)
 
     proposed = {one.field: one.value for one in compiled.scenario.provenance.inferred}
     corrections = tuple(
@@ -1310,10 +1427,30 @@ async def _save(request: Request, *, describe: str, title: str, parse: str,
         if field in proposed and value != proposed[field])
     if corrections:
         amendments = amendments + corrections
-        compiled = compile_scenario(describe, name=title or "plan", version=1,
-                                    benchmark_rule=BENCHMARK_RULE,
-                                    parsed=parsed, amendments=amendments,
-                                    exclusions=exclusions)
+        compiled = _compile(amendments, exclusions)
+
+    # Does this path still compile what the page showed? Asked by replaying
+    # the preview's own stated inputs *here*, in the save context, rather than
+    # by comparing the stored scenario with the rendered one — those differ
+    # legitimately, because the decisions made on that screen arrive in this
+    # same POST.
+    #
+    # Before anything is written. A refusal that still stored the plan would
+    # be worse than no gate: it would report divergence and persist the wrong
+    # version anyway. `NOT_COMPARED` is a distinct outcome carrying its
+    # reason, so a save that was never examined cannot read as one that
+    # agreed.
+    equivalence = draft.check(
+        str(form.get("draft") or ""), str(form.get("draft_inputs") or ""),
+        describe, parsed=parsed, name=title or "plan", at=answered_at,
+        context="compiling a scenario to save")
+    span.set(draft_check=equivalence.state)
+    if equivalence.diverged:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"{draft.DRAFT_DIVERGED}: {equivalence.reason}. Nothing "
+                    "was saved. Reload the plan builder and confirm the plan "
+                    "it shows before saving."))
 
     agreed = {field for field, value in decisions.items()
               if proposed.get(field) == value}
@@ -1504,7 +1641,8 @@ def plan_detail(request: Request, plan_id: str):
     access = _market_data("opening a saved plan")
     scope = (TEMPLATES_BY_HINT[compiled.template_hint].modelling_scope()
              if compiled.template_hint in TEMPLATES_BY_HINT else None)
-    run = (_run(scenario_from_stored(stored, compiled.scenario), access, scope)
+    run = (_run(scenario_from_stored(stored, compiled.scenario), access, scope,
+                stated_text=record["stated_text"])
            if access.usable else None)
 
     return TEMPLATES.TemplateResponse(

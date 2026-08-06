@@ -369,11 +369,19 @@ def parse_with_model(text: str, *,
                                              mode=mode or "DETERMINISTIC",
                                              model_error="no client configured"))
 
+    # One line per provider call, so the count can be measured against a live
+    # server rather than a fixture. A journey that pins its parse should
+    # produce exactly one of these; a helper-level counter proved the helper
+    # and missed a route that bypassed it.
+    logger.info("stage1 provider call: model=%s mode=%s", model, mode)
     try:
         raw = client.complete(system=build_system_prompt(), user=text)
         payload = _load_json(raw)
     except Exception as exc:                                    # noqa: BLE001
-        logger.warning("stage 1 fell back to deterministic parsing: %s", exc)
+        # A fallback is legitimate and is *not* a pinned replay. Logged
+        # distinctly so a journey that fell back cannot pass a strict one-call
+        # conformance check by looking the same as one that did not.
+        logger.warning("stage1 fallback to deterministic: %s", exc)
         return VerifiedParse(
             deterministic,
             ParseProvenance(model=model, model_available=False,
@@ -432,6 +440,18 @@ def parse_from_stored(payload: Mapping[str, Any], text: str) -> ParsedUtterance:
     return ParsedUtterance(
         text=text, recognitions=combined, assets=all_assets,
         unrecognized=unrecognized, unclear=unclear_phrases,
+        # Re-derived from the text, like every other rule-derivable field.
+        #
+        # Left off entirely, a rebuilt parse carried no watched instrument, so
+        # the funding policy fell back to taking the held asset as the signal
+        # subject — and a plan buying VTI on an SPY signal came back watching
+        # VTI. The content hash drifted between the first compile and every
+        # later one, which is how the round-trip suite caught it.
+        #
+        # Derived rather than read from the payload: the roles follow from the
+        # sentence, and a stored value could disagree with the words the plan
+        # still holds.
+        observed=deterministic.observed,
         # Re-derived, not read back: a stored hint could name a template that
         # has since been retired, and the hint selects cited rules.
         template_hint=deterministic.template_hint)

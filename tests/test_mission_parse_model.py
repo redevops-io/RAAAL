@@ -17,7 +17,12 @@ import json
 
 import pytest
 
-from src.mission.compiler import Origin, compile_scenario, parse
+from src.mission.compiler import (
+    Origin,
+    canonical_key,
+    compile_scenario,
+    parse,
+)
 from src.mission.parse_model import (
     VOCABULARY,
     build_system_prompt,
@@ -178,7 +183,7 @@ class TestTheQuarantine:
 
         assert "ladder into" in result.parsed.unclear
         compiled = compile_scenario(text, name="s", parsed=result.parsed)
-        assert any(u.field == "unclear:ladder into" for u in compiled.unresolved)
+        assert any(u.field == canonical_key("unclear", "ladder into") for u in compiled.unresolved)
 
     def test_unclear_prose_is_kept_apart_from_an_ambiguous_name(self):
         """Two different questions. One can offer options; the other cannot.
@@ -198,7 +203,7 @@ class TestTheQuarantine:
         compiled = compile_scenario(text, name="s", parsed=result.parsed)
         questions = {u.field: u.question for u in compiled.unresolved}
         assert "BRK.A or BRK.B?" in questions["asset_identity:berkshire"]
-        assert questions["unclear:ladder into"] == \
+        assert questions[canonical_key("unclear", "ladder into")] == \
             "What did you mean by 'ladder into'?"
 
 

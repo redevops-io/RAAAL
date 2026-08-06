@@ -76,6 +76,21 @@ class ParsedUtterance:
     """Names that map to more than one instrument. Every entry is a key of
     `AMBIGUOUS_NAMES`, so the question can offer the actual choices."""
 
+    observed: Sequence[str] = ()
+    """Instruments the sentence *watches*, as distinct from those it buys.
+
+    Two roles, and they can be the same instrument or different ones:
+
+        buy $1,000 of SPY whenever it crosses below   SPY is both
+        buy VOO whenever SPY crosses below            VOO held, SPY watched
+        notify me whenever SPY crosses below          SPY watched, nothing held
+
+    Derived here and consumed by `_funding_policy`, which previously took the
+    watched series to be whichever instrument the plan held — so a plan buying
+    VOO on an SPY signal evaluated the condition on VOO, and the two do not
+    cross their averages on the same days.
+    """
+
     unclear: Sequence[str] = ()
     """Phrases stage 1 could not place at all. Free text, and deliberately kept
     apart from `unrecognized`: "which share class?" offers options, "I could not
@@ -103,6 +118,7 @@ class ParsedUtterance:
             "text": self.text,
             "recognitions": [r.to_json() for r in self.recognitions],
             "assets": list(self.assets),
+            "observed": list(self.observed),
             "unrecognized": list(self.unrecognized),
             "unclear": list(self.unclear),
             "template_hint": self.template_hint,
@@ -286,15 +302,30 @@ def parse(text: str) -> ParsedUtterance:
     # made that compile to no assets at all. The model read it correctly and the
     # rules did not; the fix belongs in the rules.
     reserved = {"DMA", "EMA", "SMA", "RSU", "ESPP", "IRA"}
-    # Reserved only where it is the *reference in a signal* — "whenever SPY is
-    # below its 200 day average" names a condition, not a holding. Written as a
-    # signal test rather than a list of purchase verbs: the first attempt
-    # enumerated buy/put/invest and missed "goes into", which the stability
-    # benchmark caught within one run.
-    if re.search(r"\bSPY\b[^.]{0,60}?(?:below|above|cross\w*|moving average|DMA|SMA|EMA)"
-                 r"|(?:below|above|cross\w*|moving average)[^.]{0,60}?\bSPY\b",
-                 text, re.IGNORECASE):
-        reserved = reserved | {"SPY"}
+
+    # An instrument can be watched *and* bought, and the reservation used to
+    # deny it.
+    #
+    # "whenever SPY is below its 200 day average" names a condition, not a
+    # holding — correct, and implemented by reserving SPY away from the asset
+    # list whenever it appeared near signal language. In the sentence that does
+    # both:
+    #
+    #     I buy $1,000 of SPY whenever it crosses below its 200-day average
+    #
+    # the reservation consumed it entirely. The plan held nothing, no funding
+    # policy could be built, and the most natural phrasing of the strategy was
+    # the one shape that could not run — while the message said the rule had
+    # not been executed.
+    #
+    # The distinction is not proximity to signal language. It is whether the
+    # sentence gives an action that acquires the instrument:
+    #
+    #     mentioned only as the thing observed  -> signal subject only
+    #     also the object of a buy              -> subject and holding
+    observed = _observed_in_signal(text)
+    acquired = _acquired_instruments(text)
+    reserved = reserved | (observed - acquired)
     assets = [t for t in _TICKER.findall(text) if t not in reserved and len(t) >= 2]
 
     hint = next((name for name, pattern in _TEMPLATE_HINTS
@@ -302,6 +333,7 @@ def parse(text: str) -> ParsedUtterance:
 
     return ParsedUtterance(text=text, recognitions=tuple(recognitions),
                            assets=tuple(dict.fromkeys(assets)),
+                           observed=tuple(sorted(observed)),
                            unrecognized=tuple(unrecognized),
                            template_hint=hint)
 
@@ -468,6 +500,88 @@ def _as_amount(raw: Optional[str]) -> Optional[float]:
 #: names is *also* being asked or confirmed on the same page, so nothing is
 #: lost by a match — the user answers the structured control instead. A missed
 #: match costs an extra acknowledgement, which is the safe direction.
+#: Ticker-shaped tokens. Uppercase only: a lowercase word is prose.
+_TOKEN = re.compile(r"\b([A-Z][A-Z0-9.\-]{1,4})\b")
+
+_SIGNAL_PHRASE = re.compile(
+    r"\b(?:cross(?:es|ing|ed)?|below|above|moving average|DMA|SMA|EMA)\b",
+    re.IGNORECASE)
+
+_ACQUIRING_VERB = re.compile(
+    r"\b(?:buy|buys|buying|bought|purchase[sd]?|acquire[sd]?|invest(?:ing|ed)?|"
+    r"put(?:ting)?|add(?:ing)?|contribut(?:e|es|ing))\b",
+    re.IGNORECASE)
+
+#: How far a role marker reaches. A sentence puts the verb and its object, or
+#: the subject and its condition, close together; sixty characters spans a
+#: clause and not the sentence.
+_ROLE_REACH = 60
+
+
+def _sentence_bounds(text: str, position: int) -> tuple:
+    """The sentence containing `position`.
+
+    A role never spans a full stop. Rendering a plan back to English produces
+    two sentences —
+
+        I put $500 into VTI, every month, buying equal dollars at each
+        purchase. Whenever SPY is below its 200 day average I buy more of VTI.
+
+    — and a reach measured in characters let "buying" at the end of the first
+    claim SPY at the start of the second. The plan came back holding SPY, and
+    its rule hash drifted on every round trip.
+    """
+    start = max((text.rfind(mark, 0, position) for mark in ".!?"), default=-1)
+    ends = [e for e in (text.find(mark, position) for mark in ".!?") if e != -1]
+    return start + 1, (min(ends) if ends else len(text))
+
+
+def _nearest_token_before(text: str, position: int) -> Optional[str]:
+    start, _ = _sentence_bounds(text, position)
+    candidates = [m for m in _TOKEN.finditer(text, start, position)
+                  if position - m.end() <= _ROLE_REACH]
+    return candidates[-1].group(1) if candidates else None
+
+
+def _nearest_token_after(text: str, position: int) -> Optional[str]:
+    _, end = _sentence_bounds(text, position)
+    for match in _TOKEN.finditer(text, position, end):
+        if match.start() - position <= _ROLE_REACH:
+            return match.group(1)
+    return None
+
+
+def _acquired_instruments(text: str) -> set:
+    """Tickers the sentence says are bought.
+
+    Anchored to the verb and taking the nearest token after it. A proximity
+    test over the whole clause read "Buy VOO whenever SPY crosses below" as
+    acquiring both, because SPY sits a few words from "Buy".
+    """
+    found = set()
+    for verb in _ACQUIRING_VERB.finditer(text):
+        token = _nearest_token_after(text, verb.end())
+        if token and len(token) >= 2 and token.isalpha():
+            found.add(token)
+    return found
+
+
+def _observed_in_signal(text: str) -> set:
+    """Tickers the sentence says are watched.
+
+    Anchored to the signal phrase and taking the nearest token *before* it —
+    the subject of "crosses below" is what precedes it. Scanning outward from
+    the ticker instead made every instrument in the clause observed, so
+    "Buy VOO whenever SPY crosses below" watched VOO.
+    """
+    found = set()
+    for phrase in _SIGNAL_PHRASE.finditer(text):
+        token = _nearest_token_before(text, phrase.start())
+        if token and len(token) >= 2 and token.isalpha():
+            found.add(token)
+    return found
+
+
 _CONCEPT_MARKERS = {
     "moving_average_kind": ("simple or exponential", "exponential moving average",
                             "type of moving average", "simple vs exponential"),
@@ -482,22 +596,131 @@ _CONCEPT_MARKERS = {
     "starting_capital": ("starting capital", "initial balance"),
     "dividends": ("dividend treatment", "dividends are reinvested"),
     "execution_timing": ("when orders execute", "execution timing"),
+    # Concepts the compiler settles *without* asking, which the parser still
+    # reports uncertainty about. "five year period mentioned" and "no
+    # recurring cadence specified" both describe decisions already made: the
+    # window was detected, and cadence does not apply to event funding.
+    "time_window": ("year period", "years period", "period mentioned",
+                    "lookback", "backtest period", "time period",
+                    "evaluation period", "timeframe", "date range"),
+    "cadence_inapplicable": ("recurring cadence", "no cadence", "cadence "
+                             "specified", "recurring schedule", "no schedule",
+                             "frequency specified", "no frequency"),
 }
 
 
-def _covered_by(phrase: str, raised: set) -> Optional[str]:
-    """The structured field this phrase is describing, if it is already asked.
+def _covered_by(phrase: str, raised: set,
+                settled: Optional[Mapping[str, Any]] = None) -> Optional[str]:
+    """The structured fact this phrase is describing, if the compiler has it.
 
-    Returns the field name only when that field is genuinely on the page.
-    Matching a marker for a field nobody asked about would silently drop a
-    question the user never gets to answer.
+    Two ways a phrase stops being unclear, and only the first was implemented.
+
+    **The field is still being asked.** The phrase describes a question already
+    on the page, so filing it separately would ask twice.
+
+    **The compiler already has the value.** The parser may report uncertainty
+    about something the deterministic stages went on to resolve — and it does:
+    a description stating "$1,000" and "200-day" produced
+
+        unclear: 1,000 purchase amount per trigger
+        unclear: 200-day period length for moving average
+
+    while the compiler had recognised the amount and extracted the window and
+    used both. The parser's uncertainty outlived the compiler's certainty, and
+    the user was asked to dismiss facts their plan had actually modelled.
+
+    The parser says a phrase *may* be unclear. Whether it is still unclear —
+    after recognitions, inferences and amendments — is the compiler's call.
+
+    The numeric test is the general one. Markers are a hand-kept list of the
+    ways a model might phrase a concept, and the two phrases above matched none
+    of them; a figure the compiler holds is a fact, however the phrase around
+    it is worded.
     """
+    import re as _re
+
     lowered = phrase.lower()
     for field, markers in _CONCEPT_MARKERS.items():
         if field in raised and any(marker in lowered for marker in markers):
             return field
+
+    numbers = {n.replace(",", "") for n in _re.findall(r"[\d,]*\d", lowered)}
+    if numbers and settled:
+        for field, value in settled.items():
+            if value is None:
+                continue
+            held = str(value).replace(",", "")
+            held = held[:-2] if held.endswith(".0") else held
+            if held and held in numbers:
+                return field
     return None
 
+
+
+def canonical_key(prefix: str, phrase: str) -> str:
+    """A field id that survives the model rewording its own explanation.
+
+    The clarification loop could not converge. `unclear` entries carry the
+    model's commentary — "SP500 ETF (company/product name, not a literal
+    ticker symbol)" — and the field id was built from the whole string, so six
+    rounds produced six ids for one question:
+
+        asset_identity:SP500 ETF (company/product name, not a literal ticker…)
+        asset_identity:SP500 ETF (ticker symbol not specified)
+        asset_identity:SP500 ETF (fund name given, not a literal ticker symbol)
+
+    An answer to the first did not match the second, so the question returned,
+    reworded, forever. Five of nine recorded journeys never settled.
+
+    **The invariant is semantic, not punctuational:**
+
+        The persistent key is derived from the stable observed subject, never
+        from explanatory model prose.
+
+    Dropping parentheses is how that is achieved for the wording seen; it is
+    not the rule. Prose that arrives as a dash clause, a trailing comma or a
+    second sentence is the same defect in different punctuation, and the
+    normalisation below is expected to grow to cover it. What must not change
+    is where the key comes from: the subject the user named, and nothing the
+    model said about it.
+
+    The model may report the observed phrase, why it is ambiguous, and the
+    candidates. The commentary stays in the question text, where changing
+    wording costs nothing.
+
+    A digest is the fallback rather than the rule. `unclear:#<hash>` is
+    unreadable in a form field and in a log, and readability is worth having
+    wherever the phrase itself is safe to keep.
+    """
+    import hashlib
+    import re as _re
+
+    # Cut at the first *explanatory boundary*, whatever punctuation carries it.
+    #
+    # The first version stripped parentheses and dash clauses, because those
+    # were the forms the live model had produced. Three other forms of the same
+    # sentence walked straight through it:
+    #
+    #     SP500 ETF. A ticker symbol was not provided.
+    #     SP500 ETF: fund name rather than a ticker
+    #     SP500 ETF, which is a product name not a ticker
+    #
+    # each yielding a different key for one subject. Matching the punctuation
+    # seen is implementing the example; the invariant is that the key stops
+    # where the subject stops.
+    base = _re.sub(r"\s*[\(\[].*?(?:[\)\]]|$)", " ", phrase or "")
+    base = _re.split(r"\s+[-—–]\s+|[.:;]\s|[.:;]$", base)[0]
+    # A comma only ends the subject when a clause follows it. "SPDR S&P 500
+    # ETF Trust, Inc" is one name; "SP500 ETF, which is a product name" is a
+    # subject and a remark.
+    base = _re.split(
+        r",\s+(?:which|that|this|it|a|an|the|not|no|but|rather|meaning|"
+        r"referring|referenced|i\.e\.|e\.g\.)\b",
+        base, flags=_re.IGNORECASE)[0]
+    slug = _re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")
+    if not slug:
+        slug = "x" + hashlib.sha256((phrase or "").encode()).hexdigest()[:10]
+    return f"{prefix}:{slug[:60]}"
 
 
 def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
@@ -531,8 +754,14 @@ def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
         # instrument it resolved to — and evaluating a moving average on a
         # ticker with no price history would refuse a plan that is perfectly
         # runnable on the instrument it actually holds.
-        priceable_assets = [a for a in assets if a in set(priceable)]
-        subject = next(iter(priceable_assets), "")
+        # The watched series, when the sentence names one this deployment can
+        # price. Falling straight through to the held instrument made a plan
+        # buying VOO on an SPY signal evaluate the condition on VOO — a
+        # different rule, silently.
+        priceable_set = set(priceable)
+        watched = [a for a in (parsed.observed or ()) if a in priceable_set]
+        priceable_assets = [a for a in assets if a in priceable_set]
+        subject = next(iter(watched), "") or next(iter(priceable_assets), "")
         if not subject or window is None:
             # No policy rather than a guessed one. An unstated window is an
             # unresolved field, and the plan is blocked on it like any other.
@@ -667,13 +896,25 @@ def compile_scenario(
     if has_signal and _MENTIONS_AVERAGE.search(text):
         settle("moving_average_kind")
         if average_window is None:
-            unresolved.append(Unresolved(
-                "moving_average_window",
-                "How many sessions does the average cover?",
-                "A 50-session and a 200-session average cross on different "
-                "days, so they are different rules producing different "
-                "purchases. Assuming one would answer a question you did not "
-                "ask."))
+            # The answer, consumed. The question was raised, a control was
+            # rendered for it, the reply was recorded as an amendment — and
+            # nothing read it, so the question came back every round.
+            #
+            # The same family as the asset-identity defect and a different
+            # stage of it: that key was unstable so the answer could not
+            # match; this key is stable, the answer matches, and the compiler
+            # never asked for it. A settle site is not implied by a stable id.
+            chosen = answered("moving_average_window")
+            if chosen and str(chosen).strip().isdigit():
+                average_window = int(str(chosen).strip())
+            else:
+                unresolved.append(Unresolved(
+                    "moving_average_window",
+                    "How many sessions does the average cover?",
+                    "A 50-session and a 200-session average cross on different "
+                    "days, so they are different rules producing different "
+                    "purchases. Assuming one would answer a question you did "
+                    "not ask."))
     if has_signal:
         settle("execution_timing")
 
@@ -713,12 +954,13 @@ def compile_scenario(
         # An answer settles it. Without this the question was raised, an input
         # was rendered for it, the reply was recorded as an amendment, and the
         # same question came back — the field had no settle site at all.
-        chosen = answered(f"asset_identity:{ambiguous}")
+        key = canonical_key("asset_identity", ambiguous)
+        chosen = answered(key)
         if chosen:
             identified.append(chosen)
             continue
         unresolved.append(Unresolved(
-            field=f"asset_identity:{ambiguous}",
+            field=key,
             question=(f"{question} You wrote '{ambiguous}' — "
                       f"{' or '.join(options)}?" if options
                       else f"{question} You wrote '{ambiguous}'."),
@@ -745,7 +987,7 @@ def compile_scenario(
         if not found.candidates:
             _still_unclear.append(phrase)
             continue
-        field = f"asset_identity:{phrase}"
+        field = canonical_key("asset_identity", phrase)
         chosen = answered(field)
         # Recorded whether or not it has been answered yet. The alternatives a
         # user was shown are part of what happened, and a plan that stores
@@ -920,6 +1162,7 @@ def compile_scenario(
         for conflict in scenario.self_conflicts()
     ]
 
+
     # Phrases stage 1 could not place. Raised last, once every structured
     # question and inference exists, because most of them are not unplaceable
     # at all — they are the model describing, in prose, a field the compiler
@@ -938,14 +1181,38 @@ def compile_scenario(
     # the acknowledgement is the honest control.
     _raised = {one.field for one in unresolved} | {one.field for one in inferred}
 
+    # What the compiler ended up holding, for the numeric test above. Built
+    # from the values it will actually run with, not from what was recognised
+    # — an amount that was recognised and then overridden by an amendment is
+    # settled at the amended value.
+    _settled_values = {
+        "amount": amount_value,
+        "moving_average_window": average_window,
+        "starting_capital": getattr(flows, "starting_capital", None),
+    }
+    # Concepts the compiler has decided without raising a question. A phrase
+    # describing one of these is not unplaceable prose — it is the parser
+    # remarking on a decision that has already been made, and asking the user
+    # to dismiss it would record them proceeding without something the plan
+    # did use.
+    _settled_concepts = set()
+    if window is not None:
+        _settled_concepts.add("time_window")
+    if event_funded:
+        # Cadence is not merely unanswered here; it does not apply. The
+        # builder deliberately stops asking it once funding is event-driven,
+        # and a phrase noting its absence must not become a blocker.
+        _settled_concepts.add("cadence_inapplicable")
+
     for phrase in _still_unclear:
-        covered = _covered_by(phrase, _raised)
+        covered = _covered_by(phrase, _raised | _settled_concepts,
+                              _settled_values)
         if covered:
             stated.append(
                 f"{covered}: asked directly rather than as unplaceable prose")
             continue
         unresolved.append(Unresolved(
-            field=f"unclear:{phrase}",
+            field=canonical_key("unclear", phrase),
             question=f"What did you mean by '{phrase}'?",
             why_it_matters=(
                 "This part of your description did not map onto anything the "

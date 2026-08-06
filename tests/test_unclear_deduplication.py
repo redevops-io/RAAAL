@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.mission.compiler import _CONCEPT_MARKERS, _covered_by
+from src.mission.compiler import canonical_key, _CONCEPT_MARKERS, _covered_by
 
 DUPLICATES = [
     ("whether '200 DMA' refers to a simple or exponential moving average",
@@ -116,7 +116,7 @@ class TestTheCompilerDropsTheDuplicate:
         reachable = fields | inferred
 
         for phrase, field in DUPLICATES:
-            still_asked = f"unclear:{phrase}" in fields
+            still_asked = canonical_key("unclear", phrase) in fields
             assert still_asked or field in reachable, (
                 f"{field} was suppressed and is now asked nowhere")
 
@@ -124,7 +124,7 @@ class TestTheCompilerDropsTheDuplicate:
         scenario = self.compiled_with(GENUINELY_UNPLACEABLE)
         fields = {one.field for one in scenario.provenance.unresolved}
         for phrase in GENUINELY_UNPLACEABLE:
-            assert f"unclear:{phrase}" in fields, (
+            assert canonical_key("unclear", phrase) in fields, (
                 f"{phrase} was dropped with no control anywhere")
 
     @pytest.mark.parametrize("phrase", NAMES_AN_ASSET)
@@ -140,5 +140,5 @@ class TestTheCompilerDropsTheDuplicate:
             priceable=("SPY", "VOO", "IVV", "QQQ")).scenario
         fields = {one.field for one in scenario.provenance.unresolved}
 
-        assert f"asset_identity:{phrase}" in fields
-        assert f"unclear:{phrase}" not in fields
+        assert canonical_key("asset_identity", phrase) in fields
+        assert canonical_key("unclear", phrase) not in fields

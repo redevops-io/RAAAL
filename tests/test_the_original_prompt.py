@@ -60,6 +60,26 @@ class TestWhatTheCompilerUnderstandsUnaided:
         assert any(one.startswith("asset_identity:") for one in fields)
 
 
+
+def asset_question_id() -> str:
+    """The field id the page actually offers for the instrument question.
+
+    Read from the compile rather than constructed. The fixture used to build
+    `f"asset_identity:{UNCLEAR[0]}"` — the same expression the compiler used —
+    so it passed for as long as the two matched, including while the id was
+    being generated from the model's own commentary and changed on every
+    round. Five of nine recorded journeys never converged, and this test was
+    green throughout.
+
+    Answering the id that was offered is also what a user does.
+    """
+    for one in compiled(()).provenance.unresolved:
+        if one.field.startswith("asset_identity:"):
+            return one.field
+    raise AssertionError("no asset identity question was asked; this file's "
+                         "premise is gone")
+
+
 class TestTheQuestionsAreAnswerable:
     def test_the_asset_question_offers_priceable_funds(self):
         record = compiled().provenance.asset_resolutions[0]
@@ -74,7 +94,7 @@ class TestTheQuestionsAreAnswerable:
 
     def test_answering_settles_the_asset(self):
         chosen = (ScenarioAmendment(
-            question_id=f"asset_identity:{UNCLEAR[0]}", answer="SPY",
+            question_id=asset_question_id(), answer="SPY",
             recorded_at="t"),)
         scenario = compiled(chosen)
         assert scenario.allocation_rule.assets == ("SPY",)
@@ -85,7 +105,7 @@ class TestTheQuestionsAreAnswerable:
 class TestTheDescriptionIsNeverRewritten:
     def test_the_prompt_still_says_sp500_etf(self):
         chosen = (ScenarioAmendment(
-            question_id=f"asset_identity:{UNCLEAR[0]}", answer="SPY",
+            question_id=asset_question_id(), answer="SPY",
             recorded_at="t"),)
         scenario = compiled(chosen)
         record = scenario.provenance.asset_resolutions[0]
@@ -140,7 +160,7 @@ class TestTheWholeJourneyConverges:
         typed ambiguities, user clarification, and a plan that no longer asks
         about the things that were settled."""
         amendments = (
-            ScenarioAmendment(question_id=f"asset_identity:{UNCLEAR[0]}",
+            ScenarioAmendment(question_id=asset_question_id(),
                               answer="SPY", recorded_at="t"),
             ScenarioAmendment(question_id="account_type", answer="TAXABLE",
                               recorded_at="t"),

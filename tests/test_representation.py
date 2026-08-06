@@ -198,13 +198,25 @@ class TestSpyIsAHoldingWhenItIsBought:
 
     def test_the_rule_is_written_as_a_signal_test(self):
         """The first fix enumerated purchase verbs and missed "goes into",
-        which the stability benchmark caught within one run."""
-        import inspect
+        which the stability benchmark caught within one run.
 
-        from src.mission import compiler
+        Asserted on behaviour rather than on the source of one function. The
+        signal test now lives in `_observed_in_signal`, and this looked only in
+        `parse` — so it failed on a refactor that kept the property intact,
+        which is what a source-inspection test does eventually.
 
-        source = inspect.getsource(compiler.parse)
-        assert "moving average" in source and "below" in source
+        The property is that an instrument's role is decided by whether the
+        sentence *observes* it, not by a list of purchase verbs. A phrasing the
+        verb list has never seen must still be read correctly.
+        """
+        from src.mission.compiler import _observed_in_signal
+
+        # "goes into" is the phrasing the enumerated list missed.
+        assert "SPY" in parse("$500 goes into SPY, weekly.").assets
+        # And an unusual verb still leaves a watched instrument watched.
+        assert _observed_in_signal(
+            "Whenever SPY dips below its 200 day moving average I acquire "
+            "VTI.") == {"SPY"}
 
 
 class TestTheCheckWorks:

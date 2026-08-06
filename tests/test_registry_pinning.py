@@ -16,7 +16,7 @@ import pytest
 import yaml
 
 from src.mission import registry as reg
-from src.mission.compiler import ParsedUtterance, compile_scenario
+from src.mission.compiler import canonical_key, ParsedUtterance, compile_scenario
 from src.mission.registry import compile_registry
 from src.mission.spec import ScenarioAmendment
 
@@ -32,7 +32,7 @@ def compiled(amendments=()):
 
 
 def answered(symbol="SPY"):
-    return (ScenarioAmendment(question_id=f"asset_identity:{OBSERVED}",
+    return (ScenarioAmendment(question_id=canonical_key("asset_identity", OBSERVED),
                               answer=symbol, recorded_at="t"),)
 
 

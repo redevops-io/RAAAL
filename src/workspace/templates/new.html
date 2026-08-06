@@ -51,6 +51,13 @@
 <form action="/workspace/save" method="post">
 <input type="hidden" name="describe" value="{{ describe }}">
 <input type="hidden" name="parse" value="{{ parse }}">
+{# The digest of the scenario shown above, and the answers this page compiled
+   with. The save replays the second and requires it to reach the first, so a
+   save path that compiles differently from the preview is refused instead of
+   silently storing the other version. Neither field is ever read back as a
+   value, so tampering can only affect the check on your own submission. #}
+<input type="hidden" name="draft" value="{{ draft_token }}">
+<input type="hidden" name="draft_inputs" value="{{ draft_inputs }}">
 
 {# Everything already supplied, replayed so the next submission carries it.
    Without this the interaction resets on every pass: the user answers three

@@ -82,7 +82,8 @@ ACCOUNT_CONTEXT: Mapping[str, Dict[str, Any]] = {
 #: Closed vocabularies, so a question with known answers offers them instead of
 #: a free-text box. A text field where the options are finite invites a phrasing
 #: the compiler then has to re-read, and re-reading is where meaning is lost.
-def _choices_for(field: str, priceable: Sequence[str] = ()) -> Sequence[Dict[str, str]]:
+def _choices_for(field: str, priceable: Sequence[str] = (),
+                 resolutions: Sequence[Any] = ()) -> Sequence[Dict[str, str]]:
     """Options for a question, static or identified.
 
     Identity is the one field whose options depend on what the user wrote, so
@@ -91,13 +92,36 @@ def _choices_for(field: str, priceable: Sequence[str] = ()) -> Sequence[Dict[str
     """
     if field.startswith("asset_identity:"):
         from ..mission import asset_identity
+        from ..mission.compiler import canonical_key
+
+        # The phrase comes from the resolution record, never from the key.
+        #
+        # This used to take `field[len("asset_identity:"):]` as the phrase and
+        # re-identify from it. Once the key became a canonical slug —
+        # `asset_identity:sp500-etf` rather than the model's prose — that
+        # lookup identified nothing, and the question would have rendered with
+        # no options at all. A question nobody can answer is the dead end this
+        # screen was rebuilt to remove.
+        #
+        # Reversing a derived key back into its subject is the same move as
+        # reading a rendered sentence back into a decision: the key is for
+        # matching, and the subject is recorded separately because it has to
+        # be.
+        phrase = next((one.observed_phrase for one in (resolutions or ())
+                       if canonical_key("asset_identity",
+                                        one.observed_phrase) == field), "")
+        if not phrase:
+            # No resolution record — an ambiguous *name* rather than an
+            # unplaceable phrase. The slug is the best subject available and
+            # identifies for the simple cases, which is what this path
+            # previously did for every case.
+            phrase = field[len("asset_identity:"):].replace("-", " ")
 
         # Filtered to what the deployment can price. Resolved without it, the
         # page could offer a fund the compiler would then reject — one dead
         # end replaced by a politer one, which is the failure this whole slice
         # exists to remove.
-        found = asset_identity.identify(field[len("asset_identity:"):],
-                                        priceable=priceable)
+        found = asset_identity.identify(phrase, priceable=priceable)
         return tuple({"value": one.symbol,
                       "label": f"{one.symbol} — {one.name}"}
                      for one in found.candidates)
@@ -416,7 +440,8 @@ def build(result, *, text: str = "",
     questions = [
         Question(field=u.field, question=u.question,
                  why_it_matters=u.why_it_matters,
-                 choices=_choices_for(u.field, priceable),
+                 choices=_choices_for(u.field, priceable,
+                                      scenario.provenance.asset_resolutions),
                  routing=_routing_for(u.field, text))
         for u in result.unresolved
     ]

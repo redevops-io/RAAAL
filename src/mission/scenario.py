@@ -284,6 +284,56 @@ class ScenarioSpecification:
             ),
         }
 
+    def semantic_form(self) -> Dict[str, Any]:
+        """Everything that can change a result, and nothing else.
+
+        `content_hash` covers the compiled artifact. This covers the *inputs
+        that decide it*, including several the canonical form does not carry:
+        the funding policy, the watched instrument, the resolved identities and
+        the time-window instruction.
+
+        It exists because the preview and the save route compiled the same
+        description under different inputs and persisted a different plan. The
+        save path omitted `priceable`, so no funding policy could be built, and
+        every stored plan was written unable to execute while the page showed
+        one that ran. A digest over the compiled body alone did not notice:
+        both bodies were internally consistent.
+
+        Deliberately excludes timestamps, database ids, render order and
+        display wording. A gate that tripped on those would be turned off.
+        """
+        provenance = self.provenance
+        return {
+            "held_assets": sorted(self.allocation_rule.assets),
+            "weighting": self.allocation_rule.weighting,
+            "funding": (self.funding.to_json()
+                        if self.funding is not None else None),
+            "flows": self.flow_schedule.canonical_form(),
+            "event_program": list(self.event_program),
+            "holdings_policy": self.holdings_policy.canonical_form(),
+            "tax_treatment": self.tax_treatment,
+            "asset_resolutions": sorted(
+                (one.observed_phrase, one.chosen_instrument_id,
+                 one.registry_digest)
+                for one in (provenance.asset_resolutions or ())),
+            "time_window": (provenance.time_window.to_json()
+                            if getattr(provenance.time_window, "to_json", None)
+                            else None),
+            "exclusions": sorted(one.item for one in (provenance.excluded or ())),
+            "amendments": sorted(
+                (one.question_id, one.answer)
+                for one in (provenance.amended or ())),
+            "inferred": sorted(
+                (one.field, one.value) for one in provenance.inferred),
+            "benchmark_set": (self.benchmark_set.canonical_form()
+                              if self.benchmark_set else None),
+            "spec_version": self.spec_version,
+        }
+
+    @property
+    def semantic_digest(self) -> str:
+        return _hash(self.semantic_form())
+
     @property
     def content_hash(self) -> str:
         return _hash(self.canonical_form())
