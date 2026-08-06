@@ -141,6 +141,12 @@ PRODUCERS: Mapping[str, Producer] = {
             reason="A compiled scenario specification. It states what to do, "
                    "and holds no result."),
         Producer(
+            table="plan_migration", ownership=ProvenanceOwnership.NOT_APPLICABLE,
+            reason="A recompiled scenario specification and the authorisation "
+                   "for it. Like `plan`, it states what to do and holds no "
+                   "result — the provenance question belongs to the runs on "
+                   "either side of it, which carry their own."),
+        Producer(
             table="run_invalidation",
             ownership=ProvenanceOwnership.NOT_APPLICABLE,
             reason="A judgement about a run, not a figure. It says that a "
@@ -252,6 +258,16 @@ RUN_CALLERS: Mapping[str, RunCaller] = {
             reason="Persists the run behind a saved scenario. The figures come "
                    "from a resolved frame, so the record of which frame is "
                    "required rather than optional."),
+        RunCaller(
+            name="main", module="src/workspace/migrate_plan.py",
+            kind=CallerKind.MARKET_DERIVED,
+            reason="Persists the replacement run for a plan recompiled under a "
+                   "newer compiler. Operator-invoked rather than reached by a "
+                   "request, and it writes exactly the same kind of artifact — "
+                   "so it carries the same obligation to say which frame "
+                   "produced the figures. A caller that persists runs outside "
+                   "the request path is the one most likely to be forgotten by "
+                   "a rule written for the request path."),
         RunCaller(
             name="_apply", module="src/workspace/apply.py",
             kind=CallerKind.MARKET_DERIVED,

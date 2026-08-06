@@ -576,6 +576,21 @@ def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
     return scope
 
 
+def _legacy_provenance(stored) -> bool:
+    """Whether this plan's decisions were stored in the shape that lost them.
+
+    Shown on the page rather than left to an operator, because the person who
+    needs to know is the one looking at a plan that will not run and cannot be
+    migrated. Saying "legacy" would be too weak: the description and the
+    withdrawn run remain valid historical artifacts, and it is specifically the
+    *answers* that are not replayable.
+    """
+    from ..mission.spec import provenance_shape_of
+
+    body = (stored or {}).get("provenance") if isinstance(stored, dict) else None
+    return provenance_shape_of(body) == "provenance@1"
+
+
 def _timeline_chart(scenario, prices, ledger, *, width=720, height=180):
     """Points for the timeline figure, placed from the ledger's own rows.
 
@@ -1519,6 +1534,7 @@ def plan_detail(request: Request, plan_id: str):
                       else declare_unsimulated(
                           scenario_from_stored(stored, compiled.scenario),
                           scope)),
+            "legacy_provenance": _legacy_provenance(stored),
             "ledger": run.get("ledger") if run else None,
             "reconciliation": run.get("reconciliation") if run else None,
             "watched": (scenario_from_stored(stored, compiled.scenario).funding

@@ -245,6 +245,23 @@ CREATE TABLE IF NOT EXISTS plan_run (
     comparison TEXT NOT NULL,
     FOREIGN KEY (plan_id) REFERENCES plan (plan_id)
 );
+CREATE TABLE IF NOT EXISTS plan_migration (
+    owner          TEXT NOT NULL,
+    migration_id   TEXT NOT NULL,
+    plan_id        TEXT NOT NULL,
+    from_compiler  TEXT NOT NULL,
+    to_compiler    TEXT NOT NULL,
+    from_engine    TEXT NOT NULL,
+    to_engine      TEXT NOT NULL,
+    reason         TEXT NOT NULL,
+    authorized_by  TEXT NOT NULL,
+    migrated_at    TEXT NOT NULL,
+    old_run        TEXT,
+    new_run        TEXT,
+    scenario       TEXT NOT NULL,
+    content_hash   TEXT NOT NULL,
+    PRIMARY KEY (owner, migration_id)
+);
 CREATE TABLE IF NOT EXISTS run_invalidation (
     owner          TEXT NOT NULL,
     run_id         TEXT NOT NULL,
@@ -1389,6 +1406,67 @@ class WorkspaceStore:
                 "WHERE owner = ? ORDER BY ran_at",
                 (owner,)).fetchall()
         return [{**dict(r), "result": loads(r["result"])} for r in rows]
+
+    # ---- authorised plan migrations ---------------------------------------
+
+    def record_migration(self, *, migration_id: str, plan_id: str, owner: str,
+                         from_compiler: str, to_compiler: str,
+                         from_engine: str, to_engine: str, reason: str,
+                         authorized_by: str, migrated_at: str,
+                         scenario: Any, old_run: Optional[str] = None) -> str:
+        """Record that an owner authorised recompiling a saved plan.
+
+        Written *before* the run it will name, so a run can cite a migration
+        that already exists. The reverse ordering leaves a window in which a
+        run points at nothing, and that window is exactly when a process dies.
+        """
+        body = scenario.canonical_form() if hasattr(scenario, "canonical_form") \
+            else dict(scenario)
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO plan_migration
+                   (owner, migration_id, plan_id, from_compiler, to_compiler,
+                    from_engine, to_engine, reason, authorized_by, migrated_at,
+                    old_run, new_run, scenario, content_hash)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (owner, migration_id, plan_id, from_compiler, to_compiler,
+                 from_engine, to_engine, reason, authorized_by, migrated_at,
+                 old_run, None, Json(body), canonical_hash(body)))
+        return migration_id
+
+    def attach_migration_run(self, *, migration_id: str, owner: str,
+                             run_id: str) -> None:
+        """Name the run the migration produced. Writable once.
+
+        Refused if already set: a migration that could be re-pointed at a
+        different run would let the authoritative result be swapped under an
+        authorisation the owner gave for something else.
+        """
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT new_run FROM plan_migration "
+                "WHERE owner = ? AND migration_id = ?",
+                (owner, migration_id)).fetchone()
+            if row is None:
+                raise NotSaveable(f"no migration {migration_id!r}")
+            if row["new_run"]:
+                raise NotSaveable(
+                    f"migration {migration_id!r} already names run "
+                    f"{row['new_run']!r}; an authorisation cannot be moved to "
+                    f"a different result after the fact")
+            conn.execute(
+                "UPDATE plan_migration SET new_run = ? "
+                "WHERE owner = ? AND migration_id = ?",
+                (run_id, owner, migration_id))
+
+    def migrations_for(self, plan_id: str, owner: str) -> List[Dict[str, Any]]:
+        """Every authorised migration for a plan, oldest first."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM plan_migration WHERE plan_id = ? AND owner = ? "
+                "ORDER BY migrated_at",
+                (plan_id, owner)).fetchall()
+        return [{**dict(r), "scenario": loads(r["scenario"])} for r in rows]
 
     # ---- proposals --------------------------------------------------------
 

@@ -165,14 +165,33 @@ class ExecutionLedger:
         return {"signal_ledger": over([s.to_json() for s in self.signals]),
                 "execution_ledger": over([r.to_json() for r in self.rows])}
 
+    def fingerprint(self) -> Dict[str, Any]:
+        """What a replay cites instead of recomputing.
+
+        A page rendered later should be able to say *"this came from ledger
+        X"* rather than re-evaluating today's prices, today's indicator and
+        today's compiler — which would silently answer a different question
+        under an old plan's name. The digests identify the content; the totals
+        let a reader check a displayed figure against the fingerprint without
+        opening the ledger itself.
+        """
+        return {
+            **self.digest(),
+            "event_count": len(self.rows),
+            "signal_count": len(self.signals),
+            "contribution_total": str(self.total_contributed),
+            "share_total": str(self.total_shares),
+            "cash_total": str(self.ending_cash),
+            "engine_version": EXECUTION_ENGINE_VERSION,
+            "reconciliation_version": RECONCILIATION_VERSION,
+        }
+
     def to_json(self) -> Dict[str, Any]:
         return {"rows": [row.to_json() for row in self.rows],
                 "signals": [s.to_json() for s in self.signals],
                 "unexecutable": [s.to_json() for s in self.unexecutable],
                 "summary": self.summary(),
-                "digest": self.digest(),
-                "execution_engine": EXECUTION_ENGINE_VERSION,
-                "reconciliation_version": RECONCILIATION_VERSION}
+                "fingerprint": self.fingerprint()}
 
 
 def build(*, events: Sequence[ContributionEvent], fills: Sequence[Any],

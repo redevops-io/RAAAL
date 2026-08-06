@@ -305,6 +305,39 @@ market_data_access_event = Table(
 Index("access_event_run", market_data_access_event.c.owner,
       market_data_access_event.c.run_id)
 
+plan_migration = Table(
+    "plan_migration", metadata,
+    Column("owner", Text, primary_key=True),
+    Column("migration_id", Text, primary_key=True),
+    Column("plan_id", Text, nullable=False),
+    Column("from_compiler", Text, nullable=False),
+    Column("to_compiler", Text, nullable=False),
+    Column("from_engine", Text, nullable=False),
+    Column("to_engine", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    # Who agreed. Adopting a new interpretation changes what a saved plan
+    # means, so the record names the person who accepted that rather than
+    # implying the system decided.
+    Column("authorized_by", Text, nullable=False),
+    Column("migrated_at", Text, nullable=False),
+    Column("old_run", Text),
+    Column("new_run", Text),
+    # The recompiled scenario. It lives here because `plan.scenario` is
+    # immutable and keyed on the plan id — correctly, since the pinned parse is
+    # the thing a user confirmed. So the superseding interpretation is stored
+    # beside the authorisation for it rather than overwriting the original.
+    Column("scenario", JsonText, nullable=False),
+    Column("content_hash", Text, nullable=False),
+)
+"""One authorised recompilation of a saved plan.
+
+The migration is provenance in its own right, not merely a step that produced
+a run: it records what changed, why, who agreed, and which two runs sit either
+side of it. Without it the new figure is simply newer than the old one.
+"""
+
+Index("plan_migration_plan", plan_migration.c.owner, plan_migration.c.plan_id)
+
 run_invalidation = Table(
     "run_invalidation", metadata,
     Column("owner", Text, primary_key=True),

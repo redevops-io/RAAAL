@@ -206,6 +206,17 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
             contains_model_content=False,
             sensitive_fields=("result", "comparison")),
         RecordClass(
+            table="plan_migration", data_class=DataClass.PERSONAL_RECORD,
+            owner_scope=OwnerScope.DIRECT, owner_column="owner",
+            retention_policy=ACTIVE_ACCOUNT,
+            deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
+            export_behaviour="included in a workspace export",
+            # It carries a compiled scenario, which is derived from the user's
+            # own description of their finances.
+            contains_sensitive_financial_data=True,
+            contains_model_content=False,
+            sensitive_fields=("scenario",)),
+        RecordClass(
             table="run_invalidation", data_class=DataClass.PERSONAL_RECORD,
             # PERSONAL_RECORD, like the run it names. It holds no content the
             # user wrote — a run id, a classification and a sentence written by

@@ -232,6 +232,33 @@ class AssetResolution:
         }
 
 
+#: The serialized shape of a provenance body. Stamped on every write so a
+#: reader can tell "this plan recorded no amendments" from "this plan predates
+#: amendments being recorded at all" — which look identical in the data and
+#: mean opposite things. Absence means `@1`, the shape that dropped four of its
+#: eight fields on the way to disk.
+PROVENANCE_SHAPE = "provenance@2"
+
+#: What a `@1` body is missing, named rather than described. An operator groups
+#: by this when asking which plans cannot be migrated, and prose does not group.
+LEGACY_PROVENANCE_INCOMPLETE = "LEGACY_PROVENANCE_INCOMPLETE"
+
+
+def provenance_shape_of(body) -> str:
+    """The shape a stored provenance body was written in.
+
+    A `@1` body is not merely older. Its answers exist only as rendered
+    sentences under `stated` — `"account_type: TAXABLE (answered)"` — and a
+    sentence is a presentation artifact. Reading one back into a structured
+    decision would reverse the direction of authority, and would set a
+    precedent that later code would reuse on renderings that are not
+    unambiguous.
+    """
+    if not isinstance(body, dict):
+        return "provenance@1"
+    return str(body.get("shape") or "provenance@1")
+
+
 @dataclass(frozen=True)
 class Provenance:
     """Who decided what. The whole reason a Mission is not just a config file."""
@@ -289,11 +316,39 @@ class Provenance:
         }
 
     def to_json(self) -> Dict[str, Any]:
+        """Every kind of provenance, including the four that were dropped.
+
+        `amended`, `excluded`, `asset_resolutions` and `time_window` each exist
+        because something about them could not be expressed by the other three
+        — and all four were absent here, so a saved plan recorded none of them.
+
+        The cost was concrete. A production plan whose owner answered six
+        questions stored no record of having been asked: the answers survived
+        only as rendered prose under `stated`, in the form
+        `"account_type: TAXABLE (answered)"`. That is a sentence, not a
+        structure, and recompiling the plan under a newer compiler had nothing
+        to replay — so the migration produced a plan with the questions open
+        again.
+
+        Each docstring above says why its field matters, and each was written
+        while the field was being discarded on the way to disk. Recording a
+        distinction and then not persisting it is the same defect as not
+        drawing it, one layer later.
+
+        `content_hash` is unaffected: it is taken over `canonical_form`, which
+        covers only `inferred`. Old plans keep their identity.
+        """
         return {
+            "shape": PROVENANCE_SHAPE,
             "stated": list(self.stated),
             "inferred": [i.to_json() for i in self.inferred],
             "contradictions": [c.to_json() for c in self.contradictions],
             "unresolved": [u.to_json() for u in self.unresolved],
+            "amended": [a.to_json() for a in self.amended],
+            "excluded": [e.to_json() for e in self.excluded],
+            "asset_resolutions": [r.to_json() for r in self.asset_resolutions],
+            "time_window": (self.time_window.to_json()
+                            if hasattr(self.time_window, "to_json") else None),
             "is_complete": self.is_complete,
         }
 

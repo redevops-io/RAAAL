@@ -148,6 +148,20 @@ def every_write(store, owner):
     access = _access_for(owner, RUN)
     call("record_access_event", lambda: store.record_access_event(
         access.access_event, owner=owner))
+    # A migration authorises a new interpretation of a saved plan, so an
+    # unscoped write would let one tenant re-interpret another's plan — and
+    # `attach_migration_run` would let them point it at a result of their own.
+    migration_id = f"{MIGRATION}-{_PASS['n']}"
+    call("record_migration", lambda: store.record_migration(
+        migration_id=migration_id, plan_id=PLAN, owner=owner,
+        from_compiler="2", to_compiler="3",
+        from_engine="engine/buy-and-hold-only@1",
+        to_engine="engine/event-runtime@1", reason="tenancy fixture",
+        authorized_by="fixture", migrated_at="2026-01-01T00:00:00Z",
+        scenario=scenario_for(), old_run=RUN))
+    call("attach_migration_run", lambda: store.attach_migration_run(
+        migration_id=migration_id, owner=owner, run_id=f"{RUN}-replacement"))
+
     # A withdrawal names a run and an owner, so an unscoped write here would
     # let one tenant withdraw another's result — a denial of service with a
     # plausible explanation attached.
@@ -234,6 +248,8 @@ READ_ONLY = {
     # joins them onto the runs it returns, so the read layer exercises the
     # scoping through it as well.
     "invalidations_for", "all_runs",
+    # Reads the authorised migrations for one owner's plan.
+    "migrations_for",
 }
 
 
@@ -250,6 +266,13 @@ def write_methods():
 #: an isolation failure that needs distinct ids to appear is one nobody would
 #: hit in the field either.
 ACCESS_EVENT = "mdae-shared"
+#: Unique per pass, unlike `PLAN` and `RUN`. Those are shared deliberately, to
+#: force identifier collision between tenants — which `plan_migration` already
+#: gets from the shared `plan_id` it references. What it cannot survive is
+#: colliding with *itself* across passes: the record is append-only by
+#: classification, so a repeated id is a primary-key violation rather than the
+#: isolation failure this file is looking for.
+MIGRATION = "mig-shared"
 
 
 def _access_for(owner, run_id):

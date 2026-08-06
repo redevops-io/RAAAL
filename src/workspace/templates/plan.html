@@ -56,6 +56,19 @@
 {% include "_comparison.html" %}
 {% endif %}
 
+{% if legacy_provenance %}
+<div class="disclosure">
+  <strong>This plan predates structured amendment persistence.</strong>
+  The answers shown under "you stated" were recorded as sentences rather than
+  as decisions, so they cannot be used as authoritative input to re-run this
+  plan under the current engine. The description and any earlier result remain
+  as historical records. To run this under the current engine, create a
+  replacement plan through the builder — the answers are then stored as
+  decisions and survive every later change.
+  <span class="mono small">LEGACY_PROVENANCE_INCOMPLETE</span>
+</div>
+{% endif %}
+
 {% include "_timeline.html" %}
 
 {% set invalidated = runs|selectattr("invalidation")|list %}

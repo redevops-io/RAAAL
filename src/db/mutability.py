@@ -82,6 +82,19 @@ TABLE_MUTABILITY: Mapping[str, Mutability] = {
                       "revisited next year must show that figure, not one "
                       "recomputed against rules that have since moved."),
         Mutability(
+            table="plan_migration", kind=TableClass.IMMUTABLE_ARTIFACT,
+            immutable_columns=("scenario", "content_hash", "from_compiler",
+                               "to_compiler", "from_engine", "to_engine",
+                               "authorized_by", "migrated_at", "old_run"),
+            rationale="An authorisation that happened at a moment, and the "
+                      "interpretation it authorised. Editing the scenario "
+                      "would change what the owner agreed to after they "
+                      "agreed to it; editing `authorized_by` or `migrated_at` "
+                      "would move the consent. `new_run` is writable once, "
+                      "because the record is created before the run it "
+                      "names — the alternative is a run citing a migration "
+                      "that does not exist yet."),
+        Mutability(
             table="run_invalidation", kind=TableClass.IMMUTABLE_ARTIFACT,
             immutable_columns=("classification", "reason", "engine_version",
                                "invalidated_at"),
