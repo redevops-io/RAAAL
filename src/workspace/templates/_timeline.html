@@ -1,0 +1,113 @@
+{# The execution ledger, rendered.
+
+   Every number here comes from `run.ledger`, which was built from the funding
+   policy and the engine's fills and then reconciled against the result. The
+   page performs no arithmetic of its own: a template that recomputed a total
+   would be a second answer, and the one nobody checks is the one that drifts.
+
+   The summary is first and the table is complete, deliberately. The defect
+   this exists to expose was visible as arithmetic — one purchase and $1,000
+   against a rule that fires repeatedly — and a chart alone would have hidden
+   it behind a plausible line. #}
+{% if ledger %}
+<h2>What the rule did</h2>
+
+<div class="panel">
+  <div class="scroll"><table>
+    <tr><th>Measure</th><th class="num">Value</th><th>What it answers</th></tr>
+    <tr>
+      <td>Signals detected</td>
+      <td class="num mono">{{ ledger.summary().signals_detected }}</td>
+      <td class="small muted">times the condition you described occurred</td>
+    </tr>
+    <tr>
+      <td>Purchases executed</td>
+      <td class="num mono">{{ ledger.summary().purchases_executed }}</td>
+      <td class="small muted">times money arrived and bought something</td>
+    </tr>
+    <tr>
+      <td>Signals not executable</td>
+      <td class="num mono">{{ ledger.summary().signals_not_executable }}</td>
+      <td class="small muted">occurred with no later session to act on</td>
+    </tr>
+    <tr>
+      <td>Total contributed</td>
+      <td class="num mono">${{ "{:,.0f}".format(ledger.total_contributed) }}</td>
+      <td class="small muted">the sum of the purchases below, not a separate figure</td>
+    </tr>
+  </table></div>
+  {% if reconciliation %}
+  <p class="small muted" style="margin:12px 0 0">
+    {% if reconciliation.agrees %}
+    These rows and the figures above were produced separately and reconciled:
+    the purchases below account for every contribution the engine recorded, and
+    the shares match what it filled.
+    {% else %}
+    <strong>These rows and the reported figures do not agree.</strong>
+    {{ reconciliation.failures()|join(", ") }}
+    {% endif %}
+  </p>
+  {% endif %}
+</div>
+
+{% if chart %}
+{# Price, its moving average, and a mark on every execution. A view of the
+   ledger, not a second calculation: the marks are placed from the same rows
+   the table lists. #}
+<div class="panel">
+  <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" width="100%"
+       height="220" role="img"
+       aria-label="{{ chart.subject }} price with its {{ chart.window }}-session
+                   moving average and a mark on each triggered purchase">
+    <polyline fill="none" stroke="var(--ink)" stroke-width="1"
+              opacity="0.75" points="{{ chart.price }}"/>
+    <polyline fill="none" stroke="var(--warn)" stroke-width="1"
+              stroke-dasharray="4 3" points="{{ chart.average }}"/>
+    {% for mark in chart.marks %}
+    <circle cx="{{ mark.x }}" cy="{{ mark.y }}" r="2.5"
+            fill="var(--ok)" opacity="0.9"><title>{{ mark.label }}</title></circle>
+    {% endfor %}
+  </svg>
+  <p class="small muted" style="margin:8px 0 0">
+    <span class="mono">{{ chart.subject }}</span> close ·
+    <span class="mono">{{ chart.window }}</span>-session average (dashed) ·
+    {{ chart.marks|length }} purchase{{ "" if chart.marks|length == 1 else "s" }}.
+    The exact dates and amounts are in the table below; this is a view of them.
+  </p>
+</div>
+{% endif %}
+
+<div class="panel">
+  <div class="scroll"><table class="small">
+    <tr>
+      <th>Signal date</th><th>Contribution date</th><th>Execution date</th>
+      <th>Watched</th><th>Bought</th>
+      <th class="num">Price</th><th class="num">Shares</th>
+      <th class="num">Contribution</th><th class="num">Cumulative</th>
+    </tr>
+    {% set running = namespace(total=0) %}
+    {% for row in ledger.rows %}
+    {% set running.total = running.total + row.contribution %}
+    <tr>
+      <td class="mono">{{ row.signal_session.date() if row.signal_session else "—" }}</td>
+      <td class="mono">{{ row.contribution_session.date() }}</td>
+      <td class="mono">{{ row.execution_session.date() }}</td>
+      <td class="mono">{{ watched or "—" }}</td>
+      <td class="mono">{{ row.subject }}</td>
+      <td class="num mono">{{ "{:,.2f}".format(row.price) }}</td>
+      <td class="num mono">{{ "{:,.4f}".format(row.shares) }}</td>
+      <td class="num mono">${{ "{:,.0f}".format(row.contribution) }}</td>
+      <td class="num mono">${{ "{:,.0f}".format(running.total) }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% if ledger.unexecutable %}
+  <p class="small" style="margin:12px 0 0">
+    <strong>{{ ledger.unexecutable|length }}</strong> signal(s) occurred with no
+    later session to act on, so no purchase was made for them. They are counted
+    above rather than dropped: the condition occurring and not being actionable
+    is a different fact from it not occurring.
+  </p>
+  {% endif %}
+</div>
+{% endif %}

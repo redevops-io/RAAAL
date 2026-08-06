@@ -576,6 +576,95 @@ def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
     return scope
 
 
+def _timeline_chart(scenario, prices, ledger, *, width=720, height=180):
+    """Points for the timeline figure, placed from the ledger's own rows.
+
+    The marks are not recomputed from the price series — they are the executions
+    the table lists, projected onto the same axes. A chart that found its own
+    crossings would be a second opinion about what happened, and the pretty one
+    is the one people would believe.
+    """
+    if ledger is None or not ledger.rows or not scenario.is_event_funded:
+        return None
+
+    subject = scenario.funding.trigger.subject
+    window = scenario.funding.trigger.window
+    if subject not in prices.columns:
+        return None
+
+    closes = prices[subject].astype(float)
+    average = closes.rolling(window=window, min_periods=window).mean()
+    low, high = float(closes.min()), float(closes.max())
+    span = (high - low) or 1.0
+    count = max(len(closes) - 1, 1)
+
+    def place(index, value):
+        return (round(index / count * width, 2),
+                round(height - (value - low) / span * height, 2))
+
+    def polyline(series):
+        return " ".join(
+            f"{x},{y}" for x, y in (
+                place(i, float(v)) for i, v in enumerate(series)
+                if v == v))                       # NaN excluded: v != v when NaN
+
+    positions = {session: index for index, session in enumerate(prices.index)}
+    marks = []
+    for row in ledger.rows:
+        index = positions.get(pd.Timestamp(row.execution_session))
+        if index is None:
+            continue
+        x, y = place(index, float(closes.iloc[index]))
+        marks.append({"x": x, "y": y,
+                      "label": (f"{row.execution_session.date()} · "
+                                f"${row.contribution:,.0f} · "
+                                f"{row.shares:,.4f} shares")})
+
+    return {"width": width, "height": height, "subject": subject,
+            "window": window, "price": polyline(closes),
+            "average": polyline(average), "marks": marks}
+
+
+def _funding_events(scenario, prices, sessions):
+    """Contributions from the scenario's funding policy, or a reason it cannot.
+
+    Returns `(events, signals, unexecutable, error)`. `events is None` means the
+    plan is not event-funded and the existing schedule expansion applies —
+    which keeps `Scheduled` exactly what it was rather than reimplementing a
+    cadence a second time.
+    """
+    if not scenario.is_event_funded:
+        return None, (), (), None
+
+    from ..mission.funding import contribution_events, unexecutable_signals
+    from ..mission.signals import UnsupportedSignal
+
+    from ..mission.funding import UnsupportedFunding
+
+    try:
+        signals = scenario.funding.trigger.signals(prices)
+        events = contribution_events(scenario.funding, frame=prices,
+                                     sessions=sessions)
+        skipped = unexecutable_signals(scenario.funding, frame=prices,
+                                       sessions=sessions)
+    except (UnsupportedSignal, UnsupportedFunding) as refused:
+        # Refused with its own reason, not the generic one. "There is no price
+        # history for SPY" and "this build does not compute exponential
+        # averages" send a reader to different places, and the generic message
+        # would send them to neither.
+        return None, (), (), str(refused)
+
+    if not events:
+        # Zero crossings is a legitimate answer and a very misleading figure:
+        # the plan contributes nothing, holds nothing, and would report a 0%
+        # return that reads as the strategy having performed.
+        return None, signals, skipped, (
+            "The condition never occurred over the available history, so no "
+            "purchase was ever triggered and there is no result to report. "
+            f"{len(signals)} signal(s) were detected.")
+    return events, signals, skipped, None
+
+
 def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
          ) -> Dict[str, Any]:
     """Simulate a scenario and its benchmarks under identical conditions.
@@ -593,10 +682,24 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
             "frame alone; the provenance is not reconstructable afterwards")
     prices = access.frame
     sessions = prices.index
-    flows = _flows_from(scenario.flow_schedule, sessions)
     policy = CashPolicy.idle()
     assets = list(scenario.allocation_rule.assets)
     tradeable = [a for a in assets if a in prices.columns]
+
+    # One funding policy, one set of dated contributions, and the benchmarks
+    # receive exactly those. That is what makes "every dimension outside the
+    # rule was held identical" true rather than aspirational: the schedule is
+    # not merely equivalent between plan and benchmark, it is the same object.
+    events, ledger_signals, unexecutable, funding_error = _funding_events(
+        scenario, prices, sessions)
+    if funding_error is not None:
+        return {"result": None, "benchmarks": [], "payload": None,
+                "comparability": None, "strategy_not_executed": True,
+                "unavailable": funding_error}
+    flows = (tuple(CashFlow(date=event.session, amount=float(event.amount))
+                   for event in events)
+             if events is not None
+             else _flows_from(scenario.flow_schedule, sessions))
 
     # A declared conditional rule that this engine does not execute produces no
     # figure at all.
@@ -617,7 +720,11 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
     # fixing it is a figure for a rule that still never ran. The same ordering
     # argument as `historical_lots.detect`: the unconditional refusal goes
     # first, because the conditional one reads as the whole problem.
-    if scenario.event_program:
+    if scenario.event_program and not scenario.is_event_funded:
+        # A rule this build still cannot execute. The guard stays for exactly
+        # that case rather than being deleted along with the defect it caught:
+        # the next unsupported condition must refuse rather than silently
+        # replay buy-and-hold, which is what happened last time.
         return {"result": None, "benchmarks": [], "payload": None,
                 "comparability": None,
                 "strategy_not_executed": True,
@@ -670,6 +777,38 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
     execution_input = frame_digest(prices)
     result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
                       cash_policy=policy, modelling_scope=scope)
+
+    # The ledger, and then the check that it and the result agree.
+    #
+    # Built from the funding policy and the fills; the totals come from the
+    # portfolio path. Two independent descriptions of one run, and a
+    # disagreement means one of them is wrong — which is the state that shipped
+    # undetected, because nothing performed this comparison. A user noticed the
+    # arithmetic instead.
+    execution_ledger = reconciliation = None
+    if events is not None:
+        from ..mission import ledger as ledger_module
+
+        execution_ledger = ledger_module.build(
+            events=events, fills=result.path.fills,
+            signals=ledger_signals, unexecutable=unexecutable,
+            ending_cash=float(result.path.cash.iloc[-1])
+            if len(result.path.cash) else 0.0)
+        reconciliation = ledger_module.reconcile(execution_ledger, result)
+        if not reconciliation.agrees:
+            # No figure rather than a figure with a warning. The reconciliation
+            # exists to catch the engine doing something other than the plan,
+            # and a result shown beside "these do not agree" is a result people
+            # will quote.
+            return {"result": None, "benchmarks": [], "payload": None,
+                    "comparability": None, "strategy_not_executed": True,
+                    "ledger": execution_ledger, "reconciliation": reconciliation,
+                    "unavailable": (
+                        "This result is unavailable. The executed purchases "
+                        "and the reported totals do not agree, so no figure is "
+                        "shown. " + "; ".join(
+                            reconciliation.detail[name]
+                            for name in reconciliation.failures()))}
     if access.access_event is not None:
         scope = {**scope, "execution_input_digest": execution_input,
                  "execution_input_matches_delivery":
@@ -680,6 +819,17 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
     # remember to attach it is a caller that can forget — which is how the live
     # path stored unattributable runs while the provenance sat one frame away.
     result = dataclasses_replace(result, market_data=access.provenance)
+    if execution_ledger is not None:
+        # On the result, so a stored run carries the evidence for its own
+        # figure. A ledger held only in the response would make a saved run
+        # unverifiable the moment the page closed — the same reason a run
+        # records its market-data provenance rather than the caller attaching
+        # it afterwards.
+        scope = {**scope,
+                 "rule_events": len(execution_ledger.rows),
+                 "execution_ledger": execution_ledger.to_json(),
+                 "reconciliation": reconciliation.to_json()}
+        result = dataclasses_replace(result, modelling_scope=scope)
     specs = _benchmark_specs(prices, tradeable)
     benchmarks = compare(prices, flows=flows, cash_policy=policy, benchmarks=specs)
 
@@ -698,7 +848,17 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
         # rule no longer reaches here. Stating `True` would be the engine
         # certifying its own behaviour — exactly the claim the classifier
         # exists to stop resting on assertion.
-        declared_rule_executed=(False if scenario.event_program else None),
+        # Reaching this line *is* the evidence. A failing reconciliation
+        # returns above with no result at all, so `agrees` cannot be false
+        # here — and the earlier version tested it anyway, which read like a
+        # control and could not fail. A mutation asserting `True`
+        # unconditionally passed every test, which is what an unfalsifiable
+        # guard looks like from the outside.
+        #
+        # The enforcement is the early return. Restating it here would be a
+        # second control that can drift from the first, and the one nobody
+        # reaches is the one that rots.
+        declared_rule_executed=(True if scenario.event_program else None),
     )
     # One verdict per benchmark, computed here and stored with the run. The
     # worksheet reads them; it never recomputes. Every benchmark shares the
@@ -726,6 +886,8 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
             platform_generated_action=False,
             portfolio_selection_performed=False,
         ),
+        "ledger": execution_ledger,
+        "reconciliation": reconciliation,
         "unavailable": None,
     }
 
@@ -1357,6 +1519,17 @@ def plan_detail(request: Request, plan_id: str):
                       else declare_unsimulated(
                           scenario_from_stored(stored, compiled.scenario),
                           scope)),
+            "ledger": run.get("ledger") if run else None,
+            "reconciliation": run.get("reconciliation") if run else None,
+            "watched": (scenario_from_stored(stored, compiled.scenario).funding
+                        .trigger.subject
+                        if scenario_from_stored(stored, compiled.scenario)
+                        .is_event_funded else ""),
+            "chart": _timeline_chart(
+                scenario_from_stored(stored, compiled.scenario),
+                access.frame if access.usable else None,
+                run.get("ledger") if run else None)
+            if access.usable else None,
             "disclosures": _disclosures(compiled, run),
             "chain": build_scenario_chain(
                 subject=plan_id, scenario=compiled.scenario,

@@ -71,6 +71,19 @@ FIELDS: Mapping[str, Field] = {
     # Values from `render._CADENCE_WORDS`. "annually" reads naturally and is
     # not one of them; offering it would settle the question with a value the
     # renderer cannot put into a sentence.
+    # Only offered when the description named a moving average without a
+    # period. Any window is accepted *in the description* — the compiler parses
+    # "63-day" as readily as "200-day" — so this closed set narrows the
+    # fallback question rather than the product. A free text box here would
+    # accept "long" and "the usual", and a 200-session and a 50-session
+    # average are different rules producing different purchases.
+    "moving_average_window": _choice(
+        "moving_average_window", "How many sessions does the average cover?", (
+            ("20", "20 sessions (about a month)"),
+            ("50", "50 sessions (about a quarter)"),
+            ("100", "100 sessions"),
+            ("200", "200 sessions (about a year)"),
+        )),
     "cadence": _choice("cadence", "How often?", (
         ("weekly", "Every week"),
         ("biweekly", "Every other week"),

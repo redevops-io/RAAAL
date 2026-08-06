@@ -138,6 +138,32 @@ class ScenarioSpecification:
     tax_treatment: str = "NONE_APPLIED"
     spec_version: str = MISSION_SPEC_VERSION
 
+    funding: Optional[Any] = None
+    """How money arrives: a `funding.Scheduled` or a `funding.EventTriggered`.
+
+    **The authority.** `cadence` and a conditional purchase rule were both
+    answers to *when does money appear*, stored in different places, and the
+    engine consumed only the first — so "buy $1,000 every time SPY crosses
+    below its 200-day average" compiled to one contribution and returned a
+    buy-and-hold figure.
+
+    A sum type has nowhere to state both. `flow_schedule` is retained as the
+    projection every benchmark, hash and comparability dimension already reads,
+    and the compiler is the only thing that builds either: for an event-triggered
+    policy it writes a schedule that states no cadence and no amount, so the two
+    cannot disagree. `self_conflicts` refuses a scenario where they do.
+
+    Optional because scenarios stored before this existed have none, and a
+    default `Scheduled` reconstructed from the schedule would be this build
+    asserting what an older one meant.
+    """
+
+    @property
+    def is_event_funded(self) -> bool:
+        from .funding import EventTriggered
+
+        return isinstance(self.funding, EventTriggered)
+
     @property
     def concept_id(self) -> str:
         return f"scenario/{self.name}"
@@ -172,10 +198,34 @@ class ScenarioSpecification:
             )
         if (self.flow_schedule.amount <= 0
                 and self.flow_schedule.starting_capital <= 0
-                and not self.pending_template):
+                and not self.pending_template
+                # An event-funded plan states no cadence and no amount on the
+                # schedule *by construction* — the money arrives when the
+                # trigger fires, and how much is on the funding policy. Read
+                # without this, it looks like a plan with no money at all.
+                and not self.is_event_funded):
             conflicts.append(
                 "no contributions and no starting capital: there is no money to "
                 "invest, so every figure would be undefined rather than zero"
+            )
+
+        # The contradiction the sum type exists to prevent, checked on the
+        # compiled form rather than trusted to the compiler.
+        #
+        # `funding` is the authority and `flow_schedule` is its projection. If a
+        # scenario ever states both an event trigger and a cadence, two things
+        # answer "when does money arrive" and the engine will consume one of
+        # them — which is precisely the state that produced a buy-and-hold
+        # figure under a conditional rule.
+        if self.is_event_funded and (
+                self.flow_schedule.amount > 0
+                or self.flow_schedule.cadence not in ("", "event_triggered")):
+            conflicts.append(
+                "funding is event-triggered while flow_schedule also states a "
+                f"cadence ({self.flow_schedule.cadence!r}) and an amount "
+                f"({self.flow_schedule.amount}); money cannot arrive on a "
+                "schedule and on a trigger, and whichever the engine reads "
+                "would silently become the plan"
             )
         return conflicts
 
@@ -204,8 +254,19 @@ class ScenarioSpecification:
                                   if self.benchmark_set else None)}
 
     def flow_part(self) -> Dict[str, Any]:
-        """The money path. Never public, and never part of the rule."""
-        return self.flow_schedule.canonical_form()
+        """The money path. Never public, and never part of the rule.
+
+        The funding policy travels here because it *is* the money path — and
+        because a stored plan that lost it would be reopened as a plan with no
+        rule. The first version of this omitted it, and the reopened plan
+        showed the Deployment 1 refusal: the page had no way to know the rule
+        had ever executed, which is the read-path failure the whole ledger
+        exists to make impossible.
+        """
+        body = dict(self.flow_schedule.canonical_form())
+        if self.funding is not None:
+            body["funding"] = self.funding.to_json()
+        return body
 
     def canonical_form(self) -> Dict[str, Any]:
         return {

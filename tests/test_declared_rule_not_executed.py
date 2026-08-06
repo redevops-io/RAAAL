@@ -612,3 +612,67 @@ class TestAWithdrawnRunDoesNotEscapeThroughExport:
         if isinstance(stored, str):        # exported as stored, not re-parsed
             stored = json.loads(stored)
         assert stored["final_value"] == 5160.0
+
+
+class TestTheSweepSeesAnExecutedRule:
+    """Forward compatibility, against where the producer actually writes it.
+
+    `rule_events` lives in the result's modelling scope — beside the other
+    statements about what the figure accounts for. A sweep reading only the top
+    level would report every correct run as affected the day the producer moved
+    it, and would withdraw good results.
+    """
+
+    def test_the_count_is_found_in_the_modelling_scope(self):
+        from src.workspace.invalidate import executed_rule_events
+
+        assert executed_rule_events(
+            {"modelling_scope": {"rule_events": 30}}) == 30
+
+    def test_a_top_level_count_still_works(self):
+        from src.workspace.invalidate import executed_rule_events
+
+        assert executed_rule_events({"rule_events": 7}) == 7
+
+    def test_absence_is_still_unknown_not_zero(self):
+        from src.workspace.invalidate import executed_rule_events
+
+        assert executed_rule_events({"modelling_scope": {}}) is None
+        assert executed_rule_events({"final_value": 1.0}) is None
+
+    def test_a_real_executed_run_is_not_swept(self, tmp_path, deployment):
+        """End to end: a run the new engine produced must not be withdrawn by
+        the sweep written for the old one."""
+        from src.mission.compiler import compile_scenario
+        from src.mission.scenario import ScenarioSpecification
+        from src.mission.spec import Inference, Provenance
+        from src.workspace.invalidate import affected
+        from src.workspace.store import WorkspaceStore
+
+        import src.workspace.routes as routes
+
+        store = WorkspaceStore(tmp_path / "w.db")
+        access = routes._market_data("test")
+        description = ("I buy $1,000 of VOO every time the S&P 500 crosses "
+                       "below its 200-day moving average for the past 5 years.")
+        plan = compile_scenario(
+            description, name="p", version=1, amendments=SETTLED,
+            benchmark_rule="benchmark-policy/public-default@1",
+            priceable=tuple(access.frame.columns))
+        source = plan.scenario.provenance
+        scenario = ScenarioSpecification(**{
+            **plan.scenario.__dict__,
+            "provenance": Provenance(
+                stated=source.stated,
+                inferred=tuple(Inference(i.field, i.value, i.why, confirmed=True)
+                               for i in source.inferred),
+                contradictions=source.contradictions, unresolved=())})
+        run = routes._run(scenario, access)
+        assert run["result"] is not None, "premise: this plan must execute"
+
+        store.save_plan(plan_id="p", owner="pilot", scenario=scenario,
+                        stated_text=description, saved_at="2026-08-06T00:00:00Z")
+        store.record_run(run_id="r", plan_id="p", owner="pilot",
+                         ran_at="2026-08-06T00:00:00Z",
+                         result=run["result"].to_json(), comparison={})
+        assert affected(store, "pilot") == []

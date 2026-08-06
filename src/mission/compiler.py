@@ -205,7 +205,26 @@ _MENTIONS_SIGNAL = re.compile(
 )
 _MENTIONS_AVERAGE = re.compile(
     r"\b(?:moving average|DMA|SMA|EMA|[0-9]{1,4}[- ]?day average)\b", re.IGNORECASE)
+#: The averaging window, in sessions, as the description states it. Extracted
+#: rather than defaulted: "200-day" and "50-day" are different rules, and a
+#: compiler that assumed 200 would answer a question about a 50-day average
+#: with a number that looks right. A moving average named with no window
+#: becomes an unresolved field, like every other unstated choice.
+_AVERAGE_WINDOW = re.compile(
+    r"\b([0-9]{1,4})[-\s]?(?:day|session)s?\b[^.]{0,24}?\baverage\b"
+    r"|\b([0-9]{1,4})[-\s]?(?:DMA|SMA|EMA)\b",
+    re.IGNORECASE)
 _TICKER = re.compile(r"\b([A-Z]{1,5})\b")
+
+
+def moving_average_window(text: str) -> Optional[int]:
+    """The averaging window the description states, or None."""
+    found = _AVERAGE_WINDOW.search(text)
+    if not found:
+        return None
+    digits = found.group(1) or found.group(2)
+    window = int(digits)
+    return window if 2 <= window <= 2000 else None
 
 #: Language that means a life-event template exists for this, and that the
 #: generic compiler should hand off rather than improvise. Inventing vesting
@@ -481,6 +500,62 @@ def _covered_by(phrase: str, raised: set) -> Optional[str]:
 
 
 
+def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
+                    assets, window=None, priceable=()):
+    """The single authority on how money arrives.
+
+    Built here and nowhere else, because two builders of a funding policy would
+    be two answers to the question the sum type exists to make unambiguous.
+
+    Returns `None` when the amount is still unresolved: a policy with no amount
+    would state that money arrives without saying how much, and an unresolved
+    field must stay unresolved rather than becoming a zero.
+    """
+    from decimal import Decimal
+
+    from .funding import (
+        Estimator,
+        EventTriggered,
+        Scheduled,
+        Trigger,
+    )
+    from .signals import SignalKind
+
+    if amount is None:
+        return None
+
+    if trigger:
+        average = parsed.value_of("moving_average_kind")
+        # The first asset this deployment can actually price. "SP500 ETF"
+        # compiles to ('ETF', 'SPY') — the phrase's own token and the
+        # instrument it resolved to — and evaluating a moving average on a
+        # ticker with no price history would refuse a plan that is perfectly
+        # runnable on the instrument it actually holds.
+        priceable_assets = [a for a in assets if a in set(priceable)]
+        subject = next(iter(priceable_assets), "")
+        if not subject or window is None:
+            # No policy rather than a guessed one. An unstated window is an
+            # unresolved field, and the plan is blocked on it like any other.
+            return None
+        return EventTriggered(
+            trigger=Trigger(
+                subject=subject,
+                window=window,
+                estimator=Estimator(average.value if average else "simple"),
+                # The user's answer, honoured. "Every time it crosses below"
+                # fires once per drawdown and "every day it is below" fires on
+                # each of them; over five years that is not a rounding
+                # difference, and the compiler asks precisely so this choice is
+                # theirs rather than the engine's.
+                kind=(SignalKind.CROSSED_BELOW_MOVING_AVERAGE
+                      if trigger == "crossing_event"
+                      else SignalKind.BELOW_MOVING_AVERAGE)),
+            amount=Decimal(str(amount)))
+
+    return Scheduled(cadence=cadence or "once", amount=Decimal(str(amount)),
+                     day_rule=day_rule or "first_session_of_period")
+
+
 def compile_scenario(
     text: str,
     *,
@@ -588,8 +663,17 @@ def compile_scenario(
     # on an ambiguity that does not exist in it.
     has_signal = bool(_MENTIONS_SIGNAL.search(text))
     trigger = settle("trigger_semantics") if has_signal else None
+    average_window = moving_average_window(text) if has_signal else None
     if has_signal and _MENTIONS_AVERAGE.search(text):
         settle("moving_average_kind")
+        if average_window is None:
+            unresolved.append(Unresolved(
+                "moving_average_window",
+                "How many sessions does the average cover?",
+                "A 50-session and a 200-session average cross on different "
+                "days, so they are different rules producing different "
+                "purchases. Assuming one would answer a question you did not "
+                "ask."))
     if has_signal:
         settle("execution_timing")
 
@@ -700,21 +784,65 @@ def compile_scenario(
     if amount_value is None:
         question, why = _QUESTIONS["amount"]
         unresolved.append(Unresolved("amount", question, why))
-    if not cadence_value and amount_value:
+    if not cadence_value and amount_value and not has_signal:
+        # Not asked when the description mentions a condition at all, rather
+        # than asked and discarded. The user answered "once" to this question
+        # and it became one contribution for a five-year rule — a question
+        # whose answer the plan cannot honour is worse than no question,
+        # because the user is entitled to believe their answer did something.
+        #
+        # Gated on `has_signal` rather than on the trigger being settled: the
+        # trigger settles later, so the narrower test asked for a cadence on
+        # the first pass and withdrew the question on the second. A question
+        # that appears and vanishes is the same defect one round trip later.
         unresolved.append(Unresolved(
             "cadence", "How often does that contribution arrive?",
             "Contribution timing changes the money-weighted return even when the "
             "strategy is identical.",
         ))
 
-    funding = parsed.value_of("funding_source")
-    flows = FlowSchedule(
-        cadence=cadence_value or "once",
-        amount=amount_value or 0.0,
-        day_rule=day_rule or "first_session_of_period",
-        funding_source=funding.value if funding else "contribution",
-    )
-    if flows.amount <= 0 and flows.starting_capital <= 0:
+    funding_source = parsed.value_of("funding_source")
+
+    held = tuple(dict.fromkeys(tuple(parsed.assets) + tuple(identified)))
+    funding_policy = _funding_policy(
+        trigger=trigger, parsed=parsed, amount=amount_value,
+        cadence=cadence_value, day_rule=day_rule,
+        assets=held, window=average_window, priceable=priceable)
+
+    # How money arrives is one question with two policies, and a trigger is one
+    # of them.
+    #
+    # Written as a cadence *and* a rule, a plan reading "buy $1,000 every time
+    # SPY crosses below its 200-day average" compiled to `cadence=once` with
+    # the rule recorded beside it — one contribution across five years, and a
+    # figure that was really buy-and-hold. The schedule an event-funded plan
+    # carries states no cadence and no amount, so nothing downstream can read a
+    # schedule that was never described; `self_conflicts` refuses a scenario
+    # where both are stated.
+    # Gated on a policy having been *built*, not merely on a trigger being
+    # present. Emptied on the trigger alone, a plan whose subject cannot be
+    # priced — or whose window is unstated — lost its schedule and gained no
+    # policy, so it declared no money at all and was refused for having none.
+    # The honest state for such a plan is the Deployment 1 one: a schedule it
+    # keeps, and a rule this build refuses to execute.
+    from .funding import EventTriggered as _EventTriggered
+
+    event_funded = isinstance(funding_policy, _EventTriggered)
+    if event_funded:
+        flows = FlowSchedule(
+            cadence="event_triggered", amount=0.0,
+            day_rule=day_rule or "first_session_of_period",
+            funding_source=funding_source.value if funding_source else "contribution",
+        )
+    else:
+        flows = FlowSchedule(
+            cadence=cadence_value or "once",
+            amount=amount_value or 0.0,
+            day_rule=day_rule or "first_session_of_period",
+            funding_source=funding_source.value if funding_source else "contribution",
+        )
+    if (not event_funded and flows.amount <= 0
+            and flows.starting_capital <= 0):
         question, why = _QUESTIONS["starting_capital"]
         unresolved.append(Unresolved("starting_capital", question, why))
 
@@ -747,12 +875,29 @@ def compile_scenario(
             {"action": "buy_basket"},
         ]
 
+    if funding_policy is not None and trigger:
+        # Which series the condition is evaluated on, disclosed as an
+        # inference rather than assumed.
+        #
+        # "the S&P 500 crosses below its 200-day average" names an index, and
+        # this build prices instruments. The condition is therefore evaluated
+        # on the instrument the plan holds — which is a real assumption with a
+        # real consequence (an ETF and its index diverge by fees and tracking
+        # error), and the user is entitled to see it stated and to reject it.
+        inferred.append(Inference(
+            field="signal_series",
+            value=funding_policy.trigger.subject,
+            why=(f"The condition is evaluated on {funding_policy.trigger.subject}, "
+                 f"the instrument this plan holds. An index itself is not "
+                 f"priceable here, and an index and a fund tracking it do not "
+                 f"cross an average on identical days.")))
+
     scenario = ScenarioSpecification(
         name=name, version=version, objective=objective,
         event_program=event_program,
         flow_schedule=flows,
         allocation_rule=AllocationRule(
-            assets=tuple(dict.fromkeys(tuple(parsed.assets) + tuple(identified))),
+            assets=held,
             weighting=weighting or "equal_weight_at_purchase",
         ),
         holdings_policy=HoldingsPolicy(
@@ -765,6 +910,7 @@ def compile_scenario(
         tax_treatment=account or "NONE_APPLIED",
         intent_ref=intent_id,
         pending_template=parsed.template_hint,
+        funding=funding_policy,
     )
 
     # Stage 4 runs against the *compiled* form, not the prose. A check that only

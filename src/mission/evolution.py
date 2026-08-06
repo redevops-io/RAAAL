@@ -268,6 +268,52 @@ def _canonical_of(stored: Mapping[str, Any]) -> Dict[str, Any]:
                                    "flows", "inferred") if k in stored}
 
 
+def _funding_from(body):
+    """Rebuild the funding policy a plan was saved with.
+
+    `None` for bodies written before it existed, which is the honest answer:
+    reconstructing a `Scheduled` from the schedule would be this build asserting
+    what an older one meant, and reconstructing an `EventTriggered` would be
+    worse — it would claim a rule executed on a plan whose figure came from
+    buy-and-hold.
+    """
+    if not isinstance(body, Mapping) or not body.get("kind"):
+        return None
+
+    from decimal import Decimal
+
+    from .funding import (
+        Estimator,
+        EventTriggered,
+        ExecutionTiming,
+        FundingKind,
+        Scheduled,
+        Trigger,
+    )
+    from .signals import SignalKind
+
+    if body["kind"] == FundingKind.EVENT_TRIGGERED.value:
+        trigger = body.get("trigger") or {}
+        return EventTriggered(
+            trigger=Trigger(
+                subject=trigger.get("subject", ""),
+                window=int(trigger.get("window", 0)),
+                estimator=Estimator(trigger.get("estimator", "simple")),
+                kind=SignalKind(trigger.get(
+                    "kind", SignalKind.CROSSED_BELOW_MOVING_AVERAGE.value))),
+            amount=Decimal(str(body.get("amount", "0"))),
+            execution_timing=ExecutionTiming(
+                body.get("execution_timing",
+                         ExecutionTiming.NEXT_SESSION_OPEN.value)),
+            starting_capital=Decimal(str(body.get("starting_capital", "0"))))
+
+    return Scheduled(
+        cadence=body.get("cadence", "once"),
+        amount=Decimal(str(body.get("amount", "0"))),
+        day_rule=body.get("day_rule", "first_session_of_period"),
+        starting_capital=Decimal(str(body.get("starting_capital", "0"))))
+
+
 def rebuild_scenario(stored: Mapping[str, Any]):
     """Rebuild a `ScenarioSpecification` from a stored canonical body.
 
@@ -321,6 +367,7 @@ def rebuild_scenario(stored: Mapping[str, Any]):
             ) if benchmark else None),
             tax_treatment=protocol.get("tax_treatment", "NONE_APPLIED"),
             cash_policy_ref=protocol.get("cash_policy_ref", ""),
+            funding=_funding_from(flows.get("funding")),
             # Inferred values participate in the content hash, so a rebuild
             # that drops them is not the same scenario. Only field and value are
             # stored — the rationale shown at the time is not — so a replayed

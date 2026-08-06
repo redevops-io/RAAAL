@@ -148,6 +148,14 @@ def every_write(store, owner):
     access = _access_for(owner, RUN)
     call("record_access_event", lambda: store.record_access_event(
         access.access_event, owner=owner))
+    # A withdrawal names a run and an owner, so an unscoped write here would
+    # let one tenant withdraw another's result — a denial of service with a
+    # plausible explanation attached.
+    call("invalidate_run", lambda: store.invalidate_run(
+        run_id=RUN, plan_id=PLAN, owner=owner,
+        classification="RULE_NOT_EXECUTED", reason="tenancy fixture",
+        engine_version="engine/buy-and-hold-only@1",
+        at="2026-01-01T00:00:00Z"))
     call("record_run", lambda: store.record_run(
         run_id=RUN, plan_id=PLAN, ran_at="2026-01-01T00:00:00Z",
         result={**RESULT, "market_data": access.provenance.to_json()},
@@ -222,6 +230,10 @@ READ_ONLY = {
     # writes nothing — but it is owner-scoped, so `every_read` exercises it
     # and the read layer checks the scoping.
     "get_access_event", "verify_access_chain",
+    # Both read `run_invalidation` scoped to the owner. `runs_for` already
+    # joins them onto the runs it returns, so the read layer exercises the
+    # scoping through it as well.
+    "invalidations_for", "all_runs",
 }
 
 

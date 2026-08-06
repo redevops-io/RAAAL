@@ -54,9 +54,19 @@ def executed_rule_events(result: Any) -> Optional[int]:
     """
     if not isinstance(result, dict):
         return None
-    if "rule_events" not in result:
+
+    # Two places, because the producer writes it into the modelling scope —
+    # where it belongs, beside the other statements about what the figure
+    # accounts for — and an older shape may carry it at the top level. A reader
+    # that knew only one location would report every correct run as affected
+    # the day the producer moved it, and the sweep would withdraw good results.
+    scope = result.get("modelling_scope")
+    if isinstance(scope, dict) and "rule_events" in scope:
+        events = scope.get("rule_events")
+    elif "rule_events" in result:
+        events = result.get("rule_events")
+    else:
         return None
-    events = result.get("rule_events")
     if isinstance(events, int):
         return events
     if isinstance(events, (list, tuple)):
