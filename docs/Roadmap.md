@@ -17,6 +17,30 @@ The fourth bucket is the one that needs the discipline. Every invariant applied
 on this branch found something real, which is exactly why "it found something"
 cannot be the trigger for the next one.
 
+## What to go looking for
+
+The table above triages something already found. This is the other question —
+what to actively look for — and it has **two** answers, not four:
+
+- **Product discoveries.** Things users want. *"Can I backtest RSI?"* *"Can I
+  compare two strategies?"* *"Can I import my portfolio?"* These become
+  roadmap items.
+- **Operational discoveries.** Things that threaten trust. Latency spikes,
+  provider outages, confusing explanations, a disclosure nobody reads
+  correctly, a recovery taking longer than the drill said.
+
+**There is deliberately no third category for architectural discovery.** Not
+because architecture stops mattering, but because an architectural insight that
+matters will promote itself: a product feature will need it, an operational
+failure will expose it, or a second project will duplicate it. One that does
+none of those is recorded and left alone.
+
+This does not contradict the fourth bucket above. That bucket says what to do
+with an architectural finding *once you have one* — usually while doing
+something else. This says not to go hunting for them. The distinction is the
+difference between noticing and searching, and on this branch the searching was
+justified because the foundations were still being built. It is not any more.
+
 ## Phase 0 — Baseline
 
 See `docs/BaselineComplete.md` for the six criteria. Remaining:
