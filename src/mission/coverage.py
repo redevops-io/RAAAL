@@ -202,6 +202,27 @@ _CONDITIONAL_PURCHASE = re.compile(
 #: (`_CONDITIONAL_PURCHASE`), a stated second funding source
 #: (`_SCHEDULED_ALSO`), and a stated sell leg (`_SELL_LEG`).
 
+#: An amount that changes on a condition — "double it when the market falls".
+#:
+#: `_CONDITIONAL_PURCHASE` covers *whether* a purchase happens. This covers
+#: *how much*, which is a separate dimension the compiler cannot express: the
+#: base plan runs, the doubling vanishes, and coverage reported 1/1 because the
+#: element had never entered the denominator.
+#:
+#: Written knowing this list is the wrong long-term shape — the recurring
+#: failure is that a semantic dimension the compiler cannot represent falls out
+#: of the inventory entirely, and the fix for that is a compiler-derived
+#: inventory rather than one more entry. Added anyway, because the alternative
+#: is shipping a known wrong figure while the better abstraction is designed.
+_CONDITIONAL_AMOUNT = re.compile(
+    r"\b(?:double|triple|quadruple|halve|increase|decrease|reduce|raise|"
+    r"lower|boost|step\s+up|scale\s+up)\b[^.]{0,70}"
+    r"\b(?:when|whenever|if|after|once|any\s+(?:month|week|quarter|year|time))\b"
+    r"|\b(?:when|whenever|if|after|once)\b[^.]{0,70}"
+    r"\b(?:double|triple|quadruple|halve|increase|decrease|reduce|raise|"
+    r"lower|boost)\b",
+    re.IGNORECASE)
+
 _SCHEDULED_ALSO = re.compile(
     r"\b(?:also|and)\b[^.]{0,60}\b(?:invest|contribute|put|add)\b[^.]{0,40}"
     r"\b(?:every|each|per)\s+(?:month|week|quarter|year|paycheck)"
@@ -306,6 +327,21 @@ def assess(scenario: Any, *, stated_text: str = "",
                 "you described regular contributions as well as the triggered "
                 "ones, and this version can execute only one funding source "
                 "per plan"),
+        detail={}))
+
+    # --- an amount that changes on a condition ------------------------------
+    conditional_amount = bool(stated_text
+                              and _CONDITIONAL_AMOUNT.search(stated_text))
+    elements.append(DeclaredElement(
+        element_id="conditional_amount",
+        declared=conditional_amount,
+        compiled=False,
+        executed=False,
+        evidenced=False,
+        exclusion_authorized="conditional_amount" in excluded,
+        reason=("" if not conditional_amount else
+                "you described changing how much you invest when a condition "
+                "occurs, and this version contributes a fixed amount"),
         detail={}))
 
     # --- a sell leg ---------------------------------------------------------

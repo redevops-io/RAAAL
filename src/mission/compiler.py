@@ -37,6 +37,7 @@ from .defaults import DEFAULT_SET, DefaultSet
 from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpecification
 from .representation import representation_gaps
 from . import asset_identity, time_window, vocabulary
+from .funding import ExecutionTiming
 from .spec import AssetResolution, Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
 
 
@@ -239,6 +240,28 @@ _RULES: Sequence[Tuple[str, str, str]] = (
     # expressing it by ordering alone is what failed — the crossing entry was
     # already first, and lost because its pattern did not match at all.
 
+    # When the order fills, when the user says so.
+    #
+    # There was no rule for this field at all, so "I buy $1,000 of SPY *at the
+    # same day's close* whenever it crosses below" was never recognised: the
+    # default `next_session_open` was applied and recorded as an *inference*,
+    # and the page offered it back as the system's own assumption to confirm.
+    # A value the user stated, overwritten, and relabelled as our choice.
+    #
+    # `settle()` was already correct — stated wins — and never saw a stated
+    # value to prefer. `SUPPORTED_TIMING` was already correct too, and refuses
+    # same-session close because acting on the close that produced the signal
+    # reads one bar into the future. It could not fire either, because the
+    # policy always carried the default. Two correct mechanisms, and the input
+    # class that needed them never existed.
+    ("execution_timing", "same_session_close",
+     r"\b(?:at|on)\s+(?:the\s+)?same[- ](?:day|session)'?s?\s+close\b"
+     r"|\bsame[- ]day\s+close\b|\bthat\s+(?:day|session)'?s?\s+close\b"
+     r"|\bon\s+the\s+close\s+(?:of\s+)?(?:that|the\s+same)\s+(?:day|session)\b"),
+    ("execution_timing", "next_session_open",
+     r"\bnext\s+(?:session|day|morning)'?s?\s+open\b|\bnext\s+open\b"
+     r"|\bopen\s+of\s+the\s+next\s+(?:session|day)\b"),
+
     ("weighting", "equal_weight_maintained",
      r"\brebalanc\w+\b[^.]*\bequal\b|\bequal\b[^.]*\bweights?\b[^.]*\b(?:maintain|keep|rebalanc)\w*|\bkeep (?:them|the portfolio) equal\b"),
     ("weighting", "equal_weight_at_purchase",
@@ -307,6 +330,37 @@ _CADENCE = (
     ("daily", r"\b(?:every|each) day\b|\bdaily\b"),
     ("once", r"\blump sum\b|\ball at once\b|\bone ?-?off\b"),
 )
+
+#: A frequency belonging to rebalancing, not to contributions.
+#:
+#: "Allocate $100,000 across VTI, BND and GLD by inverse volatility,
+#: rebalanced monthly, past 5 years" read `monthly` as a contribution cadence,
+#: so a single $100,000 allocation was executed as $100,000 *every month* —
+#: $6,100,000 contributed against $100,000 stated, and coverage reported
+#: everything declared as executed.
+#:
+#: The comment on `annual` above records the same defect one word over: a bare
+#: adjective matched "annual rebalance" in a benchmark clause. That was fixed
+#: by deleting the bare form, which works for an adjective and not for
+#: "monthly", a word people genuinely use for contributions. So the context is
+#: read instead of the vocabulary being narrowed.
+#:
+#: How often a portfolio is rebalanced and how often money arrives are
+#: different dimensions, and one may not be read out of the other's words.
+_REBALANCING_NEARBY = re.compile(r"\brebalanc\w*\b|\brebalance[ds]?\b",
+                                 re.IGNORECASE)
+
+#: How far back to look. Long enough for "rebalanced monthly" and "rebalance
+#: the portfolio quarterly", short enough that a rebalancing clause earlier in
+#: a different sentence does not silence a real contribution cadence.
+_REBALANCING_REACH = 34
+
+
+def _belongs_to_rebalancing(text: str, start: int) -> bool:
+    """Whether the frequency word at `start` is describing a rebalance."""
+    window = text[max(0, start - _REBALANCING_REACH):start]
+    return bool(_REBALANCING_NEARBY.search(window))
+
 
 _AMOUNT = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)")
 
@@ -393,11 +447,18 @@ def parse(text: str) -> ParsedUtterance:
             claimed.add(field_name)
 
     for cadence, pattern in _CADENCE:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match and "cadence" not in claimed:
+        if "cadence" in claimed:
+            break
+        # Every occurrence, not just the first: a plan may rebalance monthly
+        # and contribute monthly in one sentence, and taking the first match
+        # would let the rebalancing clause consume the contribution's word.
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            if _belongs_to_rebalancing(text, match.start()):
+                continue
             recognitions.append(
                 Recognition("cadence", cadence, match.group(0).strip()))
             claimed.add("cadence")
+            break
 
     amount = _AMOUNT.search(text)
     if amount:
@@ -835,7 +896,7 @@ def canonical_key(prefix: str, phrase: str) -> str:
 
 
 def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
-                    assets, window=None, priceable=()):
+                    assets, window=None, priceable=(), execution_timing=None):
     """The single authority on how money arrives.
 
     Built here and nowhere else, because two builders of a funding policy would
@@ -890,7 +951,15 @@ def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
                 kind=(SignalKind.CROSSED_BELOW_MOVING_AVERAGE
                       if trigger == "crossing_event"
                       else SignalKind.BELOW_MOVING_AVERAGE)),
-            amount=Decimal(str(amount)))
+            amount=Decimal(str(amount)),
+            # Consumed, not merely settled. The field was recognised, resolved
+            # by `settle` and then dropped here, so the policy always carried
+            # the default and `SUPPORTED_TIMING` — which exists to refuse
+            # same-session close — never saw a value to refuse. Recognised,
+            # settled, and no consumption site: the same shape as an amendment
+            # that reaches nothing.
+            **({"execution_timing": ExecutionTiming(execution_timing)}
+               if execution_timing else {}))
 
     return Scheduled(cadence=cadence or "once", amount=Decimal(str(amount)),
                      day_rule=day_rule or "first_session_of_period")
@@ -1002,6 +1071,7 @@ def compile_scenario(
     # nobody mentioned is noise at best, and at worst it blocks a complete plan
     # on an ambiguity that does not exist in it.
     has_signal = bool(_MENTIONS_SIGNAL.search(text))
+    execution_timing_value = None
     trigger = settle("trigger_semantics") if has_signal else None
     average_window = moving_average_window(text) if has_signal else None
     if has_signal and _MENTIONS_AVERAGE.search(text):
@@ -1027,7 +1097,7 @@ def compile_scenario(
                     "purchases. Assuming one would answer a question you did "
                     "not ask."))
     if has_signal:
-        settle("execution_timing")
+        execution_timing_value = settle("execution_timing")
 
     # "Equally" only means something across more than one holding — so the
     # question is not *asked* for a single recognised asset. But a weighting the
@@ -1160,7 +1230,8 @@ def compile_scenario(
     funding_policy = _funding_policy(
         trigger=trigger, parsed=parsed, amount=amount_value,
         cadence=cadence_value, day_rule=day_rule,
-        assets=held, window=average_window, priceable=priceable)
+        assets=held, window=average_window, priceable=priceable,
+        execution_timing=execution_timing_value)
 
     # How money arrives is one question with two policies, and a trigger is one
     # of them.

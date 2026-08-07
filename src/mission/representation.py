@@ -43,6 +43,11 @@ CARRIES: Mapping[str, str] = {
     "amount": "flows.amount_per_period",
     "contribution_day_rule": "flows.day_rule",
     "funding_source": "flows.funding_source",
+    # Added with the recogniser, because this file is what caught the
+    # recogniser arriving without one. A stated execution timing lives on the
+    # funding policy, and a value read into nothing is how the three defects
+    # this module documents all arrived.
+    "execution_timing": "flows.funding.execution_timing",
     "account_type": "protocol.tax_treatment",
 }
 

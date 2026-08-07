@@ -341,6 +341,7 @@ def verify_proposals(
 #: watched-versus-held split has already produced one defect of its own.
 MATERIAL_EXECUTION_FIELDS: frozenset = frozenset({
     "trigger_semantics",     # crossing versus persistent: 13 signals or 60
+    "execution_timing",      # same-session close reads one bar ahead
     "moving_average_kind",   # simple and exponential cross on different days
     "funding_source",        # whether the money is new or already counted
     "cadence",               # how often money arrives at all
