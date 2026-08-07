@@ -132,12 +132,89 @@ class ParsedUtterance:
 # separate — which is exactly where a fluent model is most likely to smooth over
 # the difference, because both readings sound like the same sentence.
 
+#: An event verb applied to the level. "Crosses below" names a transition and
+#: fires once per drawdown.
+_CROSSING_LANGUAGE = re.compile(
+    r"\bcross(?:es|ed|ing)?\b[^.]{0,24}?\b(?:below|above|under|over)\b"
+    r"|\b(?:only )?on the day\b[^.]*\bcross(?:es|ed|ing)?\b",
+    re.IGNORECASE)
+
+#: State language. "Is below", "stays below", "every day it is below" name a
+#: condition that holds, and fire on each session it holds.
+#:
+#: `below|above` and deliberately not `under|over`: "trades under" is left
+#: unrecognised so it is asked about, which is the existing behaviour and the
+#: right one — it reads as either to a person.
+_PERSISTENT_LANGUAGE = re.compile(
+    r"\bwhile\b[^.]*\b(?:below|above)\b"
+    r"|\b(?:stays?|staying|stayed|remains?|remaining|remained|sits?|sitting)\b"
+    r"[^.]{0,24}?\b(?:below|above)\b"
+    r"|\b(?:every|each|any)\s+(?:day|session)\b[^.]*\b(?:below|above)\b"
+    r"|\b(?:is|are|was|were|trades?|trading|closes?|closing)\b"
+    r"[^.]{0,16}?\b(?:below|above)\b",
+    re.IGNORECASE)
+
+
+#: The closed set this field may take, declared once.
+#:
+#: `parse_model.VOCABULARY` is derived from `_RULES`, so lifting
+#: `trigger_semantics` out of that table silently removed both values from what
+#: the model is permitted to propose — and the model layer exists precisely to
+#: recognise phrasings the regexes miss. Six tests caught it. Declared here and
+#: imported there, so the resolver and the vocabulary cannot disagree.
+TRIGGER_SEMANTICS_VALUES = ("crossing_event", "persistent_condition")
+
+
+def trigger_semantics(text: str) -> Optional[str]:
+    """Crossing, persistent, or neither — by precedence, not by list order.
+
+    These are two different rules with materially different results: "every
+    time it crosses below" fires once per drawdown, "every day it is below"
+    fires on each of them, and over five years that is not a rounding
+    difference.
+
+    **An explicit event verb may never be overwritten by a broader
+    persistent-condition pattern.** That is the invariant, and it is expressed
+    here as precedence rather than as a narrower regex, because a regex
+    tightened against one phrase leaves the same hole open for the next
+    overlapping matcher someone adds.
+
+    The defect this replaces: the persistent pattern was
+    `\\bwhenever\\b[^.]*\\b(?:is |trades |closes )?(?:below|above)\\b` with the
+    qualifier optional, so it matched "whenever … below" whatever verb sat
+    between them. "I buy $1,000 of SPY whenever it crosses below its 200-day
+    moving average" resolved to the persistent reading, silently, and nothing
+    was asked — while "when it crosses below" resolved to crossing. One word
+    changed a financial rule, and the word the user wrote to say which rule
+    they meant was the one discarded. A browser agent found it by reading the
+    page back: the plan was rendered as "buys on every day the condition
+    holds" for a sentence that says *crosses*.
+
+    Returns None when both readings are present or neither is, so the caller
+    raises `trigger_semantics` as a question. Silence is the correct output
+    for an ambiguous sentence; a default here is a guess about money.
+    """
+    crossing = _CROSSING_LANGUAGE.search(text)
+    persistent = _PERSISTENT_LANGUAGE.search(text)
+    if crossing and persistent:
+        return None         # "crosses below and stays below" — genuinely both
+    crossing_value, persistent_value = TRIGGER_SEMANTICS_VALUES
+    if crossing:
+        return crossing_value
+    if persistent:
+        return persistent_value
+    return None
+
+
 _RULES: Sequence[Tuple[str, str, str]] = (
     # (field, canonical value, pattern)
-    ("trigger_semantics", "crossing_event",
-     r"\b(only )?on the day\b[^.]*\bcross(?:es|ing|ed)?\b|\bwhen\b[^.]*\bcrosses (?:below|above)\b"),
-    ("trigger_semantics", "persistent_condition",
-     r"\bwhenever\b[^.]*\b(?:is |trades |closes )?(?:below|above)\b|\bwhile\b[^.]*\b(?:below|above)\b"),
+    #
+    # `trigger_semantics` is deliberately absent: it is resolved by
+    # `trigger_semantics()` above, which applies precedence between two
+    # overlapping vocabularies. A flat first-match-wins table cannot express
+    # "an explicit crossing verb outranks a broader state pattern", and
+    # expressing it by ordering alone is what failed — the crossing entry was
+    # already first, and lost because its pattern did not match at all.
 
     ("weighting", "equal_weight_maintained",
      r"\brebalanc\w+\b[^.]*\bequal\b|\bequal\b[^.]*\bweights?\b[^.]*\b(?:maintain|keep|rebalanc)\w*|\bkeep (?:them|the portfolio) equal\b"),
@@ -270,6 +347,17 @@ def parse(text: str) -> ParsedUtterance:
     """
     recognitions: List[Recognition] = []
     claimed: set = set()
+
+    # Before the flat table, because this one is decided by precedence between
+    # two vocabularies rather than by whichever pattern is listed first.
+    semantics = trigger_semantics(text)
+    if semantics is not None:
+        source = (_CROSSING_LANGUAGE if semantics == "crossing_event"
+                  else _PERSISTENT_LANGUAGE).search(text)
+        recognitions.append(Recognition(
+            field="trigger_semantics", value=semantics,
+            span=source.group(0).strip() if source else ""))
+        claimed.add("trigger_semantics")
 
     for field_name, value, pattern in _RULES:
         if field_name in claimed:

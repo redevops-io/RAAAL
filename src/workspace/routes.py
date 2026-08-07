@@ -971,6 +971,12 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None,
         "coverage": coverage,
         "ledger": execution_ledger,
         "reconciliation": reconciliation,
+        # Carried out so the page can state the period it reported on. It was
+        # computed here, used to slice the frame, and then discarded — so the
+        # one screen that shows a figure could not say what span the figure
+        # covered, which is the first thing to check when a stated period is
+        # not honoured.
+        "resolved_window": resolved_window,
         "unavailable": None,
     }
 

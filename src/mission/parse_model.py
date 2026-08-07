@@ -47,6 +47,7 @@ from .compiler import (
     _AMOUNT,
     _CADENCE,
     _RULES,
+    TRIGGER_SEMANTICS_VALUES,
     _TEMPLATE_HINTS,
     AMBIGUOUS_NAMES,
     ParsedUtterance,
@@ -72,6 +73,11 @@ def _vocabulary() -> Dict[str, Set[str]]:
     for field_name, value, _pattern in _RULES:
         vocab.setdefault(field_name, set()).add(value)
     vocab["cadence"] = {name for name, _pattern in _CADENCE}
+    # Resolved by precedence rather than by the flat table, so it has no entry
+    # there — and deriving the vocabulary from `_RULES` alone silently stopped
+    # the model proposing either value for it. Imported rather than restated:
+    # a second copy of this pair is the stale list the docstring warns about.
+    vocab["trigger_semantics"] = set(TRIGGER_SEMANTICS_VALUES)
     return vocab
 
 

@@ -78,12 +78,42 @@ class TestThePremise:
             "this description produced no event program, so every assertion "
             "below would hold against an engine with no guard at all")
 
-    def test_without_the_trigger_answer_there_is_no_rule(self, deployment):
-        """Why the fixture settles the trigger. Stated so that a future edit
-        removing the amendment fails here rather than silently emptying the
-        whole file."""
+    def test_the_description_now_settles_its_own_trigger(self, deployment):
+        """This used to assert the opposite, and the change is the point.
+
+        The sentence says *crosses below*. It was read as a persistent
+        condition — "whenever … below" matched a broader pattern and the
+        user's own event verb was discarded — so `trigger_semantics` stayed
+        unresolved and the amendment above was what built the program.
+
+        With precedence, the pilot user's own words resolve themselves and the
+        clarification round disappears. Asserted rather than deleted, because
+        a silent return to needing the amendment would restore the defect
+        while every test in this file still passed.
+        """
         plan, _ = compiled(amendments=())
+        assert plan.scenario.event_program, (
+            "the description no longer settles its own trigger; the crossing "
+            "verb is being discarded again")
+        assert any(step.get("semantics") == "crossing_event"
+                   for step in plan.scenario.event_program), \
+            plan.scenario.event_program
+
+    def test_an_ambiguous_description_still_needs_the_answer(self, deployment):
+        """The guard the test above used to provide: prove the input class
+        where the amendment matters still exists, so an edit that stopped
+        asking anything would fail here rather than silently emptying the
+        file's premise.
+
+        "Trades under" reads as either to a person, so it is asked about.
+        """
+        ambiguous = ("I buy $1,000 of SP500 ETF every time the S&P 500 "
+                     "trades under its 200-day moving average for the past "
+                     "5 years.")
+        plan, _ = compiled(amendments=(), description=ambiguous)
         assert not plan.scenario.event_program
+        assert "trigger_semantics" in [one.field for one
+                                       in plan.scenario.provenance.unresolved]
 
 
 class TestNoFigureIsProduced:

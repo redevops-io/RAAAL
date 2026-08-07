@@ -117,6 +117,14 @@
 <div class="blocked">{{ run.unavailable }}</div>
 {% elif run and run.result %}
 <h2>What that would have done</h2>
+{# Before the figures, not after them. This is the screen where a user first
+   meets a number, and the evidence that makes it checkable used to live one
+   confirmation later on the saved-plan page. A reader who has already formed
+   a view from the returns is not going to revise it from a table below. #}
+{% with ledger=run.ledger, coverage=run.coverage,
+        resolved_window=run.resolved_window %}
+  {% include "_evidence_summary.html" %}
+{% endwith %}
 <div class="panel">
   <div class="scroll"><table>
     <tr><th>Measure</th><th class="num">Value</th><th>What it answers</th></tr>
