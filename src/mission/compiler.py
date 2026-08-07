@@ -165,6 +165,29 @@ _PERSISTENT_LANGUAGE = re.compile(
 TRIGGER_SEMANTICS_VALUES = ("crossing_event", "persistent_condition")
 
 
+def trigger_semantics_ambiguous(text: str) -> bool:
+    """Whether the sentence states both readings at once.
+
+    `trigger_semantics` returns None for two different reasons and the caller
+    cannot tell them apart: nothing matched, or *both* matched. Those mean
+    opposite things. Nothing matched is an absence the model should fill —
+    that is what the model layer is for. Both matched is a determination that
+    the sentence is ambiguous, and filling it is overriding a decision.
+
+    Left conflated, "whenever it crosses below and stays below" produced no
+    deterministic recognition, the model proposed `crossing_event` unopposed,
+    `merge` accepted it as new information, and a sentence the compiler had
+    judged ambiguous executed on one reader's opinion with no question asked.
+    Caught by a production check written to prove the opposite.
+
+    The same absent-versus-empty shape as `provenance@1`: a missing value and
+    a value known to be nothing look identical to code that tests only for
+    presence.
+    """
+    return bool(_CROSSING_LANGUAGE.search(text)
+                and _PERSISTENT_LANGUAGE.search(text))
+
+
 def trigger_semantics(text: str) -> Optional[str]:
     """Crossing, persistent, or neither — by precedence, not by list order.
 

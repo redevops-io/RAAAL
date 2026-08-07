@@ -123,6 +123,49 @@ class TestAgreementAndSilenceStillWork:
         assert tuple(accepted) == ("trigger_semantics",)
         assert not disagreements
 
+    def test_a_sentence_judged_ambiguous_is_not_settled_by_the_model(self):
+        """Silence from the deterministic reader means two different things.
+
+        "Trades under" matched neither vocabulary — a gap, and filling it is
+        what the model is for. "Crosses below and stays below" matched both,
+        which is a verdict that the sentence is ambiguous. They are
+        indistinguishable to code that tests only for a missing recognition,
+        so the model's proposal was accepted as new information and a sentence
+        the compiler had judged open executed on one reader's opinion.
+
+        Found in production by a check written to prove the opposite.
+        """
+        ambiguous = ("I buy $1,000 of SPY whenever it crosses below and stays "
+                     "below its 200-day moving average.")
+        from src.mission.compiler import parse as real_parse
+
+        det = real_parse(ambiguous)
+        assert det.value_of("trigger_semantics") is None, (
+            "premise failed: the deterministic reader settled this sentence, "
+            "so there is no ambiguity for the model to override")
+
+        values, _, accepted = run(det, proposal("trigger_semantics",
+                                                "crossing_event"))
+        assert "trigger_semantics" not in values, (
+            "the model settled a sentence the compiler judged ambiguous")
+        assert "trigger_semantics" not in accepted
+
+    def test_a_genuine_gap_is_still_filled_by_the_model(self):
+        """The other side of the same coin, and the reason this cannot simply
+        block every proposal for the field: "trades under" is unrecognised
+        rather than ambiguous, and widening recognition is the model's job."""
+        from src.mission.compiler import parse as real_parse
+
+        gap = ("I buy $1,000 of SPY whenever it trades under its 200-day "
+               "moving average.")
+        det = real_parse(gap)
+        assert det.value_of("trigger_semantics") is None
+
+        values, _, accepted = run(det, proposal("trigger_semantics",
+                                                "crossing_event"))
+        assert values["trigger_semantics"] == "crossing_event"
+        assert "trigger_semantics" in accepted
+
     def test_a_cosmetic_disagreement_does_not_block(self):
         """`dividends` is outside the scope. The deterministic reading stands
         and the conflict is recorded for anyone who wants it."""

@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, Set
 
 from .compiler import (
+    trigger_semantics_ambiguous,
     _AMOUNT,
     _CADENCE,
     _RULES,
@@ -351,6 +352,16 @@ MATERIAL_EXECUTION_FIELDS: frozenset = frozenset({
 })
 
 
+#: Fields whose deterministic reader can say "this sentence is ambiguous" as
+#: distinct from saying nothing at all. A model proposal for one of these is
+#: not new information; it is an opinion about a question already judged open.
+#:
+#: Keyed by field and consulted against the text, rather than carried on
+#: `ParsedUtterance` — that object is serialized into every saved plan and
+#: replayed from browsers, and a new field on it is a migration.
+AMBIGUOUS_WHEN = {"trigger_semantics": trigger_semantics_ambiguous}
+
+
 def merge(deterministic: ParsedUtterance,
           model_recognitions: Sequence[Recognition],
           model_assets: Sequence[str],
@@ -390,7 +401,14 @@ def merge(deterministic: ParsedUtterance,
 
     for proposal in model_recognitions:
         existing = by_field.get(proposal.field)
-        if existing is None:
+        judged_ambiguous = AMBIGUOUS_WHEN.get(proposal.field)
+        if existing is None and judged_ambiguous is not None \
+                and judged_ambiguous(deterministic.text):
+            # Silence here is a verdict, not a gap. The deterministic reader
+            # found both readings in the sentence and declined to choose; a
+            # model proposal does not settle that, it overrides it.
+            contested.add(proposal.field)
+        elif existing is None:
             combined.append(proposal)
             accepted.append(proposal.field)
         elif existing.value != proposal.value:
