@@ -308,6 +308,38 @@ class TestAShapeStampIsNotProofOfStorage:
         assert one.outcome == recovery.RECOVERABLE
         assert not one.absence_explained_by
 
+    @pytest.mark.parametrize("field", ["exclusions", "asset_resolutions"])
+    def test_one_survivor_clears_its_two_companions(self, modern, field):
+        """The old rebuild dropped all three together, so a surviving value in
+        any of them proves the build kept all three — and the empty ones are
+        empty because nothing was decided.
+
+        Without this the fix is worse than the defect it reports: every plan
+        saved from now on carries a permanent confirmation request for fields
+        that are correctly empty. The first version did that to a plan written
+        by the fixed build ten minutes after it deployed.
+        """
+        body = json.loads(json.dumps(modern["scenario"]))
+        body["provenance"]["inferred"][0]["confirmed"] = True
+        body["provenance"]["time_window"] = {"kind": "trailing",
+                                             "observed": "five years",
+                                             "years": 5, "months": None}
+        body["provenance"]["excluded"] = []
+        body["provenance"]["asset_resolutions"] = []
+        one = _field(recovery.assess({**modern, "scenario": body},
+                                     context="recovery test"), field)
+        assert one.outcome == recovery.RECOVERABLE, one.why
+        assert recovery.DISCARDED not in one.absence_explained_by
+
+    def test_all_three_empty_stays_an_open_question(self, confirmed):
+        """The honest limit. A plan that recorded no exclusions, no asset
+        resolutions and no period cannot be told apart from one that had all
+        three deleted, and guessing either way is a claim about consent."""
+        assessed = recovery.assess(confirmed, context="recovery test")
+        for field in ("exclusions", "asset_resolutions", "time_window"):
+            assert recovery.DISCARDED in \
+                _field(assessed, field).absence_explained_by
+
     def test_such_a_plan_may_not_migrate_automatically(self, confirmed):
         assert not recovery.assess(confirmed,
                                    context="recovery test").automatic
@@ -405,6 +437,31 @@ class TestDisagreementIsReportedRatherThanResolved:
     def test_agreement_is_reported_too(self, modern):
         assessed = recovery.assess(modern, context="recovery test")
         assert _field(assessed, "held_assets").agrees is True
+
+    def test_a_confirmation_is_not_reported_as_a_changed_reading(self, modern):
+        """`agrees` answers whether today's compiler reads the same words the
+        same way. Confirming an inference is not a reading, and the recompile
+        never replays confirmations — so comparing the flag reported every
+        confirmed plan as drifted, blaming a compiler change that never
+        happened."""
+        body = json.loads(json.dumps(modern["scenario"]))
+        for one in body["provenance"]["inferred"]:
+            one["confirmed"] = True
+        one = _field(recovery.assess({**modern, "scenario": body},
+                                     context="recovery test"), "inferred")
+        assert one.agrees is not False, (
+            "a confirmed inference was read as the compiler having changed "
+            "its interpretation")
+
+    def test_a_genuinely_changed_inference_still_disagrees(self, modern):
+        """The control. Ignoring `confirmed` must not blind the comparison to
+        the value the inference actually carries."""
+        body = json.loads(json.dumps(modern["scenario"]))
+        assert body["provenance"]["inferred"], "nothing to change"
+        body["provenance"]["inferred"][0]["value"] = "something-else-entirely"
+        one = _field(recovery.assess({**modern, "scenario": body},
+                                     context="recovery test"), "inferred")
+        assert one.agrees is False
 
 
 class TestNothingIsReadFromRenderedProse:

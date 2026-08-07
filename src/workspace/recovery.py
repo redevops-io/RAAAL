@@ -127,6 +127,52 @@ def confirmation_rebuilt(body) -> bool:
                for one in entries)
 
 
+def _comparable(name: str, value):
+    """A stored value reduced to what a recompile could reproduce.
+
+    `agrees` answers one question: does today's compiler read the same words
+    the same way. `confirmed` is not a reading — it records that a person
+    agreed to an inference — and the recompile below never replays
+    confirmations, because confirming is a route concern rather than a
+    compiler one.
+
+    Left in, every plan whose owner confirmed anything reported `inferred` as
+    disagreeing, for ever, and the stated reason was that the compiler had
+    changed. It had not. A false reason on a true refusal is still a false
+    reason, and this one would have been read as evidence of drift that does
+    not exist.
+    """
+    if name != "inferred" or not isinstance(value, list):
+        return value
+    return [{k: v for k, v in one.items() if k != "confirmed"}
+            if isinstance(one, dict) else one for one in value]
+
+
+def _rebuild_was_lossy(body) -> bool:
+    """Whether this plan's confirmation actually cost it anything.
+
+    The old rebuild dropped all three fields together — it constructed a
+    `Provenance` without naming any of them — so one surviving with a value
+    proves the plan was written by a build that kept all three, and the empty
+    ones are empty because the owner decided nothing.
+
+    Without this, every plan saved from now on would be reported as needing
+    its owner's confirmation for fields that are genuinely and correctly
+    empty, for ever. The first version did exactly that to a plan saved by the
+    fixed build ten minutes after it deployed.
+
+    When all three are empty the question stays open, which is the honest
+    answer: a plan that recorded no exclusions, no asset resolutions and no
+    period is indistinguishable from one that had them deleted.
+    """
+    if not confirmation_rebuilt(body):
+        return False
+    provenance = (body or {}).get("provenance")
+    if not isinstance(provenance, dict):
+        return True
+    return not any(provenance.get(key) for key in DROPPED_BY_CONFIRMATION)
+
+
 #: Every key of `ScenarioSpecification.semantic_form`, which is the set the
 #: preview/save equivalence gate compares. Anything that can change a result
 #: is in one list or the other; keeping them the same set is what stops this
@@ -298,7 +344,7 @@ def assess(record: Dict[str, Any], *, context: str = "plan recovery") -> PlanRec
     fresh_body = fresh.to_json()
 
     questions = tuple(one.field for one in fresh.provenance.unresolved)
-    rebuilt_by_confirmation = confirmation_rebuilt(body)
+    rebuilt_by_confirmation = _rebuild_was_lossy(body)
 
     found = []
     for field in FIELDS:
@@ -352,7 +398,8 @@ def assess(record: Dict[str, Any], *, context: str = "plan recovery") -> PlanRec
 
         agrees = None
         if known and fresh_present:
-            agrees = stored_value == fresh_value
+            agrees = _comparable(field.name, stored_value) == \
+                _comparable(field.name, fresh_value)
 
         if known:
             outcome, why = RECOVERABLE, "present in the stored structured body"

@@ -179,6 +179,40 @@ def create_app() -> FastAPI:
     # an operator is actually reading.
     log = logging.getLogger("uvicorn.error")
 
+    # And the same for everything else under `src`, not just this module.
+    #
+    # Borrowing uvicorn's logger by hand fixed the one line whose absence was
+    # noticed. Every other module still called `getLogger(__name__)` into a
+    # logger with nowhere to send anything, so `parse_model`'s "stage1
+    # provider call" — written, with a comment saying so, expressly to be
+    # counted against a live server — was never emitted by one. Three reopens
+    # of a saved plan logged zero provider calls, and a fresh draft that
+    # certainly made one logged zero as well. The measurement said what we
+    # wanted to hear because it could not say anything else.
+    #
+    # Attached at the package so a module needs to do nothing to be heard.
+    # The per-module alternative is a convention, and this is what happened to
+    # the convention.
+    package = logging.getLogger(__package__ or "src")
+    if not package.handlers:
+        source = log
+        while source and not source.handlers:
+            source = source.parent
+        package.handlers = list(source.handlers) if source else []
+    package.setLevel(logging.INFO)
+    package.propagate = False
+
+    # Emitted through a deep module's own logger, not through `log`. That is
+    # the whole claim: a module far from this file, using
+    # `getLogger(__name__)` and doing nothing special, is heard.
+    #
+    # It exists so a count taken from these logs has a premise. "Zero provider
+    # calls on reopen" was reported from a stream that could not carry the
+    # line at all, and read as a clean result. A measurement is worth nothing
+    # until something has shown it can produce a non-zero.
+    logging.getLogger("src.mission.parse_model").info(
+        "instrumentation self-test: package logging reaches the operator log")
+
     # Resolve, judge *that object*, then serve under it. The preflight once
     # validated PostgreSQL while the store opened a local SQLite file, because
     # each read the environment for itself and neither was wrong on its own

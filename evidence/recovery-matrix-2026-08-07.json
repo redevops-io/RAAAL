@@ -1,0 +1,1166 @@
+[
+ {
+  "title": "SPX 200DMA",
+  "saved_at": "2026-08-05T14:12:04.828141+00:00",
+  "conditions": [
+   "FUNDING_POLICY_NOT_PERSISTED",
+   "CONFIRMATION_DISCARDED_PROVENANCE"
+  ],
+  "assessment": {
+   "plan_id": "plan-b1ffe1f2bb24434993bf5975e2b449fa",
+   "version": "plan-recovery@1",
+   "provenance_shape": "provenance@1",
+   "automatic": false,
+   "replayed_decisions": 0,
+   "open_questions": [
+    "funding_source",
+    "account_type",
+    "asset_identity:sp500-etf",
+    "unclear:total-amount-and-return-now"
+   ],
+   "fields": [
+    {
+     "field": "held_assets",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "weighting",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "funding",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "NO_DECISION_WAS_RECORDED"
+     ],
+     "agrees": null,
+     "why": "absent, and blocked on a question the recompile is still asking rather than on anything lost"
+    },
+    {
+     "field": "flows",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "event_program",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "holdings_policy",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "tax_treatment",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "benchmark_set",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "spec_version",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "inferred",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "time_window",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": false,
+     "absence_explained_by": [
+      "THE_PLAN_PREDATES_THE_FIELD",
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "amendments",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": false,
+     "absence_explained_by": [
+      "THE_PLAN_PREDATES_THE_FIELD"
+     ],
+     "agrees": null,
+     "why": "a decision that was never written down; a recompile asks for it again"
+    },
+    {
+     "field": "exclusions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": false,
+     "absence_explained_by": [
+      "THE_PLAN_PREDATES_THE_FIELD",
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "asset_resolutions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": false,
+     "absence_explained_by": [
+      "THE_PLAN_PREDATES_THE_FIELD",
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    }
+   ]
+  }
+ },
+ {
+  "title": "agent ORIG-2",
+  "saved_at": "2026-08-06T19:25:06.957908+00:00",
+  "conditions": [
+   "FUNDING_POLICY_NOT_PERSISTED",
+   "CONFIRMATION_DISCARDED_PROVENANCE"
+  ],
+  "assessment": {
+   "plan_id": "plan-419541b7cb2c428cb69db653408f64fb",
+   "version": "plan-recovery@1",
+   "provenance_shape": "provenance@2",
+   "automatic": false,
+   "replayed_decisions": 3,
+   "open_questions": [
+    "asset_identity:s-p-500"
+   ],
+   "fields": [
+    {
+     "field": "held_assets",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "weighting",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "funding",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "NO_DECISION_WAS_RECORDED"
+     ],
+     "agrees": null,
+     "why": "absent, and determined by the description and the pinned parse alone"
+    },
+    {
+     "field": "flows",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "event_program",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "holdings_policy",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "tax_treatment",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "benchmark_set",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "spec_version",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "inferred",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "time_window",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "amendments",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "exclusions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "asset_resolutions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    }
+   ]
+  }
+ },
+ {
+  "title": "agent ORIG-5",
+  "saved_at": "2026-08-06T19:27:50.672625+00:00",
+  "conditions": [
+   "FUNDING_POLICY_NOT_PERSISTED",
+   "CONFIRMATION_DISCARDED_PROVENANCE"
+  ],
+  "assessment": {
+   "plan_id": "plan-d46e7fbfca494d5fa5de40df5929f9ad",
+   "version": "plan-recovery@1",
+   "provenance_shape": "provenance@2",
+   "automatic": false,
+   "replayed_decisions": 2,
+   "open_questions": [],
+   "fields": [
+    {
+     "field": "held_assets",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "weighting",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "funding",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "NO_DECISION_WAS_RECORDED"
+     ],
+     "agrees": null,
+     "why": "absent, and determined by the description and the pinned parse alone"
+    },
+    {
+     "field": "flows",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "event_program",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "holdings_policy",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "tax_treatment",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "benchmark_set",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "spec_version",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "inferred",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "time_window",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "amendments",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "exclusions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "asset_resolutions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    }
+   ]
+  }
+ },
+ {
+  "title": "agent ORIG-6",
+  "saved_at": "2026-08-06T19:28:18.318694+00:00",
+  "conditions": [
+   "FUNDING_POLICY_NOT_PERSISTED",
+   "CONFIRMATION_DISCARDED_PROVENANCE"
+  ],
+  "assessment": {
+   "plan_id": "plan-7170a08b1b6c4296ac1a799b06c50282",
+   "version": "plan-recovery@1",
+   "provenance_shape": "provenance@2",
+   "automatic": false,
+   "replayed_decisions": 2,
+   "open_questions": [],
+   "fields": [
+    {
+     "field": "held_assets",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "weighting",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "funding",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "NO_DECISION_WAS_RECORDED"
+     ],
+     "agrees": null,
+     "why": "absent, and determined by the description and the pinned parse alone"
+    },
+    {
+     "field": "flows",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "event_program",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "holdings_policy",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "tax_treatment",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "benchmark_set",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "spec_version",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "inferred",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "time_window",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "amendments",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "exclusions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "asset_resolutions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    }
+   ]
+  }
+ },
+ {
+  "title": "agent ORIG-8",
+  "saved_at": "2026-08-06T19:29:55.529207+00:00",
+  "conditions": [
+   "FUNDING_POLICY_NOT_PERSISTED",
+   "CONFIRMATION_DISCARDED_PROVENANCE"
+  ],
+  "assessment": {
+   "plan_id": "plan-0f25635446d143a6a9ab64ad9e73e555",
+   "version": "plan-recovery@1",
+   "provenance_shape": "provenance@2",
+   "automatic": false,
+   "replayed_decisions": 2,
+   "open_questions": [],
+   "fields": [
+    {
+     "field": "held_assets",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "weighting",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "funding",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "NO_DECISION_WAS_RECORDED"
+     ],
+     "agrees": null,
+     "why": "absent, and determined by the description and the pinned parse alone"
+    },
+    {
+     "field": "flows",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "event_program",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "holdings_policy",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "tax_treatment",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "benchmark_set",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "spec_version",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "inferred",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": false,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "time_window",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "amendments",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "exclusions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "asset_resolutions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    }
+   ]
+  }
+ },
+ {
+  "title": "canary control",
+  "saved_at": "2026-08-06T23:54:33.087870+00:00",
+  "conditions": [
+   "CONFIRMATION_DISCARDED_PROVENANCE"
+  ],
+  "assessment": {
+   "plan_id": "plan-629257d38ecc43c3a87aefcec542269d",
+   "version": "plan-recovery@1",
+   "provenance_shape": "provenance@2",
+   "automatic": false,
+   "replayed_decisions": 2,
+   "open_questions": [],
+   "fields": [
+    {
+     "field": "held_assets",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "weighting",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "funding",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "flows",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "event_program",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "holdings_policy",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "tax_treatment",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "benchmark_set",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "spec_version",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "inferred",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "time_window",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "amendments",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "exclusions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    },
+    {
+     "field": "asset_resolutions",
+     "outcome": "REQUIRES_OWNER_CONFIRMATION",
+     "stored": false,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+     ],
+     "agrees": null,
+     "why": "the confirmation rebuild discarded this field, so its absence cannot be told apart from no decision having been made"
+    }
+   ]
+  }
+ },
+ {
+  "title": "canary control",
+  "saved_at": "2026-08-07T00:40:32.548706+00:00",
+  "conditions": [],
+  "assessment": {
+   "plan_id": "plan-cda4b26b1bb842599d0c572ad2396135",
+   "version": "plan-recovery@1",
+   "provenance_shape": "provenance@2",
+   "automatic": true,
+   "replayed_decisions": 2,
+   "open_questions": [],
+   "fields": [
+    {
+     "field": "held_assets",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "weighting",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "funding",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "flows",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "event_program",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "holdings_policy",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "tax_treatment",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "benchmark_set",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "spec_version",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "inferred",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "time_window",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "amendments",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": true,
+     "shape_supports": true,
+     "absence_explained_by": [],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "exclusions",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "NO_DECISION_WAS_RECORDED"
+     ],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    },
+    {
+     "field": "asset_resolutions",
+     "outcome": "RECOVERABLE_FROM_STRUCTURE",
+     "stored": true,
+     "rederived": false,
+     "shape_supports": true,
+     "absence_explained_by": [
+      "NO_DECISION_WAS_RECORDED"
+     ],
+     "agrees": true,
+     "why": "present in the stored structured body"
+    }
+   ]
+  }
+ }
+]

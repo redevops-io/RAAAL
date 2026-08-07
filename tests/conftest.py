@@ -20,6 +20,7 @@ run on, and deliberately not calibrated to anything.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 
@@ -63,6 +64,88 @@ def no_model_calls(request, monkeypatch):
     except Exception:                                           # pragma: no cover
         return
     monkeypatch.setattr(routes, "_parser_client", lambda: None, raising=False)
+
+
+def _tree_state():
+    """HEAD, the working-tree digest, and the untracked-file inventory.
+
+    Three parts because they fail differently. `HEAD` catches a commit or a
+    checkout mid-run; the porcelain digest catches an edit to a tracked file;
+    the untracked inventory catches a new file appearing, which is the one the
+    other two miss and the one that happens when a test file is being written
+    while the suite runs.
+
+    Returns None outside a git checkout, where there is nothing to compare and
+    a hard failure would be noise.
+    """
+    import subprocess
+
+    def run(*args):
+        done = subprocess.run(("git",) + args, capture_output=True, text=True,
+                              cwd=str(Path(__file__).resolve().parent.parent))
+        return done.stdout if done.returncode == 0 else None
+
+    head = run("rev-parse", "HEAD")
+    if head is None:
+        return None
+    # The diff, not the status listing. `git status --porcelain` prints
+    # ` M src/foo.py` whether a file was changed once or ten times, so
+    # appending to a file that was already modified left the digest identical
+    # — which is exactly the situation during this branch, where the tree is
+    # never clean. Caught by testing the guard against the case it was written
+    # for rather than against a clean checkout.
+    tracked = run("diff", "HEAD") or ""
+    untracked = run("ls-files", "--others", "--exclude-standard") or ""
+    return {
+        "head": head.strip(),
+        "tracked": hashlib.sha256(tracked.encode()).hexdigest(),
+        "untracked": tuple(sorted(untracked.split())),
+    }
+
+
+def pytest_sessionstart(session):
+    """A suite run is evidence only if the code under test held still for it.
+
+    Twice on this branch a full run was invalidated by an edit landing while
+    it was in flight — once a source file, once a new test file — and both
+    times the rule that would have prevented it was a convention someone had
+    to remember. It is checked here instead.
+    """
+    session.config._tree_at_start = _tree_state()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    before = getattr(session.config, "_tree_at_start", None)
+    after = _tree_state()
+    if before is None or after is None or before == after:
+        return
+
+    changed = []
+    if before["head"] != after["head"]:
+        changed.append(f"HEAD {before['head'][:12]} -> {after['head'][:12]}")
+    if before["tracked"] != after["tracked"]:
+        changed.append("a tracked file was modified")
+    added = set(after["untracked"]) - set(before["untracked"])
+    removed = set(before["untracked"]) - set(after["untracked"])
+    if added:
+        changed.append(f"untracked appeared: {', '.join(sorted(added)[:5])}")
+    if removed:
+        changed.append(f"untracked removed: {', '.join(sorted(removed)[:5])}")
+
+    # Written to the terminal *and* made the exit status, because a warning at
+    # the end of four thousand lines of output is a warning nobody reads. The
+    # run may have been entirely green; the point is that its greenness is no
+    # longer about any one version of the code.
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter is not None:
+        reporter.write_line("")
+        reporter.write_line(
+            "INVALIDATED: source tree changed during execution — "
+            + "; ".join(changed), red=True, bold=True)
+        reporter.write_line(
+            "  The result above describes no single version of the code. "
+            "Re-run against a frozen tree.", red=True)
+    session.exitstatus = 3
 
 
 def pytest_configure(config: pytest.Config) -> None:
