@@ -337,6 +337,13 @@ def health() -> Dict[str, Any]:
     }
 
 
+def _service_data_policy() -> Optional[Dict[str, Any]]:
+    """The synthetic-data disclosure, or None when the data is licensed."""
+    from .workspace.routes import _data_notice
+
+    return _data_notice()
+
+
 @app.get("/info")
 def info() -> Dict[str, Any]:
     concepts = _registry.concepts()
@@ -355,6 +362,18 @@ def info() -> Dict[str, Any]:
                 "published backtest under the SEC Marketing Rule."
             ),
         },
+        # The single most important caveat about every figure this service
+        # produces, on the surface that describes the service.
+        #
+        # `/info` is linked from every page footer as "Service details" and is
+        # what an integrator reads. It carried the demo notice and the licence
+        # and said nothing about the numbers being invented, so the disclosure
+        # on every HTML page stopped at the one endpoint that exists to answer
+        # "what is this".
+        #
+        # Read from `_data_notice` rather than restated: a second copy of a
+        # disclosure is the one that goes stale when the policy changes.
+        "data_policy": _service_data_policy(),
         "methodologies": concepts,
         "license": LICENSE_NOTICE,
     }
