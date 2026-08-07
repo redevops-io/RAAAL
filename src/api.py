@@ -43,11 +43,18 @@ SOURCE_URL = "https://github.com/redevops-io/RAAAL"
 #: offered its source. Serving it from the API root is how that offer is made
 #: visible rather than merely satisfied in the repository.
 LICENSE_NOTICE = {
-    "license": "AGPL-3.0-or-later",
+    # The §13 entitlement is unchanged by the Commons Clause — that condition
+    # removes the right to *sell*, and says nothing about offering source. Both
+    # are named because naming only the first would now be inaccurate, and this
+    # object is the machine-readable statement of what the service is.
+    "license": "AGPL-3.0-or-later WITH Commons-Clause",
+    "spdx": "LicenseRef-AGPL-3.0-or-later-with-Commons-Clause",
     "source": SOURCE_URL,
     "notice": (
-        "This service is AGPL-3.0-or-later. You are entitled to the complete "
-        "corresponding source of the version running here."
+        "This service is AGPL-3.0-or-later with the Commons Clause condition. "
+        "You are entitled to the complete corresponding source of the version "
+        "running here. The Commons Clause additionally withholds the right to "
+        "sell this software."
     ),
 }
 

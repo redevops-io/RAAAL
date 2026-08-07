@@ -150,3 +150,69 @@ class TestItReachesThePlan:
         assert len(runs[0]["result"].time_weighted) < \
             len(runs[1]["result"].time_weighted), (
             "the stated five years did not narrow anything")
+
+
+class TestTheModelCannotSupplyWhatTheReaderDeclined:
+    """The fix above works on the deterministic reader and was defeated in
+    production by the other one.
+
+    Having stopped the regex taking "rebalanced monthly" as a contribution
+    cadence, the model proposed exactly that:
+
+        {"field": "cadence", "value": "monthly", "span": "rebalanced monthly"}
+
+    and `merge` accepted it, because a reader that has *declined* to read a
+    field is indistinguishable from one that simply did not see it. The plan
+    contributed $100,000 a month again, from the other reader — the corpus
+    caught it because the figure had not moved.
+
+    Third instance of silence-as-verdict being read as silence-as-gap. The
+    span makes this one answerable: the model must quote the words it relied
+    on, so the same context rule is applied to the quotation.
+    """
+
+    SENTENCE = ("Allocate $100,000 across VTI, BND and GLD by inverse "
+                "volatility, rebalanced monthly, past 5 years.")
+
+    def merged(self, text, span):
+        from src.mission.compiler import Recognition, parse
+        from src.mission.parse_model import merge
+
+        combined, _a, _u, _c, _d, accepted = merge(
+            parse(text), (Recognition("cadence", "monthly", span),), (), ())
+        return ({one.field: one.value for one in combined}.get("cadence"),
+                list(accepted))
+
+    def test_the_premise_that_the_reader_declined(self):
+        from src.mission.compiler import parse
+
+        assert parse(self.SENTENCE).value_of("cadence") is None, (
+            "the deterministic reader still takes a rebalancing frequency as "
+            "a cadence, so this test is about the wrong layer")
+
+    def test_a_rebalancing_span_is_refused(self):
+        cadence, accepted = self.merged(self.SENTENCE, "rebalanced monthly")
+        assert cadence is None, (
+            "the model supplied a contribution cadence quoting a rebalancing "
+            "phrase; the $6,100,000 figure comes back")
+        assert accepted == []
+
+    def test_the_bare_word_inside_that_clause_is_refused_too(self):
+        """A proposal quoting only "monthly" from the same clause is the same
+        claim with a shorter quotation."""
+        assert self.merged(self.SENTENCE, "monthly")[0] is None
+
+    def test_a_genuine_contribution_cadence_is_still_accepted(self):
+        """The model's purpose. A rule that refused every cadence proposal
+        would pass both tests above and remove the layer."""
+        text = "I put $500 into VTI a month, past 5 years."
+        cadence, accepted = self.merged(text, "a month")
+        assert cadence == "monthly"
+        assert accepted == ["cadence"]
+
+    def test_a_fabricated_span_is_still_refused_by_the_older_check(self):
+        """The two checks answer different questions: whether the words exist,
+        and whether they mean this in context."""
+        from src.mission.compiler import cadence_span_is_rebalancing
+
+        assert not cadence_span_is_rebalancing(self.SENTENCE, "never written")

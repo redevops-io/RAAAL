@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, Set
 
 from .compiler import (
+    cadence_span_is_rebalancing,
     trigger_semantics_ambiguous,
     _AMOUNT,
     _CADENCE,
@@ -362,6 +363,15 @@ MATERIAL_EXECUTION_FIELDS: frozenset = frozenset({
 #: replayed from browsers, and a new field on it is a migration.
 AMBIGUOUS_WHEN = {"trigger_semantics": trigger_semantics_ambiguous}
 
+#: Per-field checks on the *evidence* a proposal quotes, not just on whether
+#: the span appears in the text.
+#:
+#: The span check catches fabrication — words the user never wrote. This
+#: catches words the user wrote in a context that means something else, which
+#: is how "rebalanced monthly" arrived as a contribution cadence after the
+#: deterministic reader had stopped taking it.
+DISQUALIFIED_SPAN = {"cadence": cadence_span_is_rebalancing}
+
 
 def merge(deterministic: ParsedUtterance,
           model_recognitions: Sequence[Recognition],
@@ -398,10 +408,16 @@ def merge(deterministic: ParsedUtterance,
     disagreements: List[Disagreement] = []
     accepted: List[str] = []
     contested: set = set()
+    rejected_spans: List[str] = []
     combined = list(deterministic.recognitions)
 
     for proposal in model_recognitions:
         existing = by_field.get(proposal.field)
+        disqualifies = DISQUALIFIED_SPAN.get(proposal.field)
+        if disqualifies is not None and disqualifies(deterministic.text,
+                                                     proposal.span):
+            rejected_spans.append(proposal.field)
+            continue
         judged_ambiguous = AMBIGUOUS_WHEN.get(proposal.field)
         if existing is None and judged_ambiguous is not None \
                 and judged_ambiguous(deterministic.text):

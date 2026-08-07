@@ -362,6 +362,37 @@ def _belongs_to_rebalancing(text: str, start: int) -> bool:
     return bool(_REBALANCING_NEARBY.search(window))
 
 
+def cadence_span_is_rebalancing(text: str, span: str) -> bool:
+    """Whether a proposed cadence quotes a rebalancing phrase as its evidence.
+
+    Checked against the model's own span. Having stopped the deterministic
+    reader taking "rebalanced monthly" as a contribution cadence, the model
+    proposed exactly that — `{"field": "cadence", "value": "monthly", "span":
+    "rebalanced monthly"}` — and `merge` accepted it, because a reader that has
+    *declined* to read a field looks identical to one that simply did not see
+    it. So the plan contributed $100,000 every month again, from the other
+    reader.
+
+    Third instance of the shape: silence as a verdict, read as silence as a
+    gap. The span makes this one cheap to answer — the model is required to
+    quote the words it relied on, so the same context rule can be applied to
+    the quotation.
+    """
+    if not text or not span:
+        return False
+    at = text.lower().find(span.strip().lower())
+    if at < 0:
+        return False
+    # The frequency word inside the span, not the span's own start: "rebalanced
+    # monthly" begins with the disqualifying word, so measuring from the start
+    # would look backwards past it.
+    inner = re.search(r"\b(?:month|week|quarter|year|day)\w*\b|\bmonthly\b"
+                      r"|\bweekly\b|\bquarterly\b|\bannually\b|\bdaily\b",
+                      span, re.IGNORECASE)
+    offset = at + (inner.start() if inner else len(span))
+    return _belongs_to_rebalancing(text, offset)
+
+
 _AMOUNT = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)")
 
 #: Whether the description implies a market signal at all. Without one there is
