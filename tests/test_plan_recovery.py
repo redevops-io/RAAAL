@@ -227,6 +227,92 @@ class TestAbsentIsNotEmpty:
                 == legacy["scenario"]["methodology"])
 
 
+class TestAShapeStampIsNotProofOfStorage:
+    """`_with_decisions` rebuilt the provenance from five of eight names, so a
+    `provenance@2` plan can carry the stamp — the serializer had the field —
+    and still have been stored without it, because a later rebuild erased it.
+
+    Three questions that were one:
+
+        the shape supports the field
+        the field was actually persisted
+        the field may have been discarded during confirmation
+    """
+
+    @pytest.fixture
+    def confirmed(self, modern):
+        """A `@2` plan whose owner confirmed an inference, with the three
+        fields `_with_decisions` used to erase now absent — exactly what the
+        four production plans look like."""
+        body = json.loads(json.dumps(modern["scenario"]))
+        entries = body["provenance"]["inferred"]
+        assert entries, "no inference to confirm; the marker cannot appear"
+        entries[0]["confirmed"] = True
+        for key in ("excluded", "asset_resolutions", "time_window"):
+            body["provenance"].pop(key, None)
+        return {**modern, "plan_id": "plan-confirmed", "scenario": body}
+
+    def test_the_marker_is_read_from_the_body(self, confirmed, modern):
+        """Derived from a stored `confirmed`, not from a date or a build
+        number — those need a table mapping builds to behaviour, and the table
+        is what goes stale."""
+        assert recovery.confirmation_rebuilt(confirmed["scenario"])
+        assert not recovery.confirmation_rebuilt(modern["scenario"])
+
+    @pytest.mark.parametrize("field", ["exclusions", "asset_resolutions",
+                                       "time_window"])
+    def test_an_erased_field_is_not_read_as_no_decision(self, confirmed,
+                                                        field):
+        one = _field(recovery.assess(confirmed, context="recovery test"), field)
+        assert one.shape_supports, (
+            "the stamp says the serializer had this field; reporting it as "
+            "unsupported confuses the plan's age with what happened to it")
+        assert recovery.DISCARDED in one.absence_explained_by
+        assert recovery.NO_DECISION not in one.absence_explained_by, (
+            "an absence a rebuild could have caused was read as the owner "
+            "having decided nothing — a claim about consent, from a field "
+            "that was deleted")
+
+    def test_amended_is_not_explained_this_way(self, confirmed):
+        """The old rebuild did name `amended`, so its loss is not explicable
+        by confirmation, and an empty one still means the owner answered
+        nothing. Getting this wrong sends a confirmation request to every user
+        who never had a question to answer.
+
+        `amended` is emptied here deliberately. The fixture carries two
+        amendments, so the branch under test is never reached with them
+        present — a mutation that marked every field discarded survived this
+        test until the case existed.
+        """
+        body = json.loads(json.dumps(confirmed["scenario"]))
+        body["provenance"]["amended"] = []
+        one = _field(recovery.assess({**confirmed, "scenario": body},
+                                     context="recovery test"), "amendments")
+        assert recovery.DISCARDED not in one.absence_explained_by, (
+            "an empty amendment list was blamed on the confirmation rebuild, "
+            "which never touched it")
+        assert recovery.NO_DECISION in one.absence_explained_by
+
+    def test_a_surviving_field_is_still_trusted(self, modern):
+        """A plan that confirmed something and still has the field was written
+        by a build that preserved it. Treating its value as suspect would
+        refuse a plan that is intact."""
+        body = json.loads(json.dumps(modern["scenario"]))
+        body["provenance"]["inferred"][0]["confirmed"] = True
+        body["provenance"]["time_window"] = {"kind": "trailing",
+                                             "observed": "five years",
+                                             "years": 5, "months": None}
+        one = _field(recovery.assess({**modern, "scenario": body},
+                                     context="recovery test"), "time_window")
+        assert one.stored
+        assert one.outcome == recovery.RECOVERABLE
+        assert not one.absence_explained_by
+
+    def test_such_a_plan_may_not_migrate_automatically(self, confirmed):
+        assert not recovery.assess(confirmed,
+                                   context="recovery test").automatic
+
+
 class TestTheThreeOutcomes:
     def test_a_derivation_is_recovered_without_asking(self, legacy):
         """`funding` and `time_window` are functions of the user's own words.

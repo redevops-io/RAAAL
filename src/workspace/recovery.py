@@ -89,6 +89,44 @@ class Field:
 DROPPED_BY_PROVENANCE_1 = ("amended", "excluded", "asset_resolutions",
                            "time_window")
 
+#: The three `_with_decisions` erased whenever the owner confirmed anything.
+#: It rebuilt `Provenance` naming five of eight fields, and these were the
+#: three it did not name — so a plan can carry a `provenance@2` stamp, meaning
+#: the serializer supported them, and still have been stored without them.
+#:
+#: `amended` is absent from this list on purpose: the old rebuild did name it,
+#: so an amendment lost to a `@2` plan is not explicable this way.
+DROPPED_BY_CONFIRMATION = ("excluded", "asset_resolutions", "time_window")
+
+#: What an absence can mean. More than one applying is the finding: absence
+#: stops being interpretable, and a field nobody can interpret cannot be
+#: migrated on the system's own authority.
+NO_DECISION = "NO_DECISION_WAS_RECORDED"
+PREDATES_FIELD = "THE_PLAN_PREDATES_THE_FIELD"
+DISCARDED = "DISCARDED_WHEN_AN_INFERENCE_WAS_CONFIRMED"
+
+
+def confirmation_rebuilt(body) -> bool:
+    """Whether this plan went through the rebuild that dropped three fields.
+
+    `_with_decisions` returned its input untouched when nothing was agreed, so
+    a stored inference marked `confirmed` is the marker: it is the only thing
+    that could have put it there, and it is written by the same call that did
+    the dropping.
+
+    Derived from the stored body rather than from a date or a build number.
+    Both of those would need a table mapping builds to behaviour, and the
+    table is the thing that goes stale.
+    """
+    provenance = (body or {}).get("provenance")
+    entries = ((provenance or {}).get("inferred")
+               if isinstance(provenance, dict) else None)
+    if entries is None:
+        entries = (body or {}).get("inferred") or ()
+    return any(isinstance(one, dict) and one.get("confirmed")
+               for one in entries)
+
+
 #: Every key of `ScenarioSpecification.semantic_form`, which is the set the
 #: preview/save equivalence gate compares. Anything that can change a result
 #: is in one list or the other; keeping them the same set is what stops this
@@ -119,17 +157,31 @@ class FieldRecovery:
     outcome: str
     stored: bool
     rederived: bool
-    agrees: Optional[bool]
+    shape_supports: bool = True
+    """Whether the serializer that wrote this plan had the field at all.
+
+    Separate from `stored`, because they answer different questions and were
+    conflated at first. A `provenance@2` stamp says the field *could* have
+    been written; it does not say it was.
+    """
+
+    absence_explained_by: tuple = ()
+    """Every reading an absence admits. One entry is an answer; more than one
+    means the absence carries no information and the owner must be asked."""
+
+    agrees: Optional[bool] = None
     """Whether the stored value and a fresh compile agree, when both exist.
     `False` is not a recovery problem — it means the compiler now reads the
     same words differently, which is a separate thing an owner must be told
     about before anything is replayed."""
 
-    why: str
+    why: str = ""
 
     def to_json(self) -> Dict[str, Any]:
         return {"field": self.field, "outcome": self.outcome,
                 "stored": self.stored, "rederived": self.rederived,
+                "shape_supports": self.shape_supports,
+                "absence_explained_by": list(self.absence_explained_by),
                 "agrees": self.agrees, "why": self.why}
 
 
@@ -246,6 +298,7 @@ def assess(record: Dict[str, Any], *, context: str = "plan recovery") -> PlanRec
     fresh_body = fresh.to_json()
 
     questions = tuple(one.field for one in fresh.provenance.unresolved)
+    rebuilt_by_confirmation = confirmation_rebuilt(body)
 
     found = []
     for field in FIELDS:
@@ -262,9 +315,39 @@ def assess(record: Dict[str, Any], *, context: str = "plan recovery") -> PlanRec
         # so such a body was not written by this system, and its emptiness is
         # a claim from an unknown source rather than a record of a decision.
         # Unknown provenance is not consent to migrate.
+        key = field.path.split("/")[-1]
         legacy_gap = (shape == "provenance@1"
-                      and field.path.split("/")[-1] in DROPPED_BY_PROVENANCE_1)
-        known = stored_present and not legacy_gap
+                      and key in DROPPED_BY_PROVENANCE_1)
+
+        # A `provenance@2` stamp says the serializer had the field. It does
+        # not say the field survived to disk: `_with_decisions` rebuilt the
+        # provenance from five of eight names and erased these three whenever
+        # the owner confirmed anything. So the stamp and the storage are two
+        # separate questions, and reading the first as the second is what made
+        # the four modern plans look structurally complete.
+        #
+        # Only ever an explanation for an *absence*. A field that is present
+        # and non-empty in a plan whose owner confirmed something demonstrably
+        # survived the rebuild — the old code would have erased it — so that
+        # plan was written by a build that already preserved it, and treating
+        # its value as suspect would refuse a plan that is in fact intact.
+        empty = not stored_value
+        confirmation_gap = (rebuilt_by_confirmation and empty
+                            and key in DROPPED_BY_CONFIRMATION)
+        shape_supports = not legacy_gap
+        known = stored_present and not legacy_gap and not confirmation_gap
+
+        # What the absence could mean, all of it. One reading is an answer;
+        # two or more and the absence says nothing at all, which is a stronger
+        # statement than "the field is missing" and calls for a different act.
+        readings = []
+        if empty or legacy_gap:
+            if legacy_gap:
+                readings.append(PREDATES_FIELD)
+            if confirmation_gap:
+                readings.append(DISCARDED)
+            if empty and not legacy_gap and not confirmation_gap:
+                readings.append(NO_DECISION)
         rederived = fresh_present and fresh_value not in (None, [], (), {})
 
         agrees = None
@@ -273,6 +356,20 @@ def assess(record: Dict[str, Any], *, context: str = "plan recovery") -> PlanRec
 
         if known:
             outcome, why = RECOVERABLE, "present in the stored structured body"
+        elif confirmation_gap:
+            # The shape stamp says the serializer had this field, so its
+            # absence is not explained by the plan's age. It may have held a
+            # decision that the confirmation rebuild erased, and there is no
+            # way to tell that apart from the owner having decided nothing.
+            #
+            # An uninterpretable absence is not an empty value. Reading it as
+            # one would silently assert that the owner accepted no limitation,
+            # chose no fund and stated no period — three claims about consent
+            # made on their behalf, from a field that was deleted.
+            outcome = NEEDS_OWNER
+            why = ("the confirmation rebuild discarded this field, so its "
+                   "absence cannot be told apart from no decision having "
+                   "been made")
         elif field.decided_by_user:
             if questions:
                 outcome = NEEDS_OWNER
@@ -305,6 +402,8 @@ def assess(record: Dict[str, Any], *, context: str = "plan recovery") -> PlanRec
             why = "absent, and no recompile produces it"
 
         found.append(FieldRecovery(field=field.name, outcome=outcome,
+                                   shape_supports=shape_supports,
+                                   absence_explained_by=tuple(readings),
                                    stored=known, rederived=rederived,
                                    agrees=agrees, why=why))
 

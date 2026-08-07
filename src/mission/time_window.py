@@ -107,6 +107,30 @@ class TimeWindow:
                 "years": self.years, "months": self.months,
                 "supported": self.supported}
 
+    @staticmethod
+    def from_json(body) -> Optional["TimeWindow"]:
+        """The instruction, read back from a stored plan.
+
+        `supported` is deliberately not read: it is a property of `kind`, and
+        a stored `true` beside a kind this build no longer supports would let
+        a plan assert its own supportability. Derived values are recomputed,
+        never restored.
+
+        Returns None for anything unreadable rather than a partial window. A
+        window with a missing kind is not a window with a default kind.
+        """
+        if not isinstance(body, dict):
+            return None
+        try:
+            kind = WindowKind(str(body.get("kind")))
+        except ValueError:
+            return None
+        years, months = body.get("years"), body.get("months")
+        return TimeWindow(
+            kind=kind, observed=str(body.get("observed") or ""),
+            years=int(years) if years is not None else None,
+            months=int(months) if months is not None else None)
+
 
 @dataclass(frozen=True)
 class ResolvedWindow:

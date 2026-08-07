@@ -60,9 +60,23 @@
 
   post_tasks:
     - name: What to do next
+      # The journey line reports what happened rather than asserting success.
+      # It read "both journeys completed" unconditionally, and printed exactly
+      # that on a run where the workspace was not empty and neither journey
+      # had run — so the closing summary of a deployment claimed a check that
+      # had been skipped for a stated reason two tasks earlier.
+      #
+      # That is the same defect the product was being fixed for: a report
+      # naming an outcome it did not observe. It costs more here, because the
+      # deployment summary is the artifact a reader sees first and the one
+      # that ends up quoted in the acceptance record.
       ansible.builtin.debug:
         msg:
-          - "The application is serving and both journeys completed."
+          - "The application is serving."
+          - >-
+            journeys: {{ 'completed'
+            if (quantify_workspace_empty | default('false') | bool)
+            else 'skipped — workspace not empty, verify by hand' }}
           - "Still to do, from your machine:"
           - "  python deploy/acceptance.py https://{{ quantify_domain }} --record evidence/acceptance.json"
           - "  aws logs tail {{ quantify_log_group }} --since 15m | grep 'deployment proof' > evidence/startup-proof.txt"

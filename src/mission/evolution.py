@@ -268,6 +268,41 @@ def _canonical_of(stored: Mapping[str, Any]) -> Dict[str, Any]:
                                    "flows", "inferred") if k in stored}
 
 
+def _window_from(provenance):
+    """The stored temporal instruction, or None.
+
+    A `provenance@1` body has no `time_window` key, and None is the correct
+    answer there — the plan predates the field, so nothing was recorded and
+    nothing may be assumed.
+    """
+    from .time_window import TimeWindow
+
+    if not isinstance(provenance, dict):
+        return None
+    return TimeWindow.from_json(provenance.get("time_window"))
+
+
+def _exclusions_from(provenance):
+    """What the user chose to proceed without, read back as structure.
+
+    Restored because the coverage gate consults it: without these a replayed
+    plan looks like one that declared nothing it could not model, and the
+    disclosure that narrowed its scope disappears from the page.
+    """
+    from .spec import ScenarioExclusion
+
+    if not isinstance(provenance, dict):
+        return ()
+    return tuple(
+        ScenarioExclusion(item=str(one.get("item", "")),
+                          reason=str(one.get("reason", "")),
+                          decision=str(one.get("decision")
+                                       or "PROCEED_WITHOUT_MODELLING"),
+                          acknowledged_at=str(one.get("acknowledged_at", "")))
+        for one in (provenance.get("excluded") or ())
+        if isinstance(one, dict) and one.get("item"))
+
+
 def _funding_from(body):
     """Rebuild the funding policy a plan was saved with.
 
@@ -374,11 +409,27 @@ def rebuild_scenario(stored: Mapping[str, Any]):
             # plan can say *what* was inferred and not *why*. Recorded as a
             # limitation rather than reconstructed, because inventing the
             # sentence a user actually read would be worse than omitting it.
-            provenance=Provenance(inferred=tuple(
-                Inference(field=entry.get("field", ""),
-                          value=entry.get("value", ""),
-                          why=REASON_NOT_STORED, confirmed=True)
-                for entry in (stored.get("inferred") or []))),
+            # The time window and the exclusions come back too. Rebuilding
+            # only `inferred` meant a reopened plan ran with no window at all:
+            # the stored body held "over the past five years", the plan page
+            # rebuilt from it, and `_resolve_window` found nothing to slice
+            # by, so the figure covered the whole snapshot. That is F1 again,
+            # on the reopen path, for plans that recorded the window
+            # correctly.
+            #
+            # Both are restored rather than re-derived. Neither is a
+            # presentation artifact — they were written as structure by the
+            # compiler and by the user's own acknowledgement — and re-reading
+            # the description here would substitute today's reading for the
+            # one the owner confirmed.
+            provenance=Provenance(
+                inferred=tuple(
+                    Inference(field=entry.get("field", ""),
+                              value=entry.get("value", ""),
+                              why=REASON_NOT_STORED, confirmed=True)
+                    for entry in (stored.get("inferred") or [])),
+                excluded=_exclusions_from(stored.get("provenance")),
+                time_window=_window_from(stored.get("provenance"))),
         )
     except (TypeError, ValueError, KeyError):
         return None

@@ -1599,24 +1599,31 @@ def _with_decisions(scenario, agreed):
     An inference nobody acted on stays unconfirmed and the store refuses the
     plan: silence is not agreement, which is the rule the whole confirmation
     screen exists to enforce.
-    """
-    from ..mission.scenario import ScenarioSpecification
-    from ..mission.spec import Inference, Provenance
 
+    **Replaced, not rebuilt.** This constructed a new `Provenance` naming five
+    of its eight fields, so confirming an inference silently discarded
+    `excluded`, `asset_resolutions` and `time_window` — the three added after
+    this function was written. Every plan on the deployment whose owner
+    confirmed anything was stored without its time window, without the record
+    of which fund they chose, and without what they agreed not to model.
+
+    That is the same defect as `Provenance.to_json` before `3eaa5eb`, in a
+    second place, found the same way: by asking a stored plan what it has
+    rather than asking the code what it writes. A rebuild that lists fields by
+    hand is correct only until the next field is added, and nothing fails when
+    it stops being correct. `replace` carries whatever exists, so a ninth
+    field needs no edit here.
+    """
     if not agreed:
         return scenario
     source = scenario.provenance
-    return ScenarioSpecification(**{
-        **scenario.__dict__,
-        "provenance": Provenance(
-            stated=source.stated,
-            inferred=tuple(
-                Inference(one.field, one.value, one.why,
-                          confirmed=one.field in agreed)
-                for one in source.inferred),
-            contradictions=source.contradictions,
-            unresolved=source.unresolved,
-            amended=source.amended)})
+    return dataclasses_replace(
+        scenario,
+        provenance=dataclasses_replace(
+            source,
+            inferred=tuple(dataclasses_replace(one,
+                                               confirmed=one.field in agreed)
+                           for one in source.inferred)))
 
 
 @router.get("/plans/{plan_id}", response_class=HTMLResponse)
