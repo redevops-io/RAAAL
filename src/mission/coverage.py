@@ -178,6 +178,30 @@ _SELL_LEG = re.compile(
     r"|\bsell everything\b|\bsell it all\b|\bswitch (?:to|into)\b",
     re.IGNORECASE)
 
+#: A purchase tied to a condition, read from the user's own sentence.
+#:
+#: Deliberately broad where the compiler's trigger vocabularies are narrow.
+#: This answers "did the user describe a conditional purchase at all", which is
+#: a lower bar than "which of two readings did they mean" — and the whole point
+#: is that it must still hold when the second question cannot be answered.
+_CONDITIONAL_PURCHASE = re.compile(
+    r"\b(?:when|whenever|each time|every time|any time|if|once)\b[^.]{0,90}"
+    r"\b(?:below|above|under|over|cross\w*|drops?|falls?|rises?|breaks?)\b"
+    r"|\bcross\w*\b[^.]{0,40}\b(?:below|above|under|over)\b",
+    re.IGNORECASE)
+
+#: Not a set of "material unresolved fields". That was the first attempt and
+#: it was wrong: it counted every unanswered question as a declared element,
+#: so a first submission with `funding_source` open — which is nearly all of
+#: them — published no figure at all, and the ask-and-refine loop the product
+#: is built on stopped working.
+#:
+#: A compiler-raised question is not something the user declared. The four
+#: shapes that must block are each derived from the user's own words already:
+#: a stated period (`evaluation_period`), a stated condition
+#: (`_CONDITIONAL_PURCHASE`), a stated second funding source
+#: (`_SCHEDULED_ALSO`), and a stated sell leg (`_SELL_LEG`).
+
 _SCHEDULED_ALSO = re.compile(
     r"\b(?:also|and)\b[^.]{0,60}\b(?:invest|contribute|put|add)\b[^.]{0,40}"
     r"\b(?:every|each|per)\s+(?:month|week|quarter|year|paycheck)"
@@ -232,19 +256,36 @@ def assess(scenario: Any, *, stated_text: str = "",
                              if hasattr(resolved_window, "to_json") else None)}))
 
     # --- event-triggered funding -------------------------------------------
+    #
+    # `declared` comes from the user's words; `compiled` from what the compiler
+    # made of them. It used to come from `is_event_funded`, which is a compiled
+    # output — so a plan whose trigger the compiler could not resolve declared
+    # *nothing*, coverage reported 1/1, and a buy-and-hold figure was published
+    # for a conditional strategy.
+    #
+    # That is the loophole in the honesty gate itself: the harder an element
+    # was to understand, the easier it became for the record to forget the
+    # user had said it. Failing to compile a declared element must raise
+    # uncertainty, never erase the element.
     event_funded = bool(getattr(scenario, "is_event_funded", False))
+    stated_condition = bool(stated_text and _CONDITIONAL_PURCHASE.search(stated_text))
+    declares_trigger = event_funded or stated_condition
     rows = len(getattr(ledger, "rows", ()) or ())
     elements.append(DeclaredElement(
         element_id="event_triggered_funding",
-        declared=event_funded,
+        declared=declares_trigger,
         compiled=event_funded,
         executed=event_funded and rows > 0,
         evidenced=rows > 0,
         exclusion_authorized="event_triggered_funding" in excluded,
-        reason=("" if not event_funded or rows else
+        reason=("" if not declares_trigger or rows else
+                "you described buying when a condition occurs, and this "
+                "reading of your description was not settled, so no such "
+                "purchase was made"
+                if not event_funded else
                 "the purchases your condition would trigger were not carried "
                 "out"),
-        detail={"purchases": rows}))
+        detail={"purchases": rows, "compiled_a_policy": event_funded}))
 
     # --- a second, scheduled funding source --------------------------------
     #

@@ -32,12 +32,20 @@
           the whole snapshot
         {%- endif -%}
       </td>
+      {# Three cases, because the first version had two and printed a
+         falsehood. It branched on `warmup_start`, so a plan that stated a
+         period but needed no warm-up — a contested trigger builds no moving
+         average — rendered "you stated no period" directly beside the five
+         year range it had just printed. `warmup_start` is evidence about the
+         indicator, never about whether the user asked for a window. #}
       <td class="small muted">
-        {% if resolved_window and resolved_window.warmup_start %}
+        {% if not resolved_window %}
+          you stated no period, so nothing was narrowed
+        {% elif resolved_window.warmup_start %}
           the average needs history before the first signal, so data from
           {{ resolved_window.warmup_start }} is read and not reported on
         {% else %}
-          you stated no period, so nothing was narrowed
+          the period you stated, applied in full
         {% endif %}
       </td>
     </tr>
