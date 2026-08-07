@@ -395,6 +395,48 @@ def cadence_span_is_rebalancing(text: str, span: str) -> bool:
 
 _AMOUNT = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)")
 
+_PERCENT = re.compile(r"([0-9]{1,3}(?:\.[0-9]+)?)\s*(?:%|percent\b)",
+                      re.IGNORECASE)
+
+#: How far the stated percentages may be from 100 and still read as an
+#: allocation. Two thresholds in a sentence — "falls more than 20%" — do not
+#: sum to a portfolio, and that is what keeps this from firing on them.
+_ALLOCATION_TOLERANCE = 1.0
+
+
+def stated_weights(text: str):
+    """Per-asset weights the user wrote, or empty.
+
+    "I hold 60% VTI and 40% BND" was compiled to `equal_weight_at_purchase`
+    and executed 50/50, with a figure published. `AllocationRule` has no
+    per-asset weights field at all, so the numbers had nowhere to go — and
+    over five years the difference between a 60/40 and a 50/50 equity/bond
+    split is not a rounding error.
+
+    Recognised as an allocation only when the percentages *sum to about 100*.
+    A percentage in a sentence is usually a threshold — "after the market
+    falls more than 20%" — and thresholds do not add up to a portfolio.
+    """
+    found = [float(one) for one in _PERCENT.findall(text or "")]
+    if len(found) < 2:
+        return ()
+    if abs(sum(found) - 100.0) > _ALLOCATION_TOLERANCE:
+        return ()
+    return tuple(found)
+
+
+def weights_are_equal(weights) -> bool:
+    """Whether stated weights say exactly what `equal_weight_at_purchase` says.
+
+    "50% VTI and 50% BND" is not an unsupported allocation; it is the
+    supported one, written as numbers. Blocking it because percentages were
+    used would refuse a plan the engine executes correctly — the same
+    over-reach that had to be walked back twice elsewhere on this branch.
+    """
+    if not weights:
+        return False
+    return max(weights) - min(weights) <= _ALLOCATION_TOLERANCE
+
 #: Whether the description implies a market signal at all. Without one there is
 #: no trigger, and asking how a trigger should behave invents a condition the
 #: user never mentioned — which then blocks a perfectly complete plan for a
@@ -458,6 +500,18 @@ def parse(text: str) -> ParsedUtterance:
 
     # Before the flat table, because this one is decided by precedence between
     # two vocabularies rather than by whichever pattern is listed first.
+    # Equal percentages *are* the supported weighting, written as numbers.
+    # Recorded as a recognition so it is STATED rather than inferred: the user
+    # said it, and describing their words as the compiler's own assumption is
+    # the authority inversion this codebase keeps finding.
+    weights = stated_weights(text)
+    if weights and weights_are_equal(weights):
+        found_span = _PERCENT.search(text)
+        recognitions.append(Recognition(
+            field="weighting", value="equal_weight_at_purchase",
+            span=found_span.group(0) if found_span else ""))
+        claimed.add("weighting")
+
     semantics = trigger_semantics(text)
     if semantics is not None:
         source = (_CROSSING_LANGUAGE if semantics == "crossing_event"

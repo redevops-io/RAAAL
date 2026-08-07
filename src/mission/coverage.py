@@ -388,6 +388,31 @@ def assess(scenario: Any, *, stated_text: str = "",
                 "version divides each purchase equally between the holdings"),
         detail={}))
 
+    # --- per-asset weights the user wrote -----------------------------------
+    #
+    # Declared only when they differ from what the engine executes. Equal
+    # percentages are the supported weighting written as numbers, and blocking
+    # those would refuse a plan that runs correctly — the over-reach this area
+    # has already had to walk back twice.
+    from .compiler import stated_weights, weights_are_equal
+
+    weights = stated_weights(stated_text or "")
+    unsupported_weights = bool(weights) and not weights_are_equal(weights)
+    elements.append(DeclaredElement(
+        element_id="stated_weights",
+        declared=unsupported_weights,
+        compiled=False,
+        executed=False,
+        evidenced=False,
+        exclusion_authorized="stated_weights" in excluded,
+        reason=("" if not unsupported_weights else
+                "you specified "
+                + " and ".join(f"{one:g}%" for one in weights)
+                + " for the holdings, and this version divides each purchase "
+                  "equally between them, so it cannot honestly show a result "
+                  "for the portfolio you described"),
+        detail={"stated": list(weights)}))
+
     # --- a stated rebalancing frequency -------------------------------------
     rebalancing = bool(stated_text and _PERIODIC_REBALANCING.search(stated_text))
     elements.append(DeclaredElement(

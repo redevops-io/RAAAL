@@ -184,3 +184,86 @@ class TestTheOrdinaryPlansAreUntouched:
         assert not found["allocation_method"].declared
         _scenario, executed = run(text)
         assert executed["result"] is not None
+
+
+class TestStatedWeights:
+    """Per-asset percentages the user wrote.
+
+        I hold 60% VTI and 40% BND, past 5 years, starting with $50,000.
+
+    executed 50/50 and published a figure. `AllocationRule` holds `assets` and
+    a `weighting` enum and no per-asset weights at all, so the numbers had
+    nowhere to go. Over five years the difference between a 60/40 and a 50/50
+    equity/bond split is not a rounding error, and this is a far more ordinary
+    way to describe a portfolio than "inverse volatility".
+
+    **Equal percentages are not an unsupported allocation.** "50% VTI and 50%
+    BND" is the supported weighting written as numbers. Blocking it because
+    percentages were used would refuse a plan the engine executes correctly —
+    the over-reach this area has walked back twice. It compiles to
+    `equal_weight_at_purchase` and is recorded as *stated*, because the user
+    said it; calling it the compiler's own inference is the authority
+    inversion found elsewhere in this branch.
+
+    Percentages are read as an allocation only when they sum to about 100. A
+    percentage in a sentence is usually a threshold — "sell if it drops 10%" —
+    and thresholds do not add up to a portfolio.
+    """
+
+    UNEQUAL = "I hold 60% VTI and 40% BND, past 5 years, starting with $50,000."
+    EQUAL = "I hold 50% VTI and 50% BND, past 5 years, starting with $50,000."
+    WORDED = "Allocate $100,000 equally across VTI and BND, past 5 years."
+    THRESHOLDS = ("I invest $1,000 a month into VTI, and sell if it drops 10% "
+                  "and buy if it rises 15%, past 5 years.")
+
+    def test_unequal_weights_block_by_name(self, deployment):
+        _scenario, executed = run(self.UNEQUAL)
+        assert executed["result"] is None
+        refusal = coverage(self.UNEQUAL).refusal()
+        assert "60%" in refusal and "40%" in refusal, refusal
+        assert "divides each purchase equally" in refusal
+
+    def test_equal_weights_execute(self, deployment):
+        """The case that must not be caught."""
+        _scenario, executed = run(self.EQUAL)
+        assert executed["result"] is not None, executed.get("unavailable")
+
+    def test_equal_weights_are_stated_not_inferred(self, deployment):
+        """The equivalence has to be recorded as the user's, not ours."""
+        scenario, _ = run(self.EQUAL)
+        assert scenario.allocation_rule.weighting == "equal_weight_at_purchase"
+        assert "weighting" not in [one.field
+                                   for one in scenario.provenance.inferred]
+
+    def test_the_worded_form_still_executes(self, deployment):
+        _scenario, executed = run(self.WORDED)
+        assert executed["result"] is not None, executed.get("unavailable")
+
+    def test_thresholds_are_not_read_as_weights(self, deployment):
+        """Two percentages in a sentence are usually not a portfolio. This
+        plan blocks for its conditional purchase, which is correct, and must
+        not also be accused of stating an allocation."""
+        from src.mission.compiler import stated_weights
+
+        assert stated_weights(self.THRESHOLDS) == ()
+        found = {one.element_id: one
+                 for one in coverage(self.THRESHOLDS).elements}
+        assert not found["stated_weights"].declared
+
+    @pytest.mark.parametrize("text,expected", [
+        ("I hold 60% VTI and 40% BND.", (60.0, 40.0)),
+        ("I hold 50% VTI and 50% BND.", (50.0, 50.0)),
+        ("30% VTI, 30% BND and 40% GLD.", (30.0, 30.0, 40.0)),
+        ("sell if it drops 10% and buy if it rises 15%", ()),
+        ("after the market falls more than 20%", ()),
+        ("Allocate equally across VTI and BND.", ()),
+    ])
+    def test_what_counts_as_an_allocation(self, text, expected):
+        from src.mission.compiler import stated_weights
+
+        assert stated_weights(text) == expected, text
+
+    def test_a_three_way_uneven_split_blocks(self, deployment):
+        text = "I hold 30% VTI, 30% BND and 40% GLD, past 5 years, starting with $50,000."
+        _scenario, executed = run(text)
+        assert executed["result"] is None
