@@ -209,20 +209,53 @@ class TestTheQuarantine:
 
 class TestDeterminismIsPreserved:
 
-    def test_the_deterministic_reading_wins_a_contested_field(self):
-        """A regex that fired matched a specific, distinguishing phrase."""
+    def test_a_contested_execution_field_settles_for_neither_reader(self):
+        """This asserted the opposite, by name, and the old name was the
+        defect: *the deterministic reading wins a contested field*.
+
+        Its justification was that a regex which fired had matched a specific,
+        distinguishing phrase. That was false for the persistent-condition
+        pattern, which matched "whenever … below" whatever verb stood between
+        them. On the pilot's own sentence the model proposed `crossing_event`
+        quoting "crosses below", the regex asserted `persistent_condition`,
+        this policy chose the regex, and the plan committed $60,000 instead of
+        $13,000.
+
+        Agreement is the authority now. Neither reading survives a contested
+        material field; the field falls to `unresolved` and the user is asked.
+        """
         client = FakeClient({"recognitions": [
             {"field": "trigger_semantics", "value": "crossing_event",
              "span": "trades below"},
         ]})
         result = parse_with_model(DESCRIPTION, client=client)
 
-        assert result.parsed.value_of("trigger_semantics").value == \
-            "persistent_condition"
+        assert result.parsed.value_of("trigger_semantics") is None, (
+            "a contested execution field still resolved to a value; one of "
+            "two disagreeing readers was preferred")
         assert [d.to_json() for d in result.provenance.disagreements] == [
             {"field": "trigger_semantics",
              "deterministic": "persistent_condition",
              "model": "crossing_event"}]
+
+    def test_a_contested_cosmetic_field_still_prefers_the_regex(self):
+        """The scope boundary. Gating everything makes the product unusable —
+        a dividend-policy quibble is recorded, not asked about."""
+        text = ("I put $500 into VTI every month and I reinvest the "
+                "dividends. I add more whenever it trades below its 200-day "
+                "average.")
+        assert parse(text).value_of("dividends").value == "reinvested", (
+            "premise failed: the deterministic reader must already hold a "
+            "value here, or there is nothing for the model to contest")
+
+        client = FakeClient({"recognitions": [
+            {"field": "dividends", "value": "held_as_cash",
+             "span": "reinvest the dividends"},
+        ]})
+        result = parse_with_model(text, client=client)
+
+        assert result.parsed.value_of("dividends").value == "reinvested"
+        assert result.provenance.disagreements, "the conflict went unrecorded"
 
     def test_a_disagreement_is_surfaced_rather_than_settled_silently(self):
         client = FakeClient({"recognitions": [

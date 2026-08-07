@@ -316,24 +316,76 @@ def verify_proposals(
         tuple(rejections)
 
 
+#: Fields where the two readings disagreeing changes what gets executed and
+#: how much money moves. A contested value here is not settled by preferring a
+#: reader; it is asked about.
+#:
+#: Scoped deliberately. Blocking on every disagreement would turn a
+#: dividend-policy quibble into a stopped journey, and a gate that fires on
+#: cosmetic differences is a gate someone widens back out.
+#:
+#: **This governs only fields `merge()` can see** — the closed vocabulary two
+#: readers both propose values for. Two result-changing decisions are settled
+#: elsewhere and are *not* covered by agreement:
+#:
+#:   * **watched versus held instrument** — decided by `_observed_in_signal`
+#:     and `_acquired_instruments` in the compiler, from sentence-local role
+#:     evidence, not by a vocabulary field.
+#:   * **the evaluation period** — decided by `time_window.detect` and
+#:     `resolve`, which read the user's own phrase directly.
+#:
+#: Stated because "agreement is the authority" is true of one layer and would
+#: be false as a claim about the compiler. A reader who believed it covered
+#: every semantic decision would trust it where it does not apply, and the
+#: watched-versus-held split has already produced one defect of its own.
+MATERIAL_EXECUTION_FIELDS: frozenset = frozenset({
+    "trigger_semantics",     # crossing versus persistent: 13 signals or 60
+    "moving_average_kind",   # simple and exponential cross on different days
+    "funding_source",        # whether the money is new or already counted
+    "cadence",               # how often money arrives at all
+    "contribution_day_rule",  # which session it arrives on
+    "weighting",             # what each purchase buys
+    "sells_allowed",         # whether the plan ever exits
+    "earnings_timing",       # which session an earnings rule acts on
+    "vesting_action",        # whether shares are sold or held
+})
+
+
 def merge(deterministic: ParsedUtterance,
           model_recognitions: Sequence[Recognition],
           model_assets: Sequence[str],
           model_unclear: Sequence[str]) -> tuple:
-    """Combine both readings. The deterministic one wins every contested field.
+    """Combine both readings. Agreement is the authority, not either reader.
 
-    The regexes are narrow and high-precision by construction: each matches a
-    specific phrase that distinguishes two economically different readings. When
-    one fires, it saw that phrase. The model's job is the phrasings it does not
-    cover, not second-guessing the ones it does.
+    The old rule was "the deterministic one wins every contested field",
+    justified by a premise stated in this docstring: the regexes are narrow and
+    high-precision, so when one fires it saw the phrase. That premise was
+    false. The persistent-condition pattern matched "whenever … below"
+    whatever verb stood between them, so for
 
-    A disagreement is surfaced rather than resolved silently, because a plan
-    where two readers of the same sentence differ is exactly a plan whose
-    confirmation screen should say so.
+        I buy $1,000 of SPY whenever it crosses below its 200-day average
+
+    the regex read a persistent condition, the model read a crossing event
+    with the span "crosses below", the disagreement was recorded — and the
+    regex won. The plan committed $60,000 instead of $13,000.
+
+    Everything needed to prevent that was computed. It was discarded one line
+    later, because a detector whose output nothing consumes is not a control.
+
+    So on a **material execution field**, neither reading is adopted. The
+    recognition is dropped, the field falls to `unresolved`, and the ordinary
+    clarification machinery asks the user — which is what the compiler already
+    does for a phrase neither reader recognised. Two readers disagreeing is
+    less certainty than one reader alone, and it should produce a question, not
+    a choice.
+
+    On other fields the deterministic reading still stands. A dividend-policy
+    disagreement is worth recording and not worth stopping for.
     """
     by_field = {r.field: r for r in deterministic.recognitions}
     disagreements: List[Disagreement] = []
     accepted: List[str] = []
+    contested: set = set()
     combined = list(deterministic.recognitions)
 
     for proposal in model_recognitions:
@@ -345,6 +397,14 @@ def merge(deterministic: ParsedUtterance,
             disagreements.append(Disagreement(
                 field=proposal.field, deterministic=existing.value,
                 model=proposal.value))
+            if proposal.field in MATERIAL_EXECUTION_FIELDS:
+                contested.add(proposal.field)
+
+    # Dropped rather than overridden. Leaving the deterministic value in place
+    # and merely noting the conflict is what produced the defect above: the
+    # page said the model decides nothing on its own, and the number came from
+    # a reader that had been contradicted.
+    combined = [one for one in combined if one.field not in contested]
 
     assets = tuple(dict.fromkeys([*deterministic.assets, *model_assets]))
     # Kept apart. `unrecognized` names instruments with known alternatives to
