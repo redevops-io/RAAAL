@@ -223,6 +223,35 @@ _CONDITIONAL_AMOUNT = re.compile(
     r"lower|boost)\b",
     re.IGNORECASE)
 
+#: An allocation method computed from the data rather than stated as weights.
+#:
+#: "Allocate $100,000 across VTI, BND and GLD **by inverse volatility**" became
+#: `equal_weight_at_purchase` and was recorded as an *inference* — a value the
+#: user stated, replaced by a default, and labelled as the system's own choice.
+#: Coverage reported 1/1, and the figure answered an equal-weight strategy.
+_UNSUPPORTED_WEIGHTING = re.compile(
+    r"\b(?:inverse|inversely)\s+volatilit\w*"
+    r"|\brisk[- ]parity\b|\bequal[- ]risk\b"
+    r"|\b(?:market[- ]cap|cap)[- ]weight\w*"
+    r"|\b(?:minimum|min\.?|mean)[- ]?variance\b"
+    r"|\bvolatility[- ]weight\w*|\bweighted\s+by\s+volatilit\w*"
+    r"|\bby\s+(?:inverse\s+)?volatilit\w*",
+    re.IGNORECASE)
+
+#: A stated rebalancing frequency.
+#:
+#: `holdings_policy` carries `rebalancing_allowed` as a boolean and no
+#: frequency at all, so "rebalanced monthly" cannot be represented — the word
+#: was only ever read as a contribution cadence, which is the defect above.
+#: Having stopped it being read as the wrong thing, it was read as nothing.
+_PERIODIC_REBALANCING = re.compile(
+    r"\brebalanc\w*\b[^.]{0,30}"
+    r"\b(?:month|quarter|year|week|annual|daily|monthly|quarterly|yearly|"
+    r"annually|weekly)\w*"
+    r"|\b(?:month|quarter|year|week|annual|daily|monthly|quarterly|yearly|"
+    r"annually|weekly)\w*[^.]{0,20}\brebalanc\w*\b",
+    re.IGNORECASE)
+
 _SCHEDULED_ALSO = re.compile(
     r"\b(?:also|and)\b[^.]{0,60}\b(?:invest|contribute|put|add)\b[^.]{0,40}"
     r"\b(?:every|each|per)\s+(?:month|week|quarter|year|paycheck)"
@@ -342,6 +371,35 @@ def assess(scenario: Any, *, stated_text: str = "",
         reason=("" if not conditional_amount else
                 "you described changing how much you invest when a condition "
                 "occurs, and this version contributes a fixed amount"),
+        detail={}))
+
+    # --- an allocation method this build cannot compute ---------------------
+    unsupported_weighting = bool(
+        stated_text and _UNSUPPORTED_WEIGHTING.search(stated_text))
+    elements.append(DeclaredElement(
+        element_id="allocation_method",
+        declared=unsupported_weighting,
+        compiled=False,
+        executed=False,
+        evidenced=False,
+        exclusion_authorized="allocation_method" in excluded,
+        reason=("" if not unsupported_weighting else
+                "you described an allocation computed from the data, and this "
+                "version divides each purchase equally between the holdings"),
+        detail={}))
+
+    # --- a stated rebalancing frequency -------------------------------------
+    rebalancing = bool(stated_text and _PERIODIC_REBALANCING.search(stated_text))
+    elements.append(DeclaredElement(
+        element_id="periodic_rebalancing",
+        declared=rebalancing,
+        compiled=False,
+        executed=False,
+        evidenced=False,
+        exclusion_authorized="periodic_rebalancing" in excluded,
+        reason=("" if not rebalancing else
+                "you described rebalancing on a schedule, and this version "
+                "holds what each purchase bought without rebalancing it"),
         detail={}))
 
     # --- a sell leg ---------------------------------------------------------
