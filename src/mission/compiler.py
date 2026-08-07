@@ -398,6 +398,12 @@ _AMOUNT = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)")
 _PERCENT = re.compile(r"([0-9]{1,3}(?:\.[0-9]+)?)\s*(?:%|percent\b)",
                       re.IGNORECASE)
 
+#: The same allocation written as a ratio. "60/40" and "60% / 40%" are one
+#: semantic object in two notations, and the catalogue uses the second — so
+#: the percentage-only reading left "holding 60/40" executing 50/50 with a
+#: figure published, which is the defect it was meant to close.
+_RATIO_WEIGHTS = re.compile(r"\b(\d{1,3}(?:\s*/\s*\d{1,3}){1,3})\b")
+
 #: How far the stated percentages may be from 100 and still read as an
 #: allocation. Two thresholds in a sentence — "falls more than 20%" — do not
 #: sum to a portfolio, and that is what keeps this from firing on them.
@@ -419,23 +425,43 @@ def stated_weights(text: str):
     """
     found = [float(one) for one in _PERCENT.findall(text or "")]
     if len(found) < 2:
+        # Ratio notation, when percentages were not used. Tried second so a
+        # sentence writing both does not count its weights twice.
+        for match in _RATIO_WEIGHTS.finditer(text or ""):
+            parts = [float(one) for one in re.split(r"\s*/\s*", match.group(1))]
+            if len(parts) >= 2 and abs(sum(parts) - 100.0) <= _ALLOCATION_TOLERANCE:
+                return tuple(parts)
         return ()
     if abs(sum(found) - 100.0) > _ALLOCATION_TOLERANCE:
         return ()
     return tuple(found)
 
 
-def weights_are_equal(weights) -> bool:
+def weights_are_equal(weights, asset_count: Optional[int] = None) -> bool:
     """Whether stated weights say exactly what `equal_weight_at_purchase` says.
 
     "50% VTI and 50% BND" is not an unsupported allocation; it is the
-    supported one, written as numbers. Blocking it because percentages were
-    used would refuse a plan the engine executes correctly — the same
-    over-reach that had to be walked back twice elsewhere on this branch.
+    supported one, written as numbers. Blocking it because numbers were used
+    would refuse a plan the engine executes correctly — the over-reach this
+    area has walked back twice.
+
+    **Zeros are a claim about a holding, not padding.** "100/0" naming one
+    instrument means all of it, which is what equal-weighting one holding
+    does. "100/0" naming two means all of the first and none of the second,
+    which is not. So the non-zero weights must be equal *and* there must be
+    one of them per asset; without the asset count this cannot be decided, and
+    the safe answer is that it is not equivalent.
     """
     if not weights:
         return False
-    return max(weights) - min(weights) <= _ALLOCATION_TOLERANCE
+    positive = [one for one in weights if one > 0]
+    if not positive:
+        return False
+    if max(positive) - min(positive) > _ALLOCATION_TOLERANCE:
+        return False
+    if asset_count is None:
+        return len(positive) == len(weights)
+    return len(positive) == asset_count
 
 #: Whether the description implies a market signal at all. Without one there is
 #: no trigger, and asking how a trigger should behave invents a condition the

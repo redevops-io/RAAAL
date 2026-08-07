@@ -46,11 +46,43 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_target" {
   ok_actions    = [aws_sns_topic.alerts.arn]
 }
 
-resource "aws_cloudwatch_metric_alarm" "target_5xx" {
+# --- the application failed --------------------------------------------------
+#
+# Counted from the application's own log rather than from the load balancer's
+# 5xx total, because those are not the same event.
+#
+# `HTTPCode_Target_5XX_Count` includes 501, and this build serves 501
+# deliberately: an out-of-scope capability — RSUs, options — is declined with a
+# readable page saying so. A 144-prompt evaluation sweep produced nine of them
+# in five minutes and put this alarm into ALARM with no fault anywhere, which
+# is the failure mode the header of this file warns about. A pilot cohort will
+# ask for those capabilities as a matter of course.
+#
+# So the alarm measures what its description claims: the server broke. A
+# refusal is not a break, and an alarm that fires on ordinary use is one nobody
+# reads by week three.
+resource "aws_cloudwatch_log_metric_filter" "server_fault" {
+  name           = "${local.name}-server-fault"
+  log_group_name = aws_cloudwatch_log_group.application.name
+
+  # Caddy's access log is JSON, so the status is a field rather than a token in
+  # a line. 501 is excluded by name: it is the only 5xx this build issues on
+  # purpose, and excluding the range instead would hide a genuine 500.
+  pattern = "{ ($.status >= 500) && ($.status != 501) }"
+
+  metric_transformation {
+    name          = "ServerFaultCount"
+    namespace     = "Quantify/${var.environment}"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "server_fault" {
   alarm_name          = "${local.name}-5xx"
-  alarm_description   = "The application returned 5xx. Every one carries a correlation id; grep the log for it."
-  namespace           = "AWS/ApplicationELB"
-  metric_name         = "HTTPCode_Target_5XX_Count"
+  alarm_description   = "The application failed — a 5xx that is not a deliberate capability refusal. Every one carries a correlation id; grep the log for it."
+  namespace           = "Quantify/${var.environment}"
+  metric_name         = aws_cloudwatch_log_metric_filter.server_fault.metric_transformation[0].name
   statistic           = "Sum"
   period              = 300
   evaluation_periods  = 1
@@ -58,12 +90,8 @@ resource "aws_cloudwatch_metric_alarm" "target_5xx" {
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
 
-  dimensions = {
-    LoadBalancer = aws_lb.main.arn_suffix
-    TargetGroup  = aws_lb_target_group.app.arn_suffix
-  }
-
   alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
 }
 
 # --- the host and the database --------------------------------------------

@@ -267,3 +267,79 @@ class TestStatedWeights:
         text = "I hold 30% VTI, 30% BND and 40% GLD, past 5 years, starting with $50,000."
         _scenario, executed = run(text)
         assert executed["result"] is None
+
+
+class TestNotationVariantsOfSupportedSemantics:
+    """The same semantic object written another way must reach the same answer.
+
+    `stated_weights` matched percentages. The catalogue — and plenty of people
+    — write ratios, so "holding 60/40" executed 50/50 with a figure published:
+    the defect that fix had just closed, in the notation it did not cover.
+
+    `_CONDITIONAL_PURCHASE` required a conjunction. "I invest $2,000 on the
+    first negative month" states the same dimension without one, so the
+    condition vanished and a plain schedule was reported.
+
+    The boundary this file draws, and the reason both belong here rather than
+    on the roadmap:
+
+        support the semantic dimensions already claimed, whatever the common
+        notation; refuse the dimensions not claimed
+
+    A new *dimension* — options, futures, an inverse-volatility engine — is a
+    roadmap item. A new *spelling* of a dimension already committed to is a
+    correctness defect.
+
+    Note what the second fix does: "first negative month" is **declared and
+    refused**, not executed. This engine computes moving-average crossings,
+    not the sign of a month, and widening the compiler's trigger vocabulary
+    would claim a capability that does not exist.
+    """
+
+    @pytest.mark.parametrize("text,publishes", [
+        # ratio notation
+        ("I put $1,000 every year into VTI and BND, holding 60/40, past 5 years.", False),
+        ("I put $1,000 every year into VTI and BND, holding 80/20, past 5 years.", False),
+        ("I put $1,000 every year into VTI and VXUS and BND, holding 55/35/10, past 5 years.", False),
+        ("I put $1,000 every year into VTI and BND, holding 50/50, past 5 years.", True),
+        # a ratio naming one holding is that holding, which is what equal
+        # weighting one asset does
+        ("I put $1,000 every year into VTI, holding 100/0, past 5 years.", True),
+        # conditions without a conjunction
+        ("I invest $2,000 on first negative month into VTI, past 5 years.", False),
+        ("I invest $2,000 into VTI after a 10% drop, past 5 years.", False),
+        ("I invest $2,000 into VTI on any dip, past 5 years.", False),
+    ])
+    def test_the_notation_reaches_the_same_answer(self, deployment, text,
+                                                  publishes):
+        _scenario, executed = run(text)
+        assert (executed["result"] is not None) is publishes, (
+            executed.get("unavailable") or "published when it should not have")
+
+    def test_a_zero_reads_differently_against_one_asset_and_two(self):
+        """"100/0" naming one instrument is all of it — equal weighting of one
+        holding. Naming two it is all of the first and none of the second,
+        which equal weighting does not do. The asset count is what separates
+        them, and without it the safe answer is 'not equivalent'."""
+        from src.mission.compiler import stated_weights, weights_are_equal
+
+        weights = stated_weights("holding 100/0")
+        assert weights_are_equal(weights, 1)
+        assert not weights_are_equal(weights, 2)
+
+    def test_percentages_and_ratios_agree(self):
+        """One semantic object, two notations, one answer."""
+        from src.mission.compiler import stated_weights, weights_are_equal
+
+        for ratio, percent in (("holding 60/40", "60% VTI and 40% BND"),
+                               ("holding 50/50", "50% VTI and 50% BND")):
+            a, b = stated_weights(ratio), stated_weights(percent)
+            assert a == b, (ratio, percent, a, b)
+            assert weights_are_equal(a, 2) == weights_are_equal(b, 2)
+
+    def test_a_moving_average_period_is_not_a_ratio(self):
+        """"200-day" and "past 5 years" carry digits and are not allocations.
+        A ratio matcher that caught them would block the control."""
+        from src.mission.compiler import stated_weights
+
+        assert stated_weights("a 200-day moving average, past 5 years") == ()

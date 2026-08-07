@@ -187,7 +187,23 @@ _SELL_LEG = re.compile(
 _CONDITIONAL_PURCHASE = re.compile(
     r"\b(?:when|whenever|each time|every time|any time|if|once)\b[^.]{0,90}"
     r"\b(?:below|above|under|over|cross\w*|drops?|falls?|rises?|breaks?)\b"
-    r"|\bcross\w*\b[^.]{0,40}\b(?:below|above|under|over)\b",
+    r"|\bcross\w*\b[^.]{0,40}\b(?:below|above|under|over)\b"
+    # Conditions written without "when". "I invest $2,000 on the first
+    # negative month" states the same dimension — a contribution conditioned
+    # on an event — and contributed on a plain schedule with a figure
+    # published, because the recogniser required a conjunction the sentence
+    # does not use.
+    #
+    # Recognised so it is *declared and refused*, not executed: this engine
+    # computes moving-average crossings, not the sign of a month, and
+    # widening the compiler's trigger vocabulary instead would claim a
+    # capability that does not exist.
+    r"|\bon\s+(?:the\s+|any\s+|each\s+|every\s+)?(?:first\s+)?"
+    r"(?:negative|down|losing|positive|up)\s+(?:month|week|quarter|day|year)\b"
+    r"|\bafter\s+(?:a|an|any|the|each|every)\s+[^.]{0,24}"
+    r"\b(?:drop|decline|fall|loss|correction|drawdown|selloff|dip)\w*\b"
+    r"|\bon\s+(?:a|any|each|every)\s+[^.]{0,20}"
+    r"\b(?:dip|drawdown|correction|pullback)\w*\b",
     re.IGNORECASE)
 
 #: Not a set of "material unresolved fields". That was the first attempt and
@@ -397,7 +413,11 @@ def assess(scenario: Any, *, stated_text: str = "",
     from .compiler import stated_weights, weights_are_equal
 
     weights = stated_weights(stated_text or "")
-    unsupported_weights = bool(weights) and not weights_are_equal(weights)
+    # The asset count decides whether a zero is padding or a claim: "100/0"
+    # naming one instrument is all of it, naming two is all of the first and
+    # none of the second, and only the first is what equal weighting does.
+    held = len(getattr(scenario.allocation_rule, "assets", ()) or ())
+    unsupported_weights = bool(weights) and not weights_are_equal(weights, held)
     elements.append(DeclaredElement(
         element_id="stated_weights",
         declared=unsupported_weights,
