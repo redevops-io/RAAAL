@@ -90,18 +90,57 @@ BENCHMARK_RULE = "benchmark-policy/public-default@1"
 #: fixture is deliberately shaped like market data so the evaluation stack has
 #: something realistic to run on, which is exactly why the disclosure is needed.
 def _data_notice():
+    """What to say about the data behind a figure, read from the snapshot.
+
+    Was a hardcoded synthetic disclosure and a `None` for everything else. The
+    moment real prices arrived that sentence — "the series are invented ...
+    calibrated to no real security" — became a false statement printed beside
+    every number, and the alternative branch said nothing at all where an
+    attribution is required.
+
+    So the notice comes from the snapshot the run actually used. A disclosure
+    written next to the data it describes can go stale when the data changes;
+    one derived from it cannot.
+    """
     from ..deploy.context import current
     from ..market_data.pilot_policy import PilotDataPolicy
 
     policy = current().market_data.policy
-    if policy is not PilotDataPolicy.SYNTHETIC_ONLY:
-        return None
+    if policy is PilotDataPolicy.SYNTHETIC_ONLY:
+        return {
+            "headline": "Pilot mode uses synthetic market data.",
+            "detail": ("Results are for product evaluation only and are not "
+                       "based on licensed live market data. The series are "
+                       "invented, shaped like market data so the engine has "
+                       "something realistic to run on, and calibrated to no "
+                       "real security."),
+        }
+
+    from ..market_data.access import approved_snapshot
+
+    snapshot = approved_snapshot()
+    if snapshot is None:
+        # No authorised snapshot means no figures either, so this is the
+        # honest thing to say rather than nothing.
+        return {
+            "headline": "No approved market data is configured.",
+            "detail": ("This deployment has no snapshot whose licensing "
+                       "record is complete, so no result can be produced."),
+        }
+
+    attribution = (snapshot.raw or {}).get("attribution") or {}
+    source = attribution.get("source") or (snapshot.raw or {}).get("provider")
+    acknowledgement = attribution.get("acknowledgement") or ""
+    coverage = (snapshot.raw or {}).get("coverage") or {}
     return {
-        "headline": "Pilot mode uses synthetic market data.",
-        "detail": ("Results are for product evaluation only and are not based "
-                   "on licensed live market data. The series are invented, "
-                   "shaped like market data so the engine has something "
-                   "realistic to run on, and calibrated to no real security."),
+        "headline": f"Market data: {source} — {acknowledgement}.".replace(
+            " — .", "."),
+        "detail": (
+            f"Prices are historical daily closes from {source}, covering "
+            f"{coverage.get('start')} to {coverage.get('end')}. "
+            f"{acknowledgement.capitalize()}. Past performance does not "
+            f"predict future results, and a backtest is not an outcome you "
+            f"would have achieved."),
     }
 
 

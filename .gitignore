@@ -39,6 +39,25 @@ data/*
 # the snapshot identity, version and hash, so a result can name the input it was
 # computed against without the licensed bytes ever entering the repository.
 
+# The same rule, applied to the vendor snapshot: the manifest is committed and
+# the prices are not. `data/*` had swallowed both, which made the tests that
+# assert a run receives vendor prices pass only on a machine where someone had
+# fetched them by hand — green here, red on a fresh clone, and green again for
+# whoever re-fetched rather than red for a reason anyone could act on.
+#
+# The parquet stays out: `redistributable: false`, and the licensing record's
+# answer to "may raw prices be redistributed" is "no". A repository under a
+# public licence is redistribution.
+!data/snapshots/
+data/snapshots/*
+!data/snapshots/*.yaml
+
+# The record that authorises the snapshot. Committed for the same reason the
+# manifest is — the gate re-reads it at runtime, so a deployment where it is
+# absent serves nothing, and the reason it is absent should be visible in the
+# diff rather than in a directory listing on one host.
+!data/licensing/
+
 
 # Reports (except the latest dashboard)
 reports/*.csv

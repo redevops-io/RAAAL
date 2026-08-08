@@ -61,11 +61,21 @@ class TestItDoesNotLeakOntoTheWrongSurface:
         assert "data_policy" not in client.get("/health").json()
 
 
-class TestALicensedDeploymentSaysNothing:
-    def test_the_notice_is_absent_rather_than_false(self, monkeypatch):
-        """Keyed on the deployment's policy. A hardcoded string would claim
-        synthetic data on a deployment serving licensed prices, which is the
-        same defect pointing the other way."""
+class TestALicensedDeploymentDoesNotClaimSyntheticData:
+    """This class used to assert the notice was *absent* on a licensed
+    deployment — "absent rather than false" — because when it was written the
+    only truthful alternative to the synthetic sentence was silence.
+
+    That is no longer the right answer. The licensing record for the vendor
+    snapshot requires the source be named wherever a figure is read, so `None`
+    here became the omission the record forbids rather than a safe default.
+
+    What the class was really guarding survives unchanged: whatever `/info`
+    says, it must not describe real prices as invented. That assertion is kept
+    and the obsolete one dropped.
+    """
+
+    def test_it_does_not_call_licensed_prices_invented(self, monkeypatch):
         from src.api import _service_data_policy
         from src.deploy.context import bind, resolve, unbind
 
@@ -75,6 +85,27 @@ class TestALicensedDeploymentSaysNothing:
         except Exception:
             pytest.skip("this build does not accept a licensed policy value")
         try:
-            assert _service_data_policy() is None
+            notice = _service_data_policy()
+            said = "" if notice is None else \
+                (notice["headline"] + " " + notice["detail"]).lower()
+            for phrase in ("synthetic", "invented", "no real security"):
+                assert phrase not in said, phrase
+        finally:
+            unbind()
+
+    def test_it_says_something(self, monkeypatch):
+        """The surface that describes the service is where an integrator looks
+        for the provenance of the numbers. Silence there is not neutral."""
+        from src.api import _service_data_policy
+        from src.deploy.context import bind, resolve, unbind
+
+        monkeypatch.setenv("PILOT_DATA_POLICY", "LICENSED")
+        try:
+            bind(resolve({"PILOT_DATA_POLICY": "LICENSED"}))
+        except Exception:
+            pytest.skip("this build does not accept a licensed policy value")
+        try:
+            notice = _service_data_policy()
+            assert notice is not None and notice["headline"].strip()
         finally:
             unbind()

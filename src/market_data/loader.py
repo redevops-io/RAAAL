@@ -232,8 +232,56 @@ class Snapshot:
         }
 
 
+#: The only two things a licence review can be. A third word is a typo, and a
+#: typo here reads as UNCONFIRMED — the safe direction, but silently.
+REVIEW_STATUSES = ("CONFIRMED", "UNCONFIRMED")
+
+
+def _validate(path: Path, body: Mapping[str, Any]) -> None:
+    """Reject a manifest written in a vocabulary this code does not read.
+
+    Both of these defaults fail closed, which is right, and both of them failed
+    closed *silently*, which is how a vendor snapshot sat in the tree looking
+    configured while no run could use it:
+
+      `license_review_status: RESOLVED` is not `CONFIRMED`, so `review_complete`
+      was False and the approved policy denied every run, giving "the licence
+      review for this snapshot is still open" as the reason — a true sentence
+      about the field and a false one about the world.
+
+      an `egress_policy` keyed by invented names never matches an `Egress`
+      value, so every route took the DENY default. A policy that denies
+      everything and a policy nobody could read are indistinguishable at the
+      call site, and only one of them is a decision.
+
+    Failing closed protects the data. It does not tell anyone the file is
+    wrong, so that part is done here.
+    """
+    status = str(body.get("license_review_status", "UNCONFIRMED"))
+    if status not in REVIEW_STATUSES:
+        raise ValueError(
+            f"{path}: license_review_status={status!r} is not one of "
+            f"{', '.join(REVIEW_STATUSES)}. An unrecognised status reads as an "
+            "open review and denies every run without saying why.")
+
+    policy = body.get("egress_policy") or {}
+    routes = {member.value for member in Egress}
+    decisions = {member.value for member in Decision}
+    for key, value in policy.items():
+        if key not in routes:
+            raise ValueError(
+                f"{path}: egress_policy has no route named {key!r}. "
+                f"Routes are: {', '.join(sorted(routes))}.")
+        if value not in decisions:
+            raise ValueError(
+                f"{path}: egress_policy[{key!r}] is {value!r}; it must be one "
+                f"of {', '.join(sorted(decisions))}. A route omitted entirely "
+                "is DENY, which is how you express a refusal.")
+
+
 def load_manifest(path: Path | str) -> Snapshot:
     body = yaml.safe_load(Path(path).read_text()) or {}
+    _validate(Path(path), body)
     coverage = body.get("coverage") or {}
     return Snapshot(
         dataset_id=body.get("dataset_id", "unknown"),

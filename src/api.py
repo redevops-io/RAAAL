@@ -338,7 +338,10 @@ def health() -> Dict[str, Any]:
 
 
 def _service_data_policy() -> Optional[Dict[str, Any]]:
-    """The synthetic-data disclosure, or None when the data is licensed."""
+    """What to say about the data behind every figure, derived from the
+    snapshot the deployment actually resolved — synthetic, vendor-attributed,
+    or none configured. It was once "the synthetic disclosure, or None when
+    licensed"; the vendor branch made silence the wrong answer."""
     from .workspace.routes import _data_notice
 
     return _data_notice()

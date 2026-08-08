@@ -1,0 +1,202 @@
+dataset_id: market-data/prices
+snapshot_id: prices-catalog-20260804
+kind: licensed
+uri: data/snapshots/prices-catalog-20260804.parquet
+generator: scripts/build_catalog_snapshot.py
+file_sha256: 7357bc2dfb138bb0b4c569e4dc94ccb7c71fa539f92dbd938231e5745e892931
+schema_version: 1
+calendar: calendar/nyse@1
+sessions: 2912
+assets: 40
+data_as_of: '2026-08-04'
+coverage:
+  start: '2015-01-02'
+  end: '2026-08-03'
+provider: yahoo
+fetched_at: '2026-08-04T19:42:58+00:00'
+adjustment: split_adjusted_close
+series:
+  market: prices-catalog-20260804.parquet
+  total_return: prices-catalog-20260804.total-return.parquet
+  note: market = split-adjusted Close, values a holding. total_return = Adj Close,
+    measures a strategy. As-traded prices are market x the split factor after the
+    date; see src/market_data/ingest.as_traded_price.
+corporate_actions:
+  splits:
+    AAPL:
+      '1987-06-16': 2.0
+      '2000-06-21': 2.0
+      '2005-02-28': 2.0
+      '2014-06-09': 7.0
+      '2020-08-31': 4.0
+    AMZN:
+      '1998-06-02': 2.0
+      '1999-01-05': 3.0
+      '1999-09-02': 2.0
+      '2022-06-06': 20.0
+    BIL:
+      '2017-11-30': 0.5
+    GOOGL:
+      '2014-04-03': 1.998
+      '2022-07-18': 20.0
+    IWM:
+      '2005-06-09': 2.0
+    NVDA:
+      '2000-06-27': 2.0
+      '2001-09-12': 2.0
+      '2006-04-07': 2.0
+      '2007-09-11': 1.5
+      '2021-07-20': 4.0
+      '2024-06-10': 10.0
+    ORCL:
+      '1987-03-25': 2.0
+      '1987-12-21': 2.0
+      '1989-07-03': 2.0
+      '1993-11-09': 2.0
+      '1995-02-23': 1.5
+      '1996-04-17': 1.5
+      '1997-08-18': 1.5
+      '1999-03-01': 1.5
+      '2000-01-19': 2.0
+      '2000-10-13': 2.0
+    QQQ:
+      '2000-03-20': 2.0
+    RSP:
+      '2006-04-27': 4.0
+    SCHB:
+      '2022-03-11': 2.0
+      '2024-10-11': 3.0
+    VTI:
+      '2008-06-18': 2.0
+    VWO:
+      '2008-06-18': 2.0
+  dividend_dates:
+    AAPL: 91
+    AGG: 274
+    AOR: 71
+    BIL: 126
+    BND: 230
+    BNDW: 95
+    DBC: 9
+    DIA: 338
+    ESGU: 40
+    GOOGL: 9
+    IEF: 289
+    IEI: 234
+    IWB: 107
+    IWM: 106
+    META: 10
+    MTUM: 53
+    MUB: 225
+    NVDA: 55
+    ORCL: 69
+    QQQ: 89
+    QUAL: 51
+    RSP: 92
+    SCHB: 68
+    SGOV: 73
+    SHY: 288
+    SPY: 135
+    TIP: 202
+    USMV: 61
+    VBR: 66
+    VEA: 66
+    VIG: 81
+    VNQ: 87
+    VT: 60
+    VTI: 101
+    VTV: 90
+    VWO: 62
+    VXUS: 57
+license_class: vendor-terms
+redistributable: false
+license_review_status: OPEN
+egress_policy:
+  public_export: DENY
+  case_bundle: DENY
+  model_provider_upload: DENY
+  internal_benchmark: ALLOW
+warning: Vendor prices under Yahoo's terms. Not admissible under PILOT_DATA_POLICY=SYNTHETIC_ONLY;
+  serving this requires the six licensing questions answered and a named policy version.
+symbols:
+- AAPL
+- AGG
+- AMZN
+- AOR
+- BIL
+- BND
+- BNDW
+- BTC-USD
+- DBC
+- DIA
+- ESGU
+- GLD
+- GOOGL
+- IEF
+- IEI
+- IWB
+- IWM
+- META
+- MTUM
+- MUB
+- NVDA
+- ORCL
+- QQQ
+- QUAL
+- RSP
+- SCHB
+- SGOV
+- SHY
+- SPY
+- TIP
+- USMV
+- VBR
+- VEA
+- VIG
+- VNQ
+- VT
+- VTI
+- VTV
+- VWO
+- VXUS
+inception:
+  AAPL: '2015-01-02'
+  AGG: '2015-01-02'
+  AMZN: '2015-01-02'
+  AOR: '2015-01-02'
+  BIL: '2015-01-02'
+  BND: '2015-01-02'
+  BNDW: '2018-09-06'
+  BTC-USD: '2015-01-02'
+  DBC: '2015-01-02'
+  DIA: '2015-01-02'
+  ESGU: '2016-12-06'
+  GLD: '2015-01-02'
+  GOOGL: '2015-01-02'
+  IEF: '2015-01-02'
+  IEI: '2015-01-02'
+  IWB: '2015-01-02'
+  IWM: '2015-01-02'
+  META: '2015-01-02'
+  MTUM: '2015-01-02'
+  MUB: '2015-01-02'
+  NVDA: '2015-01-02'
+  ORCL: '2015-01-02'
+  QQQ: '2015-01-02'
+  QUAL: '2015-01-02'
+  RSP: '2015-01-02'
+  SCHB: '2015-01-02'
+  SGOV: '2020-06-01'
+  SHY: '2015-01-02'
+  SPY: '2015-01-02'
+  TIP: '2015-01-02'
+  USMV: '2015-01-02'
+  VBR: '2015-01-02'
+  VEA: '2015-01-02'
+  VIG: '2015-01-02'
+  VNQ: '2015-01-02'
+  VT: '2015-01-02'
+  VTI: '2015-01-02'
+  VTV: '2015-01-02'
+  VWO: '2015-01-02'
+  VXUS: '2015-01-02'

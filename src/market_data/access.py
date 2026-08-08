@@ -184,12 +184,52 @@ def resolve_prices(*, context: str) -> Optional[Any]:
     return resolve(context=context).frame
 
 
-def approved_snapshot():
-    """The vendor snapshot a non-synthetic policy would use.
+#: The vendor snapshot this deployment may use, and the record that authorises
+#: it. Both named here so the pair is reviewable in one place.
+VENDOR_MANIFEST = "data/snapshots/prices-yahoo-20260807.yaml"
 
-    Deliberately unimplemented while the pilot is synthetic-only: there is no
-    approved vendor snapshot until the six licensing questions are resolved and
-    recorded, and returning one here would make `PILOT_VENDOR_APPROVED` mean
-    something the licence does not yet permit.
+
+def approved_snapshot():
+    """The vendor snapshot a non-synthetic policy may use, or None.
+
+    Was deliberately unimplemented while the pilot was synthetic-only. It is
+    implemented now because the six licensing questions carry recorded
+    answers — but it **re-checks that record** rather than trusting that a
+    manifest exists.
+
+    That distinction is the point. A manifest is a file anyone can add; the
+    gate is whether every question has an answer, a source, a reviewer, a date,
+    an audience, a permitted derived output, an export rule and a retention
+    rule. Returning a snapshot on the strength of the file alone would make the
+    check decorative, which is how a control becomes a comment.
+
+    Returns None on any failure — missing manifest, missing record, incomplete
+    answers. The caller then records "no snapshot was resolved for this policy"
+    and serves nothing, which is the correct direction to fail in.
     """
-    return None
+    import yaml
+
+    from .loader import REPO_ROOT, load_manifest
+    from .pilot_policy import licensing_resolved
+
+    manifest = REPO_ROOT / VENDOR_MANIFEST
+    if not manifest.exists():
+        return None
+    try:
+        snapshot = load_manifest(manifest)
+    except Exception:                                       # pragma: no cover
+        return None
+
+    record_path = (snapshot.raw or {}).get("license_record")
+    if not record_path:
+        return None
+    record_file = REPO_ROOT / str(record_path)
+    if not record_file.exists():
+        return None
+    try:
+        answers = (yaml.safe_load(record_file.read_text()) or {}).get("answers")
+    except Exception:                                       # pragma: no cover
+        return None
+    if not answers or not licensing_resolved(answers):
+        return None
+    return snapshot
