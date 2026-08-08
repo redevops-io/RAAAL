@@ -172,3 +172,39 @@ class TestProseDeclarationsReachTheIntent:
                 "account and rebalance quarter end, over the past 5 years.")
         phrase = intent_for(text).fields["periodic_rebalancing"].value
         assert "over the past" not in phrase
+
+
+class TestTodaysCompilerProducesDraftsAndSaysSo:
+    """The seal is not a formality here — today's compiler genuinely cannot
+    close meaning on most prompts, and the contract makes that visible instead
+    of letting a half-understood plan look settled."""
+
+    def test_an_intent_with_open_questions_refuses_to_seal(self):
+        from src.contracts import NotSealable
+
+        i = intent_for(CROSSING)
+        assert i.unresolved, "this prompt should leave questions open"
+        with pytest.raises(NotSealable) as raised:
+            i.seal()
+        # and it names them, so the caller knows what to ask
+        for one in i.unresolved:
+            assert one.dimension in str(raised.value)
+
+    def test_it_starts_as_a_draft(self):
+        from src.contracts import IntentState
+
+        assert intent_for(CROSSING).state is IntentState.DRAFT
+        assert not intent_for(CROSSING).is_verified
+
+    def test_settling_the_questions_lets_it_seal(self):
+        """The discriminating half: a seal nothing can satisfy would be a seal
+        everyone routes around."""
+        from dataclasses import replace
+
+        i = intent_for(CROSSING)
+        assert replace(i, unresolved=()).seal().is_verified
+
+    def test_mission_is_not_asked_to_run_a_draft(self):
+        """`is_executable_in_principle` is false until sealed, whatever the
+        dimensions say. Closure is the first half of the claim."""
+        assert not intent_for(CROSSING).is_executable_in_principle

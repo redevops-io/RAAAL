@@ -126,11 +126,12 @@ already believes than anything we would have designed.
 - **Human gates are a state, not a callback.** `MissionState.WAITING_HUMAN`,
   `HumanTask`, and resolution as an *authoritative observation* that dominates
   fusion — not an approve/reject boolean.
-- **One LLM call, at the top.** `planner.py` is explicitly "the one place the
-  LLM runs; everything below it is deterministic," and the compiler carries the
-  matching rule: "If the model ever needs to run here, the layering has leaked."
+- **One LLM call, at the top.** `planner.py` said "the one place the LLM runs;
+  everything below it is deterministic," and the compiler carries the matching
+  rule: "If the model ever needs to run here, the layering has leaked."
 
-That last principle is the one this migration is about, already written down.
+That last principle is the one this migration is about, already written down —
+though the *statement* of it needed changing, and has been (§3.2b).
 
 ### 2.3 `sidekick` — a coding-agent orchestrator, not the user-facing agent
 
@@ -388,6 +389,62 @@ Five properties, each bought with a defect:
   make history rewritable. This is the migration's version of the rule that
   already governs market-data provenance.
 
+### 3.1a Discovery is mission formation, not alerting
+
+The word "discovery" carries a narrower meaning in the existing whitepapers —
+observe world state, detect meaningful change, propose the missions worth
+running. Quantify introduces the other direction: a human says something and
+the system works out what they meant. These are **two entry modes into one
+runtime**, not two runtimes.
+
+```
+  PROACTIVE      world changed        →  "we should investigate churn"
+  REACTIVE       a human said         →  "evaluate this SPY strategy"
+                                              │
+                                       MissionProposal
+                                              │
+                                       VerifiedIntent  (sealed)
+```
+
+What they share is the part that matters: **neither is execution yet.** Both
+turn messy evidence into a candidate whose meaning is explicit and whose merit
+is argued. So "Discovery decides what deserves attention" stays correct — a
+user's intent is simply another source of candidate work — and Quantify does
+not need a layer of its own.
+
+**The ranking cut.** This is where the older phrasing can accidentally reach
+into Mission, and the line is:
+
+> Discovery ranks what is worth **proposing**.
+> Mission decides what is admissible to **execute**.
+
+Discovery may say *"investigate churn, priority 0.91, here is the evidence"*.
+It may not say *"this is authorized, affordable and executable"* — those are
+Mission's answers, and a proposal carrying them is a second planner wearing a
+discovery hat. `MissionProposal` therefore has `priority`, `rationale`,
+`expected_value` and `evidence`, and deliberately has no `authorized`,
+`affordable` or `executable` field; a test asserts their absence.
+
+`expected_value` is free text rather than a number, because a monetary estimate
+at this layer reads downstream as a commitment Discovery is not in a position
+to make.
+
+### 3.1b Sealing: Discovery may not close what it has not closed
+
+`VerifiedIntent` carries state, starts as `DRAFT`, and reaches `VERIFIED` only
+through `seal()` — a method rather than a constructor argument, so the check
+cannot be skipped by passing the field.
+
+Sealing refuses while any open dimension is **result-changing**, so "we ran out
+of time asking" cannot become "the user agreed". `Unresolved.result_changing`
+defaults to `True`, and that default is the point: marking something cosmetic
+is a claim somebody makes on purpose, and silence blocks. An unresolved
+*disagreement* never seals even when marked cosmetic — two readers disagreeing
+about what was said is not a question about impact.
+
+Sealing does not change identity. A plan pinned before and after the seal is
+the same plan, or the state would have become part of the request.
+
 ### 3.2 The two runtimes that surround it
 
 ```
@@ -443,6 +500,37 @@ deterministic, and the existing `Verdict`/coverage discipline applies to its
 output rather than being replaced by it. A money-weighted return that a model
 produced is a number nobody can reproduce, and the whole provenance chain this
 project built exists to make figures reproducible.
+
+### 3.2b The invariant, restated
+
+`agentic-os` has said since it was written that the planner is "the one place
+the LLM runs". That was true while Mission was the top of the stack, and it
+stops being true the moment Discovery sits above it. Counting model calls was
+always a proxy for the property that actually matters:
+
+> **No LLM may change mission semantics after a `VerifiedIntent` is sealed.**
+
+More durable and less restrictive at once. Mission may one day want a model for
+a genuinely hard *planning* problem — which "one call at the top" forbids for
+no good reason — and if it does, that model's output is an execution proposal
+constrained by the verified intent and the capability manifest. Never a
+re-reading of what the user wanted.
+
+What makes it enforceable rather than aspirational is the **outcome
+vocabulary**. Mission may answer:
+
+```
+EXECUTABLE · UNSUPPORTED_CAPABILITY · NEEDS_APPROVAL
+POLICY_DENIED · BUDGET_EXCEEDED
+```
+
+The missing sixth is the point: there is no `REINTERPRETED`. *"I could not do
+what you meant, so I did something else"* is not an answer this boundary
+permits, and every expensive defect in this project had exactly that shape. A
+contract test asserts the set, and that no member's name contains `REINTERPRET`
+or `SUBSTITUT`, so adding one is a deliberate act with a failing test attached.
+
+Changed upstream on `agentic-os@feat/discovery-boundary-invariant`.
 
 **(b) Meaning and executability are different questions, asked by different
 runtimes.**
@@ -896,8 +984,19 @@ the current path, and every Phase 1 refusal arrives as a named
 
 Only now does the model enter, and it enters behind a mirror.
 
-- Build the Discovery Runtime: prose → `VerifiedIntent`, with `DecisionEvidence`
-  per reader, materiality, and the "what did you mean?" gate (§3.3).
+- Build the Discovery Runtime **in `agentic-os`, as `agentic_os/discovery/`**,
+  beside `agentic_os/mission/`. Two runtime boundaries, one repository: they
+  share the event store, identity primitives, human-task machinery and world
+  state, and share none of the authority. *Shared mechanism does not imply
+  shared responsibility*, and the `VerifiedIntent` artifact is what keeps the
+  second true while the first is convenient.
+- Contracts imported from `runtime-contracts`, never redefined there — the
+  duplication `agentic-os` already carries for `ExecutionGraph` ("converge the
+  two later") is the thing not to repeat.
+- Reactive entry mode first: prose → `VerifiedIntent`, with `DecisionEvidence`
+  per reader, materiality, the "what did you mean?" gate (§3.3), and `seal()`
+  (§3.1b). The proactive mode shares every one of those and adds only its
+  trigger.
 - Run it in **shadow**: every user sentence goes to both the old compiler and
   Discovery; both readings are recorded as `DecisionEvidence` on the same
   fields; the old compiler's answer is what the user sees and what runs.

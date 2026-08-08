@@ -50,7 +50,7 @@ the third is a stated value like any other.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Sequence
 
@@ -223,6 +223,19 @@ class Unresolved:
     detail: str = ""
     evidence: Sequence[DecisionEvidence] = ()
 
+    result_changing: bool = True
+    """Whether settling this differently would change what the consumer
+    produces.
+
+    **Defaults to True, and the default is the point.** An intent may only be
+    sealed when every remaining open dimension is *not* result-changing, so
+    silence blocks sealing rather than permitting it. Marking something
+    cosmetic is a claim someone has to make on purpose.
+
+    "The user declined to name a dividend policy, and this engine runs on price
+    series so it cannot change a figure" is a defensible False. "Nobody asked
+    which account it is" is not, whatever the pressure to ship."""
+
     def canonical_form(self) -> Dict[str, Any]:
         return {"dimension": self.dimension, "reason": self.reason.value}
 
@@ -256,6 +269,27 @@ class Amendment:
         return {**self.canonical_form(), "at": self.at}
 
 
+class IntentState(str, Enum):
+    """Whether the meaning is closed."""
+
+    DRAFT = "DRAFT"
+    """Still being formed. Discovery may amend it, ask about it, re-read it.
+    A consumer that executes a DRAFT is executing a guess."""
+
+    VERIFIED = "VERIFIED"
+    """Sealed. Every result-changing ambiguity is settled, and nothing
+    downstream may change what it means — only decide whether it may run."""
+
+
+class NotSealable(ValueError):
+    """An intent was offered as VERIFIED with meaning still open.
+
+    Raised rather than downgraded. An intent that quietly stays DRAFT while a
+    caller believes it sealed is the same failure as an unverified result that
+    looks verified, and it is the one this whole boundary exists to prevent.
+    """
+
+
 @dataclass(frozen=True)
 class VerifiedIntent:
     """What the user asked for, settled and attributable.
@@ -263,6 +297,12 @@ class VerifiedIntent:
     The consumer's contract with this object is short:
 
         read it · refuse what you cannot execute, by name · never edit it
+
+    **Discovery may not seal it while meaning is open.** `seal()` refuses when
+    any remaining open dimension is result-changing, so "we ran out of time
+    asking" cannot become "the user agreed". The state is on the artifact
+    rather than in the producer's head, because the consumer is a different
+    runtime and cannot see the producer's head.
     """
 
     SCHEMA_ID: str = field(default="runtime-contracts/verified-intent",
@@ -273,6 +313,10 @@ class VerifiedIntent:
     fields: Mapping[str, IntentField] = field(default_factory=dict)
     unresolved: Sequence[Unresolved] = ()
     amendments: Sequence[Amendment] = ()
+
+    state: IntentState = IntentState.DRAFT
+    """Fail-closed: an intent nobody sealed is a draft, whatever it looks
+    like."""
 
     produced_by: str = ""
     """Runtime and version, e.g. ``discovery-runtime@0.4.2``. Recorded, not
@@ -321,10 +365,43 @@ class VerifiedIntent:
         return [u for u in self.unresolved if u.reason.blocks_execution]
 
     @property
+    def unsealable(self) -> list:
+        """Open dimensions that prevent sealing.
+
+        Broader than `blocking`: an unresolved *disagreement* blocks execution
+        outright, and any open dimension that would change the result blocks
+        *sealing* — because sealing is the claim that the meaning is closed,
+        and a question whose answer changes the number is not closed.
+        """
+        return [u for u in self.unresolved
+                if u.result_changing or u.reason.blocks_execution]
+
+    def seal(self) -> "VerifiedIntent":
+        """The same intent, marked VERIFIED. Raises if meaning is still open.
+
+        This is the only way to reach VERIFIED, and it is a method rather than
+        a constructor argument so that the check cannot be skipped by passing
+        the field. Discovery calls it; nothing downstream does.
+        """
+        open_dimensions = self.unsealable
+        if open_dimensions:
+            named = ", ".join(sorted(u.dimension for u in open_dimensions))
+            raise NotSealable(
+                f"cannot seal: {named} would change the result and is still "
+                "open. Settle it, or record it as not result-changing and say "
+                "why — 'we stopped asking' is not the same as 'the user agreed'")
+        return replace(self, state=IntentState.VERIFIED)
+
+    @property
+    def is_verified(self) -> bool:
+        return self.state is IntentState.VERIFIED
+
+    @property
     def is_executable_in_principle(self) -> bool:
-        """No unresolved disagreement. Says nothing about capability — that is
-        the consumer's question, answered against its own manifest."""
-        return not self.blocking
+        """Sealed, and no unresolved disagreement. Says nothing about
+        capability — that is the consumer's question, answered against its own
+        manifest."""
+        return self.is_verified and not self.blocking
 
     @property
     def contested_dimensions(self) -> list:
@@ -373,6 +450,90 @@ class VerifiedIntent:
             "unresolved": [u.to_json() for u in self.unresolved],
             "amendments": [a.to_json() for a in self.amendments],
         }
+
+
+@dataclass(frozen=True)
+class MissionProposal:
+    """Something Discovery thinks is worth doing, and why.
+
+    Discovery has two entry modes and one output. A world observation —
+    "churn moved" — and a human sentence — "evaluate this SPY strategy" — are
+    the same kind of thing at this boundary: a candidate for work, whose
+    meaning has been made explicit and whose merit has been argued. Neither is
+    execution yet.
+
+    **Discovery ranks what is worth proposing. Mission decides what is
+    admissible to execute.** That is the whole of the split, and it is why
+    there is no `authorized`, `affordable` or `executable` field here. Those
+    are Mission's answers, and a proposal that carried them would be a second
+    planner wearing a discovery hat — which is how "decides what deserves
+    attention" quietly becomes "decides what happens".
+
+    `priority` is an argument, not a permission.
+    """
+
+    intent: VerifiedIntent
+    rationale: str = ""
+    priority: str = "0"
+    """Decimal string in [0, 1]. Discovery's own ordering, comparable only
+    against other proposals from the same producer and version — a number that
+    means "more urgent than the others I raised", not "urgent"."""
+
+    expected_value: str = ""
+    """Free text. Deliberately not a number: a monetary estimate here would be
+    read as a commitment by everything downstream, and Discovery is not in a
+    position to make one."""
+
+    evidence: Sequence[DecisionEvidence] = ()
+    """What made this worth raising — a metric that moved, a sentence someone
+    typed. The observation, not the conclusion."""
+
+    observed_at: Optional[str] = None
+    produced_by: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "priority", decimal_string(self.priority))
+
+    @property
+    def is_actionable(self) -> bool:
+        """Whether Mission may even consider it. A proposal whose intent is
+        still a draft is a question, not a candidate."""
+        return self.intent.is_verified
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"intent": self.intent.to_json(), "rationale": self.rationale,
+                "priority": self.priority, "expected_value": self.expected_value,
+                "evidence": [e.to_json() for e in self.evidence],
+                "observed_at": self.observed_at, "produced_by": self.produced_by}
+
+
+class MissionOutcome(str, Enum):
+    """What Mission may answer when handed a verified intent.
+
+    Five answers, and the missing sixth is the point. There is no
+    `REINTERPRETED`: "I could not do what you meant, so I did something else"
+    is not an outcome this boundary permits, and every expensive defect in the
+    system that produced this contract had exactly that shape.
+
+    A refusal is cheap. A figure computed for a plan nobody described is not.
+    """
+
+    EXECUTABLE = "EXECUTABLE"
+    UNSUPPORTED_CAPABILITY = "UNSUPPORTED_CAPABILITY"
+    """The engine cannot run this dimension or this value. Carries a
+    `CapabilityRefusal` naming it."""
+
+    NEEDS_APPROVAL = "NEEDS_APPROVAL"
+    """Runnable, and someone must say yes first. The "may I do this?" gate —
+    distinct from Discovery's "what did you mean?", and never merged with it:
+    one is authorising, the other is authoring."""
+
+    POLICY_DENIED = "POLICY_DENIED"
+    BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
+
+    @property
+    def may_execute(self) -> bool:
+        return self is MissionOutcome.EXECUTABLE
 
 
 @dataclass(frozen=True)

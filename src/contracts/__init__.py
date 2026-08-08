@@ -33,6 +33,10 @@ source and fails if they have diverged, so the copy cannot rot silently.
 from .intent import (  # noqa: F401
     Amendment,
     Author,
+    IntentState,
+    MissionOutcome,
+    MissionProposal,
+    NotSealable,
     CapabilityRefusal,
     DecisionEvidence,
     Derivation,
