@@ -7,18 +7,26 @@ is where it belongs, and where it was written.
 The originating commit is `redevops-io/runtime-contracts@feat/verified-intent`,
 now pushed.
 
-It is copied here for a narrower reason than the first version of this note
-gave. That repository was archived and read-only when the copy was taken, so it
-could not be published to at all; it has since been unarchived and the branch is
-upstream. It remains **private**, and `RAAAL` is public — so a clean clone of
-this repository still cannot resolve it as a dependency, and a test that
-depended on it would pass here and fail for anyone else. That is the same
-"passes only on my machine" failure the vendored market-data manifest already
-caused once.
+The reason for the copy has now changed twice, and both earlier reasons are
+gone. The repository was archived and read-only when the copy was taken; it was
+unarchived. It was then private while this one was public; it is now public
+under AGPL-3.0-or-later WITH Commons-Clause, the same terms as this repository.
 
-The copy therefore stays until either the contract branch lands on `main` and
-the package is published, or the repository is made public. Neither is this
-repository's decision.
+What remains is narrower and is the only thing still holding: **the contract
+lives on `feat/verified-intent` and not on `main`.** Depending on an unmerged
+branch pins this repository to a ref that can be force-pushed or rebased under
+it — the same fragility as `mission-sdk`'s bare-commit pin on `agentic-os`,
+which this project has already criticised in writing.
+
+So the swap is unblocked but not yet correct. It becomes correct when the
+contract lands on `main` and carries a tag, at which point:
+
+    src/contracts/            deleted
+    scripts/check_vendored…   deleted
+    requirements              runtime-contracts @ <tag>
+
+Until then the drift check is doing more work than before, not less: it is the
+only thing keeping this copy honest against a branch that is still moving.
 
 The rule while this copy exists: **treat it as read-only.** A change made here
 is a change to a contract two runtimes are supposed to agree on, made by one of

@@ -178,21 +178,31 @@ not serve it.
 
 ### 2.4 `runtime-contracts` — the spine, unmentioned in the brief
 
-**It is private, and it was archived.** The archive is lifted — the
-`VerifiedIntent` contract is upstream at `feat/verified-intent` — but the
-package is still private while `RAAAL` is public under AGPL-3.0 + Commons
-Clause, so a clean clone of this repository cannot resolve it as a dependency.
+**Resolved.** It was archived; it was unarchived. It was private while `RAAAL`
+was public; it is now public under **AGPL-3.0-or-later WITH Commons-Clause**,
+the same terms as this repository. Both reasons the schema spine could not be
+depended on are gone.
 
-Making a private package the schema spine of a public product is a decision
-with consequences, and it still needs answering. The options are: publish it,
-land the branch on `main` and publish the package, vendor the subset we use, or
-depend on it only in tooling that never ships.
+One thing still holds the swap, and it is narrower: the contract lives on
+`feat/verified-intent`, not on `main`. Depending on an unmerged ref pins this
+repository to something that can be force-pushed under it — the same fragility
+this document criticises in `mission-sdk`'s bare-commit pin on `agentic-os`
+(§2.6). The swap becomes correct when the contract lands on `main` and carries
+a tag, at which point `src/contracts/` and its drift check are both deleted.
 
-*Status:* vendored, under `src/contracts/`, with a drift check
-(`scripts/check_vendored_contracts.py`) that fails if the copy and the source
-disagree. That is the reversible option, not the answer — a copy nobody
-compares is a private fork of a contract two runtimes are supposed to agree on,
-which is the failure this package exists to prevent.
+*Status:* vendored under `src/contracts/`, with
+`scripts/check_vendored_contracts.py` failing on divergence. That check is now
+doing more work than when it was written, not less — the source is a branch
+under active development, and it caught the copy falling behind within an hour
+of the relicence.
+
+**A consequence of the relicence worth carrying.** These contracts are
+canonical *within this runtime family*, not an open standard anyone may
+implement commercially — "application-neutral" describes their shape, not their
+licence. And `mission-sdk` is Apache-2.0 on purpose: when it becomes a thin
+adapter over the canonical `MissionProgram`, its stated terms and its effective
+terms stop agreeing. `runtime-contracts/LICENSE.md` records it; neither this
+repository nor that one can decide it.
 
 `/projects/runtime-contracts` already names this exact set of implementations:
 

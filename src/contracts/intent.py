@@ -245,6 +245,125 @@ class Unresolved:
 
 
 @dataclass(frozen=True)
+class RelationMember:
+    """One participant in a relationship, and the role it plays in it."""
+
+    role: str
+    """What this member *is to* the relation — `core`, `satellite`, `from`,
+    `to`. Not a type and not a name: the same entity in a different role is a
+    different statement, which is the whole reason roles exist here."""
+
+    subject: str
+    """The entity as the user described it. Never resolved: "a core index
+    fund" stays that, and turning it into VTI is a substitution nobody asked
+    for and a decision no reader is entitled to make."""
+
+    qualifiers: Mapping[str, str] = field(default_factory=dict)
+    """Facts about *this member's part in this relation* — most often an
+    allocation. `{"allocation": "30%"}` on the satellite says the 30% belongs
+    to that sleeve, which a separate `stated_weights` list beside a separate
+    `assets` list can only imply by position."""
+
+    evidence: Sequence[DecisionEvidence] = ()
+
+    def canonical_form(self) -> Dict[str, Any]:
+        return {"role": self.role, "subject": self.subject,
+                "qualifiers": dict(sorted(self.qualifiers.items()))}
+
+    def to_json(self) -> Dict[str, Any]:
+        return {**self.canonical_form(),
+                "evidence": [e.to_json() for e in self.evidence]}
+
+
+@dataclass(frozen=True)
+class IntentRelation:
+    """Something the user said *about how entities relate*.
+
+    **The gap this closes.** A `VerifiedIntent` whose fields are scalars and
+    sets can hold "the user named VTI and BND" and "the user said 60 and 40".
+    It cannot hold *which weight belongs to which holding* except by position,
+    and it cannot hold "a core fund plus a 30% satellite" at all — there is one
+    allocation and two roles, and a flat list has nowhere to put the roles.
+
+    Two sentences found this within a day of each other, in different
+    dimensions:
+
+        "a core index fund and 30% into a US value ETF"
+        "convert my traditional IRA to a Roth"
+
+    Both readers read both sentences correctly. Both were then forced to
+    disagree, because the schema made them answer with one value where the
+    sentence had two entities in named roles. That is a representational
+    failure and not a reading failure, and it is worth stating as a rule:
+
+        When a sentence expresses a relationship between entities, flattening
+        the entities into a scalar or a set destroys the intent.
+
+    **Application-neutral on purpose.** This package does not know what a
+    portfolio sleeve is, and should not. It provides `kind`, `members` and
+    `roles`; a domain schema declares that `portfolio_sleeves` has members in
+    `core`/`satellite` roles and that `account_transition` has `from`/`to` plus
+    an `action`. Putting the finance vocabulary here would make every other
+    consumer carry it.
+    """
+
+    kind: str
+    """The domain's name for this relationship — `portfolio_sleeves`,
+    `account_transition`. Meaningful to the schema that declared it."""
+
+    members: Sequence[RelationMember] = ()
+    attributes: Mapping[str, str] = field(default_factory=dict)
+    """Facts about the relation as a whole rather than any member —
+    `{"action": "convert"}`. A transition's action belongs to neither end."""
+
+    author: Author = Author.MODEL
+    produced_by: str = ""
+    source_span: str = ""
+
+    def __post_init__(self) -> None:
+        # Repeated roles are deliberately allowed: three satellites is a real
+        # portfolio, and only the domain schema knows that two `from` accounts
+        # is not a real transition. Enforcing cardinality here would need this
+        # package to learn every domain's vocabulary.
+        if not self.members:
+            raise ValueError(
+                f"relation {self.kind!r} has no members; a relationship with "
+                "nothing in it is a claim about nothing")
+
+    def member(self, role: str) -> Optional[RelationMember]:
+        for one in self.members:
+            if one.role == role:
+                return one
+        return None
+
+    def members_in(self, role: str) -> Sequence[RelationMember]:
+        return tuple(m for m in self.members if m.role == role)
+
+    @property
+    def roles(self) -> Sequence[str]:
+        return tuple(m.role for m in self.members)
+
+    def canonical_form(self) -> Dict[str, Any]:
+        return {
+            "kind": self.kind,
+            # Ordered, not sorted: "core then satellite" and the reverse are
+            # the same portfolio, but "from then to" and the reverse are
+            # opposite transactions. Order is cheaper to keep than to decide
+            # per kind, and a schema that needs order-insensitivity can sort
+            # its own members before construction.
+            "members": [m.canonical_form() for m in self.members],
+            "attributes": dict(sorted(self.attributes.items())),
+            "author": self.author.value,
+        }
+
+    def to_json(self) -> Dict[str, Any]:
+        return {**self.canonical_form(),
+                "members": [m.to_json() for m in self.members],
+                "produced_by": self.produced_by,
+                "source_span": self.source_span}
+
+
+@dataclass(frozen=True)
 class Amendment:
     """A change the user made after first stating their intent.
 
@@ -311,6 +430,14 @@ class VerifiedIntent:
 
     objective: str
     fields: Mapping[str, IntentField] = field(default_factory=dict)
+    relations: Sequence[IntentRelation] = ()
+    """What the user said about how entities relate — see `IntentRelation`.
+
+    A separate place rather than a polymorphic `fields` value, deliberately.
+    Making one field sometimes a scalar and sometimes a structure means every
+    consumer branches on type before it can read anything, and the first
+    consumer to forget reads a sleeve list as an asset name."""
+
     unresolved: Sequence[Unresolved] = ()
     amendments: Sequence[Amendment] = ()
 
@@ -403,6 +530,15 @@ class VerifiedIntent:
         manifest."""
         return self.is_verified and not self.blocking
 
+    def relation(self, kind: str) -> Optional[IntentRelation]:
+        for one in self.relations:
+            if one.kind == kind:
+                return one
+        return None
+
+    def relations_of(self, kind: str) -> Sequence[IntentRelation]:
+        return tuple(r for r in self.relations if r.kind == kind)
+
     @property
     def contested_dimensions(self) -> list:
         return sorted(k for k, f in self.fields.items() if f.contested)
@@ -420,6 +556,10 @@ class VerifiedIntent:
             "contract_version": CONTRACT_VERSION,
             "objective": self.objective,
             "fields": {k: v.canonical_form() for k, v in self.fields.items()},
+            # Identity: a relationship *is* part of what was asked for. Two
+            # intents naming the same instruments in different roles are
+            # different requests.
+            "relations": [r.canonical_form() for r in self.relations],
             "unresolved": sorted(
                 (u.canonical_form() for u in self.unresolved),
                 key=lambda u: u["dimension"]),
@@ -465,6 +605,7 @@ class VerifiedIntent:
             "unresolved": [
                 {**u.canonical_form(), "result_changing": u.result_changing}
                 for u in sorted(self.unresolved, key=lambda u: u.dimension)],
+            "relations": [r.to_json() for r in self.relations],
             "fields": {
                 name: {"confidence": f.confidence,
                        "source_span": f.source_span,
@@ -491,6 +632,7 @@ class VerifiedIntent:
             "utterance_ref": self.utterance_ref,
             "created_at": self.created_at,
             "fields": {k: v.to_json() for k, v in self.fields.items()},
+            "relations": [r.to_json() for r in self.relations],
             "unresolved": [u.to_json() for u in self.unresolved],
             "amendments": [a.to_json() for a in self.amendments],
         }
