@@ -1,8 +1,22 @@
 # Migrating Quantify to the ReDevOps runtime architecture
 
-**Status:** proposed. Nothing below has been built.
+**Status:** Phases 0–3 built and measured. Phase 4 not started.
 **Date:** 2026-08-08
 **Supersedes:** `docs/Roadmap.md` for everything above the execution engine.
+
+| phase | state | evidence |
+|---|---|---|
+| 0 · contracts and baseline | done | `corpus/`, discrimination gate in the suite |
+| 1 · capability manifest | done | derived from the executor, asserted both ways, 3 mutations killed |
+| 2 · Mission binding | done | `VerifiedIntent` emitted by today's compiler, stamped `produced_by` |
+| 3 · Discovery in shadow | **closed** | `tests/test_phase3_exit_gate.py` — nine conditions, checked |
+| 4 · cutover | not started | see below; the question is no longer about agreement |
+| 5 · the surface | undecided | §6.1 |
+
+Phase 3's evidence package: `corpus/shadow/` (both matrices with provenance and
+a six-check validity gate), `corpus/ledger.json` (80 adjudicated rows, no
+residual), `corpus/expected/discovery.json` (Discovery-only fixtures), and
+`corpus/adjudicated.json` (how each disposition was reached).
 
 ---
 
@@ -1018,17 +1032,44 @@ cutover while any material disagreement is unexplained.
 
 ### Phase 4 — Cutover (1–2 weeks)
 
-- Discovery becomes authoritative for meaning; the regex compiler is removed.
-- Its "what did you mean?" gate surfaces as the existing confirmation question
-  — the mechanism the product already has and pilot users already understand.
+**The question changes here, and so do the tests.** Phase 3 asked whether two
+readers agree. That question is answered and should not be asked again — more
+agreement statistics would measure a reader that is about to be deleted. Phase
+4 asks:
+
+> Given a `VerifiedIntent`, can Mission deterministically compile, verify,
+> authorize, execute, replay and audit it **without consulting the legacy
+> parser**?
+
+If yes, the compiler disappears. It has been a temporary oracle used only to
+justify its own removal, and Phase 3's ninth exit condition — no correctness
+fixture naming any reader — is what makes the removal a deletion rather than a
+rename.
+
+- Discovery becomes authoritative for meaning; the regex compiler is removed,
+  along with `parse_model.py` and the comparator that only existed to measure
+  it.
+- Discovery's "what did you mean?" gate surfaces as the existing confirmation
+  question — the mechanism the product already has and pilot users already
+  understand.
 - Mission's "may I do this?" gate gets its own affordance, kept separate (§3.3).
 
-**Gate:** both corpora at parity or better against the Phase 0 baseline, on
-meaning rather than on counts. A prompt that moves from EXECUTE to REFUSE is a
-regression to explain; a prompt that moves from REFUSE to EXECUTE needs its
-figure checked by hand before it counts as an improvement. And the migration's
-central invariant holds on every prompt: **nothing Mission executed was less
-than what Discovery verified, unless it said so by name.**
+**The acceptance tests are end-to-end Mission properties, not parser
+comparisons.** These are what the runtime actually promises:
+
+| property | what fails it |
+|---|---|
+| `VerifiedIntent` → `MissionProgram` | an intent that compiles to a program not derivable from it |
+| replay determinism | the same program replayed twice reaching different terminal states |
+| capability manifest enforcement | anything outside the manifest executing rather than refusing by name |
+| authorization gates | a side-effecting capability running without its approval |
+| evidence and provenance preservation | a figure that cannot name the run, program, intent and author behind it |
+| cross-implementation replay | the same `MissionProgram` reaching different states under two runtimes |
+
+**Gate:** every one of the six holds, and the migration's central invariant
+holds on every corpus prompt — **nothing Mission executed was less than what
+Discovery verified, unless it said so by name.** The corpora remain the
+regression instrument; they stop being a comparison instrument.
 
 ### Phase 5 — The surface (undecided, §6)
 
@@ -1291,17 +1332,28 @@ operating conditions with properties of the thing it was measuring.**
   dimension at all. *The comparator now calls the reader's own semantic
   implementation.*
 
-The general rule, worth applying to any future evaluator:
+Three principles fall out, and none of them is about finance, parsers or this
+product. They are properties any measurement of any system has to have:
 
-> **A comparator must call the reader's actual implementation, never reproduce
-> an approximation of it.** An approximation makes the evaluator a third
-> parser, with no name, no version and no evidence — and a third parser
-> manufactures agreement between the two it was meant to compare.
+**1. A measurement must never be able to overwrite its own evidence.**
+The dry-run probe and the real run shared an output path, so checking the
+instrument destroyed the result. Separate paths are the mechanical fix;
+the general form is that the act of observing must not be able to write where
+the observation lives.
 
-And its corollary, which is why the third one took longest to see:
+**2. Instrumentation limits are properties of the experiment, not of the
+system under test.** A token ceiling, a disabled reader, a timeout and a
+sampling cap are all facts about the harness. Recorded as facts about the
+subject — "the reader said nothing" — they become findings that survive long
+after the limit is lifted. Every such limit needs its own result class and its
+own name in the output.
 
-> **Being generous to a reader is the same defect as being stingy with it.**
-> Both let the comparator decide the result.
+**3. A comparator must invoke each implementation's actual semantics, never a
+reimplementation of them.** An approximation is a third parser with no name, no
+version and no evidence, and a third parser manufactures agreement between the
+two it was meant to compare. The corollary is the part that took longest to
+see: **being generous to a reader is the same defect as being stingy with it.**
+Both let the comparator decide the result.
 
 The structural answer is that a measurement artifact needs provenance about
 *how it was produced*, not only the values it contains. Every result file now
