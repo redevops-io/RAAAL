@@ -429,20 +429,64 @@ class VerifiedIntent:
 
     @property
     def intent_hash(self) -> str:
-        """The identity a plan re-runs from.
+        """**What the user means.** The identity a plan re-runs from.
 
         A model is non-deterministic; the same sentence twice may not produce
         the same intent. Pinning the intent makes a plan reproducible.
         Re-reading the sentence on reopen would make history rewritable, which
         is the same defect as recovering an authoritative answer from rendered
         prose.
+
+        Unchanged by sealing, by which reader produced it, and by how
+        confidently. Two artifacts with one `intent_hash` are the same request.
         """
         return content_hash(self.canonical_form())
+
+    def artifact_form(self) -> Dict[str, Any]:
+        """Everything about *this representation*, not about the request.
+
+        Semantic identity and artifact identity are different questions and
+        both get asked. `intent_hash` answers "is this the same request?" —
+        which must stay true across sealing, or a plan pinned before the seal
+        would not be the plan that ran. `artifact_digest` answers "is this the
+        same object?" — which must go false on sealing, or a draft and a sealed
+        intent would be indistinguishable once serialized, and a consumer
+        holding a cached copy could not tell it had gone stale.
+
+        Carrying only the first would make the two interchangeable in storage
+        and in transit. Carrying only the second would make every re-read look
+        like a new request.
+        """
+        return {
+            "intent_hash": self.intent_hash,
+            "state": self.state.value,
+            "produced_by": self.produced_by,
+            "utterance_ref": self.utterance_ref,
+            "unresolved": [
+                {**u.canonical_form(), "result_changing": u.result_changing}
+                for u in sorted(self.unresolved, key=lambda u: u.dimension)],
+            "fields": {
+                name: {"confidence": f.confidence,
+                       "source_span": f.source_span,
+                       "contested": f.contested,
+                       "produced_by": f.produced_by,
+                       "evidence": [e.to_json() for e in f.evidence]}
+                for name, f in sorted(self.fields.items())},
+        }
+
+    @property
+    def artifact_digest(self) -> str:
+        """**Which representation this is.** Changes on sealing; changes when a
+        reader, a confidence or a piece of evidence changes. Never a substitute
+        for `intent_hash` — a plan pins the request, a cache pins the object."""
+        return content_hash(self.artifact_form())
 
     def to_json(self) -> Dict[str, Any]:
         return {
             **self.canonical_form(),
             "intent_hash": self.intent_hash,
+            "artifact_digest": self.artifact_digest,
+            "state": self.state.value,
             "produced_by": self.produced_by,
             "utterance_ref": self.utterance_ref,
             "created_at": self.created_at,

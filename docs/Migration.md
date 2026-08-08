@@ -1062,13 +1062,52 @@ its history is the thing that must never be rewritten; the
 `ScenarioSpecification` is derived from it and could in principle be recomputed
 from a pinned intent. Needs deciding before Phase 2.
 
-**3. Which model, and where it runs.** `agentic-os` defaults to a local
-`Qwen3-Coder-Next-NVFP4` over an OpenAI-compatible endpoint. Quantify's
-licensing record permits "small snippets during testing... never the full
-series" to a model provider, recorded as operator-only with no automated path.
-A hosted model in Discovery sends *user sentences*, not prices — outside what
-that record covers either way. It needs its own answer before Phase 3 ships to
-a user, and Discovery is where it now bites.
+**3. Which model, and where it runs. — RESOLVED.**
+
+> Phase 3: **hosted `claude-sonnet-5`, Discovery only, provider-neutral
+> adapter, user sentence only, no Context Runtime.** Preserve and pin its
+> output as evidence. Evaluate local and alternative models later, against the
+> adjudicated Discovery corpus.
+
+Recorded as an enforceable policy in `data/licensing/discovery-egress@1.yaml`,
+with `tests/test_discovery_egress_boundary.py` asserting its shape — separate
+from the market-data record, because that one governs *prices* and this governs
+*the user's own language*, and neither answer implies the other.
+
+Four reasons, in the order they matter:
+
+1. **There is direct evidence for this exact job.** On the "crosses below"
+   defect the model read `trigger_semantics = crossing_event` with the span
+   "crosses below", and the deterministic parser read a persistent state and
+   was wrong. That is the semantic-reading role Discovery needs, on the failure
+   that motivated this whole migration.
+2. **Phase 3 measures the boundary, not the model.** It asks whether the new
+   runtime preserves meaning better than the recogniser it replaces. Making
+   model selection a second experiment inside the first means a disagreement
+   tells you nothing — you cannot say whether Discovery's design is wrong or
+   the reader is merely small.
+3. **The privacy boundary is clean at this size.** Discovery sends a sentence,
+   a schema and instructions. Nothing else: no price series, no simulation
+   output, no portfolio state, no retrieved history. The provider sees the
+   user's own words; Mission and the engine see verified structured intent and
+   financial data.
+4. **The manifest must not reach the reader**, and this is a correctness rule
+   rather than a privacy one, which is why the record lists it beside the data.
+   Telling the reader what the engine executes does not make it refuse the
+   rest; it makes it render the rest as the nearest thing it can say. Discovery
+   must remain able to emit `allocation_method: inverse_volatility` knowing
+   Mission will refuse it (§3.6).
+
+**Not permanently special**, and the record binds that as a field rather than a
+comment: the adapter is written to a reader interface from the first commit —
+`read(text, schema) -> DecisionEvidence[]`. Claude primary, the existing
+deterministic reader as the shadow comparator, and later a local model, a
+challenger provider or a router.
+
+The stopping criterion for the local-model question is a measurement, not an
+argument. Phase 3 produces 179 prompts of adjudicated intents, and that is the
+benchmark: material-field agreement, clarification rate, unsupported-value
+hallucination rate, source-span validity, cost, latency. Ask then.
 
 **4. Whether `context-runtime` earns its place in v1.** Answered, with
 evidence: no. Its value is assembling context for Discovery, and Discovery's
