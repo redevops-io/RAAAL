@@ -210,3 +210,61 @@ def evidence_for(comparison: Comparison, dimension: str) -> Sequence:
                 source_ref=one.spans.get(reader, ""))
             for reader, value in sorted(one.values.items()))
     return ()
+
+
+# ── the report that says more than a percentage ────────────────────────────
+
+def matrix(comparisons: Sequence[Comparison], schema: Schema,
+           readers: Sequence[str]) -> Dict[str, Dict[str, int]]:
+    """Per dimension, five counts — and the two `ONE_SIDED` halves separated.
+
+    A single overall agreement percentage hides the only question worth asking
+    of a shadow run. "One reader read it" is two very different findings:
+
+        model only      a field the legacy reader never represented.
+                        Evidence *for* the new one, not a problem.
+        compiler only   a field the new reader missed that the old one has.
+                        A reader defect, and the thing to go and look at.
+
+    Collapsing them into `ONE_SIDED` was enough to see there was coverage
+    movement and not enough to say which direction it went.
+    """
+    out: Dict[str, Dict[str, int]] = {}
+    left, right = readers[0], readers[1]
+
+    for name in sorted(schema.names):
+        counts = {"both_agree": 0, "both_contested": 0,
+                  f"{left}_only": 0, f"{right}_only": 0, "neither": 0}
+        for comparison in comparisons:
+            for one in comparison.fields:
+                if one.dimension != name:
+                    continue
+                if one.state == AGREED:
+                    counts["both_agree"] += 1
+                elif one.state == CONTESTED:
+                    counts["both_contested"] += 1
+                elif one.state == UNREAD:
+                    counts["neither"] += 1
+                else:
+                    who = next(iter(one.values), "")
+                    key = f"{who}_only"
+                    if key in counts:
+                        counts[key] += 1
+        out[name] = counts
+    return out
+
+
+def render(matrix_by_dimension: Dict[str, Dict[str, int]],
+           readers: Sequence[str]) -> str:
+    left, right = readers[0], readers[1]
+    head = (f"{'dimension':24s} {'agree':>6s} {'contest':>8s} "
+            f"{'cmplr':>7s} {'model':>7s} {'neither':>8s}")
+    lines = [head, "-" * len(head)]
+    for name, counts in sorted(
+            matrix_by_dimension.items(),
+            key=lambda kv: (-kv[1]["both_contested"], -kv[1]["both_agree"])):
+        lines.append(
+            f"{name:24s} {counts['both_agree']:6d} "
+            f"{counts['both_contested']:8d} {counts[f'{left}_only']:7d} "
+            f"{counts[f'{right}_only']:7d} {counts['neither']:8d}")
+    return "\n".join(lines)

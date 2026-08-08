@@ -136,9 +136,18 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@1", dimensions=(
 
     Dimension(
         name="evaluation_period",
-        describes=("The window to evaluate over, as written — 'the past five "
-                   "years', 'since 2016', 'each month for a year'."),
-        examples=("over the past 5 years", "since January 2020")),
+        describes=(
+            "The window to evaluate over, in a canonical form rather than as "
+            "written. Use exactly one of:\n"
+            "      trailing:<n>y   or  trailing:<n>m   — a duration back from now\n"
+            "      since:<YYYY>    or  since:<YYYY-MM> — open-ended from a date\n"
+            "      until:<YYYY>                        — open-ended to a date\n"
+            "      range:<YYYY-MM>..<YYYY-MM>          — both ends given\n"
+            "      rolling:<n>y                        — many windows, not one\n"
+            "    Quote the words in source_span; the value is the canonical form."),
+        examples=("'over the past 5 years' -> trailing:5y",
+                  "'since January 2020' -> since:2020-01",
+                  "'each month for the past five years' -> rolling:5y")),
 
     Dimension(
         name="moving_average_window",

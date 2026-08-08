@@ -1,0 +1,150 @@
+{
+ "schema": "quantify-discovery-schema@1",
+ "corpus": "strategies + catalogue",
+ "adjudicated_on": "2026-08-08",
+ "adjudicator": "engineering, from the prompt text",
+ "note": "Ten contested rows from the 35-prompt shadow run. Each records which reader was right and why, and \u2014 more usefully \u2014 what kind of defect it is. Three kinds appeared, and they need three different fixes.",
+ "rows": [
+  {
+   "ref": "WM-0044",
+   "dimension": "evaluation_period",
+   "compiler": "rolling:unresolved",
+   "model": "trailing:5y",
+   "correct": "trailing:5y",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "'Each month I hold whichever ... had the best 12-month return, past 5 years.' The window is the past 5 years; 'each month' is a rebalancing cadence, not a window modifier. The compiler's ROLLING detector still reads cadence+window as many windows \u2014 the same class as the cadence/window collision closed earlier, and evidence it was not fully closed."
+  },
+  {
+   "ref": "WM-0049",
+   "dimension": "evaluation_period",
+   "compiler": "rolling:unresolved",
+   "model": "trailing:5y",
+   "correct": "trailing:5y",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "Same shape: 'Each month I sell ... past 5 years.'"
+  },
+  {
+   "ref": "WM-0073",
+   "dimension": "evaluation_period",
+   "compiler": "rolling:unresolved",
+   "model": "trailing:5y",
+   "correct": "trailing:5y",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "'Convert ... each year ... past 5 years.'"
+  },
+  {
+   "ref": "WM-0081",
+   "dimension": "evaluation_period",
+   "compiler": "rolling:unresolved",
+   "model": "trailing:5y",
+   "correct": "trailing:5y",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "'... increase it with inflation each year after, past 5 years.'"
+  },
+  {
+   "ref": "WM-0097",
+   "dimension": "evaluation_period",
+   "compiler": "rolling:unresolved",
+   "model": "trailing:5y",
+   "correct": "trailing:5y",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "'... each year starting at age 73, past 5 years.'"
+  },
+  {
+   "ref": "WM-0017",
+   "dimension": "assets",
+   "compiler": "VTI, BND",
+   "model": "VTI",
+   "correct": "VTI, BND",
+   "right": "compiler",
+   "defect": "MODEL",
+   "why": "'I hold 60% VTI and 40% BND ...' \u2014 the sentence names both and the model reported one. A recall miss on the dimension where a miss is most expensive: a portfolio read as one holding is not the portfolio described. This is the clearest single argument against treating the hosted reader as authoritative without a comparator."
+  },
+  {
+   "ref": "WM-0044",
+   "dimension": "assets",
+   "compiler": "US",
+   "model": "US stocks, international stocks or bonds",
+   "correct": "US stocks, international stocks or bonds",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "The compiler truncated a three-way description to the first token. 'US' is not a holding, and a plan built on it would price something nobody described."
+  },
+  {
+   "ref": "WM-0057",
+   "dimension": "assets",
+   "compiler": "US, ETF",
+   "model": "the 500 largest US companies individually rather than through an ETF",
+   "correct": "the 500 largest US companies individually rather than through an ETF",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "The compiler picked two nouns out of a sentence that explicitly rejects the ETF route. Reading 'ETF' out of 'rather than through an ETF' is the inversion a regex cannot see."
+  },
+  {
+   "ref": "ORIG-1",
+   "dimension": "observed_assets",
+   "compiler": "ETF",
+   "model": "S&P 500",
+   "correct": "S&P 500",
+   "right": "model",
+   "defect": "COMPILER",
+   "why": "The watched series is the index, and 'ETF' is the wrapper the user buys. Naming the wrapper as the observed series is the defect that made a plan evaluate its condition on the wrong instrument."
+  },
+  {
+   "ref": "WM-0073",
+   "dimension": "account_type",
+   "compiler": "ROTH",
+   "model": "TRADITIONAL_IRA",
+   "correct": null,
+   "right": "neither",
+   "defect": "SCHEMA",
+   "why": "'Convert enough of my traditional IRA to a Roth' names two accounts, and `account_type` holds one. Both readers are reporting a true fact about the sentence and the schema forces them to disagree. A conversion needs a source and a destination, and until the schema has them this row is not adjudicable \u2014 recorded as such rather than resolved by preferring a reader."
+  }
+ ],
+ "summary": {
+  "COMPILER": 8,
+  "MODEL": 1,
+  "SCHEMA": 1,
+  "reading": "Eight of ten contested rows are legacy-reader defects, one is a model recall miss, and one is unanswerable because the schema cannot represent the sentence. That is the shape a shadow phase is supposed to produce: most disagreements teach you about the thing being replaced, one teaches you about the replacement, and the residue teaches you about your own instrument."
+ },
+ "catalogue_findings": {
+  "run": "144 prompts, frozen schema",
+  "contested_by_dimension": {
+   "assets": 25,
+   "evaluation_period": 15,
+   "account_type": 2
+  },
+  "classes": [
+   {
+    "dimension": "assets",
+    "rows": 25,
+    "defect": "BOTH",
+    "representative": [
+     "WM-0008",
+     "WM-0025",
+     "WM-0028",
+     "WM-0035"
+    ],
+    "why": "One class, not 25 findings. The compiler extracts capitalised nouns as if they were instruments \u2014 'ETF' read out of 'US value ETF', 'US' and 'EM' out of 'US and Developed and EM' \u2014 which is a category error: ETF is a wrapper, not a holding, and a plan priced on it would price nothing the user named. The model reports the phrase the sentence actually uses ('core index fund', 'multi-asset ETF set'), which is faithful but not resolvable to a series either.",
+    "and_the_model_too": "WM-0025 describes two sleeves \u2014 a core index fund and a 30% US value ETF satellite \u2014 and the model reported only the core. So on multi-sleeve descriptions both readers are incomplete, in different ways. Neither is safe to trust alone on the dimension where being wrong is most expensive.",
+    "what_it_argues_for": "`assets` needs structure the schema does not have: a list of sleeves, each with a description and an optional weight. A single string cannot hold 'a core fund plus a 30% satellite', so both readers are being asked a question that has no correct single answer \u2014 the same shape as the account_type conversion gap, one dimension over."
+   },
+   {
+    "dimension": "evaluation_period",
+    "rows": 15,
+    "defect": "COMPILER",
+    "why": "The same cadence-plus-window misread already adjudicated on the 35: 120 agree, 15 contested, 9 compiler-only, and zero model-only. The direction is uniform, which is what makes it a defect in one reader rather than a disagreement between two."
+   }
+  ],
+  "one_sided": {
+   "model_only": 310,
+   "compiler_only": 33,
+   "reading": "Ten to one, and the largest buckets are dimensions the legacy compiler has no concept of at all: objective 116, sell_action 49, allocation_method 32, stated_weights 23. That is the recall gap Discovery exists to close, measured rather than asserted. The 33 compiler-only readings are the reader-defect candidates and are small enough to inspect by hand."
+  }
+ }
+}

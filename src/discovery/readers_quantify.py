@@ -105,7 +105,9 @@ Rules that matter more than completeness:
    it is below" or "whenever it is under" is a persistent_condition — every day
    it stays true. If the sentence genuinely does not distinguish them, leave it
    out; do not pick.
-5. Use a listed value where the dimension lists values. If the person clearly
+5. `evaluation_period` is canonical, not quoted: "over the past 5 years" is
+   `trailing:5y`. Put the words in `source_span` as always.
+6. Use a listed value where the dimension lists values. If the person clearly
    means something outside the list, report their words as the value rather
    than forcing the nearest listed one.
 
@@ -229,12 +231,36 @@ def _window(text: str) -> Optional[str]:
         return None
     if found is None:
         return None
-    # `observed` is the user's own words. The first version returned
-    # `str(found.kind)`, which put "WindowKind.TRAILING" where a span belongs —
-    # an enum repr is this module's vocabulary, not the reader's evidence, and
-    # comparing it against a model that quotes the sentence would score a
-    # formatting difference as a disagreement.
-    return getattr(found, "observed", None) or None
+    # Canonical, not as written. The first version returned the user's words,
+    # and 15 of 21 contested fields in the first shadow run were "for the past
+    # 5 years" against "the past 5 years" — the same window, two span
+    # boundaries. A dimension compared as prose makes every reader disagree
+    # about where a phrase starts.
+    return _canonical_window(found)
+
+
+def _canonical_window(found) -> Optional[str]:
+    kind = str(getattr(getattr(found, "kind", ""), "value", "") or "")
+    years = getattr(found, "years", None)
+    months = getattr(found, "months", None)
+
+    if kind in ("trailing", "rolling"):
+        if years:
+            return f"{kind}:{years}y"
+        if months:
+            return f"{kind}:{months}m"
+        # Recognised as this kind and not sized — "each month for the past"
+        # truncates before the duration. Reported rather than dropped: `None`
+        # here would read as "the compiler never looked", which is a different
+        # and much more flattering claim than "it saw one and could not size
+        # it".
+        return f"{kind}:unresolved"
+    if kind in ("since", "until", "explicit_range", "event_relative"):
+        # Recognised and not reducible to a duration. Reported as the kind so a
+        # disagreement about *which kind of window* still shows up, rather than
+        # vanishing into None and reading as "the compiler did not look".
+        return f"{kind}:unresolved"
+    return None
 
 
 def _moving_average(text: str) -> Optional[str]:

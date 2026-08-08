@@ -21,4 +21,6 @@ from .shadow import (  # noqa: F401
     FieldComparison,
     compare,
     evidence_for,
+    matrix,
+    render,
 )

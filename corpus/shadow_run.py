@@ -38,8 +38,40 @@ from src.discovery import (  # noqa: E402
     UNREAD,
     QUANTIFY_SCHEMA,
     compare,
+    matrix,
+    render,
 )
 from src.discovery.readers_quantify import CompilerReader, HostedReader  # noqa: E402
+
+
+def schema_fingerprint(schema) -> str:
+    """What the comparison meant, when it ran.
+
+    Frozen before the large run and recorded in every output. Two runs are
+    comparable only if they asked the same questions and compared the answers
+    the same way, and this project has already had one measurement invalidated
+    by changing the instrument mid-flight — the first 35-prompt run scored
+    `"200"` against `"200-day"` as a conflict and the second did not.
+
+    Covers the dimension names, their vocabularies and their `compare_as`
+    modes. Not the prose descriptions: rewording a description changes what a
+    model is told and is a real change, but it is one the run itself records
+    through the model's readings, and hashing it would invalidate every
+    baseline over a typo.
+    """
+    import hashlib
+    import json
+
+    payload = {
+        "version": schema.version,
+        "dimensions": {
+            d.name: {"compare_as": d.compare_as, "values": list(d.values)}
+            for d in schema.dimensions},
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()[:16]
+    return f"{schema.version}/{digest}"
 
 
 def prompts(which: str):
@@ -61,6 +93,9 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--dry-run", action="store_true",
                         help="skip the provider; proves the path without cost")
+    parser.add_argument("--refreeze", action="store_true",
+                        help="record the current comparison schema as the "
+                             "baseline. Invalidates every earlier run.")
     args = parser.parse_args()
 
     rows = prompts(args.corpus)
@@ -72,7 +107,23 @@ def main() -> int:
     if args.dry_run:
         hosted.api_key_env = "DEFINITELY_NOT_SET"
 
+    fingerprint = schema_fingerprint(QUANTIFY_SCHEMA)
+    frozen = HERE / "schema-frozen.txt"
+    if frozen.exists():
+        expected = frozen.read_text().strip()
+        if expected != fingerprint:
+            print(f"SCHEMA CHANGED\n  frozen  {expected}\n  now     {fingerprint}\n"
+                  "\nA run under a changed comparison schema is not comparable "
+                  "with the frozen baseline.\nRe-freeze deliberately "
+                  "(`--refreeze`) and re-run every corpus, or revert.")
+            if not args.refreeze:
+                return 2
+    if args.refreeze or not frozen.exists():
+        frozen.write_text(fingerprint + "\n")
+        print(f"schema frozen at {fingerprint}\n")
+
     records, states, per_dimension = [], Counter(), {}
+    comparisons = []
     unusable = 0
 
     for index, (ref, text, expectation) in enumerate(rows, start=1):
@@ -88,14 +139,21 @@ def main() -> int:
             states[one.state] += 1
             per_dimension.setdefault(one.dimension, Counter())[one.state] += 1
 
+        comparisons.append(result)
         records.append({"ref": ref, "expectation": expectation,
-                        **result.to_json()})
+                        "schema": fingerprint, **result.to_json()})
         if index % 10 == 0:
             print(f"  {index}/{len(rows)}")
 
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / f"shadow-{args.corpus}.json").write_text(
-        json.dumps(records, indent=1))
+        json.dumps({"schema": fingerprint, "records": records}, indent=1))
+
+    readers = (compiler.id, hosted.id)
+    by_dimension = matrix(comparisons, QUANTIFY_SCHEMA, readers)
+    (args.out / f"matrix-{args.corpus}.json").write_text(
+        json.dumps({"schema": fingerprint, "readers": list(readers),
+                    "matrix": by_dimension}, indent=1))
 
     total = sum(states.values())
     print(f"\n{len(rows)} prompts · {total} dimension readings\n")
@@ -107,6 +165,9 @@ def main() -> int:
         print(f"\n  {unusable} prompts produced no usable comparison — fewer "
               "than two readers contributed. These are NOT agreements and are "
               "excluded from every count above.")
+
+    print("\nby dimension — agree · contested · read by one only · neither\n")
+    print(render(by_dimension, readers))
 
     contested = [(d, c[CONTESTED]) for d, c in per_dimension.items()
                  if c[CONTESTED]]
