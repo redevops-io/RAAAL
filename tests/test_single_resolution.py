@@ -48,6 +48,14 @@ DECLARED_NON_IDENTITIES = {
         "path; no other component forms a view about them.",
     "src/sentiment.py":
         "a vendor API key for an optional signal. Same reasoning as above.",
+    "src/discovery/readers_quantify.py":
+        "a provider API key for the Discovery reader, named by the reader "
+        "rather than fixed in code so a challenger provider is a parameter "
+        "and not a rewrite. A credential, not a deployment identity: nothing "
+        "else forms a view about it, and which reader ran is recorded on the "
+        "evidence as `produced_by` rather than inferred from the environment. "
+        "The deployment choice that *is* an identity — whether a hosted "
+        "reader may run at all — belongs in the context and is not read here.",
     "src/market_data/loader.py":
         "expands `${VAR}` references written in a snapshot manifest, so a "
         "bucket name need not be committed. The name comes from data rather "
