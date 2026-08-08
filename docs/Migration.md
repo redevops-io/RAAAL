@@ -56,17 +56,29 @@ So the migration has two jobs, and only the first is the one that motivated it:
 
 1. **Replace the recogniser with a model.** Ends the phrasing treadmill.
 2. **Make executability a contract rather than a hope.** The engine must
-   declare exactly which dimensions and values it can execute; anything the
-   controller emits outside that set must refuse, not degrade.
+   declare exactly which dimensions and values it can execute; anything
+   understood outside that set must refuse, not degrade.
 
-Job 2 is new work. None of the three target repositories has it (§3.4).
+And those two jobs belong to **two different runtimes**, which is the single
+most important structural decision in this document (§3):
+
+> **Discovery may understand more than Mission can execute. Mission may never
+> execute less than the verified intent while pretending they are equivalent.**
+
+That sentence is the whole project restated. `cadence='annual'` was understood
+correctly and executed as one payment, and nothing said so. Under the split
+below, understanding it is Discovery's job and being unable to run it is
+Mission's job to *say*, out loud, as a refusal.
+
+Job 2 is new work. Nothing in the organisation has it (§3.4).
 
 ---
 
-## 2. What the three repositories actually are
+## 2. What the repositories actually are
 
-I read all three. Two are not quite what the brief assumed, and the difference
-changes the plan.
+All 16 public repositories in the organisation were read or triaged, plus the
+private `runtime-contracts`. Two of the three named in the brief are not quite
+what it assumed, and the difference changes the plan. §2.5 covers the rest.
 
 ### 2.1 `context-runtime` — a query planner, not a context manager
 
@@ -95,8 +107,9 @@ ones the answer actually used.
 **Consequence for the plan.** Context Runtime cannot be the system of record
 for a user's plan, run or worksheet. Quantify needs durable, versioned,
 provenance-carrying decisions — that requirement is not negotiable and it is
-not what this component does. Use it for what it is good at: choosing retrieval
-and model tier for the understanding step, under a cost and latency budget.
+not what this component does. Its real job here is to support Discovery later,
+once meaning must be grounded in more than a sentence — see §3.5, and §8.2 for
+the measurement that says it should wait.
 
 ### 2.2 `agentic-os` mission runtime — the right system of record
 
@@ -150,14 +163,35 @@ not serve it.
 
 ### 2.4 `runtime-contracts` — the spine, unmentioned in the brief
 
-`/projects/runtime-contracts` already exists locally and already names this
-exact set of implementations:
+**It is private.** `api.github.com/repos/redevops-io/runtime-contracts` returns
+404 while `RAAAL` itself is a public repository under AGPL-3.0 + Commons
+Clause. Making a private package the schema spine of a public product is a
+decision with consequences — a clone cannot build — and it needs answering
+before Phase 0, not during it. The options are: publish it, vendor the subset
+we use, or depend on it only in tooling that never ships.
+
+`/projects/runtime-contracts` already names this exact set of implementations:
 
 ```
 | quantify         | SPECIFIED | CONFORMANT | gap |
 | context-runtime  | SPECIFIED | CONFORMANT | gap |
 | mission-runtime  | NOT_LOCATED | NOT_LOCATED | ok |
+| discovery-runtime | NOT_LOCATED | NOT_LOCATED | ok |
 ```
+
+It also names **`discovery-runtime`**, and says what to do about it:
+
+> `mission-runtime` and `discovery-runtime` are not missing repositories — they
+> are **unbuilt components**. Phase B therefore does not need a repository
+> created to satisfy an architecture diagram. It can be implemented in the
+> deployed control plane or **in Quantify**, provided the `MissionProgram`
+> contract is canonical and externally owned.
+
+That is an explicit sanction for the split in §3: Quantify becomes the
+reference **Discovery Runtime** implementation. It is also the most natural
+reading of Quantify's own history — the understanding layer we are replacing
+*is* a discovery runtime in embryo, and everything it learned about ambiguity,
+materiality and refusal is discovery knowledge.
 
 > `runtime-contracts` is the canonical, application-neutral contract package
 > for ReDevOps runtime interoperability. Quantify.club provides the initial
@@ -186,6 +220,78 @@ That is `PASS/FAIL/VACUOUS/INVALIDATED` and "absence is not always ignorance",
 written as a contract by someone else. It should be the schema layer, and this
 migration is the event that moves it from `NOT_LOCATED` to real.
 
+### 2.5 The rest of the organisation
+
+All 16 public repositories were read or triaged. Three are forks of third-party
+projects (`HippoRAG`, `graphiti`, `openclaw`) and one is unrelated
+(`ingress-nginx`); `RAAAL` is this repository. The remainder:
+
+| Repo | Licence | Verdict |
+|---|---|---|
+| `mission-sdk` | Apache-2.0 | **Adopt.** The intended front door. §2.6 |
+| `agentic-os` | AGPL-3.0-or-later | **Adopt** (mission kernel only). §2.2 |
+| `runtime-contracts` | private | **Adopt with a caveat.** §2.4 |
+| `context-runtime` | AGPL-3.0 | **Defer to Phase 5.** §2.1, §3.5, §8.2 |
+| `redevops-rag` | AGPL-3.0-or-later | **Defer.** A Context Runtime *store adapter* — the adapter tunes RAG rather than being tuned by it. Its own README says small structured config "belongs in git, not in a RAG", which is the answer for a capability manifest. Base install pulls `sentence-transformers` and therefore torch. |
+| `agent-harness` | AGPL-3.0-or-later | **Do not adopt.** §2.7 |
+| `sidekick` | AGPL-3.0-or-later | **Use as a dev tool, not a component.** §2.3 |
+| `personal-tax-runtime` | — | **Not adoptable.** §7.1 |
+| `accounting-runtime` | — | **Not relevant.** §7.1 |
+| `multiagent-orchestration-benchmark` | MIT | **Evidence, and it cuts against part of this plan.** §8.1 |
+| `DataOpsBench` | Apache-2.0 | **Borrow one pattern.** §4.2 |
+| `redevops-demo` | — | **Deployment reference.** §5, Phase 3 |
+
+Note the licence split. `RAAAL` is public under AGPL-3.0 + Commons Clause, so
+AGPL dependencies are compatible; `mission-sdk` being Apache-2.0 is a bonus,
+not a requirement. The item that needs a decision is `runtime-contracts` being
+private (§2.4).
+
+### 2.6 `mission-sdk` — adopt, and someone has already sketched our integration
+
+`mission-sdk` is the curated boundary over `agentic_os.mission`: you author a
+mission, hold **one versioned artifact** (`MissionProgram`), and operate it
+without importing runtime internals.
+
+It matters here for a specific reason. `examples/from_proposal/mission.py`
+already names Quantify in its docstring and maps a financial scenario onto
+exactly our pipeline:
+
+```
+market_data_loaded → portfolio_simulated → metrics_computed → worksheet_saved
+```
+
+with `research.save_worksheet` carrying
+`constraints=["persists a research record — requires human confirmation"]`.
+Someone has already thought about this integration; we should start from their
+sketch rather than a blank file.
+
+What it gives us that we would otherwise write:
+
+- `MissionProgram.from_proposal(...)` — the compiled plan as one hashable,
+  versioned artifact.
+- `CaseBundle` — a portable run record with a sha256 content digest,
+  `integrity_ok()` tamper detection, `replay_bundle` (rebuild a fresh runtime,
+  assert the same terminal state) and `diff_bundles` (report first divergence).
+  This is the export/reproduce story we would otherwise build by hand.
+- `rdo mission ci` — `feasibility · budget · run · regression · replay` as a
+  deploy gate, with `golden` as expected final world-state.
+
+Two cautions: it depends on `agentic-os` via a **bare git commit pin with no
+tag**, and it is `0.1.0a0`.
+
+### 2.7 `agent-harness` — do not adopt
+
+Its README offers "tools, permissions, evals, guardrails". Only permissions is
+substantial. The LLM client is an offline stub that echoes the prompt; the
+agent loop is a single hardcoded step; `redact()` and `validate_output()` are
+never called by anything.
+
+The eval module — the part that looked like a home for our corpora — is 16
+lines whose scorer is `passed = t.get("expected", "") in str(out)`, with no
+corpus format, no label vocabulary, no tests and no callers. Since its default
+agent echoes its input, every task whose `expected` is a substring of its
+`input` passes. We would be replacing that file, not extending it.
+
 ---
 
 ## 3. Target architecture
@@ -196,20 +302,31 @@ migration is the event that moves it from `NOT_LOCATED` to real.
 ┌───────────▼──────────────────────────────────────────────┐
 │  sidekick-class conversational surface  (TO BE DECIDED §6)│  Quantify web UI stays
 └───────────┬──────────────────────────────────────────────┘
-            │  goal: str
+            │  the user's own words
 ┌───────────▼──────────────────────────────────────────────┐
-│  MISSION RUNTIME            agentic_os.mission           │
-│  · the ONE LLM call: sentence → ExecutionIntent          │
+│  DISCOVERY RUNTIME       "What did the human mean?"      │
+│  · natural language → verified, attributable intent      │
+│  · the ONE LLM call                                      │
+│  · ambiguity detection · competing interpretations       │
 │  · DecisionEvidence per reader, no reader privileged     │
+│  · source spans · amendments · confirmation              │
 │  · material disagreement → WAITING_HUMAN                 │
+│         ↳ the question is "what did you mean?"           │
+└───────────┬──────────────────────────────────────────────┘
+            │  ★ VerifiedIntent  — the runtime boundary
+            │    (owned by runtime-contracts: identity, hash,
+            │     evidence refs, verdict, disposition, version)
+┌───────────▼──────────────────────────────────────────────┐
+│  MISSION RUNTIME    "Can I execute exactly that?"        │
+│  · capability-bind against the CAPABILITY MANIFEST §3.4  │
+│  · executable   → compile                                │
+│  · unexecutable → NAMED REFUSAL, never a substitution    │
+│  · needs approval → WAITING_HUMAN                        │
+│         ↳ the question is "may I do this?"               │
 │  · event-sourced, append-only, replayable                │
 └───────────┬──────────────────────────────────────────────┘
-            │  ExecutionIntent (logical)
-┌───────────▼──────────────────────────────────────────────┐
-│  EXECUTABILITY GATE                        ★ NEW, §3.4   │
-│  intent ∩ engine capability manifest                     │
-│  anything outside → REFUSE, never degrade                │
-└───────────┬──────────────────────────────────────────────┘
+            │  MissionProgram  (mission-sdk: one versioned artifact,
+            │                   validate · simulate · ci · bundle · replay)
             │  ScenarioSpecification (physical, validated)
 ┌───────────▼──────────────────────────────────────────────┐
 │  QUANTIFY EXECUTION ENGINE        kept, unchanged        │
@@ -217,22 +334,74 @@ migration is the event that moves it from `NOT_LOCATED` to real.
 │  market data + provenance                                │
 └──────────────────────────────────────────────────────────┘
 
-  context-runtime ── retrieval & model-tier planning for the LLM step only
-  runtime-contracts ── schema identity, hashing, canonical serialisation
+  mission-sdk ────── the authoring/operating boundary (Apache-2.0)
+  runtime-contracts ── owns the VerifiedIntent and MissionProgram contracts
+  context-runtime ── DEFERRED; later supports DISCOVERY, see §3.5 and §8.2
 ```
 
-### 3.1 The boundary that matters
+### 3.1 Two boundaries, not one
 
-**The LLM replaces the recogniser. It never touches arithmetic.**
+**(a) The LLM replaces the recogniser. It never touches arithmetic.**
 
 No model computes a return, a contribution schedule, a weight or a tax
-treatment. The model's entire job is `str → ExecutionIntent`. Everything below
-stays deterministic, and the existing `Verdict`/coverage discipline applies to
-its output rather than being replaced by it.
-
-This is not caution for its own sake. A money-weighted return that a model
+treatment. Its entire job is `str → VerifiedIntent`. Everything below stays
+deterministic, and the existing `Verdict`/coverage discipline applies to its
+output rather than being replaced by it. A money-weighted return that a model
 produced is a number nobody can reproduce, and the whole provenance chain this
 project built exists to make figures reproducible.
+
+**(b) Meaning and executability are different questions, asked by different
+runtimes.**
+
+The earlier draft of this document put the LLM call inside Mission Runtime.
+That was wrong, and wrong in a way this project has already paid for: it makes
+one component responsible both for *what the user said* and for *what we can
+do about it*, and a component holding both is a component that can quietly
+reconcile them. Every expensive defect here has that shape — a declared
+dimension silently becoming an executable one.
+
+Split, the two questions cannot be traded off against each other:
+
+```
+Discovery:  allocation_method = inverse_volatility
+            confidence = high · source span = "by inverse volatility"
+                     ↓
+Mission:    QuantifyEngine.capabilities.allocation_method
+              = [equal_weight_at_purchase]
+                     ↓
+            UNSUPPORTED_CAPABILITY → named refusal
+```
+
+**Mission must never reinterpret `inverse_volatility` as `equal_weight`.** It
+has no authority to: the intent is already verified, and its author is the
+user. The only moves available are compile, refuse, or ask permission.
+
+The corollary is liberating for Discovery. Its vocabulary does **not** have to
+be constrained to what today's engine can run. A model may understand
+arbitrarily rich intent; Mission executes only the subset its manifest claims.
+That is far safer than the alternative — teaching the reader to only see what
+the engine can do — because a reader that cannot express "inverse volatility"
+will express it as something else.
+
+### 3.1a Two human gates, asking different things
+
+The split produces a distinction the current product conflates:
+
+| Gate | Question | Raised by | Resolved by |
+|---|---|---|---|
+| Discovery `WAITING_HUMAN` | *"What did you mean?"* | material reader disagreement, or an unresolved dimension | the user, as an **authoritative observation** that becomes part of the verified intent |
+| Mission `WAITING_HUMAN` | *"May I do this?"* | `approval_required` on a capability, budget, policy | an approver, as a **permission** — it does not change the intent |
+
+These must not share a queue or a UI affordance. Answering "I meant crossing,
+not persistent" is authoring; answering "yes, save that worksheet" is
+authorising. Quantify's existing confirmation questions are all the first kind;
+it has no instance of the second yet, which is precisely why they are easy to
+merge by accident.
+
+Once an intent reaches Mission, the semantic question is settled. Mission can
+still discover *execution* disagreement — two capabilities claiming to satisfy
+the same outcome differently — but it should never be adjudicating what the
+user's English meant.
 
 ### 3.2 `ScenarioSpecification` is already the target schema
 
@@ -255,11 +424,57 @@ class ScenarioSpecification:
 ```
 
 Frozen, versioned, content-hashable, and already the thing the engine consumes.
-It becomes the mission's physical plan. The LLM emits an `ExecutionIntent`; a
-deterministic compiler turns that into a `ScenarioSpecification`; the gate
-in §3.4 decides whether it may run.
+It is the **physical** plan and sits *below* the boundary: Discovery emits a
+`VerifiedIntent`, Mission capability-binds it and compiles a
+`ScenarioSpecification` only if the manifest permits.
 
-### 3.3 The disagreement branch is our own rule, generalised
+Note the two must not be confused. `ScenarioSpecification` is shaped by what
+the engine can run — `flow_schedule`, `allocation_rule`, `funding` are all
+executable forms. `VerifiedIntent` is shaped by what a person can mean, and may
+legitimately contain `allocation_method: inverse_volatility` forever, as a
+faithful record of a request this build refuses.
+
+### 3.2a The VerifiedIntent contract
+
+This is the artifact `runtime-contracts` should own, because it is exactly a
+runtime boundary and Quantify should not invent the Discovery→Mission payload
+privately. Sketched from what Quantify already knows it needs:
+
+```
+VerifiedIntent
+  objective         evaluate_investment_strategy
+  assets            [SPY]                     # as written; resolution is recorded
+  actions           [BUY]
+  funding           amount 1000 · mode EVENT_TRIGGERED
+  condition         MOVING_AVERAGE_CROSS · BELOW · window 200 sessions
+  evaluation_period trailing 5 years
+
+  per field:
+    value · confidence · source_span · DecisionEvidence[] · author
+    author ∈ { model, reader, USER }        # USER dominates, and says so
+  unresolved[]      dimensions deliberately left open
+  amendments[]      what the user changed, and when
+  content_hash      identity, so a plan re-runs from the pinned intent
+```
+
+Three properties it must have, each bought with a defect:
+
+- **`author` is explicit.** "Declared means the user expressed it, not that the
+  compiler instantiated it." A field the model inferred and a field the user
+  stated must not be the same shape, or the product will offer its own
+  assumption back to the user as their choice — which it did, for
+  `execution_timing`.
+- **Absent ≠ rejected.** `unresolved[]` exists so "we did not ask" is
+  distinguishable from "the user declined to constrain it". `Verdict` and
+  `Disposition` in `runtime-contracts` already carry this distinction; the
+  intent must not throw it away.
+- **It is pinned and re-run from, never re-derived.** A model is
+  non-deterministic; the same sentence twice may not produce the same intent.
+  The hash makes a plan reproducible; re-parsing the sentence on reopen would
+  make history rewritable. This is the migration's version of the rule that
+  already governs market-data provenance.
+
+### 3.3 The disagreement branch is our own rule, and it belongs to Discovery
 
 `feat/disagreement-decision-evidence` should be the baseline, not `main`. It
 independently arrived at the rule this project reached through the parse-model
@@ -295,15 +510,44 @@ Three gaps in the branch we will hit immediately and should fix upstream:
 3. Human resolution lands with `source_type="prior"`, so the authoritative
    answer is indistinguishable from a guess in the evidence list.
 
-### 3.4 ★ The executability gate — the one genuinely new component
+**But its home is Discovery, not Mission.** The branch currently sits in the
+mission kernel because that is where the world-state blackboard lives. Under
+the split, reader disagreement is a *meaning* question:
+
+```
+Reader A → crossing        Reader B → persistent
+                 ↓
+        Discovery: material disagreement
+                 ↓
+             ask the user
+                 ↓
+    VerifiedIntent.trigger_semantics = crossing · author = USER
+```
+
+By the time Mission sees it, that field has one value and a named author. This
+is the same mechanism, moved one layer up — and moving it is what stops Mission
+from ever being in a position to resolve English.
+
+Mechanically the kernel's `WorldState` already supports this: it stores
+observations and re-fuses on every read, so a Discovery runtime can use the
+same event-sourced blackboard while the *question it asks* belongs to a
+different runtime.
+
+### 3.4 ★ The capability manifest — the one genuinely new component
 
 **This is the part that does not exist anywhere and without which the migration
-makes correctness worse.**
+makes correctness worse.** It lives in **Mission**, and it is what Mission
+consults to answer "can I execute exactly that?".
+
+It must **not** be used to constrain Discovery's vocabulary. That would put the
+engine's limits inside the reader, and a reader that cannot express "inverse
+volatility" does not refuse — it picks the nearest thing it *can* express. The
+manifest's job is to make a refusal loud, not to make an intent unspeakable.
 
 Today the engine's capabilities are implicit — spread across a regex table, a
 `_flows_from` if-chain, a vocabulary dict and a renderer's word map, which is
 exactly how three of eight offered cadences came to be un-executable without
-anyone noticing. The gate makes them explicit and machine-checkable.
+anyone noticing. The manifest makes them explicit and machine-checkable.
 
 **The engine publishes a capability manifest** naming every semantic dimension
 it can execute and, for closed sets, every value:
@@ -329,20 +573,74 @@ rebalancing:
    executor and asserted against it. A value in the manifest with no code path
    fails the build; a code path with no manifest entry fails the build. Had
    this existed, `annual` could not have been offered without being executable.
-2. **The confirmation UI is generated from the manifest.** The product may not
-   offer a user a choice it cannot execute. This alone closes the defect found
-   today.
+2. **Any choice the product *offers* must be in the manifest.** Discovery may
+   understand anything; a menu is a promise. Where the product presents a
+   closed set to choose from, that set is generated from the manifest. This
+   alone closes the defect found today, where "Every year" was offered and
+   executed once.
 3. **Outside the manifest is a refusal, never a degradation.** The engine
    already has the right shape for this — the `unavailable` channel that
    returns no figure and states the reason. Every unexecutable dimension routes
-   there.
+   there, naming the dimension and the value it could not run.
 
-`agentic-os`'s weakest seam is precisely here: `Mission.constraints` and
-`IntentStep.constraints` are free-text `list[str]`, interpreted by substring
-matching for `"human"`/`"review"` and otherwise decorative. A shipped template
-carries `constraints=["never contact a customer twice in 24h"]` which is never
-enforced *and never reported as unenforceable*. We should not adopt that seam.
-The gate is what we contribute back.
+**Confirmed net-new.** I searched `mission-sdk` and the whole `agentic_os`
+tree for `refuse|refusal|clarify|unsupported|not_supported|executab|forbid` —
+no substantive hits. `CapabilitySpec` has `provides`, `permissions`,
+`side_effecting`, `approval_required`, `undo`; there is **no negative or
+exclusion field anywhere**, and no EXECUTE/CLARIFY/REFUSE/UNKNOWN vocabulary in
+either package.
+
+What the SDK does give is the **back half** of the gate, and it is worth having:
+`validate(program, operators)` compiles the program and fails closed on an
+unbindable need, a missing grant, or a cycle. That answers *"can this compiled
+program run?"*. It does not answer *"is this sentence executable, and if not,
+is that a clarify or a refusal?"* — and it collapses its three failure modes
+into one `Check`, so the reasons are only distinguishable by string-matching.
+
+So the split is three-deep, and only the middle row is ours to build:
+
+```
+  Discovery (net-new, ours)   prose         →  VerifiedIntent | WAITING_HUMAN
+  capability bind (net-new)   intent        →  EXECUTE | REFUSE(reason) | NEEDS_APPROVAL
+  mission-sdk validate()      program       →  compiles / CompileError
+```
+
+Note `CLARIFY` has moved. In the earlier draft the gate emitted it; under the
+split it cannot, because by then the intent is verified and asking "what did
+you mean?" is Discovery's gate, upstream. Mission's three outcomes are run it,
+refuse it by name, or ask permission.
+
+`agentic-os`'s weakest seam is precisely the half we are building:
+`Mission.constraints` and `IntentStep.constraints` are free-text `list[str]`,
+interpreted by substring matching for `"human"`/`"review"` and otherwise
+decorative. A shipped template carries
+`constraints=["never contact a customer twice in 24h"]` which is never enforced
+*and never reported as unenforceable*. We should not adopt that seam. The gate
+is what we contribute back.
+
+### 3.5 Where Context Runtime attaches, eventually
+
+The split clarifies this too. Context Runtime **supports Discovery; it does not
+own the user's durable intent** — which is fortunate, because §2.1 established
+that it cannot: `BuiltContext` is never persisted and there is no decision
+record in it.
+
+Today Discovery's inputs are a sentence and a manifest, so there is nothing to
+assemble and nothing to route. It earns its place when Discovery needs to
+ground meaning in more than the sentence:
+
+```
+   strategy library · account history · prior decisions · documents
+                              ↓
+                      Context Runtime
+                              ↓
+  user → Discovery Runtime → VerifiedIntent → Mission Runtime → execution
+```
+
+At that point "which context does this interpretation need, and which model
+tier should read it" is exactly its question. Until then it is a dependency
+without a job, and §8.2 has the measurement suggesting the machinery would not
+improve accuracy anyway.
 
 ---
 
@@ -383,17 +681,46 @@ The regexes go. What they encode must not.
   evaluation period, conditional amount, sell action. Extracted from
   `coverage.py`, this *is* the capability manifest's first draft.
 
+### 4.2a Where the corpora live, and one pattern worth borrowing
+
+`agent-harness` is not the home (§2.7). Two better answers:
+
+**`agentic_os.mission.evaluation`** (contract `evaluation/v10`) makes a
+benchmark "a **versioned Mission program**: dataset + protocol + steps, executed
+reference-first, verified, and **published only when it verifies**". It ships
+`Dataset`, `EvaluationProtocol`, `Run`, `VerificationCheck`,
+`VerificationResult`, `Assessment`, `Finding` and a `Publication` decision
+(`PUBLISH` / `NO_MATERIAL_IMPACT` / `HOLD` / `REQUIRE_REVIEW`). Note
+`mission-sdk` does **not** re-export it, so this is a direct dependency on the
+runtime. It has the harness; it does not have a *response* taxonomy, so
+EXECUTE/CLARIFY/REFUSE/UNKNOWN is ours to bring — and to contribute back.
+
+**`DataOpsBench`'s `validate` verb** is the pattern to copy, and it is this
+project's own mutation discipline applied to an eval corpus: build the defect,
+assert the gate fails, apply the reference fix, assert the gate passes. Its
+framing — *"a gate that passed on the defect would be worthless"* — is exactly
+"close every slice with a mutation". Its structure (`defect → symptom →
+reference fix → deterministic gate → blinded judge only for the subjective
+residual`) should shape the corpus port, and the principle "deterministic gates
+first, a judge only for the residual" is the right default for a product where
+figures are checkable.
+
+The concrete consequence for Phase 0: **every expectation in the 35-prompt
+corpus must be proven discriminating before the corpus is trusted as a
+baseline.** A REFUSE expectation that would also pass on a broken build is not
+evidence of anything.
+
 ### 4.3 Deleted
 
 | Component | Lines | Replaced by |
 |---|---|---|
-| `src/mission/compiler.py` regex tables | ~1,585 | the LLM planner |
-| `src/mission/parse_model.py` | 630 | `DecisionEvidence` + belief fusion |
-| `src/mission/vocabulary.py` hand-written menus | 174 | generated from the capability manifest |
-| Regex-driven parts of `coverage.py` | ~200 of 464 | the executability gate |
+| `src/mission/compiler.py` regex tables | ~1,585 | Discovery Runtime |
+| `src/mission/parse_model.py` | 630 | `DecisionEvidence` + belief fusion, in Discovery |
+| `src/mission/vocabulary.py` hand-written menus | 174 | generated from Mission's capability manifest |
+| Regex-driven parts of `coverage.py` | ~200 of 464 | the capability manifest + `VerifiedIntent.unresolved[]` |
 
-Roughly 2,600 lines deleted, ~400 lines of gate and manifest added, and the
-phrasing treadmill ends.
+Roughly 2,600 lines deleted, ~400 lines of manifest and binding added, plus the
+Discovery Runtime — which is net-new construction, not a port (§6.5).
 
 ### 4.4 Explicitly not carried
 
@@ -413,26 +740,44 @@ Phases 0–2 change nothing a user sees.
 
 ### Phase 0 — Contracts and baseline (1 week)
 
-- Adopt `runtime-contracts` as a dependency; move `mission-runtime` from
-  `NOT_LOCATED` by pointing it at `agentic_os.mission`.
+- Decide the `runtime-contracts` question (§2.4) and adopt it; move
+  `mission-runtime` from `NOT_LOCATED` by pointing it at `agentic_os.mission`.
+- **Draft the `VerifiedIntent` contract (§3.2a) in `runtime-contracts`**, not
+  in Quantify. It is a runtime boundary, and the contracts package explicitly
+  sanctions Quantify implementing `discovery-runtime` provided the contract is
+  "canonical and externally owned". Drafting it here would forfeit that.
 - Port the 35-strategy corpus and the 144-prompt catalogue into a standalone
-  harness that can run against *either* implementation.
+  harness that can run against *either* implementation, shaped by §4.2a.
 - Freeze a baseline: run both corpora against today's build and store the
   results as the reference.
 
-**Gate:** the harness reproduces the current build's results exactly, from a
-clean clone, with no manual data fetching. *(Note: the vendor manifest and
-licensing record were gitignored until today — this gate exists because that
-class of "passes only on my machine" already happened once.)*
+**Gate, two parts:**
+
+1. The harness reproduces the current build's results exactly, from a clean
+   clone, with no manual data fetching. *(The vendor manifest and licensing
+   record were gitignored until today — this gate exists because that class of
+   "passes only on my machine" already happened once.)*
+2. **Every expectation discriminates**, DataOpsBench-style: for each corpus
+   entry, a mutation exists that flips it. An expectation nothing can fail is
+   removed or rewritten, not counted.
+
+*Cautionary note for this phase.* `accounting-runtime` ships a `SHA256SUMS`
+that records the hash of the string `404: Not Found` for two data files whose
+download had silently failed — so a checksum pass reports clean over corrupt
+data. Verify that our fixtures are what they claim to be, not merely that they
+hash to what someone recorded.
 
 ### Phase 1 — The capability manifest (1–2 weeks)
 
-Build §3.4 against the **existing** compiler, before any LLM work.
+Build §3.4 against the **existing** compiler, before any LLM work. This is
+Mission's half, and it is buildable with today's parser standing in for
+Discovery — which is the reason to do it first.
 
 - Derive the manifest from the executor.
 - Assert manifest ↔ code both ways in the build.
-- Generate the confirmation UI's choices from it.
-- Route everything outside it to the existing `unavailable` channel.
+- Generate from it any closed set the product offers the user.
+- Route everything outside it to the existing `unavailable` channel, naming the
+  dimension and the value.
 
 **Gate:** a mutation that adds a value to the manifest with no code path fails
 the build; a mutation that adds a code path with no manifest entry fails the
@@ -441,41 +786,67 @@ payment — is unreachable by construction.
 
 This phase pays for itself even if the migration stops here.
 
-### Phase 2 — Mission runtime alongside (2–3 weeks)
+### Phase 2 — Mission binding, against today's parser (1–2 weeks)
+
+Mission first, because it can be built and proven while Discovery is still the
+old compiler. Nothing here needs an LLM.
 
 - Stand up `agentic_os.mission` on the `feat/disagreement-decision-evidence`
   branch, with the three fixes in §3.3 contributed upstream.
-- Model Quantify's plan as a `Mission`; the execution engine as an `Operator`
-  declaring capabilities via `operator_sdk`.
-- Wire `ContextRuntime` for the understanding step's retrieval and model tier.
+- Adopt `mission-sdk` as the boundary, starting from
+  `examples/from_proposal/mission.py` (§2.6). Quantify's plan becomes a
+  `MissionProgram`; the execution engine an `Operator` declaring capabilities
+  via `operator_sdk`.
+- Have today's compiler emit a `VerifiedIntent` — it already produces every
+  field, and this proves the contract carries what the engine needs before a
+  model is involved.
+- Adopt `CaseBundle` for run export and `rdo mission ci` as a deploy gate.
+- **Do not** wire `ContextRuntime` (§3.5, §8.2).
+
+**Gate:** both corpora produce identical figures through the mission path and
+the current path, and every Phase 1 refusal arrives as a named
+`UNSUPPORTED_CAPABILITY` rather than a `CompileError` string.
+
+### Phase 3 — Discovery Runtime in shadow (2–3 weeks)
+
+Only now does the model enter, and it enters behind a mirror.
+
+- Build the Discovery Runtime: prose → `VerifiedIntent`, with `DecisionEvidence`
+  per reader, materiality, and the "what did you mean?" gate (§3.1a).
 - Run it in **shadow**: every user sentence goes to both the old compiler and
-  the new controller; both readings are recorded as `DecisionEvidence`; the old
-  compiler's answer is what the user sees.
+  Discovery; both readings are recorded as `DecisionEvidence` on the same
+  fields; the old compiler's answer is what the user sees and what runs.
 
 **Gate:** shadow disagreement rate measured per semantic dimension across all
 179 corpus prompts, with every material disagreement inspected by hand. No
 cutover while any material disagreement is unexplained.
 
-Shadow mode is the phase that makes this migration honest. It is also the
-phase agentic-os's planner does not currently support — its deterministic
-`TemplatePlanner` is a *fallback* on exception, never a cross-check, and
-planner failures are swallowed without an event. Fixing that is part of this
-phase and belongs upstream.
+Shadow mode is the phase that makes this migration honest, and it is the phase
+`agentic-os` does not currently support: its deterministic `TemplatePlanner` is
+a *fallback on exception*, never a cross-check, and planner failures are
+swallowed without an event. Under the split that is Discovery's problem to fix,
+and the fix belongs upstream — a model reading and a deterministic reading are
+two readers, and the branch's own rule says neither is privileged.
 
-### Phase 3 — Cutover (1–2 weeks)
+**Gate:** shadow disagreement rate measured per semantic dimension across all
+179 corpus prompts, with every material disagreement inspected by hand. No
+cutover while any material disagreement is unexplained.
 
-- The controller becomes authoritative for understanding; the compiler is
-  removed.
-- Material disagreement between readers routes to `WAITING_HUMAN` and surfaces
-  as the existing confirmation question — the mechanism the product already
-  has, and which pilot users already understand.
+### Phase 4 — Cutover (1–2 weeks)
+
+- Discovery becomes authoritative for meaning; the regex compiler is removed.
+- Its "what did you mean?" gate surfaces as the existing confirmation question
+  — the mechanism the product already has and pilot users already understand.
+- Mission's "may I do this?" gate gets its own affordance, kept separate (§3.1a).
 
 **Gate:** both corpora at parity or better against the Phase 0 baseline, on
 meaning rather than on counts. A prompt that moves from EXECUTE to REFUSE is a
 regression to explain; a prompt that moves from REFUSE to EXECUTE needs its
-figure checked by hand before it counts as an improvement.
+figure checked by hand before it counts as an improvement. And the migration's
+central invariant holds on every prompt: **nothing Mission executed was less
+than what Discovery verified, unless it said so by name.**
 
-### Phase 4 — The surface (undecided, §6)
+### Phase 5 — The surface (undecided, §6)
 
 ---
 
@@ -495,28 +866,37 @@ My recommendation is the first, and to treat the surface as the *last* thing to
 change rather than the first. Nothing about the phrasing treadmill is a UI
 problem.
 
-**2. Where the plan lives.** The mission event log is append-only and
-replayable, which is what a plan's history wants. But Quantify's plans are
-currently PostgreSQL rows with migrations, parity tests and a restore drill.
-Running both is two systems of record — the failure this project has already
-catalogued as authority inversion. This needs deciding before Phase 2, not
-during it.
+**2. Where the plan lives — and now, where the *intent* lives.** The mission
+event log is append-only and replayable, which is what a plan's history wants.
+But Quantify's plans are currently PostgreSQL rows with migrations, parity
+tests and a restore drill. Running both is two systems of record — the failure
+this project has already catalogued as authority inversion.
+
+The split sharpens this into two questions, and they may have different
+answers. The `VerifiedIntent` is authored, amended and confirmed by a user, so
+its history is the thing that must never be rewritten; the
+`ScenarioSpecification` is derived from it and could in principle be recomputed
+from a pinned intent. Needs deciding before Phase 2.
 
 **3. Which model, and where it runs.** `agentic-os` defaults to a local
 `Qwen3-Coder-Next-NVFP4` over an OpenAI-compatible endpoint. Quantify's
 licensing record permits "small snippets during testing... never the full
 series" to a model provider, recorded as operator-only with no automated path.
-A hosted model in the understanding path sends *user sentences*, not prices —
-outside what that record covers either way. It needs its own answer before
-Phase 2 ships to a user.
+A hosted model in Discovery sends *user sentences*, not prices — outside what
+that record covers either way. It needs its own answer before Phase 3 ships to
+a user, and Discovery is where it now bites.
 
-**4. Whether `context-runtime` earns its place in v1.** Its value here is
-retrieval and model-tier planning under budget. Quantify's understanding step
-retrieves almost nothing — the user's sentence and a capability manifest. The
-honest read is that it is the *right* component for a later problem (grounding
-against a strategy library, a documents corpus, a user's own history) and adds
-a dependency without a job in Phase 2. Recommend deferring it to Phase 4 and
-building Phase 2 against the mission runtime alone.
+**4. Whether `context-runtime` earns its place in v1.** Answered, with
+evidence: no. Its value is assembling context for Discovery, and Discovery's
+inputs today are one sentence. §8.2 shows the retrieval ladder *reducing*
+accuracy while cutting tokens. Defer to Phase 5 (§3.5).
+
+**5. How much of Discovery to build ourselves.** `discovery-runtime` does not
+exist anywhere. Quantify would be the reference implementation, which the
+contracts package sanctions — but it means Phase 3 is genuinely new
+construction, not integration, and the estimate should be read with that in
+mind. The mitigating fact is that Quantify has already built most of a
+discovery runtime once, badly, and knows exactly what it needs to do.
 
 ---
 
@@ -530,7 +910,48 @@ now.
   today because the *engine* cannot execute them. A model that understands them
   perfectly does not make them run. Of the 144 catalogue prompts, ~83 are about
   accounts, liabilities and cashflows rather than instruments, and remain
-  refusals after every phase above.
+  refusals after every phase above. §7.1 explains why the organisation's two
+  financial repos do not change this.
+
+### 7.1 The two financial runtimes do not close the account/tax gap
+
+`personal-tax-runtime` and `accounting-runtime` look, from their READMEs, like
+they might serve the ~83 refused prompts. They do not, and the reason is
+structural rather than a matter of coverage.
+
+Neither is a runtime. They are ground-truth **data generators** — 529 and 813
+lines, one commit each, **zero tests and zero CI** — that drive somebody else's
+engine (Tax-Calculator/PolicyEngine; ERPNext/Odoo) and write JSONL, behind a
+read-only dashboard. Despite MANUALs describing a Mission Runtime / Context
+Runtime / RAG architecture, neither imports any of it.
+
+The three entities the refused prompts need are all absent:
+
+| Needed for | Missing |
+|---|---|
+| asset location, withdrawal sequencing, RMDs | **an account.** No account entity exists. A generated `1099-R` carries only `box1_gross_distribution` — no box 2a, no box 7 code — so an RMD, a Roth conversion and an ordinary pension payment are indistinguishable. |
+| wash sales, tax-loss harvesting, RSU disposition | **a tax lot.** Capital gains are two aggregate scalars. No lots, no basis, no acquisition dates. |
+| Roth ladders, debt-payoff-vs-invest, liquidity | **a time axis.** `YEAR = 2025`. One year, one snapshot, no projection. |
+
+More important than the gap: **they publish numbers nothing validated**, which
+is the failure this project's refusals exist to prevent. The headline "refund"
+KPI is a `rng.uniform(0.08, 0.16)` withholding *guess* minus a real liability;
+it omits self-employment tax entirely; and when the two engines disagree it
+silently takes Tax-Calculator's answer while recording `agree_core: false`
+beside it. `accounting-runtime`'s cross-validation covers only single-line,
+no-tax, USD invoices — excluding the four scenarios where two engines could
+plausibly differ — and its "correct-by-construction" check is near-tautological,
+since ERPNext will not submit an unbalanced voucher in the first place.
+
+**These are not a governance model to copy.** On the discipline that matters
+here they are a step backwards from where Quantify already is.
+
+The one reusable asset is the ~20-line **Tax-Calculator (CC0)** adapter, worth
+about a day to lift if tax-aware evaluation is ever wanted. That is reusing
+`taxcalc`, not this repo — and `taxcalc` is a static-year microsimulation model
+for policy scoring. It returns AGI and liability for one year's inputs. It will
+not sequence withdrawals or optimise a conversion. That planning layer does not
+exist anywhere in the organisation and would be built from scratch.
 - **The refusal rate will not move much at first.** Today: 6 figures, 5
   questions, 133 refusals out of 144. Most of that is engine capability, not
   understanding. Phase 1 will make the refusals *honest and legible*; only
@@ -546,12 +967,119 @@ now.
 
 ---
 
-## 8. Recommended immediate next step
+## 8. Evidence from the organisation's own experiments — including against this plan
+
+Two repositories are controlled experiments. Both point the same direction, and
+a plan that proposes adopting machinery should quote them rather than ignore
+them.
+
+### 8.1 Formal orchestration did not beat a good supervisor
+
+`multiagent-orchestration-benchmark` pre-registered the question, the decision
+rule, and a null hypothesis placing the burden of proof on the formal arm:
+*"Ties default to the simpler system."*
+
+| | Arm A (emergent) | Arm B (formal) |
+|---|---|---|
+| Gate pass | 11/11 | 11/11 |
+| Manager cost | $0.318 | $0.320 |
+| Worker secs, median | 116 | 119 |
+| Blinded pairwise quality | 5 wins | 5 wins (+1 tie) |
+
+Its own conclusion: **"the evidence does not support adopting formal
+runtime-managed orchestration as a blanket mechanism."** And its roadmap
+advice — keep the cheap plumbing (isolation, provenance traces, budgets, scoped
+briefs); don't build generic semantic merge operators or deep agent hierarchies
+"on the strength of it feels more principled."
+
+**What it does and does not bear on.** It did **not** test Mission Runtime. The
+"formal" arm is ~13 lines of inline Python — a declared-output length check, one
+retry, and a `kotlinc` compile probe — and *both* arms ran workers through
+Sidekick. Nothing about approval gates, budgets, saga, replay or evidence
+capture was varied or measured, and gate-pass was 11/11 on both sides, so the
+gates had no discriminating power at all.
+
+So it is legitimate evidence against *"a generic integration/merge layer
+improves output quality"* — a claim this plan does not make — and silent on the
+governance properties that are the actual reason to adopt the mission kernel.
+Three caveats worth carrying: no judge code, prompts or transcripts are
+committed, so the 5–5–1 is an asserted value; the pre-registered Wilcoxon was
+never computed, so this is a **descriptive** tie, not a statistical one; and
+the writeup reports Arm B's median as ~104s where its own data says 119s.
+
+**How this plan answers it.** By adopting the minimum that delivers the audit
+and refusal properties, and nothing else. We take the event log, the
+disagreement gate, fail-closed capability binding, human gates and `CaseBundle`
+replay. We do not take the scheduler, saga machinery, multi-agent fan-out, the
+learning loops, or a merge layer — none of which Quantify needs, and for which
+the organisation's own data shows no benefit. The tie-breaks-to-simpler rule is
+applied to this plan too.
+
+### 8.2 The Context Runtime ladder bought efficiency, not accuracy
+
+`redevops-rag` ships the only end-to-end accuracy data on Context Runtime's
+retrieval ladder (`benchmarks/results/ladder_N15.txt`, 45 questions):
+
+```
+v1_base    naive dump                     acc 0.533   4014 tok/q
+v2_sizer   + gating/sizer/abstain         acc 0.444   1582
+v3_online  + online arm bandit            acc 0.444   1647
+v4_route   + knowledge routing            acc 0.444   1628
+v5_diver   + DIVER reasoning retrieval    acc 0.511   1686
+```
+
+Adding the machinery **cut accuracy** from 0.533 to 0.444–0.511 while cutting
+tokens ~2.4×. On n=45 that is not significant, but it is the only data there
+is, and it points the same way as §8.1: the elaborate mechanism buys cost, not
+quality.
+
+This is why §6.4's deferral is evidence-backed rather than a judgement call.
+Discovery's inputs today are a sentence and a manifest; there is no corpus for
+a retrieval ladder to help with, and the one measurement available says the
+ladder would not improve answers if there were. When Discovery does need to
+ground meaning in a strategy library or a user's history (§3.5), revisit it —
+and re-measure rather than assume.
+
+Also relevant: the other benchmark result in the organisation,
+`DataOpsBench`'s S21, is won by an arm with `model_calls: 0` — deterministic
+Python. It shows that keying a join correctly beats keying it wrongly, which is
+a correctness property, not an AI result. Read it as support for the boundary
+in §3.1, not for any runtime.
+
+---
+
+## 9. Recommended immediate next step
 
 Phase 1 — the capability manifest — against the existing compiler.
 
 It is the smallest piece of work that is valuable whether or not the rest
-happens, it closes a defect class that has produced every expensive error in
-this project's history, and it produces the artefact the mission controller
-needs to be safe. It requires no new dependency, no model, and no decision from
-§6.
+happens; it closes the defect class that has produced every expensive error in
+this project's history; and it produces the artefact **Mission** needs before
+**Discovery** can safely understand more than the engine can run. It requires
+no new dependency, no model, and no decision from §6.
+
+The ordering matters and is deliberate. The manifest is what makes it safe for
+Discovery to be ambitious. Build it first and a rich model reading is contained
+by a named refusal; build it last and every dimension the model newly
+understands is a dimension that can quietly become something else.
+
+---
+
+## Appendix — how this document changed
+
+The first draft put the LLM call inside Mission Runtime, with an
+"executability gate" between it and the engine. That collapsed two questions —
+*what did the user mean* and *what can we execute* — into one component, which
+is the precise shape of every defect this project has spent months removing. A
+component that owns both can reconcile them silently.
+
+The revision splits them: Discovery owns meaning and may understand more than
+the engine can run; Mission owns executability and may only compile, refuse by
+name, or ask permission. `runtime-contracts` already anticipated both runtimes
+and explicitly permits Quantify to implement Discovery, and `mission-sdk`
+already ships `MissionProgram.from_discovery(...)` with a test proving a
+discovered mission gates identically to a hand-authored one — so the boundary
+is a designed seam, not an invention of this document.
+
+What survived unchanged: the capability manifest is still the one genuinely new
+component, and still the recommended first step.
