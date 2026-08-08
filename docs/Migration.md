@@ -163,12 +163,21 @@ not serve it.
 
 ### 2.4 `runtime-contracts` — the spine, unmentioned in the brief
 
-**It is private.** `api.github.com/repos/redevops-io/runtime-contracts` returns
-404 while `RAAAL` itself is a public repository under AGPL-3.0 + Commons
-Clause. Making a private package the schema spine of a public product is a
-decision with consequences — a clone cannot build — and it needs answering
-before Phase 0, not during it. The options are: publish it, vendor the subset
-we use, or depend on it only in tooling that never ships.
+**It is private, and it was archived.** The archive is lifted — the
+`VerifiedIntent` contract is upstream at `feat/verified-intent` — but the
+package is still private while `RAAAL` is public under AGPL-3.0 + Commons
+Clause, so a clean clone of this repository cannot resolve it as a dependency.
+
+Making a private package the schema spine of a public product is a decision
+with consequences, and it still needs answering. The options are: publish it,
+land the branch on `main` and publish the package, vendor the subset we use, or
+depend on it only in tooling that never ships.
+
+*Status:* vendored, under `src/contracts/`, with a drift check
+(`scripts/check_vendored_contracts.py`) that fails if the copy and the source
+disagree. That is the reversible option, not the answer — a copy nobody
+compares is a private fork of a contract two runtimes are supposed to agree on,
+which is the failure this package exists to prevent.
 
 `/projects/runtime-contracts` already names this exact set of implementations:
 

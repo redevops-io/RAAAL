@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Fail if the vendored contract has drifted from its source.
 
-`src/contracts/` is a copy of `runtime-contracts`, taken because that
-repository is archived and cannot be depended on. A copy nobody compares is a
-fork, and a private fork of a contract two runtimes are supposed to agree on is
-exactly what the contract package exists to prevent.
+`src/contracts/` is a copy of `runtime-contracts`, taken because that package
+is private and this repository is public, so a clean clone cannot resolve it as
+a dependency. A copy nobody compares is a fork, and a private fork of a contract
+two runtimes are supposed to agree on is exactly what the contract package
+exists to prevent.
 
 Run in CI and before a deploy:
 
