@@ -27,7 +27,11 @@ from .reader import Reading, ReadingSet, RelationReading, Schema
 class CompilerReader:
     """Today's ordered regex tables, read as one opinion among several."""
 
-    id = "quantify-compiler@1"
+    id = "quantify-compiler@2"
+    """Bumped from @1 when the moving-average fallback was removed. A reader
+    whose behaviour changed under an unchanged id makes two runs look
+    comparable when they are not — which is the whole reason `produced_by` is
+    versioned."""
 
     #: compiler field name -> schema dimension name
     _RENAME = {"contribution_day_rule": "day_rule",
@@ -150,7 +154,13 @@ class HostedReader:
     model: str = "claude-sonnet-5"
     version: str = "1"
     api_key_env: str = "ANTHROPIC_API_KEY"
-    max_tokens: int = 2000
+    max_tokens: int = 8000
+    """Raised from 2000 after schema@2. The longer prompt produced longer
+    answers and 16 of 144 replies were cut mid-JSON, which the parser reported
+    as `unparseable output` — a reader failure indistinguishable, in the
+    counts, from a reader that had nothing to say. Truncation is now reported
+    as its own category by the runner as well, because a limit set by this
+    file must never look like a finding about the model."""
     timeout_s: float = 60.0
 
     @property
@@ -334,6 +344,23 @@ def _moving_average(text: str) -> Optional[str]:
     for recognition in parsed.recognitions:
         if recognition.field == "moving_average_window":
             return recognition.value
-    import re
-    match = re.search(r"(\d{1,4})[- ]?(?:day|session)", text, re.IGNORECASE)
-    return match.group(1) if match else None
+
+    # The compiler's own function, not an approximation of it.
+    #
+    # A regex fallback used to live here — `(\d+)[- ]?(day|session)` — written
+    # when this adapter was made "fair" to the compiler. It read "90" out of
+    # "hold annual bonus 90 days sized on event", which is a holding period and
+    # not an average at all, and it produced every one of the moving-average
+    # agreements in the earlier runs: the comparator was supplying a capability
+    # to one side and then scoring the two as agreeing about it.
+    #
+    # Being generous to a reader is the same defect as being stingy with it.
+    # Both let the comparator decide the result. `compiler.moving_average_window`
+    # is what the compiler actually does.
+    from ..mission.compiler import moving_average_window
+
+    try:
+        found = moving_average_window(text)
+    except Exception:                                             # noqa: BLE001
+        return None
+    return str(found) if found else None

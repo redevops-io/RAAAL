@@ -1,142 +1,170 @@
 {
  "schema": "quantify-discovery-schema@2/103c025ac629946f",
+ "provenance": {
+  "schema_fingerprint": "quantify-discovery-schema@2/103c025ac629946f",
+  "prompt_count": 35,
+  "prompts_digest": "4a5830fe07d6d8b0",
+  "readers": {
+   "quantify-compiler@2": {
+    "enabled": true
+   },
+   "claude-sonnet-5@1": {
+    "enabled": true,
+    "max_tokens": 8000,
+    "api_key_env": "ANTHROPIC_API_KEY"
+   }
+  },
+  "mode": "full",
+  "output_name": "shadow-strategies.json",
+  "commit": "01b438e6bb57",
+  "tree_dirty": true,
+  "truncated": 0
+ },
+ "validity": {
+  "schema fingerprint fixed": true,
+  "hosted reader active": true,
+  "no truncation": true,
+  "no output-path collision": true,
+  "both readers contributed where expected": true,
+  "matrix includes fields and relations": true
+ },
  "readers": [
-  "quantify-compiler@1",
+  "quantify-compiler@2",
   "claude-sonnet-5@1"
  ],
  "matrix": {
   "account_type": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 4,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 30
   },
   "allocation_method": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 3,
+   "neither": 32
   },
   "amount": {
-   "both_agree": 0,
+   "both_agree": 25,
    "both_contested": 0,
-   "quantify-compiler@1_only": 2,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 0
+   "quantify-compiler@2_only": 1,
+   "claude-sonnet-5@1_only": 2,
+   "neither": 7
   },
   "assets": {
-   "both_agree": 0,
-   "both_contested": 0,
-   "quantify-compiler@1_only": 1,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 1
+   "both_agree": 19,
+   "both_contested": 4,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 3,
+   "neither": 9
   },
   "cadence": {
-   "both_agree": 0,
+   "both_agree": 13,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 1,
+   "claude-sonnet-5@1_only": 10,
+   "neither": 11
   },
   "conditional_amount": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 34
   },
   "day_rule": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 34
   },
   "dividend_policy": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
+   "quantify-compiler@2_only": 0,
    "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "neither": 35
   },
   "evaluation_period": {
-   "both_agree": 0,
-   "both_contested": 0,
-   "quantify-compiler@1_only": 2,
+   "both_agree": 29,
+   "both_contested": 6,
+   "quantify-compiler@2_only": 0,
    "claude-sonnet-5@1_only": 0,
    "neither": 0
   },
   "execution_timing": {
-   "both_agree": 0,
+   "both_agree": 1,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
+   "quantify-compiler@2_only": 0,
    "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "neither": 34
   },
   "moving_average_window": {
-   "both_agree": 0,
+   "both_agree": 14,
    "both_contested": 0,
-   "quantify-compiler@1_only": 2,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 0
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 20
   },
   "objective": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 31,
+   "neither": 4
   },
   "observed_assets": {
-   "both_agree": 0,
-   "both_contested": 0,
-   "quantify-compiler@1_only": 1,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 1
+   "both_agree": 2,
+   "both_contested": 1,
+   "quantify-compiler@2_only": 1,
+   "claude-sonnet-5@1_only": 2,
+   "neither": 29
   },
   "periodic_rebalancing": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 2,
+   "neither": 33
   },
   "sell_action": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 5,
+   "neither": 30
   },
   "stated_weights": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 34
   },
   "trigger_semantics": {
-   "both_agree": 0,
+   "both_agree": 13,
    "both_contested": 0,
-   "quantify-compiler@1_only": 2,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 0
+   "quantify-compiler@2_only": 2,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 19
   },
   "rel:account_transition": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 34
   },
   "rel:portfolio_sleeves": {
    "both_agree": 0,
    "both_contested": 0,
-   "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 0,
-   "neither": 2
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 34
   }
  }
 }

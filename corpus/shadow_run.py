@@ -77,6 +77,110 @@ def schema_fingerprint(schema) -> str:
     return f"{schema.version}/{digest}"
 
 
+def run_provenance(schema, prompts_rows, hosted, compiler, mode: str,
+                   out_name: str) -> dict:
+    """How this measurement was produced, carried with what it measured.
+
+    Two evidence-layer failures produced this, and neither was visible in the
+    values a result file contained:
+
+        a `--limit 2 --dry-run` probe overwrote a completed 35-prompt run,
+        and the file that replaced it looked like a small valid measurement
+
+        16 of 144 hosted replies were cut mid-JSON by this file's own token
+        ceiling, and the parser recorded them the same way it records a reader
+        with nothing to say
+
+    In both, the harness confused its own operating conditions with properties
+    of the readers. A file carrying only values cannot refuse to be compared
+    with a file produced under different conditions — so it carries the
+    conditions, and `is_comparable_with` refuses on its behalf.
+    """
+    import hashlib
+    import subprocess
+
+    prompts_digest = hashlib.sha256(
+        json.dumps([r[0] for r in prompts_rows], sort_keys=True).encode()
+    ).hexdigest()[:16]
+
+    try:
+        tree = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(HERE.parent),
+            capture_output=True, text=True, timeout=10).stdout.strip()[:12]
+        dirty = bool(subprocess.run(
+            ["git", "status", "--porcelain"], cwd=str(HERE.parent),
+            capture_output=True, text=True, timeout=10).stdout.strip())
+    except Exception:                                             # noqa: BLE001
+        tree, dirty = "", True
+
+    return {
+        "schema_fingerprint": schema_fingerprint(schema),
+        "prompt_count": len(prompts_rows),
+        "prompts_digest": prompts_digest,
+        "readers": {
+            compiler.id: {"enabled": True},
+            hosted.id: {"enabled": hosted.available(),
+                        "max_tokens": hosted.max_tokens,
+                        "api_key_env": hosted.api_key_env},
+        },
+        "mode": mode,
+        "output_name": out_name,
+        "commit": tree,
+        "tree_dirty": dirty,
+        "truncated": 0,
+    }
+
+
+def is_comparable_with(left: dict, right: dict) -> list:
+    """Why two result files may not be compared, or an empty list.
+
+    Everything here changes what the numbers mean rather than merely how they
+    were reached, which is why `commit` is absent: two runs from different
+    commits are comparable if the schema, prompts, readers and mode match, and
+    refusing there would forbid the before-and-after a fix is judged by.
+    """
+    reasons = []
+    for key in ("schema_fingerprint", "prompts_digest", "mode"):
+        if left.get(key) != right.get(key):
+            reasons.append(f"{key}: {left.get(key)!r} != {right.get(key)!r}")
+    if set(left.get("readers", {})) != set(right.get("readers", {})):
+        reasons.append("different readers")
+    for name, spec in left.get("readers", {}).items():
+        other = right.get("readers", {}).get(name, {})
+        if spec.get("enabled") != other.get("enabled"):
+            reasons.append(f"{name} enabled differs")
+        if spec.get("max_tokens") != other.get("max_tokens"):
+            reasons.append(f"{name} max_tokens differs")
+    return reasons
+
+
+VALIDITY_GATE = (
+    "schema fingerprint fixed", "hosted reader active", "no truncation",
+    "no output-path collision", "both readers contributed where expected",
+    "matrix includes fields and relations")
+
+
+def validity(provenance: dict, unusable: int, prompt_count: int,
+             matrix_by_dimension: dict) -> dict:
+    """Whether any semantic number in this run may be quoted at all.
+
+    Checked before the counts are printed, because a number reported under a
+    failed gate is read and remembered whatever caveat follows it.
+    """
+    readers = provenance["readers"]
+    hosted = next((v for k, v in readers.items() if "compiler" not in k), {})
+    return {
+        "schema fingerprint fixed": bool(provenance["schema_fingerprint"]),
+        "hosted reader active": bool(hosted.get("enabled")),
+        "no truncation": provenance["truncated"] == 0,
+        "no output-path collision": provenance["mode"] == "full",
+        "both readers contributed where expected":
+            prompt_count > 0 and unusable == 0,
+        "matrix includes fields and relations":
+            any(k.startswith("rel:") for k in matrix_by_dimension),
+    }
+
+
 def adjudicated_provenance():
     """What adjudication concluded, per dimension, for the matrix's last column.
 
@@ -138,8 +242,20 @@ def main() -> int:
 
     compiler = CompilerReader()
     hosted = HostedReader()
+    suffix = ""
     if args.dry_run:
         hosted.api_key_env = "DEFINITELY_NOT_SET"
+        # A dry run must not write where a real run writes. Mine did, and a
+        # two-prompt `--limit 2 --dry-run` check silently replaced a completed
+        # 35-prompt measurement with two rows in which the hosted reader was
+        # switched off. The numbers had already been reported by then.
+        #
+        # Self-contaminating evidence: the harness overwrote its own result
+        # with a probe of itself. Separating the paths is the whole fix.
+        suffix = "-dryrun"
+    if args.limit and not args.dry_run:
+        # A truncated real run is not the corpus either.
+        suffix = f"-limit{args.limit}"
 
     fingerprint = schema_fingerprint(QUANTIFY_SCHEMA)
     frozen = HERE / "schema-frozen.txt"
@@ -155,6 +271,11 @@ def main() -> int:
     if args.refreeze or not frozen.exists():
         frozen.write_text(fingerprint + "\n")
         print(f"schema frozen at {fingerprint}\n")
+
+    mode = "dryrun" if args.dry_run else (
+        f"limit{args.limit}" if args.limit else "full")
+    provenance = run_provenance(QUANTIFY_SCHEMA, rows, hosted, compiler, mode,
+                                f"shadow-{args.corpus}{suffix}.json")
 
     records, states, per_dimension = [], Counter(), {}
     comparisons = []
@@ -180,20 +301,43 @@ def main() -> int:
             print(f"  {index}/{len(rows)}")
 
     args.out.mkdir(parents=True, exist_ok=True)
-    (args.out / f"shadow-{args.corpus}.json").write_text(
-        json.dumps({"schema": fingerprint, "records": records}, indent=1))
+    provenance["truncated"] = sum(
+        1 for r in records
+        if "unparseable" in json.dumps(r.get("failed_readers", {})))
+
+    (args.out / f"shadow-{args.corpus}{suffix}.json").write_text(
+        json.dumps({"schema": fingerprint, "provenance": provenance,
+                    "records": records}, indent=1))
 
     readers = (compiler.id, hosted.id)
     by_dimension = matrix(comparisons, QUANTIFY_SCHEMA, readers)
-    (args.out / f"matrix-{args.corpus}.json").write_text(
-        json.dumps({"schema": fingerprint, "readers": list(readers),
+    checks = validity(provenance, unusable, len(rows), by_dimension)
+    (args.out / f"matrix-{args.corpus}{suffix}.json").write_text(
+        json.dumps({"schema": fingerprint, "provenance": provenance,
+                    "validity": checks, "readers": list(readers),
                     "matrix": by_dimension}, indent=1))
+
+    failed_checks = [name for name, ok in checks.items() if not ok]
+    print("\nvalidity gate\n")
+    for name, ok in checks.items():
+        print(f"  [{'ok ' if ok else 'FAIL'}] {name}")
+    if failed_checks:
+        print("\n  NO SEMANTIC NUMBER FROM THIS RUN MAY BE QUOTED.\n"
+              "  A number reported under a failed gate is read and remembered\n"
+              "  whatever caveat follows it. Fix and re-run.\n")
 
     total = sum(states.values())
     print(f"\n{len(rows)} prompts · {total} dimension readings\n")
     for state in (AGREED, CONTESTED, ONE_SIDED):
         share = f"{100 * states[state] / total:.0f}%" if total else "-"
         print(f"  {state:10s} {states[state]:5d}  {share}")
+
+    truncated = sum(1 for r in records
+                    if "unparseable" in json.dumps(r.get("failed_readers", {})))
+    if truncated:
+        print(f"\n  {truncated} prompts lost the hosted reading to TRUNCATION, "
+              "not to a\n  disagreement. Raise max_tokens and re-run; these "
+              "rows are not evidence\n  about either reader's recall.")
 
     if unusable:
         print(f"\n  {unusable} prompts produced no usable comparison — fewer "
@@ -221,7 +365,7 @@ def main() -> int:
         for dimension, count in one_sided:
             print(f"  {count:4d}  {dimension}")
 
-    print(f"\nwrote {args.out}/shadow-{args.corpus}.json")
+    print(f"\nwrote {args.out}/shadow-{args.corpus}{suffix}.json")
     print("\nNeither reader is ground truth. A disagreement says one of them is"
           "\nwrong, not which. Adjudication is what turns this into answers.")
     return 0
