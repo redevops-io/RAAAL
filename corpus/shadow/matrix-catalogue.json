@@ -1,51 +1,51 @@
 {
- "schema": "quantify-discovery-schema@1/87d4f0f1ade738c4",
+ "schema": "quantify-discovery-schema@2/103c025ac629946f",
  "readers": [
   "quantify-compiler@1",
   "claude-sonnet-5@1"
  ],
  "matrix": {
   "account_type": {
-   "both_agree": 75,
+   "both_agree": 73,
    "both_contested": 2,
-   "quantify-compiler@1_only": 10,
-   "claude-sonnet-5@1_only": 4,
-   "neither": 53
+   "quantify-compiler@1_only": 12,
+   "claude-sonnet-5@1_only": 3,
+   "neither": 54
   },
   "allocation_method": {
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 32,
-   "neither": 112
+   "claude-sonnet-5@1_only": 25,
+   "neither": 119
   },
   "amount": {
-   "both_agree": 38,
+   "both_agree": 35,
    "both_contested": 0,
-   "quantify-compiler@1_only": 2,
-   "claude-sonnet-5@1_only": 1,
-   "neither": 103
+   "quantify-compiler@1_only": 5,
+   "claude-sonnet-5@1_only": 0,
+   "neither": 104
   },
   "assets": {
-   "both_agree": 20,
-   "both_contested": 25,
-   "quantify-compiler@1_only": 7,
-   "claude-sonnet-5@1_only": 42,
-   "neither": 50
+   "both_agree": 21,
+   "both_contested": 17,
+   "quantify-compiler@1_only": 14,
+   "claude-sonnet-5@1_only": 41,
+   "neither": 51
   },
   "cadence": {
-   "both_agree": 34,
+   "both_agree": 32,
    "both_contested": 0,
-   "quantify-compiler@1_only": 3,
-   "claude-sonnet-5@1_only": 15,
-   "neither": 92
+   "quantify-compiler@1_only": 5,
+   "claude-sonnet-5@1_only": 14,
+   "neither": 93
   },
   "conditional_amount": {
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 3,
-   "neither": 141
+   "claude-sonnet-5@1_only": 1,
+   "neither": 143
   },
   "day_rule": {
    "both_agree": 2,
@@ -58,13 +58,13 @@
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 5,
-   "neither": 139
+   "claude-sonnet-5@1_only": 3,
+   "neither": 141
   },
   "evaluation_period": {
-   "both_agree": 120,
-   "both_contested": 15,
-   "quantify-compiler@1_only": 9,
+   "both_agree": 114,
+   "both_contested": 14,
+   "quantify-compiler@1_only": 16,
    "claude-sonnet-5@1_only": 0,
    "neither": 0
   },
@@ -79,50 +79,64 @@
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 1,
-   "claude-sonnet-5@1_only": 2,
-   "neither": 141
+   "claude-sonnet-5@1_only": 3,
+   "neither": 140
   },
   "objective": {
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 116,
-   "neither": 28
+   "claude-sonnet-5@1_only": 107,
+   "neither": 37
   },
   "observed_assets": {
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 1,
-   "claude-sonnet-5@1_only": 1,
-   "neither": 142
+   "claude-sonnet-5@1_only": 0,
+   "neither": 143
   },
   "periodic_rebalancing": {
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 8,
-   "neither": 136
+   "claude-sonnet-5@1_only": 7,
+   "neither": 137
   },
   "sell_action": {
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 49,
-   "neither": 95
+   "claude-sonnet-5@1_only": 42,
+   "neither": 102
   },
   "stated_weights": {
    "both_agree": 0,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 23,
-   "neither": 121
+   "claude-sonnet-5@1_only": 17,
+   "neither": 127
   },
   "trigger_semantics": {
    "both_agree": 2,
    "both_contested": 0,
    "quantify-compiler@1_only": 0,
-   "claude-sonnet-5@1_only": 6,
-   "neither": 136
+   "claude-sonnet-5@1_only": 7,
+   "neither": 135
+  },
+  "rel:account_transition": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@1_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 143
+  },
+  "rel:portfolio_sleeves": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@1_only": 0,
+   "claude-sonnet-5@1_only": 10,
+   "neither": 134
   }
  }
 }

@@ -21,7 +21,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Optional, Sequence
 
-from .reader import Reading, ReadingSet, Schema
+from .reader import Reading, ReadingSet, RelationReading, Schema
 
 
 class CompilerReader:
@@ -82,8 +82,15 @@ class CompilerReader:
         # than left silent: a reader that says nothing looks like agreement.
         answered = {r.dimension for r in readings}
         unread = tuple(sorted(schema.names - answered))
+
+        # No relations, ever, and that is a true report rather than a gap in
+        # this adapter. The compiler has no representation for a role, a
+        # per-member qualifier or a direction — which is precisely the finding
+        # that produced schema@2. Emitting an empty tuple says "this reader
+        # cannot see relationships"; inventing one from `assets` would hide the
+        # thing the shadow run exists to measure.
         return ReadingSet(reader_id=self.id, readings=tuple(readings),
-                          unread=unread)
+                          relations=(), unread=unread)
 
 
 _INSTRUCTIONS = """\
@@ -111,10 +118,21 @@ Rules that matter more than completeness:
    means something outside the list, report their words as the value rather
    than forcing the nearest listed one.
 
+7. Some meaning is a *relationship*, not a value. Where the sentence gives a
+   role to a participant, or a direction between participants, report it under
+   `relations` instead of flattening it into a dimension. A plain list of
+   holdings is not a relationship; "a core fund plus a 30% satellite" is,
+   because the 30% belongs to one particular part.
+
 Return JSON only:
 
 {"readings": [{"dimension": str, "value": str, "confidence": "0"-"1",
                "source_span": str, "note": str}],
+ "relations": [{"kind": str,
+                "members": [{"role": str, "subject": str,
+                             "qualifiers": {str: str}}],
+                "attributes": {str: str},
+                "source_span": str}],
  "unread": [str]}
 """
 
@@ -141,6 +159,24 @@ class HostedReader:
 
     def available(self) -> bool:
         return bool(os.environ.get(self.api_key_env))
+
+    def _relations_prompt(self, schema: Schema) -> str:
+        if not schema.relations:
+            return ""
+        lines = ["", "Relations:"]
+        for r in schema.relations:
+            lines.append(f"- {r.kind}: {r.describes}")
+            lines.append(f"    roles: {', '.join(r.roles)}"
+                         f"  (required: {', '.join(r.required_roles) or 'none'})")
+            if r.qualifiers:
+                for name, means in r.qualifiers.items():
+                    lines.append(f"    member qualifier {name}: {means}")
+            if r.attributes:
+                for name, means in r.attributes.items():
+                    lines.append(f"    attribute {name}: {means}")
+            for example in r.examples:
+                lines.append(f"    e.g. {example}")
+        return "\n".join(lines)
 
     def _schema_prompt(self, schema: Schema) -> str:
         lines = []
@@ -170,6 +206,7 @@ class HostedReader:
                               failed=f"{self.api_key_env} is not set")
 
         prompt = (f"{_INSTRUCTIONS}\nDimensions:\n{self._schema_prompt(schema)}"
+                  f"{self._relations_prompt(schema)}"
                   f"\n\nSentence:\n{text}\n")
         try:
             raw = self._call(prompt)
@@ -198,11 +235,34 @@ class HostedReader:
                 source_span=str(one.get("source_span", "") or ""),
                 note=str(one.get("note", "") or "")))
 
+        relations = []
+        for one in payload.get("relations") or ():
+            kind = str(one.get("kind", ""))
+            spec = schema.relation(kind)
+            if spec is None:
+                # A relation kind nobody declared. Dropped for the same reason
+                # an undeclared dimension is: the schema is the question, and
+                # an answer to a different question is not evidence about this
+                # one.
+                continue
+            members = tuple(
+                (str(m.get("role", "")), str(m.get("subject", "")),
+                 {str(k): str(v) for k, v in (m.get("qualifiers") or {}).items()})
+                for m in (one.get("members") or ())
+                if str(m.get("role", "")) in spec.roles)
+            if not members:
+                continue
+            relations.append(RelationReading(
+                kind=kind, members=members,
+                attributes={str(k): str(v)
+                            for k, v in (one.get("attributes") or {}).items()},
+                source_span=str(one.get("source_span", "") or "")))
+
         unread = tuple(sorted(
             str(u) for u in (payload.get("unread") or ())
             if str(u) in schema.names))
         return ReadingSet(reader_id=self.id, readings=tuple(readings),
-                          unread=unread)
+                          relations=tuple(relations), unread=unread)
 
 
 def _extract_json(raw: str) -> Optional[dict]:

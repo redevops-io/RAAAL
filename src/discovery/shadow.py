@@ -144,6 +144,45 @@ def _as_set(text: str) -> frozenset:
     return frozenset(t.strip() for t in tokens if t.strip())
 
 
+def compare_relations(sets: Sequence[ReadingSet], schema: Schema
+                      ) -> Sequence[FieldComparison]:
+    """One comparison per relation kind, structural rather than textual.
+
+    Agreement requires the kind, the member roles, the canonical subjects, the
+    per-member qualifiers and the whole-relation attributes to match. Source
+    spans and evidence sit outside it, exactly as for `evaluation_period`: two
+    readers can ground the same relation in slightly different text and still
+    agree about its meaning.
+
+    Ordering follows the schema. `account_transition` is ordered, because
+    from/to reversed is the opposite transaction; `portfolio_sleeves` is not,
+    because a core and a satellite are the same portfolio whichever was
+    mentioned first.
+    """
+    ok = [one for one in sets if one.ok]
+    out = []
+    for spec in schema.relations:
+        values, spans, comparable = {}, {}, {}
+        for reader in ok:
+            found = reader.relation_of(spec.kind)
+            if found is not None:
+                values[reader.reader_id] = found.to_json()
+                spans[reader.reader_id] = found.source_span
+                comparable[reader.reader_id] = found.comparable(spec.ordered)
+
+        if not values:
+            state = UNREAD
+        elif len(values) < 2 or len(values) < len(ok):
+            state = ONE_SIDED
+        else:
+            first = next(iter(comparable.values()))
+            state = (AGREED if all(v == first for v in comparable.values())
+                     else CONTESTED)
+        out.append(FieldComparison(dimension=f"rel:{spec.kind}", state=state,
+                                   values=values, spans=spans))
+    return tuple(out)
+
+
 def compare(text: str, sets: Sequence[ReadingSet], schema: Schema) -> Comparison:
     """One comparison per dimension in the schema, for every reader."""
     ok = [s for s in sets if s.ok]
@@ -184,6 +223,7 @@ def compare(text: str, sets: Sequence[ReadingSet], schema: Schema) -> Comparison
         fields.append(FieldComparison(dimension=name, state=state,
                                       values=values, spans=spans))
 
+    fields.extend(compare_relations(sets, schema))
     return Comparison(text=text, fields=tuple(fields), failed_readers=failed)
 
 
@@ -232,7 +272,13 @@ def matrix(comparisons: Sequence[Comparison], schema: Schema,
     out: Dict[str, Dict[str, int]] = {}
     left, right = readers[0], readers[1]
 
-    for name in sorted(schema.names):
+    # Relations are compared and must also be *reported*. The first version
+    # iterated `schema.names`, which is dimensions only, so schema@2's two
+    # relation kinds were measured and then silently dropped from the matrix —
+    # a run that fixed the largest structural gap and could not show it.
+    subjects = sorted(schema.names) + [f"rel:{k}"
+                                       for k in sorted(schema.relation_kinds)]
+    for name in subjects:
         counts = {"both_agree": 0, "both_contested": 0,
                   f"{left}_only": 0, f"{right}_only": 0, "neither": 0}
         for comparison in comparisons:
@@ -255,16 +301,27 @@ def matrix(comparisons: Sequence[Comparison], schema: Schema,
 
 
 def render(matrix_by_dimension: Dict[str, Dict[str, int]],
-           readers: Sequence[str]) -> str:
+           readers: Sequence[str],
+           provenance: Optional[Mapping[str, str]] = None) -> str:
+    """The matrix, with what adjudication concluded about each dimension.
+
+    The last column is the difference between a report and evidence. A count
+    of contested rows says how often two readers differed; it does not say
+    whether the difference was a defect in one of them or a gap in the schema
+    that made both answer wrongly. Only adjudication says that, and a matrix
+    without it invites the reader to guess.
+    """
+    provenance = provenance or {}
     left, right = readers[0], readers[1]
     head = (f"{'dimension':24s} {'agree':>6s} {'contest':>8s} "
-            f"{'cmplr':>7s} {'model':>7s} {'neither':>8s}")
+            f"{'cmplr':>7s} {'model':>7s} {'neither':>8s}  adjudicated")
     lines = [head, "-" * len(head)]
     for name, counts in sorted(
             matrix_by_dimension.items(),
             key=lambda kv: (-kv[1]["both_contested"], -kv[1]["both_agree"])):
+        verdict = provenance.get(name, "")
         lines.append(
             f"{name:24s} {counts['both_agree']:6d} "
             f"{counts['both_contested']:8d} {counts[f'{left}_only']:7d} "
-            f"{counts[f'{right}_only']:7d} {counts['neither']:8d}")
+            f"{counts[f'{right}_only']:7d} {counts['neither']:8d}  {verdict}")
     return "\n".join(lines)

@@ -10,7 +10,15 @@ It lives here for now because this is where the comparator lives: Phase 3
 measures the new reader against the old one, and the old one is Quantify's
 compiler.
 """
-from .reader import Dimension, DiscoveryReader, Reading, ReadingSet, Schema  # noqa: F401
+from .reader import (  # noqa: F401
+    Dimension,
+    DiscoveryReader,
+    Reading,
+    ReadingSet,
+    RelationReading,
+    RelationSpec,
+    Schema,
+)
 from .schema import QUANTIFY_SCHEMA  # noqa: F401
 from .shadow import (  # noqa: F401
     AGREED,
@@ -20,6 +28,7 @@ from .shadow import (  # noqa: F401
     Comparison,
     FieldComparison,
     compare,
+    compare_relations,
     evidence_for,
     matrix,
     render,

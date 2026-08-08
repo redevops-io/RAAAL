@@ -53,25 +53,59 @@ def schema_fingerprint(schema) -> str:
     by changing the instrument mid-flight — the first 35-prompt run scored
     `"200"` against `"200-day"` as a conflict and the second did not.
 
-    Covers the dimension names, their vocabularies and their `compare_as`
-    modes. Not the prose descriptions: rewording a description changes what a
-    model is told and is a real change, but it is one the run itself records
-    through the model's readings, and hashing it would invalidate every
-    baseline over a typo.
+    Hashes `Schema.semantic_surface()` — every property capable of changing
+    what Discovery can be asked or can say: dimension names, vocabularies and
+    comparison modes, and the relation kinds with their roles, required and
+    repeatable roles, qualifier and attribute names, and ordering semantics.
+
+    The relation half is not optional. The first version covered dimensions
+    only, and schema@2 could have added two relation kinds — materially
+    changing the instrument — while presenting the same digest, so two
+    incomparable runs would have looked like one experiment.
+
+    Prose descriptions stay out. Rewording what a model is told is a real
+    change and the run records it through the model's own readings; hashing it
+    would invalidate every baseline over a typo.
     """
     import hashlib
     import json
 
-    payload = {
-        "version": schema.version,
-        "dimensions": {
-            d.name: {"compare_as": d.compare_as, "values": list(d.values)}
-            for d in schema.dimensions},
-    }
     digest = hashlib.sha256(
-        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        json.dumps(schema.semantic_surface(), sort_keys=True,
+                   separators=(",", ":")).encode()
     ).hexdigest()[:16]
     return f"{schema.version}/{digest}"
+
+
+def adjudicated_provenance():
+    """What adjudication concluded, per dimension, for the matrix's last column.
+
+    Read from `corpus/adjudicated.json` rather than recomputed, because the
+    conclusion is a human judgement about which reader was right — and a
+    number that re-derived it would be claiming to know what only a person
+    decided.
+    """
+    path = HERE / "adjudicated.json"
+    if not path.exists():
+        return {}
+    record = json.loads(path.read_text())
+    out = {}
+    for row in record.get("rows", []):
+        current = out.get(row["dimension"])
+        verdict = {"COMPILER": "compiler defect", "MODEL": "model miss",
+                   "SCHEMA": "schema gap"}[row["defect"]]
+        # A dimension with mixed verdicts keeps both — collapsing them would
+        # hide that `assets` has failures on both sides.
+        if current and verdict not in current:
+            out[row["dimension"]] = f"{current} + {verdict}"
+        elif not current:
+            out[row["dimension"]] = verdict
+    for entry in record.get("catalogue_findings", {}).get("classes", []):
+        name = entry["dimension"]
+        verdict = {"COMPILER": "compiler defect", "MODEL": "model miss",
+                   "SCHEMA": "schema gap", "BOTH": "both readers"}[entry["defect"]]
+        out[name] = out.get(name) or verdict
+    return out
 
 
 def prompts(which: str):
@@ -166,8 +200,9 @@ def main() -> int:
               "than two readers contributed. These are NOT agreements and are "
               "excluded from every count above.")
 
+    provenance = adjudicated_provenance()
     print("\nby dimension — agree · contested · read by one only · neither\n")
-    print(render(by_dimension, readers))
+    print(render(by_dimension, readers, provenance))
 
     contested = [(d, c[CONTESTED]) for d, c in per_dimension.items()
                  if c[CONTESTED]]

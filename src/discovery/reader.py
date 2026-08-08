@@ -26,7 +26,8 @@ nothing from Quantify.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Optional, Protocol, Sequence, runtime_checkable
+from typing import (Any, Dict, Mapping, Optional, Protocol, Sequence,
+                    runtime_checkable)
 
 
 @dataclass(frozen=True)
@@ -48,11 +49,51 @@ class Reading:
 
 
 @dataclass(frozen=True)
+class RelationReading:
+    """One reader's view of one relationship.
+
+    Compared structurally, never as a string. Two readers can ground the same
+    relation in slightly different text and still mean the same thing, so
+    `source_span` sits outside the equality operation — the same rule already
+    applied to `evaluation_period`.
+    """
+
+    kind: str
+    members: Sequence[tuple] = ()
+    """(role, subject, qualifiers) in the order read."""
+
+    attributes: Mapping[str, str] = field(default_factory=dict)
+    source_span: str = ""
+
+    def comparable(self, ordered: bool = True):
+        """What two readers must match on: kind, roles, subjects, qualifiers
+        and attributes. Not spans, not confidence, not which reader."""
+        members = tuple(
+            (role.strip().lower(), str(subject).strip().lower(),
+             tuple(sorted((k.strip().lower(), str(v).strip().lower())
+                          for k, v in (quals or {}).items())))
+            for role, subject, quals in self.members)
+        if not ordered:
+            members = tuple(sorted(members))
+        return (self.kind.strip().lower(), members,
+                tuple(sorted((k.strip().lower(), str(v).strip().lower())
+                             for k, v in self.attributes.items())))
+
+    def to_json(self):
+        return {"kind": self.kind,
+                "members": [{"role": r, "subject": s, "qualifiers": q}
+                            for r, s, q in self.members],
+                "attributes": dict(self.attributes),
+                "source_span": self.source_span}
+
+
+@dataclass(frozen=True)
 class ReadingSet:
     """Everything one reader saw in one sentence, plus what it could not."""
 
     reader_id: str
     readings: Sequence[Reading] = ()
+    relations: Sequence[RelationReading] = ()
     unread: Sequence[str] = ()
     """Dimensions the reader was asked about and declined to answer.
 
@@ -69,6 +110,12 @@ class ReadingSet:
     @property
     def ok(self) -> bool:
         return self.failed is None
+
+    def relation_of(self, kind: str) -> Optional["RelationReading"]:
+        for one in self.relations:
+            if one.kind == kind:
+                return one
+        return None
 
     def value_of(self, dimension: str) -> Optional[Reading]:
         for one in self.readings:
@@ -147,10 +194,54 @@ class Dimension:
 
 
 @dataclass(frozen=True)
+class RelationSpec:
+    """A relationship a reader may be asked to report.
+
+    The rule for when a dimension should become one of these, so that
+    `VerifiedIntent` does not drift into being a graph language:
+
+        Use a relation when meaning depends on which value belongs to which
+        participant, or on direction or order between participants.
+
+    By that rule `"60% VTI / 40% BND"` can stay a scalar pair — the mapping is
+    unambiguous. `"a core fund plus a 30% satellite"` cannot, because the
+    qualifier belongs to one particular member. `"traditional IRA to a Roth"`
+    cannot, because the direction *is* the meaning.
+    """
+
+    kind: str
+    describes: str
+    roles: Sequence[str] = ()
+    """Every role a member may play."""
+
+    required_roles: Sequence[str] = ()
+    """Roles without which the relation is not the thing it claims to be. A
+    transition with no `to` is not a transition."""
+
+    repeatable_roles: Sequence[str] = ()
+    """Roles that may appear more than once. Three satellites is a portfolio;
+    two `from` accounts is not a transfer."""
+
+    qualifiers: Mapping[str, str] = field(default_factory=dict)
+    """Per-member facts, name -> what it means. `allocation` on a sleeve."""
+
+    attributes: Mapping[str, str] = field(default_factory=dict)
+    """Whole-relation facts. `action` on a transition, which belongs to
+    neither end."""
+
+    ordered: bool = True
+    """Whether member order carries meaning. True for anything directional:
+    `from`/`to` reversed is the opposite transaction."""
+
+    examples: Sequence[str] = ()
+
+
+@dataclass(frozen=True)
 class Schema:
     """What a reader is asked to look for."""
 
     dimensions: Sequence[Dimension] = ()
+    relations: Sequence[RelationSpec] = ()
     version: str = "discovery-schema@1"
 
     def dimension(self, name: str) -> Optional[Dimension]:
@@ -159,6 +250,44 @@ class Schema:
                 return one
         return None
 
+    def relation(self, kind: str) -> Optional[RelationSpec]:
+        for one in self.relations:
+            if one.kind == kind:
+                return one
+        return None
+
     @property
     def names(self) -> frozenset:
         return frozenset(d.name for d in self.dimensions)
+
+    @property
+    def relation_kinds(self) -> frozenset:
+        return frozenset(r.kind for r in self.relations)
+
+    def semantic_surface(self) -> Dict[str, Any]:
+        """Everything capable of changing what a reader can be asked or say.
+
+        This is what the run fingerprint hashes. It deliberately covers the
+        relation surface as well as the dimensions: without it, schema@2 could
+        add two relation kinds — materially changing the instrument — and
+        present the same digest as schema@1, so two incomparable runs would
+        look like one experiment.
+
+        Prose descriptions are excluded. Rewording what a model is told is a
+        real change and the run records it through the model's own readings;
+        hashing it would invalidate every baseline over a typo.
+        """
+        return {
+            "version": self.version,
+            "dimensions": {
+                d.name: {"compare_as": d.compare_as, "values": list(d.values)}
+                for d in self.dimensions},
+            "relations": {
+                r.kind: {"roles": list(r.roles),
+                         "required_roles": list(r.required_roles),
+                         "repeatable_roles": list(r.repeatable_roles),
+                         "qualifiers": sorted(r.qualifiers),
+                         "attributes": sorted(r.attributes),
+                         "ordered": r.ordered}
+                for r in self.relations},
+        }

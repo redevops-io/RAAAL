@@ -20,9 +20,9 @@ order a reader meets them in a sentence.
 """
 from __future__ import annotations
 
-from .reader import Dimension, Schema
+from .reader import Dimension, RelationSpec, Schema
 
-QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@1", dimensions=(
+QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@2", dimensions=(
 
     Dimension(
         name="objective",
@@ -153,4 +153,44 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@1", dimensions=(
         name="moving_average_window",
         compare_as="NUMBER",
         describes="The length of any moving average named, in sessions."),
+), relations=(
+
+    # Added in schema@2. Both of these were forced by the shadow run: two
+    # sentences where both readers read correctly and the schema made them
+    # disagree, because it asked for one value where the sentence had two
+    # entities in named roles.
+    #
+    # The rule for adding more, so this does not become a graph language:
+    # a relation is warranted when meaning depends on which value belongs to
+    # which participant, or on direction between participants. `60/40` across
+    # two named holdings does not qualify — the mapping is unambiguous.
+
+    RelationSpec(
+        kind="portfolio_sleeves",
+        describes=(
+            "Holdings described as parts of a portfolio with different roles, "
+            "where an allocation belongs to a particular part. Use this when a "
+            "sentence describes a core plus one or more tilts, satellites or "
+            "sleeves — not for a plain list of holdings."),
+        roles=("core", "satellite"),
+        required_roles=("core",),
+        repeatable_roles=("satellite",),
+        qualifiers={"allocation": "this sleeve's share, as written — '30%'"},
+        ordered=False,
+        examples=("'a core index fund and tilt 30% satellite into US value "
+                  "ETF' -> core='core index fund', "
+                  "satellite='US value ETF' allocation='30%'",)),
+
+    RelationSpec(
+        kind="account_transition",
+        describes=(
+            "Money moving between account types. The direction is the "
+            "meaning: a conversion out of a traditional IRA into a Roth is not "
+            "the same statement with the ends swapped."),
+        roles=("from", "to"),
+        required_roles=("from", "to"),
+        attributes={"action": "convert | transfer | rollover | withdraw"},
+        ordered=True,
+        examples=("'convert my traditional IRA to a Roth' -> "
+                  "from='traditional_ira', to='roth_ira', action='convert'",)),
 ))

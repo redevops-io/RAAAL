@@ -1,5 +1,5 @@
 {
- "schema": "quantify-discovery-schema@1",
+ "schema": "quantify-discovery-schema@2",
  "corpus": "strategies + catalogue",
  "adjudicated_on": "2026-08-08",
  "adjudicator": "engineering, from the prompt text",
@@ -145,6 +145,44 @@
    "model_only": 310,
    "compiler_only": 33,
    "reading": "Ten to one, and the largest buckets are dimensions the legacy compiler has no concept of at all: objective 116, sell_action 49, allocation_method 32, stated_weights 23. That is the recall gap Discovery exists to close, measured rather than asserted. The 33 compiler-only readings are the reader-defect candidates and are small enough to inspect by hand."
+  }
+ },
+ "schema2_rerun": {
+  "note": "Re-run after schema@2 added portfolio_sleeves and account_transition. Only genuinely changed rows re-adjudicated; the schema@1 rows above are kept as the record of how the gaps were found.",
+  "contested": {
+   "35 prompts": {
+    "schema@1": 10,
+    "schema@2": 9
+   },
+   "144 prompts": {
+    "schema@1": 42,
+    "schema@2": 33
+   }
+  },
+  "what_moved": [
+   {
+    "dimension": "assets",
+    "from": 25,
+    "to": 17,
+    "why": "Eight sleeve prompts moved out of the flat asset list into rel:portfolio_sleeves, which the model now reads on 10 catalogue prompts. The relation represents them; the scalar could not."
+   },
+   {
+    "dimension": "account_type",
+    "from": 2,
+    "to": 2,
+    "why": "Unchanged in count, but the conversion case now reports account_transition with from/to/action and leaves the scalar empty rather than picking an end. The gap closed; these two are a different pair."
+   }
+  ],
+  "residual_assets_17": {
+   "defect": "COMPILER",
+   "why": "One class. The compiler extracts capitalised fragments as if they were instruments \u2014 'ETF' from 'multi-asset ETF set', 'US, EM' from 'US and Developed and EM', 'DD' from 'drawdown-aware', and 'SPY' alone from 'SPY and T-Bills', dropping a holding outright. The model reports the phrase the sentence uses. Model right in every sampled row.",
+   "not_a_schema_gap": "Unlike the sleeve and conversion cases, nothing here needs new structure. These are flat lists of holdings that one reader reads and the other mangles."
+  },
+  "measurement_property": {
+   "name": "scalar-versus-relation shows as one-sided on both sides",
+   "why": "On the 14 sleeve prompts the model now puts holdings in rel:portfolio_sleeves and leaves `assets` empty, while the compiler still reports its (wrong) scalar. The comparison records compiler-only on `assets` and model-only on `rel:portfolio_sleeves`, which is literally true and reads as less agreement than there is in substance.",
+   "deliberately_not_fixed": "Cross-comparing a scalar against a relation would invent an equivalence between two different claims about the sentence. The honest report is two one-sided readings plus this note; the number is only misleading if read without it.",
+   "resolves_when": "the compiler is removed at Phase 4, after which there is one reader and the question does not arise."
   }
  }
 }
