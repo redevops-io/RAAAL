@@ -59,6 +59,41 @@ def _choice(name, prompt, pairs) -> Field:
                  tuple(Option(v, l) for v, l in pairs))
 
 
+#: Human wording for the engine's cadence values. Labels only — which of these
+#: are *offered* is decided by the capability manifest, not by this table, so a
+#: label may sit here for a value the current build refuses without that value
+#: reaching a menu.
+CADENCE_LABELS: Mapping[str, str] = {
+    "weekly": "Every week",
+    "biweekly": "Every other week",
+    "monthly": "Every month",
+    "quarterly": "Every quarter",
+    "annual": "Every year",
+    "payroll": "Every payday",
+    "daily": "Every trading day",
+    "once": "One lump sum",
+}
+
+
+def _generated(name, prompt, labels) -> Field:
+    """A choice whose options come from the capability manifest.
+
+    The ordering follows `labels` so the menu reads in a sensible sequence
+    rather than alphabetically; the *membership* is the manifest's.
+
+    A value the manifest executes but nobody has labelled still appears, under
+    its raw name. That is deliberate: an unlabelled option is untidy, a missing
+    one is a capability the user cannot reach.
+    """
+    from .capability import offerable_values
+
+    executable = offerable_values(name)
+    ordered = [v for v in labels if v in executable]
+    ordered += [v for v in executable if v not in labels]
+    return Field(name, FieldKind.CHOICE, prompt,
+                 tuple(Option(v, labels.get(v, v)) for v in ordered))
+
+
 #: Every field a user can be asked to settle, and what it will take.
 FIELDS: Mapping[str, Field] = {
     "account_type": _choice("account_type", "Which account is this in?", (
@@ -84,16 +119,16 @@ FIELDS: Mapping[str, Field] = {
             ("100", "100 sessions"),
             ("200", "200 sessions (about a year)"),
         )),
-    "cadence": _choice("cadence", "How often?", (
-        ("weekly", "Every week"),
-        ("biweekly", "Every other week"),
-        ("monthly", "Every month"),
-        ("quarterly", "Every quarter"),
-        ("annual", "Every year"),
-        ("payroll", "Every payday"),
-        ("daily", "Every trading day"),
-        ("once", "One lump sum"),
-    )),
+    # Generated from the capability manifest, not typed here. A menu is a
+    # promise: this list offered "Every payday", "Every quarter", "Every year"
+    # and "Every trading day" while the executor ran none of them, so a user
+    # could choose "Every year" from a list we showed them and receive a figure
+    # computed from one contribution.
+    #
+    # `_offered` keeps the labels — those are for people and only the values
+    # have to match the engine — and drops any option the manifest does not
+    # claim as executable. `payroll` is dropped by that rule today.
+    "cadence": _generated("cadence", "How often?", CADENCE_LABELS),
     "trigger_semantics": _choice(
         "trigger_semantics", "When the condition is true, buy...", (
             ("persistent_condition", "Every day it stays true"),

@@ -143,10 +143,37 @@ class Coverage:
         if not blocking:
             return ""
         reasons = "; ".join(one.reason or one.element_id for one in blocking)
-        return ("This result is unavailable. Part of what you described was "
-                "not carried into the calculation, so any figure would answer "
-                f"a different plan: {reasons}. Your description and answers "
-                "remain saved.")
+        message = ("This result is unavailable. Part of what you described was "
+                   "not carried into the calculation, so any figure would answer "
+                   f"a different plan: {reasons}. Your description and answers "
+                   "remain saved.")
+
+        # Whether this is a permanent limit or a one-off shortfall, from the
+        # capability manifest rather than from the wording above.
+        #
+        # "Not carried into the calculation" reads as something that might go
+        # differently next time. For `stated_weights` or `periodic_rebalancing`
+        # it will not: this build has no code path for them, and a user who
+        # rephrases is wasting their time. Saying which is which is the
+        # difference between a refusal someone can act on and one they retry.
+        permanent = self._permanent_limits(blocking)
+        if permanent:
+            message += " " + " ".join(permanent)
+        return message
+
+    @staticmethod
+    def _permanent_limits(blocking) -> list:
+        from .capability import MANIFEST, NOT_MODELLED, REFUSED
+
+        out = []
+        for one in blocking:
+            dimension = MANIFEST.get(one.element_id)
+            if dimension is None:
+                continue
+            if dimension.support in (REFUSED, NOT_MODELLED) and dimension.why:
+                out.append(f"This is a limit of the build, not of your "
+                           f"description: {dimension.why}.")
+        return out
 
     def to_json(self) -> Dict[str, Any]:
         return {"elements": [one.to_json() for one in self.elements],
@@ -160,6 +187,24 @@ class Coverage:
 #: record keeps meaning what it meant. A run recorded under `@1` was checked
 #: against the elements `@1` knew about, and nothing else.
 COVERAGE_VERSION = "coverage/declared-to-executed@1"
+
+#: Every element this module can report on, named once.
+#:
+#: Extracted from the `element_id=` literals below so a third party — the
+#: capability manifest — can ask "is every dimension a user can declare one
+#: whose executability somebody decided?" without scraping source. Coverage
+#: answers *was it executed*; the manifest answers *can it be*, and the two
+#: have to range over the same set or a dimension falls between them.
+DECLARED_ELEMENTS = (
+    "evaluation_period",
+    "scheduled_funding",
+    "event_triggered_funding",
+    "conditional_amount",
+    "allocation_method",
+    "stated_weights",
+    "periodic_rebalancing",
+    "sell_action",
+)
 
 
 # --- assessment ------------------------------------------------------------
