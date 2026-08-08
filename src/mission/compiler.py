@@ -290,7 +290,26 @@ _RULES: Sequence[Tuple[str, str, str]] = (
     ("contribution_day_rule", "calendar_first_rolled_forward",
      r"\bfirst calendar day\b|\bon the 1st\b|\bthe first of (?:the |each |every )?month\b"),
     ("contribution_day_rule", "first_session_of_period",
-     r"\bfirst trading (?:day|session)\b|\bfirst market day\b"),
+     r"\bfirst trading (?:day|session)\b|\bfirst market day\b|\bfirst session\b"),
+
+    # The other half of a field that only had one. `_flows_from` has always
+    # honoured `last_session_of_period` — it takes the group maximum instead of
+    # the minimum — and nothing could ever set it, so "$2,000 *last session*
+    # every month" and "$2,000 *first session* every month" compiled to the
+    # same plan and returned the same figure to the cent. Two descriptions a
+    # user would reasonably expect to differ, answered with one number, and
+    # neither reading flagged.
+    #
+    # Deliberately narrow: only phrasings that name a *session*. "month end"
+    # and "quarter end" are not here, because "rebalance quarter end" is a
+    # sentence about rebalancing, and reading a rebalancing clause as a
+    # contribution setting is precisely the defect that turned a single
+    # $100,000 allocation into $6,100,000 of monthly contributions. That
+    # wording needs the same context guard `cadence` has, and adding it to a
+    # flat first-match table without one would reintroduce the known failure.
+    ("contribution_day_rule", "last_session_of_period",
+     r"\blast trading (?:day|session)\b|\blast market day\b|\blast session\b"
+     r"|\bfinal (?:trading )?session\b"),
 
     # Account type. `tax_treatment` has always been on the scenario and in the
     # content hash, and nothing ever set it — so every plan compiled from prose

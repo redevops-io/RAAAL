@@ -407,28 +407,65 @@ def _approved_snapshot():
         return None
 
 
+class UnsupportedCadence(Exception):
+    """A declared cadence this engine cannot turn into dated money."""
+
+
 def _flows_from(schedule, sessions: pd.DatetimeIndex) -> List[CashFlow]:
     """Turn a declared schedule into dated contributions.
 
     The day rule is applied here rather than assumed, because "monthly" does not
     name a day and the day moves the money-weighted return.
+
+    The cadence is matched exhaustively, and an unrecognised one raises. It
+    used to fall through to a single one-off contribution, which is how
+    `quarterly`, `annual` and `daily` — three of the eight values the product
+    *offers* in its own confirmation menu and renders as "every quarter" and
+    "every year" — were each executed as one payment.
+
+    Nothing said so. The figure appeared with no caveat, so "$1,000 every year
+    for five years" reported $1,000 contributed rather than $5,000, and the
+    return was computed over a plan the user had not described. A user could
+    reach it by picking "Every year" from a list this product had shown them.
+
+    The fallback was doing two jobs — expressing `once`, and absorbing
+    everything unrecognised — and the second silently produced a wrong number
+    for a right answer. Splitting them means a cadence added to the vocabulary
+    and not to this table refuses rather than quietly becoming a lump sum.
     """
     if schedule.amount <= 0:
         return ([CashFlow(sessions[0], schedule.starting_capital, "starting capital")]
                 if schedule.starting_capital > 0 else [])
 
-    series = sessions.to_series()
-    if schedule.cadence == "monthly":
-        groups = series.groupby([sessions.year, sessions.month])
-    elif schedule.cadence == "weekly":
-        iso = sessions.isocalendar()
-        groups = series.groupby([iso.year.values, iso.week.values])
-    elif schedule.cadence == "biweekly":
-        iso = sessions.isocalendar()
-        groups = series.groupby([iso.year.values, (iso.week.values // 2)])
-    else:
+    if schedule.cadence == "once":
         return [CashFlow(sessions[0], schedule.amount, "one-off")]
 
+    if schedule.cadence == "daily":
+        # Every session is its own period, so the day rule has nothing to
+        # choose between.
+        return [CashFlow(d, schedule.amount, "contribution") for d in sessions]
+
+    series = sessions.to_series()
+    iso = sessions.isocalendar()
+    keys = {
+        "annual": lambda: [sessions.year],
+        "quarterly": lambda: [sessions.year, sessions.quarter],
+        "monthly": lambda: [sessions.year, sessions.month],
+        "weekly": lambda: [iso.year.values, iso.week.values],
+        "biweekly": lambda: [iso.year.values, iso.week.values // 2],
+    }
+    if schedule.cadence not in keys:
+        # `payroll` lands here deliberately. A pay cycle is not a calendar
+        # period: it may be weekly, biweekly, semi-monthly or monthly, and
+        # choosing one would be inventing the user's employer. A refusal that
+        # says so is the honest answer; a lump sum was not.
+        raise UnsupportedCadence(
+            f"This build does not execute a {schedule.cadence!r} contribution "
+            "cadence, so no figure can be produced for it. Naming a calendar "
+            "cadence — weekly, biweekly, monthly, quarterly or yearly — would "
+            "let this plan run.")
+
+    groups = series.groupby(keys[schedule.cadence]())
     dates = (groups.max() if schedule.day_rule == "last_session_of_period"
              else groups.min())
     return [CashFlow(d, schedule.amount, "contribution") for d in dates]
@@ -797,10 +834,17 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None,
         return {"result": None, "benchmarks": [], "payload": None,
                 "comparability": None, "strategy_not_executed": True,
                 "coverage": None, "unavailable": funding_error}
-    flows = (tuple(CashFlow(date=event.session, amount=float(event.amount))
-                   for event in events)
-             if events is not None
-             else _flows_from(scenario.flow_schedule, sessions))
+    try:
+        flows = (tuple(CashFlow(date=event.session, amount=float(event.amount))
+                       for event in events)
+                 if events is not None
+                 else _flows_from(scenario.flow_schedule, sessions))
+    except UnsupportedCadence as refused:
+        # The same shape as a refused funding policy above: no figure, and the
+        # reason the engine gave rather than a generic one.
+        return {"result": None, "benchmarks": [], "payload": None,
+                "comparability": None, "strategy_not_executed": True,
+                "coverage": None, "unavailable": str(refused)}
 
     # A declared conditional rule that this engine does not execute produces no
     # figure at all.
