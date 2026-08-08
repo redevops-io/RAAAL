@@ -1271,6 +1271,47 @@ in §3.2a, not for any runtime.
 
 ---
 
+## 8.3 What Phase 3 taught about the evaluator
+
+Three of the defects Phase 3 surfaced were in the measurement, not in either
+reader, and all three had the same shape: **the harness confused its own
+operating conditions with properties of the thing it was measuring.**
+
+- A `--limit 2 --dry-run` probe wrote to the same path as a real run and
+  replaced a completed 35-prompt measurement. The file that survived looked
+  like a small valid result. *Dry and truncated runs now write to `-dryrun` and
+  `-limitN` paths.*
+- 16 of 144 hosted replies were cut mid-JSON by the harness's own token
+  ceiling, and the parser recorded them the way it records a reader with
+  nothing to say. *Truncation is now its own reported class, and the ceiling
+  was raised.*
+- The comparator supplied a capability to one reader. A `moving_average_window`
+  regex written to make the legacy reader "fair" produced **every**
+  moving-average agreement in every run; the compiler had never read that
+  dimension at all. *The comparator now calls the reader's own semantic
+  implementation.*
+
+The general rule, worth applying to any future evaluator:
+
+> **A comparator must call the reader's actual implementation, never reproduce
+> an approximation of it.** An approximation makes the evaluator a third
+> parser, with no name, no version and no evidence — and a third parser
+> manufactures agreement between the two it was meant to compare.
+
+And its corollary, which is why the third one took longest to see:
+
+> **Being generous to a reader is the same defect as being stingy with it.**
+> Both let the comparator decide the result.
+
+The structural answer is that a measurement artifact needs provenance about
+*how it was produced*, not only the values it contains. Every result file now
+carries schema fingerprint, prompt digest, reader identities and enabled flags,
+token ceiling, run mode, output name, commit and tree-dirty state, and
+truncation count — and a six-check validity gate prints before any count,
+stating plainly that no semantic number may be quoted when it fails.
+
+---
+
 ## 9. Recommended immediate next step
 
 Phase 1 — the capability manifest — against the existing compiler.

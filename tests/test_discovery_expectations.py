@@ -129,3 +129,59 @@ class TestTheExpectationsWouldActuallyFail:
     def test_a_wrapper_is_not_an_instrument(self):
         case = next(c for c in CASES if c["ref"] == "WM-0057")
         assert "ETF" in case["expected"]["assets_must_not_include"]
+
+
+class TestHostedReaderFailureClassesArePinnedSeparately:
+    """Two hosted-reader failures, and they are not the same defect.
+
+        WM-0017  recall miss     — the sentence names VTI and BND and the
+                                   reader returned one
+        CTRL-1   non-determinism — the reader read `trigger_semantics`
+                                   correctly on a near-identical sentence in
+                                   the same run and omitted it here
+
+    A fixture that only pinned recall would pass on a reader that answers
+    correctly half the time, which is the more dangerous of the two: an
+    intermittent omission looks like a sentence that did not mention the thing.
+    """
+
+    def test_both_failure_classes_have_a_fixture(self):
+        classes = {c.get("failure_class") for c in CASES}
+        assert "NON_DETERMINISM" in classes
+
+    def test_the_non_determinism_fixture_pins_presence_not_just_value(self):
+        """Absent is as wrong as wrong here. A dimension silently dropped is a
+        dimension the engine will default."""
+        case = next(c for c in CASES if c.get("failure_class") == "NON_DETERMINISM")
+        assert "trigger_semantics" in case["expected"]["must_be_present"]
+        assert case["expected"]["fields"]["trigger_semantics"] == "crossing_event"
+        assert "persistent_condition" in \
+            case["expected"]["must_not"]["trigger_semantics"]
+
+    def test_it_requires_the_reading_to_be_grounded_in_the_sentence(self):
+        """A correct value with no span is a guess that happened to land."""
+        case = next(c for c in CASES if c.get("failure_class") == "NON_DETERMINISM")
+        assert case["expected"]["source_span_contains"]["trigger_semantics"] \
+            == "crosses below"
+
+    def test_the_expectation_is_independent_of_any_run(self):
+        """It states what the sentence means, not what a model returned on a
+        particular day — otherwise it would pin the non-determinism rather
+        than forbid it."""
+        case = next(c for c in CASES if c.get("failure_class") == "NON_DETERMINISM")
+        blob = json.dumps(case["expected"]).lower()
+        for run_word in ("run_id", "observed", "returned", "sonnet", "claude"):
+            assert run_word not in blob
+
+    def test_the_deterministic_reader_satisfies_it_today(self):
+        """The discriminating half, and offline: the expectation is reachable,
+        so a failure means the reader is wrong rather than the fixture being
+        impossible."""
+        from src.discovery import QUANTIFY_SCHEMA
+        from src.discovery.readers_quantify import CompilerReader
+
+        case = next(c for c in CASES if c.get("failure_class") == "NON_DETERMINISM")
+        read = CompilerReader().read(case["input"], QUANTIFY_SCHEMA)
+        found = read.value_of("trigger_semantics")
+        assert found is not None and found.value == "crossing_event"
+        assert "crosses below" in found.source_span

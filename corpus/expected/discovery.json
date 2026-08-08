@@ -119,6 +119,31 @@
    },
    "why": "'ETF' is a wrapper the sentence mentions, not a holding it names. Extracting it as an instrument prices something nobody described.",
    "adjudicated_winner": "MODEL"
+  },
+  {
+   "ref": "CTRL-1",
+   "input": "I buy $1,000 of SPY whenever it crosses below its 200-day moving average, over the past five years.",
+   "expected": {
+    "fields": {
+     "trigger_semantics": "crossing_event"
+    },
+    "source_span_contains": {
+     "trigger_semantics": "crosses below"
+    },
+    "must_not": {
+     "trigger_semantics": [
+      "persistent_condition"
+     ]
+    },
+    "must_be_present": [
+     "trigger_semantics"
+    ],
+    "relations": [],
+    "unresolved": []
+   },
+   "why": "A different failure class from a recall miss. The hosted reader read this field correctly on a near-identical sentence in the same run and did not report it here, so what is being pinned is consistency: the same kind of evidence must produce the same reading. Absent is as wrong as persistent_condition \u2014 a dimension silently dropped is a dimension the engine will default, and this is the field whose misreading was worth 4.6x the money.",
+   "failure_class": "NON_DETERMINISM",
+   "adjudicated_winner": "COMPILER"
   }
  ]
 }
