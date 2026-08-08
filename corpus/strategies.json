@@ -1,0 +1,212 @@
+[
+ {
+  "ref": "CTRL-1",
+  "prompt": "I buy $1,000 of SPY whenever it crosses below its 200-day moving average, over the past five years.",
+  "expectation": "EXECUTE",
+  "why": "The supported shape, stated unambiguously: one priceable instrument, a stated window, a stated averaging period, a crossing rule this build executes. It must save, produce figures, carry a reconciled ledger and reopen from stored provenance without another model call."
+ },
+ {
+  "ref": "ORIG-1",
+  "prompt": "I buy $1,000 of SP500 ETF every time the S&P 500 crosses below its 200-day moving average for the past 5 years. What would the total amount and return be now?",
+  "expectation": "EXECUTE",
+  "why": "The plan that started this. Must ask which instrument 'SP500 ETF' means, whether 'crosses below' fires once per drawdown or on every day below, and then execute \u2014 reporting more than one purchase. A single $1,000 contribution is the original defect."
+ },
+ {
+  "ref": "ORIG-2",
+  "prompt": "I buy $1,000 of SPY every day the S&P 500 trades under its 200-day moving average, for the past 5 years.",
+  "expectation": "EXECUTE",
+  "why": "The other reading of the same rule. 'Every day under' must produce many more purchases than 'crosses below', and a far larger total contributed. If the two produce the same number the distinction the compiler asks about is not reaching the engine."
+ },
+ {
+  "ref": "ORIG-3",
+  "prompt": "I buy $1,000 of VOO every time it crosses below its moving average, over the past 5 years.",
+  "expectation": "CLARIFY",
+  "why": "No averaging window stated. A 50-session and a 200-session average are different rules; the product must ask rather than assume 200."
+ },
+ {
+  "ref": "ORIG-4",
+  "prompt": "I buy $1,000 of SPX every time it crosses below its 200-day moving average, for the past 5 years.",
+  "expectation": "CLARIFY",
+  "why": "SPX is the index, not a tradeable fund. The product must say so and offer priceable instruments \u2014 and must not silently rewrite SPX to SPY, which would answer a question the user did not ask."
+ },
+ {
+  "ref": "ORIG-5",
+  "prompt": "I buy $1,000 of SPY at the same day's close whenever it crosses below its 200-day moving average, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Trading the close that produced the signal reads one bar into the future. The engine supports next-session execution only and must decline rather than quietly substituting it."
+ },
+ {
+  "ref": "ORIG-6",
+  "prompt": "I buy $1,000 of SPY every time it crosses below its 200-day moving average, over the past 3 months.",
+  "expectation": "UNKNOWN",
+  "why": "A window shorter than the 200-session warm-up. Either no crossing can be evaluated at all, or the result rests on a handful of events. Whatever it does, it must not report a confident return from zero purchases."
+ },
+ {
+  "ref": "ORIG-7",
+  "prompt": "Every time SPY crosses below its 200-day moving average I put in $1,000, and I also invest $500 every month, for the past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "Both funding modes at once. The scenario model holds one funding policy, so this is either refused or one half is silently dropped \u2014 and a dropped half is the original defect wearing different clothes. This is the sharpest probe here."
+ },
+ {
+  "ref": "ORIG-8",
+  "prompt": "I buy $1,000 of SPY every time it crosses below its 200-day moving average and sell everything when it crosses back above, for the past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "A sell leg. Nothing in this build executes an exit condition, so the plan must either refuse or state plainly that the sell was not modelled. A figure with no such statement would be a result for a different strategy."
+ },
+ {
+  "ref": "ORIG-9",
+  "prompt": "I buy \u00a31,000 of SPY every time it crosses below its 200-day moving average, past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "A currency the engine does not model. Reading \u00a3 as $ would be a silent 25% error in the contribution."
+ },
+ {
+  "ref": "WM-0001",
+  "prompt": "I put $2,000 a year into VTI and hold it. Past 5 years.",
+  "expectation": "EXECUTE",
+  "why": "Simplest possible plan. If this needs more than a couple of questions, the clarification loop is too eager."
+ },
+ {
+  "ref": "WM-0009",
+  "prompt": "I invest $250 in VTI every week for the past 5 years.",
+  "expectation": "EXECUTE",
+  "why": "Weekly dollar-cost averaging \u2014 a scheduled funding policy, the counterpart to the event-triggered one."
+ },
+ {
+  "ref": "WM-0017",
+  "prompt": "I hold 60% VTI and 40% BND and rebalance once a year, past 5 years, starting with $50,000.",
+  "expectation": "UNKNOWN",
+  "why": "Rebalancing requires selling. 'equal weight maintained' plus 'never sell' is a contradiction the compiler already detects; this checks that an explicit rebalance is either executed or declared unmodelled."
+ },
+ {
+  "ref": "WM-0025",
+  "prompt": "I put $1,000 a month into a value tilt using VTV alongside VTI, past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "Two instruments with an implied weighting nobody stated."
+ },
+ {
+  "ref": "WM-0033",
+  "prompt": "Allocate $100,000 across VTI, BND and GLD by inverse volatility, rebalanced monthly, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "An allocation rule computed from the data. Not something this build's weighting model expresses."
+ },
+ {
+  "ref": "WM-0041",
+  "prompt": "I buy $1,000 split equally across AMZN, META, GOOGL, ORCL, AAPL and NVDA every day SPY is below its 200-day moving average, past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "The workbook's own version of the pilot user's rule, with a six-name basket. Tests that the watched series and the bought basket stay distinct \u2014 and none of those six is priceable in the synthetic snapshot, so a data-gap refusal is correct."
+ },
+ {
+  "ref": "WM-0042",
+  "prompt": "I buy $1,000 of SPY only on the day it crosses below its 200-day moving average, past 5 years.",
+  "expectation": "EXECUTE",
+  "why": "The crossing-event reading, stated unambiguously. Should need no trigger question at all."
+ },
+ {
+  "ref": "WM-0043",
+  "prompt": "I hold SPY while it is above its 10-month simple moving average and switch to Treasury bills when it is below, checked at each month end, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "A switching rule with an exit leg and a monthly evaluation cadence. Out of scope; must say so."
+ },
+ {
+  "ref": "WM-0044",
+  "prompt": "Each month I hold whichever of US stocks, international stocks or bonds had the best 12-month return, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Dual momentum. Requires ranking on a lookback the engine does not compute."
+ },
+ {
+  "ref": "WM-0045",
+  "prompt": "I buy SPY when its 50-day average crosses above its 200-day average and sell when it crosses below, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Two moving averages and a sell leg. The signal abstraction supports one series against its own average."
+ },
+ {
+  "ref": "WM-0046",
+  "prompt": "I invest $1,000 a month into VTI, but only in months when VTI is above its 200-day moving average, past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "A schedule *filtered* by a condition \u2014 genuinely a third funding shape, neither purely scheduled nor purely triggered. The most interesting catalogue row for the funding model."
+ },
+ {
+  "ref": "WM-0047",
+  "prompt": "I invest $1,000 a month into VTI and double it in any month after the market falls more than 20%, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "A conditional amount rather than a conditional purchase."
+ },
+ {
+  "ref": "WM-0048",
+  "prompt": "I buy SPY when it is above its 200-day average and volatility is low, otherwise hold cash, weekly, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "A two-factor condition including a volatility measure."
+ },
+ {
+  "ref": "WM-0049",
+  "prompt": "Each month I sell any of VTI or ITOT that is down and buy the other to keep my exposure, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Tax-loss harvesting with a wash-sale dimension. Not modelled, and a figure here would imply a tax benefit nobody computed."
+ },
+ {
+  "ref": "WM-0057",
+  "prompt": "I hold the 500 largest US companies individually rather than through an ETF, contributing $5,000 a quarter, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Direct indexing. Hundreds of instruments, none priceable here."
+ },
+ {
+  "ref": "WM-0065",
+  "prompt": "I keep bonds in my traditional IRA and stocks in my taxable account, $2,000 a month total, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Asset location across two accounts. One plan models one account treatment."
+ },
+ {
+  "ref": "WM-0073",
+  "prompt": "Convert enough of my traditional IRA to a Roth each year to fill the 12% bracket, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Roth conversion. Requires bracket arithmetic and income the engine has no model for."
+ },
+ {
+  "ref": "WM-0081",
+  "prompt": "I withdraw 4% of my $1,000,000 portfolio in the first year and increase it with inflation each year after, past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "Withdrawals rather than contributions \u2014 a negative flow. The schedule model has withdrawals; whether the builder reaches them is the question."
+ },
+ {
+  "ref": "WM-0089",
+  "prompt": "I contribute enough to my 401(k) to get the full employer match, then the rest to an IRA, $2,000 a month, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Employer match is explicitly not modelled."
+ },
+ {
+  "ref": "WM-0097",
+  "prompt": "I take my required minimum distribution from my IRA each year starting at age 73, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "RMD tables and age. No model for either."
+ },
+ {
+  "ref": "WM-0105",
+  "prompt": "My RSUs vest quarterly and I sell them all immediately and buy VTI, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "RSU is recognised and refused by design \u2014 the route returns 501 rather than misreading a vest as cash arriving."
+ },
+ {
+  "ref": "WM-0113",
+  "prompt": "I put $1,000 a month toward my credit card at 22% instead of investing it, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Debt payoff. There is no liability model, and comparing it to investing would imply one."
+ },
+ {
+  "ref": "WM-0121",
+  "prompt": "I give $10,000 to charity each year from my portfolio, past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "A recurring withdrawal with a tax story attached. The withdrawal may model; the deduction must not silently appear."
+ },
+ {
+  "ref": "WM-0129",
+  "prompt": "I hold national municipal bonds instead of taxable bonds, $100,000, past 5 years.",
+  "expectation": "REFUSE",
+  "why": "Municipal tax treatment. Not modelled, and the entire point of the strategy is the tax treatment."
+ },
+ {
+  "ref": "WM-0137",
+  "prompt": "I keep three months of expenses in cash and invest the rest, $5,000 a month, past 5 years.",
+  "expectation": "UNKNOWN",
+  "why": "A cash reserve alongside investing. Cash policy exists; 'three months of expenses' is not a figure the engine holds."
+ }
+]

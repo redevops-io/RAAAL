@@ -1,0 +1,2585 @@
+[
+ {
+  "ref": "CTRL-1",
+  "observed": "CLARIFY",
+  "expectation": "EXECUTE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:edbc72eeca0193d1a3c9e31d6305bb0c0786c959fa75bdcb6a261d2005a637e2",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "ORIG-1",
+  "observed": "CLARIFY",
+  "expectation": "EXECUTE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:edbc72eeca0193d1a3c9e31d6305bb0c0786c959fa75bdcb6a261d2005a637e2",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "ORIG-2",
+  "observed": "CLARIFY",
+  "expectation": "EXECUTE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "trigger_semantics",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:1317121e6efc5f2d07e68230f2f77e6d9cab1b3da1e5934a1d0f16d4657b370d",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "ORIG-3",
+  "observed": "CLARIFY",
+  "expectation": "CLARIFY",
+  "agrees": true,
+  "refusals": [],
+  "open_dimensions": [
+   "moving_average_window",
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:992d26aa0e825bb1d446e983c0ed4de22f2b0defb598f6c5cbde50acc583c3b2",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "ORIG-4",
+  "observed": "CLARIFY",
+  "expectation": "CLARIFY",
+  "agrees": true,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:edbc72eeca0193d1a3c9e31d6305bb0c0786c959fa75bdcb6a261d2005a637e2",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "ORIG-5",
+  "observed": "REFUSE",
+  "expectation": "REFUSE",
+  "agrees": true,
+  "refusals": [
+   "execution_timing"
+  ],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:8beaa583c0d8378dda3f5f050af438de7c6ba39780a51361473bfd0b2ae52943",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described execution timing as 'same_session_close', and this build does not execute that; acting on the close that produced the signal reads one bar into the future; it can run: next_session_open."
+ },
+ {
+  "ref": "ORIG-6",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:edbc72eeca0193d1a3c9e31d6305bb0c0786c959fa75bdcb6a261d2005a637e2",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "ORIG-7",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:1127401c0872336d329a4c16c3989eca2c0d9814f3c0c65a3d64409882e9673a",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "ORIG-8",
+  "observed": "REFUSE",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [
+   "sell_action"
+  ],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:24ca345cd44979bb05aa42e05d96b69114b5a6b5245c011fccffafbbbaf86602",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described sell action as 'sell everything when', and this build does not execute that; this build only buys; selling, withdrawing and harvesting are not modelled."
+ },
+ {
+  "ref": "ORIG-9",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:662f3037882c9f267f31dbf2d836580d7e305a2f31ac90d8e0f390abf6b596b4",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0001",
+  "observed": "CLARIFY",
+  "expectation": "EXECUTE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type"
+  ],
+  "intent_hash": "rcv1:0bed52a28a3a2321fb12b3bd7e29b103c9843d05db84a9246f535f64a8014456",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0009",
+  "observed": "CLARIFY",
+  "expectation": "EXECUTE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type"
+  ],
+  "intent_hash": "rcv1:81765b4e26fd6c3b6aaeaf3349c9aaa235063595193d4898776564d26bc8d813",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0017",
+  "observed": "REFUSE",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [
+   "stated_weights",
+   "periodic_rebalancing"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:9d1f20d34dc2cad2849231e66abbb00e2c955b32ceab7678b357162ad85ea90a",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured.; You described periodic rebalancing as 'rebalance once a year', and this build does not execute that; this build buys and holds; it does not rebalance."
+ },
+ {
+  "ref": "WM-0025",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:00f32035857ed702ee61e8c913264cb2d4ee761af4e0919800ca2345ba8fa2fd",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0033",
+  "observed": "REFUSE",
+  "expectation": "REFUSE",
+  "agrees": true,
+  "refusals": [
+   "allocation_method",
+   "periodic_rebalancing"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:b4c2f10937828352682004ab93b5e8ae7924cf1174c372c15915f6abd0964d59",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'by inverse volatility', and this build does not execute that; it can run: equal_weight_at_purchase.; You described periodic rebalancing as 'rebalanced monthly', and this build does not execute that; this build buys and holds; it does not rebalance."
+ },
+ {
+  "ref": "WM-0041",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:81091ec826d50db5139e6353f60f41c05117f9e7260c1120f43725e4d66ada4f",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0042",
+  "observed": "CLARIFY",
+  "expectation": "EXECUTE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:edbc72eeca0193d1a3c9e31d6305bb0c0786c959fa75bdcb6a261d2005a637e2",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0043",
+  "observed": "REFUSE",
+  "expectation": "REFUSE",
+  "agrees": true,
+  "refusals": [
+   "sell_action"
+  ],
+  "open_dimensions": [
+   "moving_average_window",
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:17105e81120dd82d77f10cdb4a19a54992077f1bc33843d8606129356b79ff76",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described sell action as 'switch to', and this build does not execute that; this build only buys; selling, withdrawing and harvesting are not modelled."
+ },
+ {
+  "ref": "WM-0044",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:664a84e44e24413393627b470b4c0f6359ffeb4310bfcaf7f2d42c8ddb2e6426",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0045",
+  "observed": "REFUSE",
+  "expectation": "REFUSE",
+  "agrees": true,
+  "refusals": [
+   "sell_action"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:dd251d79c7736be0bc999d1bafa0c8a78ed86b0aa0a88b670e3f58e6608dda5f",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described sell action as 'when its 50-day average crosses above its 200-day average and sell', and this build does not execute that; this build only buys; selling, withdrawing and harvesting are not modelled."
+ },
+ {
+  "ref": "WM-0046",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:2e95c2773536c07d805e7fddd897c4c90a42133db89f90654cdff76d4ce39d85",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0047",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0048",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:fa58316a99adecfe0acbd10b88165dbef08aab84371777b29800e90f27540d5c",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0049",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:95e9670be57bdc54aedbcaf93dd020c67ac76c703b89452ef4925a07c522e171",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0057",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:d252ef8fbb1f632cbde5b256991af07ecf9625ab61d86287e68e7dd47f09bef4",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0065",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "cadence"
+  ],
+  "intent_hash": "rcv1:d51dd519f7424ed636b6fca4cb74b44d177834544c1b0ef309a6bc093eb8642d",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0073",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:d657c0eef7af8e89961276ad57b9fe4ce097c2efebf9e9911213c6fff03804ad",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0081",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:7dd6a63b186160744af7f6bb410317b87504f11d3204c087a46879f934109fe1",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0089",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "cadence"
+  ],
+  "intent_hash": "rcv1:c22d1e4fa52265f40005c035e183bf3ed1b7c5e057dfecda941e595c4a067d38",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0097",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:2c7e544b97bb24cdc7b77b07db6fa9f46b804ec879ee564216c2ae2588997492",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0105",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:6d7c56550a19d1ecddfecae85225131cdc18a13ec21d48e4282fb9c985731771",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0113",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0121",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type"
+  ],
+  "intent_hash": "rcv1:37e90daaba74ed39d6b0ab076fc7cdf15d9eb964ac57a676ca4a75feee6bc3df",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0129",
+  "observed": "CLARIFY",
+  "expectation": "REFUSE",
+  "agrees": false,
+  "refusals": [],
+  "open_dimensions": [
+   "cadence"
+  ],
+  "intent_hash": "rcv1:f11d4c98bd570de406b65a988e7c8eac624f9aa6e47bcf9719d1ab809c746f59",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0137",
+  "observed": "CLARIFY",
+  "expectation": "UNKNOWN",
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:2633c73035aaf69ff065e09bcb6ed79ce8f9ef9f20b0be2aabdda01d174eadfd",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0001",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:6b391877b1b71dfc6563a3dec3c9cf07794d757f91840d6191adf318425d0d9d",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('100', '0'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0002",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:6b391877b1b71dfc6563a3dec3c9cf07794d757f91840d6191adf318425d0d9d",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('100', '0'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0003",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:f2cdb1604de423af2d9d6b4da1f68f1f226b38f0372a5a73bdfb7ba76c3aae11",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0004",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:b201db3f46483dbfcd380b7e40b556f5fb858269d3549db6be8ed33a0b203928",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('80', '20'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0005",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:ee04be23b5694c1a7808e23ce56f7210a37c145b2d550dfffa20568dcb65846f",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('40', '60'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0006",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:c852dc9f489873fed16441dfc2918f403108d46200fd3a4ecb7345b33a54a75d",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('55', '35', '10'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0007",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:88fbb35735a3c41ac54609bbfd723c9e07e0ff4d4aeeb1016c804b262982d317",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('70', '30'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0008",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:e396ff43a9e470a2b79212802377686fcbd9ec98c00b766ef5d74110bd5c4576",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('34', '33', '33'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0009",
+  "observed": "EXECUTE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:3c0c6a5ee3798da4f83b523bfa7354a8d4858f3c639d8e9052ecf77a76a0a8ae",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0010",
+  "observed": "EXECUTE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:d5ec0cc5986fdb280aaa9de4bb7f9780035306c9e428cba59d87c2c708cba226",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0011",
+  "observed": "EXECUTE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:61806bdc9e7d5259ed94e975f589ed7387672b23134aceb3f7fef4845d4dae18",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0012",
+  "observed": "EXECUTE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:5cb515e31c78b5118c229e1756151d925312337d11059957cba815001159ee97",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0013",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:6ff1094203fb496ef91c74dcbadf5ad86f5081f45d33388e15f03bb6a1c7579b",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0014",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:9f996ae77098596849ff4fd03d12549b1f9f1bc54991d40d84982649fb3bbe1f",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0015",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "cadence"
+  ],
+  "intent_hash": "rcv1:4f4a825cc84f25b9720f7f241592cc9f6c8f2098a477b2d6f68b2f1d01d50948",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0016",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "cadence"
+  ],
+  "open_dimensions": [],
+  "intent_hash": "rcv1:518baa45a4d4c2d6457f08d459c971b35d8623f43e0b89fe212019bc1a919b05",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described cadence as 'payroll', and this build does not execute that; a pay cycle is not a calendar period \u2014 it may be weekly, biweekly, semi-monthly or monthly, and choosing one would invent your pay schedule; it can run: annual, biweekly, daily, monthly, once, quarterly, weekly."
+ },
+ {
+  "ref": "WM-0017",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:de4f60faa1356a31a487536c6481879fcd77efb4213f3a6ae37e3d5a6dc6f2e1",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0018",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights",
+   "periodic_rebalancing"
+  ],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:27a5f700accdb12c45270faaf0ebf7bfc7091cb19c9b5352b8349229b03bc168",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured.; You described periodic rebalancing as 'rebalance quarter end', and this build does not execute that; this build buys and holds; it does not rebalance."
+ },
+ {
+  "ref": "WM-0019",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "allocation_method",
+   "periodic_rebalancing"
+  ],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:74056d44ae7496f525268265bac097b0a4cd0b286388ec61e20857c4521d4e66",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'risk parity', and this build does not execute that; it can run: equal_weight_at_purchase.; You described periodic rebalancing as 'rebalance month end', and this build does not execute that; this build buys and holds; it does not rebalance."
+ },
+ {
+  "ref": "WM-0020",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights",
+   "periodic_rebalancing"
+  ],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:5737c24fc5e673a3f5e0eabe032f1c8fead4aab5e0924379779654a3756859a5",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured.; You described periodic rebalancing as 'rebalance drift >5pp', and this build does not execute that; this build buys and holds; it does not rebalance."
+ },
+ {
+  "ref": "WM-0021",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:fd6886845af1079d1ea6b17695e204506b6199a0529c834f2d0da9dc0ab4cc80",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('80', '20'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0022",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0023",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0024",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0025",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b17e6142022b08bdc107ab22fef6cb9db3f4e3edb1c9a0d9c7dab2a6fe492ee1",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0026",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0027",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0028",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0029",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0030",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0031",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0032",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0033",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "allocation_method"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:ad00e6e6cb04f3baf354ed06b425f15143386d71249e2ccd32d9589aa1b96920",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'by inverse volatility', and this build does not execute that; it can run: equal_weight_at_purchase."
+ },
+ {
+  "ref": "WM-0034",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "allocation_method"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:79f6d6ed86e76181868fa98ef9b2a8c9d50e81254b8bf74702c2200cd08b7f37",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'risk parity', and this build does not execute that; it can run: equal_weight_at_purchase."
+ },
+ {
+  "ref": "WM-0035",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "allocation_method"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:79f6d6ed86e76181868fa98ef9b2a8c9d50e81254b8bf74702c2200cd08b7f37",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'risk parity', and this build does not execute that; it can run: equal_weight_at_purchase."
+ },
+ {
+  "ref": "WM-0036",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "allocation_method"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:5161e9115ab59d6559f58e5be7e9a4a52f017b1f26a544c8a16f375401a2cc85",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'minimum variance', and this build does not execute that; it can run: equal_weight_at_purchase."
+ },
+ {
+  "ref": "WM-0037",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "allocation_method"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:5161e9115ab59d6559f58e5be7e9a4a52f017b1f26a544c8a16f375401a2cc85",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'minimum variance', and this build does not execute that; it can run: equal_weight_at_purchase."
+ },
+ {
+  "ref": "WM-0038",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:23410982840ebebadfd4f031005d5ae88bface91b19e29c31415cdcfb52caa22",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0039",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "allocation_method"
+  ],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:6cdc663b86f7e98259adbded0d44b535f5934f48b11f947df7171cb9849fef3a",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described allocation method as 'by volatility', and this build does not execute that; it can run: equal_weight_at_purchase."
+ },
+ {
+  "ref": "WM-0040",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:23410982840ebebadfd4f031005d5ae88bface91b19e29c31415cdcfb52caa22",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0041",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:00f32035857ed702ee61e8c913264cb2d4ee761af4e0919800ca2345ba8fa2fd",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0042",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:35c9410814dfceb8db9f07e2fc12b8ee157e13a8bf0bc0af7b2959dbd323d6bf",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0043",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0044",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0045",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "funding_source",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:35c9410814dfceb8db9f07e2fc12b8ee157e13a8bf0bc0af7b2959dbd323d6bf",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0046",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "trigger_semantics",
+   "account_type"
+  ],
+  "intent_hash": "rcv1:8dcfde5ddb2f3292552b29695f03e0818703e868dffc2539eb61c9a94d5c67b1",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0047",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0048",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0049",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b17e6142022b08bdc107ab22fef6cb9db3f4e3edb1c9a0d9c7dab2a6fe492ee1",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0050",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0051",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0052",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0053",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0054",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0055",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0056",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0057",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0058",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0059",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0060",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b17e6142022b08bdc107ab22fef6cb9db3f4e3edb1c9a0d9c7dab2a6fe492ee1",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0061",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0062",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0063",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:e6bdeffdcf07a53d2984a9a8eb5e849e7edcb849578fa687e01106cd7db1ca5b",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0064",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0065",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b32b206f4cc73a195468ea58e0c4de9bc2b30aebd255905f76ba7bab7ec93c68",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0066",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b32b206f4cc73a195468ea58e0c4de9bc2b30aebd255905f76ba7bab7ec93c68",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0067",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0068",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0069",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0070",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b32b206f4cc73a195468ea58e0c4de9bc2b30aebd255905f76ba7bab7ec93c68",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0071",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0072",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b32b206f4cc73a195468ea58e0c4de9bc2b30aebd255905f76ba7bab7ec93c68",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0073",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:d657c0eef7af8e89961276ad57b9fe4ce097c2efebf9e9911213c6fff03804ad",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0074",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:d657c0eef7af8e89961276ad57b9fe4ce097c2efebf9e9911213c6fff03804ad",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0075",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:2c7e544b97bb24cdc7b77b07db6fa9f46b804ec879ee564216c2ae2588997492",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0076",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:2c7e544b97bb24cdc7b77b07db6fa9f46b804ec879ee564216c2ae2588997492",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0077",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:2c7e544b97bb24cdc7b77b07db6fa9f46b804ec879ee564216c2ae2588997492",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0078",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:2c7e544b97bb24cdc7b77b07db6fa9f46b804ec879ee564216c2ae2588997492",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0079",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:2c7e544b97bb24cdc7b77b07db6fa9f46b804ec879ee564216c2ae2588997492",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0080",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:d657c0eef7af8e89961276ad57b9fe4ce097c2efebf9e9911213c6fff03804ad",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0081",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:de4f60faa1356a31a487536c6481879fcd77efb4213f3a6ae37e3d5a6dc6f2e1",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0082",
+  "observed": "REFUSE",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [
+   "stated_weights"
+  ],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:de4f60faa1356a31a487536c6481879fcd77efb4213f3a6ae37e3d5a6dc6f2e1",
+  "produced_by": "quantify-compiler@1",
+  "detail": "You described stated weights as ('60', '40'), and this build does not execute that; this build divides each purchase equally between the named holdings, so a stated split such as 60/40 cannot be honoured."
+ },
+ {
+  "ref": "WM-0083",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0084",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0085",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:69bc772278af3f02bf7d3f0ea8e697024d971be9181a29374e44b49ceb06f778",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0086",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b32b206f4cc73a195468ea58e0c4de9bc2b30aebd255905f76ba7bab7ec93c68",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0087",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0088",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0089",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "cadence"
+  ],
+  "intent_hash": "rcv1:2f2fa863ceee2cdafb839dd8ea043acf6ce8036fbf3076fef352aff370e6efee",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0090",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0091",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0092",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type"
+  ],
+  "intent_hash": "rcv1:35494ba09807b3331b76322a1f493d71b853ce640b348be68a4bfcb7d9d0cfef",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0093",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "cadence"
+  ],
+  "intent_hash": "rcv1:576c6067d8c3d188a51f6bcbafa0ab9fa92153056d1ce3122e071b73d0abaf13",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0094",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0095",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0096",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "cadence"
+  ],
+  "intent_hash": "rcv1:63db58de0cbc5377f1146f17750ba520f1f233f9f9585bf0d8b91e8b04b77f6e",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0097",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:6594a217bf9cbeed08ab5e51c9d17a34a37375e922494319780e23f2b265f2f0",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0098",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:c679d323165bcdfff4446ebb03dec321bd05da3c03c4d621e7d6a1196a982f17",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0099",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0100",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:c679d323165bcdfff4446ebb03dec321bd05da3c03c4d621e7d6a1196a982f17",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0101",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0102",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0103",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0104",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:b32b206f4cc73a195468ea58e0c4de9bc2b30aebd255905f76ba7bab7ec93c68",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0105",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0106",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0107",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0108",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0109",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0110",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:6d7c56550a19d1ecddfecae85225131cdc18a13ec21d48e4282fb9c985731771",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0111",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0112",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0113",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0114",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0115",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0116",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0117",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:c679d323165bcdfff4446ebb03dec321bd05da3c03c4d621e7d6a1196a982f17",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0118",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0119",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0120",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0121",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0122",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0123",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0124",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0125",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0126",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0127",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0128",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital",
+   "time_window:rolling"
+  ],
+  "intent_hash": "rcv1:726fb9989e24426b459b6131ed252d8f4f9c74618c535eee93ad3849bf024955",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0129",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0130",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0131",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0132",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0133",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0134",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0135",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0136",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:7f87241fe255e29598241326f808101cb98e4fb629ccc52ad4692d2709269827",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0137",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0138",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0139",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0140",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0141",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0142",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:f6f6e8c221fb72984bdd8b9722f1994c1ba50be3f85be2e13cb68a722c23d608",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0143",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:6d7c56550a19d1ecddfecae85225131cdc18a13ec21d48e4282fb9c985731771",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ },
+ {
+  "ref": "WM-0144",
+  "observed": "CLARIFY",
+  "expectation": null,
+  "agrees": null,
+  "refusals": [],
+  "open_dimensions": [
+   "trigger_semantics",
+   "account_type",
+   "amount",
+   "starting_capital"
+  ],
+  "intent_hash": "rcv1:91376ebce63212829cbc6a26c5737451fc22bf45ec75eebc15973c3f35cf18b1",
+  "produced_by": "quantify-compiler@1",
+  "detail": ""
+ }
+]
