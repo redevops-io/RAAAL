@@ -73,11 +73,21 @@ NO_PARSE = "NO_PARSE_RECORDED"
 NO_MODEL_RECORDING = "NO_MODEL_RECORDING"
 SCHEMA_GAP = "SCHEMA_GAP"
 
+#: An intermediate the corpus asserts and nothing computes.
+#:
+#: Split out because the first version classified a case as
+#: INTERMEDIATE_SEMANTIC on the strength of its *asserted field* alone, without
+#: checking that anything produced it — and then excluded it from the pending
+#: count. Four of six were in that state: classified out of the queue and
+#: verified by nothing, which is the overclaiming shape this report exists to
+#: catch, reproduced in the report.
+INTERMEDIATE_NOT_PRODUCED = "INTERMEDIATE_NOT_PRODUCED"
+
 STATES = (AGREE, MODEL_ONLY_ACCEPTED, DISAGREE, MODEL_ONLY_UNRESOLVED,
           SYNTAX_ONLY_UNRESOLVED,
           AMBIGUOUS_BY_LANGUAGE, INSUFFICIENT_RELATION, INTERMEDIATE_SEMANTIC,
           NO_FIELD_MAPPING, NO_LITERAL, NO_PARSE, NO_MODEL_RECORDING,
-          SCHEMA_GAP)
+          SCHEMA_GAP, INTERMEDIATE_NOT_PRODUCED)
 
 #: States whose cases could eventually produce contract semantics.
 #:
@@ -101,13 +111,14 @@ OWNER = {AGREE: "—",
                                  "carries a field)",
          AMBIGUOUS_BY_LANGUAGE: "the user, via clarification",
          INSUFFICIENT_RELATION: "binder or corpus",
-         INTERMEDIATE_SEMANTIC: "nobody — asserted against mapper output, "
-                                "outside the contract boundary",
+         INTERMEDIATE_SEMANTIC: "tests/test_semantics.py — verified at the "
+                                "mapper boundary, not through fusion",
          NO_FIELD_MAPPING: "semantics.py — field derivation",
          NO_LITERAL: "neither witness reads this field",
-         NO_PARSE: "stanza.download",
+         NO_PARSE: "deferred_multilingual.json — out of declared scope",
          NO_MODEL_RECORDING: "corpus/parser/record_hosted.py",
-         SCHEMA_GAP: "the schema — a sayable reading it cannot hold"}
+         SCHEMA_GAP: "the schema — a sayable reading it cannot hold",
+         INTERMEDIATE_NOT_PRODUCED: "semantics.py — nothing computes it"}
 
 
 def classify(case, recorded: RecordedReader,
@@ -137,11 +148,35 @@ def classify(case, recorded: RecordedReader,
     # Outside the contract boundary, and not waiting on anything. Asserted
     # against mapper output by `tests/test_semantics.py` instead.
     if wanted in INTERMEDIATE_FIELDS:
-        return {"state": INTERMEDIATE_SEMANTIC,
+        # And check that something actually computes it. Classifying a case as
+        # intermediate on the strength of its asserted field alone, then
+        # excluding it from the pending count, is how a case ends up out of the
+        # queue and verified by nothing.
+        from src.discovery.binding import bind
+        from src.discovery.semantics import propose
+        from src.discovery.syntax import normalize
+
+        if not recorded.has(case.text, case.language):
+            return {"state": NO_PARSE,
+                    "reason": f"no {case.language} model has been fetched"}
+        values = normalize(case.text, case.language)
+        produced = {c.field: c.value for c in
+                    propose(bind(recorded.parse(case.text, case.language), values),
+                            values)}
+        if wanted not in produced:
+            return {"state": INTERMEDIATE_NOT_PRODUCED, "field": wanted,
+                    "reason": f"the case asserts {wanted!r} and the mapper "
+                              f"produced {sorted(produced)}; nothing computes "
+                              "it, so being outside the contract is not the "
+                              "reason it is unanswered"}
+        return {"state": INTERMEDIATE_SEMANTIC, "field": wanted,
+                "value": str(produced[wanted]),
+                "expected": case.asserts.get("value"),
+                "matches_expected": str(produced[wanted]) == str(
+                    case.asserts.get("value")),
                 "reason": f"{wanted!r} is computed by this pipeline and is not "
-                          "a contract dimension; the case asserts intermediate "
-                          "semantics, which is legitimate and is measured "
-                          "elsewhere",
+                          "a contract dimension; verified at the mapper "
+                          "boundary by tests/test_semantics.py",
                 "previously_counted_as_pending": True}
 
     if not recorded.has(case.text, case.language):

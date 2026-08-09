@@ -650,24 +650,52 @@ norm("money.grouping_follows_the_language", "invest $1.000 monthly",
           "and surprising to a European reader, which is exactly why the "
           "convention is declared rather than inferred")
 
-for language, text, dependent, head in [
-    ("es", "invertir 500 € cada mes, reequilibrado anualmente",
-     "anualmente", "reequilibrar"),
-    ("de", "monatlich investieren, jährlich neu gewichten",
-     "jährlich", "gewichten"),
-    ("fr", "investir chaque mois, rééquilibré chaque année",
-     "année", "rééquilibrer"),
-    ("ru", "инвестировать ежемесячно, ребалансировать ежегодно",
-     "ежегодно", "ребалансировать"),
-]:
-    dep("cadence.attaches_to_other_verb", text,
-        {"dependent": dependent, "head_lemma": head}, language=language,
-        origin="falsification",
-        note="the same two-cadence sentence as the English case. If the "
-             "layer generalises at all, it generalises here")
+# Deferred, not deleted. These need a dependency model per language — about two
+# gigabytes — and multilingual parsing is not in the declared scope. Fetching
+# them so a counter reaches zero would corrupt what the report means: a case
+# that cannot run is not a case that is waiting, it is a case outside scope.
+#
+# The multilingual *normalisation* cases above stay in the active corpus,
+# because `normalize` needs no model and they run today. That split is the
+# honest one — the layer that works multilingually is measured, and the layer
+# that has never been fetched is not counted as pending.
+DEFERRED = [
+    {"language": "es", "text": "invertir 500 € cada mes, reequilibrado anualmente",
+     "asserts": {"dependent": "anualmente", "head_lemma": "reequilibrar"}},
+    {"language": "de", "text": "monatlich investieren, jährlich neu gewichten",
+     "asserts": {"dependent": "jährlich", "head_lemma": "gewichten"}},
+    {"language": "fr", "text": "investir chaque mois, rééquilibré chaque année",
+     "asserts": {"dependent": "année", "head_lemma": "rééquilibrer"}},
+    {"language": "ru", "text": "инвестировать ежемесячно, ребалансировать ежегодно",
+     "asserts": {"dependent": "ежегодно", "head_lemma": "ребалансировать"}},
+]
+
+
+DEFERRED_OUT = Path(__file__).resolve().parent / "deferred_multilingual.json"
+
+
+def write_deferred() -> None:
+    DEFERRED_OUT.write_text(json.dumps(
+        {"schema": "quantify-parser-deferred@1",
+         "count": len(DEFERRED),
+         "tier": "dependency",
+         "property": "cadence.attaches_to_other_verb",
+         "status": "NOT PART OF CURRENT COVERAGE",
+         "why": (
+             "Each needs a Stanza dependency model for its language, roughly "
+             "two gigabytes in total, and multilingual parsing is not in the "
+             "declared scope. They are the same two-cadence sentence as the "
+             "English case — if the layer generalises at all, it generalises "
+             "here — so they are kept as evidence of what was intended rather "
+             "than deleted. Move them back into build_cases.py when "
+             "multilingual is in scope and the models are fetched.\n\n"
+             "The multilingual normalisation cases are NOT here. Those run "
+             "today, because `normalize` needs no model."),
+         "cases": DEFERRED}, indent=2, ensure_ascii=False) + "\n")
 
 
 if __name__ == "__main__":
+    write_deferred()
     tiers = {}
     for one in cases:
         tiers[one["tier"]] = tiers.get(one["tier"], 0) + 1

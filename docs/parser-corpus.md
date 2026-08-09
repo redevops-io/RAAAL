@@ -613,18 +613,60 @@ alone. It is `SYNTAX_ONLY_UNRESOLVED` now and kept deliberately: it is the only
 live proof that fusion handles both directions rather than the model filling
 deterministic gaps.
 
+### Multilingual is deferred, not deleted
+
+The four non-English dependency fixtures need a model per language — about two
+gigabytes — and multilingual parsing is not in the declared scope. They live in
+[`deferred_multilingual.json`](../corpus/parser/deferred_multilingual.json)
+marked `NOT PART OF CURRENT COVERAGE`, with why and how to bring them back.
+Fetching the models so a counter reached zero would corrupt what the report
+means; deleting them would lose the evidence of what was intended.
+
+The multilingual **normalisation** cases stay in the active corpus, because
+`normalize` needs no model and they run today. That split is the honest one:
+the layer that works multilingually is measured, and the layer never fetched is
+not counted as pending.
+
+### The intermediates got a test surface, and four of six failed on it
+
+They were worse than pending — excluded from the queue *and* verified by
+nothing. The surface is deliberately short: normalise, bind, `propose()`,
+assert the candidate. No fusion and no contract-field assertion, because there
+is no second witness to agree with and no field for a decision to be about.
+
+Four had no producer at all. `keep it for six months` and `put in half of any
+bonus` carry worded numbers and `_DURATION` needs digits; `invest whatever is
+left over each month` has no literal for the amount; `invest 10% of my salary
+monthly` binds the percentage to `salary monthly`, so the `of` derivation never
+fires.
+
+They had been classified `INTERMEDIATE_SEMANTIC` on the strength of their
+**asserted field alone**, without checking that anything computed it, and then
+excluded from the pending count. That is the overclaiming shape this report
+exists to catch, reproduced inside the report — the fourth appearance of that
+class in this stretch. They are `INTERMEDIATE_NOT_PRODUCED` now, owned by
+`semantics.py`, and pending: being outside the contract is not a reason for a
+case to go unchecked.
+
 ### What remains
 
-    AGREE                   12   both witnesses, all with the expected value
-    MODEL_ONLY_ACCEPTED     30   the model alone, all with the expected value
-    DISAGREE                 1   units adjudication
-    SYNTAX_ONLY_UNRESOLVED   1   kept as the asymmetry witness
-    INTERMEDIATE_SEMANTIC    6   pending on nothing
-    SCHEMA_GAP               2   pending on nothing
-    NO_PARSE_RECORDED        4   stanza.download
+    AGREE                       12   both witnesses, all with the expected value
+    MODEL_ONLY_ACCEPTED         30   the model alone, all with the expected value
+    DISAGREE                     1   units adjudication
+    SYNTAX_ONLY_UNRESOLVED       1   kept as the asymmetry witness
+    INTERMEDIATE_SEMANTIC        2   verified at the mapper boundary
+    SCHEMA_GAP                   2   the schema
+    INTERMEDIATE_NOT_PRODUCED    4   semantics.py — nothing computes it
 
-`AWAITING_A_PARSER`: **6**. 42 of 56 answered, every one with the value the
-corpus expects.
+`AWAITING_A_PARSER`: **6**. 42 of 52 answered, every one with the value the
+corpus expects, and `NO_PARSE_RECORDED` is zero because a case that cannot run
+is not a case that is waiting.
+
+Every case now has a boundary that owns it: contract fields end to end through
+fusion, intermediates at `propose()`, schema gaps against the contract, the
+units dispute unresolved on purpose, and multilingual out of scope. And the
+last four are the first genuinely parser-shaped work in a while — worded
+numbers are the deterministic layer's job.
 
 The single `DISAGREE` stays unresolved: *"beneath the 12-month moving
 average"*, where the schema says `moving_average_window` is measured in

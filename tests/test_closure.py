@@ -202,10 +202,17 @@ class TestTheStatesMeanDifferentThings:
         assert excluded["previously_counted_by_awaiting_a_parser"] is True
         assert excluded["count"] == len(excluded["ids"])
 
-    def test_no_parse_recorded_is_kept_separate(self):
-        """"The Spanish model was never fetched" and "this sentence has nothing
-        to normalise" are different facts with different repairs."""
-        no_parse = [r for r in ROWS if r["state"] == "NO_PARSE_RECORDED"]
-        assert no_parse, "expected the non-English cases to be visible here"
-        for row in no_parse:
-            assert row["language"] != "en"
+    def test_no_case_is_waiting_on_a_model_nobody_fetched(self):
+        """The multilingual fixtures are deferred rather than pending. A case
+        that cannot run is not a case that is waiting; it is out of scope, and
+        counting it as pending measured intent rather than capability."""
+        assert not [r for r in ROWS if r["state"] == "NO_PARSE_RECORDED"]
+
+    def test_an_intermediate_nobody_computes_is_not_excluded_from_the_queue(self):
+        """The defect this state was split out for. Classifying a case as
+        intermediate on its asserted field alone, then excluding it from the
+        pending count, put four cases outside the queue with nothing verifying
+        them."""
+        for row in ROWS:
+            if row["state"] == "INTERMEDIATE_SEMANTIC":
+                assert row.get("matches_expected"), row["id"]

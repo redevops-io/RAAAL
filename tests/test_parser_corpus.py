@@ -36,9 +36,19 @@ RECORDED = RecordedReader()
 #: 47, rewriting six fragment fixtures to 45, and the derivation families to 38.
 #: The schema-alignment pass took it back to 40 — two cases had been "answered"
 #: under mapper-only field names. Wiring the hosted reader into the report then
-#: took it to 10, and rewriting four cases into contract vocabulary took it to
-#: 6. What remains: four missing language models, one units disagreement, and
-#: one syntax-only case kept deliberately as the asymmetry witness.
+#: took it to 10, rewriting four cases into contract vocabulary took it to 6,
+#: and deferring the multilingual dependency fixtures took it to 6 — not the 2
+#: it looked like it would be.
+#:
+#: Giving the intermediate cases a test surface found that four of the six have
+#: no producer at all: they had been classified out of the queue on the
+#: strength of their asserted field, and verified by nothing. They are
+#: `INTERMEDIATE_NOT_PRODUCED` and they are pending, because being outside the
+#: contract is not a reason for a case to go unchecked.
+#:
+#: So the six are: four intermediates nothing computes, one units disagreement
+#: with no declared conversion policy, and one syntax-only case kept
+#: deliberately as the asymmetry witness.
 #: Fourteen semantics cases are run end to end by `tests/test_semantics.py`,
 #: and `corpus/parser/closure.json` says who owns each of the rest rather
 #: than leaving them a single number.

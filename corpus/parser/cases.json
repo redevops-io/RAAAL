@@ -1,9 +1,9 @@
 {
   "schema": "quantify-parser-corpus@1",
-  "count": 226,
+  "count": 222,
   "by_tier": {
     "normalization": 114,
-    "dependency": 60,
+    "dependency": 56,
     "semantics": 52
   },
   "cases": [
@@ -2989,58 +2989,6 @@
       },
       "origin": "falsification",
       "note": "one dollar, not a thousand. Correct under the declared convention and surprising to a European reader, which is exactly why the convention is declared rather than inferred"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-007",
-      "tier": "dependency",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "invertir 500 € cada mes, reequilibrado anualmente",
-      "language": "es",
-      "asserts": {
-        "dependent": "anualmente",
-        "head_lemma": "reequilibrar"
-      },
-      "origin": "falsification",
-      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-008",
-      "tier": "dependency",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "monatlich investieren, jährlich neu gewichten",
-      "language": "de",
-      "asserts": {
-        "dependent": "jährlich",
-        "head_lemma": "gewichten"
-      },
-      "origin": "falsification",
-      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-009",
-      "tier": "dependency",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "investir chaque mois, rééquilibré chaque année",
-      "language": "fr",
-      "asserts": {
-        "dependent": "année",
-        "head_lemma": "rééquilibrer"
-      },
-      "origin": "falsification",
-      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-010",
-      "tier": "dependency",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "инвестировать ежемесячно, ребалансировать ежегодно",
-      "language": "ru",
-      "asserts": {
-        "dependent": "ежегодно",
-        "head_lemma": "ребалансировать"
-      },
-      "origin": "falsification",
-      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
     }
   ]
 }

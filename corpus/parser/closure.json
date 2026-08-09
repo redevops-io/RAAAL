@@ -1,17 +1,13 @@
 {
   "schema": "quantify-parser-closure@2",
-  "cases": 56,
+  "cases": 52,
   "pending": 6,
   "excluded_from_pending": {
     "state": "INTERMEDIATE_SEMANTIC",
-    "count": 6,
+    "count": 2,
     "ids": [
       "sema-window-holding_period-001",
-      "sema-window-holding_period-002",
-      "sema-funding-amount_kind-001",
-      "sema-funding-amount_kind-002",
-      "sema-funding-amount_kind-003",
-      "sema-funding-amount_kind-004"
+      "sema-funding-amount_kind-002"
     ],
     "classification": "intentionally outside the contract boundary",
     "previously_counted_by_awaiting_a_parser": true,
@@ -22,18 +18,15 @@
     "MODEL_ONLY_ACCEPTED": 30,
     "SYNTAX_ONLY_UNRESOLVED": 1,
     "DISAGREE": 1,
-    "INTERMEDIATE_SEMANTIC": 6,
-    "SCHEMA_GAP": 2,
-    "NO_PARSE_RECORDED": 4
+    "INTERMEDIATE_SEMANTIC": 2,
+    "INTERMEDIATE_NOT_PRODUCED": 4,
+    "SCHEMA_GAP": 2
   },
   "agreed_and_correct": 42,
   "agreed_but_wrong_value": [],
   "by_property": {
     "assets.stay_as_written": {
       "MODEL_ONLY_ACCEPTED": 3
-    },
-    "cadence.attaches_to_other_verb": {
-      "NO_PARSE_RECORDED": 4
     },
     "dividends.policy": {
       "MODEL_ONLY_ACCEPTED": 3
@@ -42,7 +35,8 @@
       "AGREE": 3
     },
     "funding.amount_kind": {
-      "INTERMEDIATE_SEMANTIC": 4
+      "INTERMEDIATE_NOT_PRODUCED": 3,
+      "INTERMEDIATE_SEMANTIC": 1
     },
     "funding.cadence": {
       "AGREE": 5,
@@ -85,7 +79,8 @@
       "MODEL_ONLY_ACCEPTED": 3
     },
     "window.holding_period": {
-      "INTERMEDIATE_SEMANTIC": 2
+      "INTERMEDIATE_SEMANTIC": 1,
+      "INTERMEDIATE_NOT_PRODUCED": 1
     },
     "window.moving_average": {
       "AGREE": 1,
@@ -101,12 +96,13 @@
     "SYNTAX_ONLY_UNRESOLVED": "— (the asymmetry witness: syntax alone never carries a field)",
     "AMBIGUOUS_BY_LANGUAGE": "the user, via clarification",
     "INSUFFICIENT_RELATION": "binder or corpus",
-    "INTERMEDIATE_SEMANTIC": "nobody — asserted against mapper output, outside the contract boundary",
+    "INTERMEDIATE_SEMANTIC": "tests/test_semantics.py — verified at the mapper boundary, not through fusion",
     "NO_FIELD_MAPPING": "semantics.py — field derivation",
     "NO_LITERAL": "neither witness reads this field",
-    "NO_PARSE_RECORDED": "stanza.download",
+    "NO_PARSE_RECORDED": "deferred_multilingual.json — out of declared scope",
     "NO_MODEL_RECORDING": "corpus/parser/record_hosted.py",
-    "SCHEMA_GAP": "the schema — a sayable reading it cannot hold"
+    "SCHEMA_GAP": "the schema — a sayable reading it cannot hold",
+    "INTERMEDIATE_NOT_PRODUCED": "semantics.py — nothing computes it"
   },
   "ambiguity_note": "AMBIGUOUS_BY_LANGUAGE has no live instance in this corpus, and that is correct rather than a gap in fusion. The rebalance / reallocate ambiguity is about *what the action does*; it does not touch how often it happens or which session of the period it happens on, which are the fields these cases assert. The corpus has no case asserting the field the ambiguity actually affects. It is exercised synthetically in tests/test_fusion.py, and a real case would be a corpus addition, not a code change.",
   "note": "NO_LITERAL and NO_FIELD_MAPPING are not defects of the deterministic layers, and they want opposite work: one needs the semantic reader, the other needs field derivation from structure already in hand. They were one state until the counts made the difference matter.",
@@ -561,7 +557,11 @@
       "text": "hold the bonus for 90 days",
       "language": "en",
       "state": "INTERMEDIATE_SEMANTIC",
-      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; the case asserts intermediate semantics, which is legitimate and is measured elsewhere",
+      "field": "holding_period_days",
+      "value": "90",
+      "expected": "90",
+      "matches_expected": true,
+      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
       "previously_counted_as_pending": true
     },
     {
@@ -569,9 +569,9 @@
       "property": "window.holding_period",
       "text": "keep it for six months",
       "language": "en",
-      "state": "INTERMEDIATE_SEMANTIC",
-      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; the case asserts intermediate semantics, which is legitimate and is measured elsewhere",
-      "previously_counted_as_pending": true
+      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "field": "holding_period_days",
+      "reason": "the case asserts 'holding_period_days' and the mapper produced []; nothing computes it, so being outside the contract is not the reason it is unanswered"
     },
     {
       "id": "sema-negation-changes_the_value-001",
@@ -610,9 +610,9 @@
       "property": "funding.amount_kind",
       "text": "invest whatever is left over each month",
       "language": "en",
-      "state": "INTERMEDIATE_SEMANTIC",
-      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts intermediate semantics, which is legitimate and is measured elsewhere",
-      "previously_counted_as_pending": true
+      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "field": "amount_kind",
+      "reason": "the case asserts 'amount_kind' and the mapper produced []; nothing computes it, so being outside the contract is not the reason it is unanswered"
     },
     {
       "id": "sema-funding-amount_kind-002",
@@ -620,7 +620,11 @@
       "text": "contribute a fixed $500",
       "language": "en",
       "state": "INTERMEDIATE_SEMANTIC",
-      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts intermediate semantics, which is legitimate and is measured elsewhere",
+      "field": "amount_kind",
+      "value": "fixed",
+      "expected": "fixed",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
       "previously_counted_as_pending": true
     },
     {
@@ -628,18 +632,18 @@
       "property": "funding.amount_kind",
       "text": "invest 10% of my salary monthly",
       "language": "en",
-      "state": "INTERMEDIATE_SEMANTIC",
-      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts intermediate semantics, which is legitimate and is measured elsewhere",
-      "previously_counted_as_pending": true
+      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "field": "amount_kind",
+      "reason": "the case asserts 'amount_kind' and the mapper produced ['cadence', 'stated_weights']; nothing computes it, so being outside the contract is not the reason it is unanswered"
     },
     {
       "id": "sema-funding-amount_kind-004",
       "property": "funding.amount_kind",
       "text": "put in half of any bonus",
       "language": "en",
-      "state": "INTERMEDIATE_SEMANTIC",
-      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts intermediate semantics, which is legitimate and is measured elsewhere",
-      "previously_counted_as_pending": true
+      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "field": "amount_kind",
+      "reason": "the case asserts 'amount_kind' and the mapper produced []; nothing computes it, so being outside the contract is not the reason it is unanswered"
     },
     {
       "id": "sema-timing-execution-001",
@@ -899,38 +903,6 @@
       "state": "SCHEMA_GAP",
       "field": "day_rule",
       "reason": "the sentence reads as 'mid_period' and 'day_rule' has no such value"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-007",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "invertir 500 € cada mes, reequilibrado anualmente",
-      "language": "es",
-      "state": "NO_PARSE_RECORDED",
-      "reason": "no es model has been fetched"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-008",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "monatlich investieren, jährlich neu gewichten",
-      "language": "de",
-      "state": "NO_PARSE_RECORDED",
-      "reason": "no de model has been fetched"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-009",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "investir chaque mois, rééquilibré chaque année",
-      "language": "fr",
-      "state": "NO_PARSE_RECORDED",
-      "reason": "no fr model has been fetched"
-    },
-    {
-      "id": "depe-cadence-attaches_to_other_verb-010",
-      "property": "cadence.attaches_to_other_verb",
-      "text": "инвестировать ежемесячно, ребалансировать ежегодно",
-      "language": "ru",
-      "state": "NO_PARSE_RECORDED",
-      "reason": "no ru model has been fetched"
     }
   ]
 }

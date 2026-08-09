@@ -1,0 +1,42 @@
+{
+  "schema": "quantify-parser-deferred@1",
+  "count": 4,
+  "tier": "dependency",
+  "property": "cadence.attaches_to_other_verb",
+  "status": "NOT PART OF CURRENT COVERAGE",
+  "why": "Each needs a Stanza dependency model for its language, roughly two gigabytes in total, and multilingual parsing is not in the declared scope. They are the same two-cadence sentence as the English case — if the layer generalises at all, it generalises here — so they are kept as evidence of what was intended rather than deleted. Move them back into build_cases.py when multilingual is in scope and the models are fetched.\n\nThe multilingual normalisation cases are NOT here. Those run today, because `normalize` needs no model.",
+  "cases": [
+    {
+      "language": "es",
+      "text": "invertir 500 € cada mes, reequilibrado anualmente",
+      "asserts": {
+        "dependent": "anualmente",
+        "head_lemma": "reequilibrar"
+      }
+    },
+    {
+      "language": "de",
+      "text": "monatlich investieren, jährlich neu gewichten",
+      "asserts": {
+        "dependent": "jährlich",
+        "head_lemma": "gewichten"
+      }
+    },
+    {
+      "language": "fr",
+      "text": "investir chaque mois, rééquilibré chaque année",
+      "asserts": {
+        "dependent": "année",
+        "head_lemma": "rééquilibrer"
+      }
+    },
+    {
+      "language": "ru",
+      "text": "инвестировать ежемесячно, ребалансировать ежегодно",
+      "asserts": {
+        "dependent": "ежегодно",
+        "head_lemma": "ребалансировать"
+      }
+    }
+  ]
+}

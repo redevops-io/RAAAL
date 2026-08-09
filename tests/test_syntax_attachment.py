@@ -52,15 +52,25 @@ class TestTheRecordingCoversTheCorpus:
             f"{len(missing)} English cases have no recorded parse: "
             f"{missing[:6]}. Run `python corpus/parser/record_parses.py en`")
 
-    def test_the_non_english_cases_are_visibly_absent(self):
-        """Recorded here as a known gap rather than discovered later as a
-        surprise: only the English model has been fetched, so the Spanish,
-        German, French and Russian cases have no parse and are not running."""
+    def test_the_active_corpus_is_english_only(self):
+        """The multilingual dependency fixtures are deferred, not deleted —
+        they live in `deferred_multilingual.json` with their reason. Fetching
+        two gigabytes of models so a counter reached zero would have corrupted
+        what the report means, and deleting them would have lost the evidence
+        of what was intended."""
+        import json
+        from pathlib import Path
+
         absent = sorted({c.language for c in DEPENDENCY
                          if not RECORDED.has(c.text, c.language)})
-        assert absent == ["de", "es", "fr", "ru"], (
-            f"the set of unparsed languages changed to {absent}; update this "
-            "and say which models were added")
+        assert absent == [], f"unparsed languages in the active corpus: {absent}"
+
+        deferred = json.loads(
+            (Path(__file__).resolve().parent.parent / "corpus" / "parser"
+             / "deferred_multilingual.json").read_text())
+        assert deferred["status"] == "NOT PART OF CURRENT COVERAGE"
+        assert {c["language"] for c in deferred["cases"]} == {"es", "de",
+                                                              "fr", "ru"}
 
 
 @pytest.mark.parametrize("case", HAVE_PARSE, ids=lambda c: c.id)
