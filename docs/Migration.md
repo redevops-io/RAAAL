@@ -1,9 +1,15 @@
 # Migrating Quantify to the ReDevOps runtime architecture
 
-**Status:** Phases 0–3 built and measured. Phase 4's seven properties all hold,
-including cross-runtime replay against `agentic-os` over one canonical
-`VerifiedIntent`. Phase 5 (the surface) is undecided — §6.1.
-**Date:** 2026-08-08
+**Status:** Runtime migration complete and frozen at `67e2169` — see *Frozen
+state* before §5. Phases 0–4 built and measured, Phase 4's seven properties all
+hold including cross-runtime replay against `agentic-os`, and the parser
+pipeline is closed with two intentional policy boundaries outstanding.
+
+Phase 5 is the only unstarted phase and is **not another implementation phase**
+— it is product validation, and the workspace decision itself is undecided
+(§6.1). See *The two tracks*.
+
+**Date:** 2026-08-09
 **Supersedes:** `docs/Roadmap.md` for everything above the execution engine.
 
 | phase | state | evidence |
@@ -12,8 +18,14 @@ including cross-runtime replay against `agentic-os` over one canonical
 | 1 · capability manifest | done | derived from the executor, asserted both ways, 3 mutations killed |
 | 2 · Mission binding | done | `VerifiedIntent` emitted by today's compiler, stamped `produced_by` |
 | 3 · Discovery in shadow | **closed** | `tests/test_phase3_exit_gate.py` — nine conditions, checked |
-| 4 · cutover | in progress | property 1 done: `compile_intent` + replay from pinned intent. Properties 2–3 blocked on §2.2a |
-| 5 · the surface | undecided | §6.1 |
+| 4 · cutover | **done** | all seven properties, incl. cross-runtime replay — `tests/test_cross_runtime_replay.py` |
+| 6 · parser and fusion | **frozen** | `67e2169`; `AWAITING_A_PARSER = 2`, both policy boundaries — [`parser-corpus.md`](parser-corpus.md) |
+| 5 · the surface | undecided, **and not an implementation phase** | §6.1, *The two tracks* |
+
+Phase 6 is listed before Phase 5 because that is the order they happened in.
+Phase 5 was numbered when it looked like the next implementation step; it is
+the last row here because it is the only one left, and it is a different kind
+of work.
 
 Phase 3's evidence package: `corpus/shadow/` (both matrices with provenance and
 a six-check validity gate), `corpus/ledger.json` (80 adjudicated rows, no
@@ -1251,6 +1263,70 @@ production path, which is what made the gate above measurable.
 
 </details>
 
+## Frozen state (Phase 6 complete — `67e2169`)
+
+Written so that anyone picking this up later does not have to reconstruct it
+from commits.
+
+**Completed**
+
+- Mission-from-Intent pipeline implemented.
+- Cross-runtime replay verified — `runtime-contracts v0.2.1`,
+  `agentic-os v0.2.2`.
+- Parser pipeline complete: normalisation → relation binding → semantic
+  derivation → dual-witness fusion → contract mapping.
+- Corpus stabilised; parser preflight enforced.
+- `AWAITING_A_PARSER = 2`, both intentional policy boundaries.
+
+**Explicit non-goals** — named so they are not mistaken for oversights:
+
+- Units and calendar conversion policy (calendar months ↔ trading sessions).
+- Contract schema expansion for concepts the parser reads and the runtime
+  cannot represent.
+- Multilingual parsing.
+
+**Repository state**
+
+    RAAAL              feat/mission-from-intent   (unmerged to master)
+    runtime-contracts  main, v0.2.1
+    agentic-os         main, v0.2.2
+    no open PRs anywhere
+
+Details in [`parser-corpus.md`](parser-corpus.md).
+
+---
+
+## The two tracks, and why Phase 5 is not another one of these
+
+Everything above this line is **runtime migration**, and it is essentially
+finished: runtime contracts, Mission Runtime, Context Runtime, parser,
+Discovery, cross-runtime replay.
+
+Phase 5 is **product validation**, and it is a different activity: human
+browser journeys, pilot invitations, feedback collection, UX iteration, and the
+workspace decision itself. Nothing in it is a compiler or a runtime problem.
+
+The distinction is written here because "Phase 5" sitting at the end of a list
+of implementation phases reads like another implementation phase, and it is
+not. It is the transition from platform engineering to finding out whether any
+of this is useful to somebody.
+
+**Consequence for the Era 1 leftovers.** Two items predate the architectural
+pivot and have been pending ever since: the two human browser launch journeys,
+and inviting the pilot cohort. They are not independent of the §6.1 decision:
+
+- *If Quantify's web workspace remains the pilot surface*, both are reactivated
+  as acceptance criteria for Phase 5.
+- *If another surface is chosen* — the mission runtime's `/inbox`, or
+  LibreChat — both are closed with a note saying they were superseded by the
+  new surface.
+
+What they must not do is stay "pending" through a decision that makes them
+either urgent or irrelevant. That is how a roadmap acquires items nobody can
+explain.
+
+---
+
 ### Phase 5 — The surface (undecided, §6)
 
 ---
@@ -1566,6 +1642,41 @@ carries schema fingerprint, prompt digest, reader identities and enabled flags,
 token ceiling, run mode, output name, commit and tree-dirty state, and
 truncation count — and a six-check validity gate prints before any count,
 stating plainly that no semantic number may be quoted when it fails.
+
+---
+
+## 8.3a Engineering principle — independent witnesses
+
+> A classification, state or artifact is not verified until an **independent**
+> consumer, producer or observer confirms it. Structural validation must prove
+> behaviour rather than internal consistency.
+
+Recorded as a principle rather than a retrospective note because it stopped
+being about one component. The same defect, in five places, with the same fix:
+
+| where | the classification | the witness that found it wrong |
+|---|---|---|
+| Discovery | one reader's reading | a second reader on the same sentence |
+| Cross-runtime replay | a golden hash | the other runtime's production path |
+| Published packages | a version string | a consumer installing the tag |
+| Parser corpus | a case marked handled | a test that ran it |
+| Recovery matrix | a disposition | what could actually be reconstructed |
+
+**Classification is not evidence.** A category records what somebody decided
+about a case; it says nothing about whether anything produces, consumes or
+verifies it — and a report full of confident categories reads exactly like a
+report full of results. Four of the parser corpus's intermediate cases sat
+outside the pending queue, classified as handled, with no producer at all,
+until something ran them.
+
+Two practical consequences, both of which have paid for themselves here:
+
+- **Prefer counts split by which witness agreed** over a single "answered"
+  total. When worded numbers broke two neighbouring readings, every total still
+  summed correctly; what moved was agreement *by two witnesses*, from 12 to 9.
+- **The disagreements are the point.** Agreement between a thing and its own
+  classification is not information, and a witness that can only confirm is not
+  independent.
 
 ---
 
