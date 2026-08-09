@@ -507,6 +507,69 @@ ambiguity is both readings being on the table.
 answered were answered under mapper-only field names. A count that moves the
 wrong way for a good reason is worth more than one that only ever improves.
 
+## Both witnesses in the report
+
+The closure report runs the whole pipeline now, not the deterministic path
+alone. Before the hosted reader was wired, a case whose field nothing
+normalises could only be `NO_LITERAL` — a label measuring the absence of *one*
+producer and calling it the absence of all of them.
+
+    AGREE                   12   both witnesses, all 12 with the expected value
+    MODEL_ONLY_ACCEPTED     23   the model alone, all 23 with the expected value
+    DISAGREE                 1   adjudication
+    MODEL_ONLY_UNRESOLVED    1   adjudication
+    INTERMEDIATE_SEMANTIC    6   pending on nothing
+    SCHEMA_GAP               2   pending on nothing
+    NO_FIELD_MAPPING         4   semantics.py
+    NO_PARSE_RECORDED        4   stanza.download
+
+`AWAITING_A_PARSER`: 40 → **10**.
+
+`AGREE` and `MODEL_ONLY_ACCEPTED` are kept apart deliberately. A field two
+readers reached independently and a field one reader settled are different
+evidence, and collapsing them would let the report claim agreement it never
+observed. `INTERMEDIATE_SEMANTIC` and `SCHEMA_GAP` are excluded from the pending
+count — they are not waiting on anything — and the report carries
+`previously_counted_by_awaiting_a_parser` with the ids, so correcting the
+boundary being measured is visible rather than quiet.
+
+### What the second witness exposed
+
+**Tier-3 cases asserted values outside the schema's own vocabularies** — the
+field-name error one level down, and invisible until something else answered
+the same question.
+
+| case asserted | the schema says |
+|---|---|
+| `allocation_method = "60/40"` | `stated_weights`; the weights live in their own dimension |
+| `dividend_policy = "cash"` | `held_as_cash` |
+| `evaluation_period = "1825"` | `trailing:5y` — the dimension spells the canonical form out |
+
+Eight cases. The model was right every time. A guard now checks every tier-3
+assertion against the dimension's declared vocabulary, so the class cannot
+recur silently.
+
+**Two readings the contract cannot hold** are `SCHEMA_GAP`, not renamed to the
+nearest allowed value: `market-cap weighted` is not among `allocation_method`'s
+seven values, and `mid-month` is not among `day_rule`'s three. Both are sayable
+and neither is executable. Renaming them would have made the corpus agree with
+a schema that cannot express the sentence.
+
+**Three of the four `DISAGREE`s were my own NUMBER coercion.** A regex that kept
+digits turned `£1k` into 1 and `12-month` into nothing. Comparison now
+canonicalises through the *normaliser*, so one place decides what a written
+number means instead of two deciding differently — and the report compares by
+the dimension's rule too, which is where the last mismatch was hiding.
+
+One genuine disagreement survives: `12-month` against `12` for
+`moving_average_window`, where the schema says "in sessions" and the case says
+12. A real units question, left live rather than resolved by picking a side.
+
+And the syntax-alone policy does have a live instance —
+*"whenever SPY drops under the 200-day"*, where syntax proposes
+`trigger_semantics` and the model is silent. The earlier claim that none existed
+was drawn from three sentences.
+
 ## Order of work
 
     real phrasings  ->  tier 1 regressions  ->  tier 2 fixtures  ->  fusion

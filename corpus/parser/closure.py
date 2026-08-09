@@ -48,126 +48,154 @@ from src.discovery.syntax_stanza import RecordedReader      # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "closure.json"
 
-MAPPED_AND_AGREED = "MAPPED_AND_AGREED"
-MAPPED_BUT_DISAGREED = "MAPPED_BUT_DISAGREED"
-INSUFFICIENT_RELATION = "INSUFFICIENT_RELATION"
+#: Both witnesses spoke about the asserted field.
+AGREE = "AGREE"
+DISAGREE = "DISAGREE"
 AMBIGUOUS_BY_LANGUAGE = "AMBIGUOUS_BY_LANGUAGE"
-NOT_A_CONTRACT_FIELD = "NOT_A_CONTRACT_FIELD"
+
+#: Only the model spoke. Kept apart from `AGREE` because a field settled by one
+#: witness is a different kind of evidence from one two witnesses reached
+#: independently — and collapsing them would let the corpus report agreement it
+#: never observed.
+MODEL_ONLY_ACCEPTED = "MODEL_ONLY_ACCEPTED"
+MODEL_ONLY_UNRESOLVED = "MODEL_ONLY_UNRESOLVED"
+
+INSUFFICIENT_RELATION = "INSUFFICIENT_RELATION"
+INTERMEDIATE_SEMANTIC = "INTERMEDIATE_SEMANTIC"
 NO_LITERAL = "NO_LITERAL"
 NO_FIELD_MAPPING = "NO_FIELD_MAPPING"
 NO_PARSE = "NO_PARSE_RECORDED"
+NO_MODEL_RECORDING = "NO_MODEL_RECORDING"
+SCHEMA_GAP = "SCHEMA_GAP"
 
-STATES = (MAPPED_AND_AGREED, MAPPED_BUT_DISAGREED, INSUFFICIENT_RELATION,
-          AMBIGUOUS_BY_LANGUAGE, NOT_A_CONTRACT_FIELD, NO_FIELD_MAPPING,
-          NO_LITERAL, NO_PARSE)
+STATES = (AGREE, MODEL_ONLY_ACCEPTED, DISAGREE, MODEL_ONLY_UNRESOLVED,
+          AMBIGUOUS_BY_LANGUAGE, INSUFFICIENT_RELATION, INTERMEDIATE_SEMANTIC,
+          NO_FIELD_MAPPING, NO_LITERAL, NO_PARSE, NO_MODEL_RECORDING,
+          SCHEMA_GAP)
+
+#: States whose cases could eventually produce contract semantics.
+#:
+#: `INTERMEDIATE_SEMANTIC` is deliberately absent. Those cases assert semantics
+#: this pipeline computes and the contract does not carry, and counting them as
+#: pending measured the wrong boundary — they are not waiting on anything.
+#: Excluding them is not making the number look better; the report records that
+#: they used to be counted, so the change is visible rather than quiet.
+COUNTS_AS_PENDING = frozenset(STATES) - {AGREE, MODEL_ONLY_ACCEPTED,
+                                         INTERMEDIATE_SEMANTIC, SCHEMA_GAP}
 
 #: Which layer owns each state's remaining work. Printed with the counts,
 #: because "36 unsupported" is a pile and "36 waiting on the semantic reader"
 #: is a queue with an owner.
-OWNER = {MAPPED_AND_AGREED: "—",
-         MAPPED_BUT_DISAGREED: "adjudication",
-         INSUFFICIENT_RELATION: "binder or corpus",
+OWNER = {AGREE: "—",
+         MODEL_ONLY_ACCEPTED: "— (one witness; a deterministic producer would "
+                              "make it two)",
+         DISAGREE: "adjudication",
+         MODEL_ONLY_UNRESOLVED: "adjudication",
          AMBIGUOUS_BY_LANGUAGE: "the user, via clarification",
-         NOT_A_CONTRACT_FIELD: "the schema, or nobody — see INTERMEDIATE_FIELDS",
+         INSUFFICIENT_RELATION: "binder or corpus",
+         INTERMEDIATE_SEMANTIC: "nobody — asserted against mapper output, "
+                                "outside the contract boundary",
          NO_FIELD_MAPPING: "semantics.py — field derivation",
-         NO_LITERAL: "the semantic reader",
-         NO_PARSE: "stanza.download"}
+         NO_LITERAL: "neither witness reads this field",
+         NO_PARSE: "stanza.download",
+         NO_MODEL_RECORDING: "corpus/parser/record_hosted.py",
+         SCHEMA_GAP: "the schema — a sayable reading it cannot hold"}
 
 
-def classify(case, recorded: RecordedReader) -> dict:
-    """One case, one state, and the reason in the case's own terms."""
+def classify(case, recorded: RecordedReader,
+             hosted=None) -> dict:
+    """One case, one state, and the reason in the case's own terms.
+
+    Runs the *whole* pipeline now — both witnesses — rather than the
+    deterministic path alone. Before the hosted reader was wired, a case whose
+    field nothing normalises could only be `NO_LITERAL`; with a second witness
+    that label was measuring the absence of one producer and calling it the
+    absence of all of them.
+    """
+    from src.discovery.pipeline import read
+    from src.discovery.schema import QUANTIFY_SCHEMA
+    from src.discovery.semantics import INTERMEDIATE_FIELDS
+
+    wanted = case.asserts.get("field")
+
+    # A reading the contract has no value for. Recorded rather than renamed to
+    # the nearest allowed one, which would make the corpus agree with a schema
+    # that cannot express the sentence.
+    if "schema_gap" in case.asserts:
+        return {"state": SCHEMA_GAP, "field": wanted,
+                "reason": f"the sentence reads as {case.asserts['schema_gap']!r} "
+                          f"and {wanted!r} has no such value"}
+
+    # Outside the contract boundary, and not waiting on anything. Asserted
+    # against mapper output by `tests/test_semantics.py` instead.
+    if wanted in INTERMEDIATE_FIELDS:
+        return {"state": INTERMEDIATE_SEMANTIC,
+                "reason": f"{wanted!r} is computed by this pipeline and is not "
+                          "a contract dimension; the case asserts intermediate "
+                          "semantics, which is legitimate and is measured "
+                          "elsewhere",
+                "previously_counted_as_pending": True}
+
     if not recorded.has(case.text, case.language):
         return {"state": NO_PARSE,
                 "reason": f"no {case.language} model has been fetched"}
+    if hosted is None or not hosted.has(case.text):
+        return {"state": NO_MODEL_RECORDING,
+                "reason": "no recorded hosted reading; run record_hosted.py"}
 
-    # Contract field names are canonical at the fusion boundary. A case
-    # asserting an intermediate is testing semantics this pipeline computes and
-    # the contract does not carry — real, and outside the boundary. Naming that
-    # separately stops it being counted as a mapping nobody wrote.
-    from src.discovery.semantics import INTERMEDIATE_FIELDS
+    result = read(case.text, recorded.parse(case.text, case.language),
+                  hosted.read(case.text, QUANTIFY_SCHEMA), QUANTIFY_SCHEMA,
+                  language=case.language)
 
-    if case.asserts.get("field") in INTERMEDIATE_FIELDS:
-        return {"state": NOT_A_CONTRACT_FIELD,
-                "reason": f"{case.asserts['field']!r} is computed by this "
-                          "pipeline and is not a contract dimension; the case "
-                          "asserts something outside the fusion boundary"}
-
-    values = normalize(case.text, case.language)
-    if not values:
-        return {"state": NO_LITERAL,
-                "reason": "no normalised value in the sentence; this needs the "
-                          "semantic reader, not a deterministic rule"}
-
-    parse = recorded.parse(case.text, case.language)
-    bindings = bind(parse, values)
-    candidates = propose(bindings, values)
-
-    if not candidates:
-        unbound = [b for b in bindings if not b.established]
-        if any(b.status is BindingStatus.AMBIGUOUS for b in unbound):
-            return {"state": INSUFFICIENT_RELATION,
-                    "reason": "the structure offers more than one target and "
-                              "does not choose between them"}
-        if unbound:
-            return {"state": INSUFFICIENT_RELATION,
-                    "reason": "a value was normalised and nothing binds it"}
-        return {"state": NO_FIELD_MAPPING,
-                "reason": "values normalised and bound, and no declared "
-                          "mapping consumes this relation for this field",
-                **_ticket(case, values, bindings, candidates)}
-
-    # A candidate exists — but for *which* field?
-    #
-    # The first version of this took `candidates[0]` when nothing matched the
-    # field the case asserts, and reported MAPPED_AND_AGREED for six cases that
-    # had been answered with something else entirely: "when SPY crosses below
-    # its 200-day average" came back as a 200-day holding period and counted as
-    # a success for trigger semantics. That is the comparator-manufactures-
-    # agreement defect this project has hit before, reproduced inside the
-    # report built to measure it.
-    wanted = case.asserts.get("field")
     if wanted is None:
         return {"state": NO_FIELD_MAPPING,
                 "reason": "this case asserts a role pair rather than a single "
                           "field; no mapping produces role pairs yet",
-                "proposed": sorted({c.field for c in candidates}),
-                **_ticket(case, values, bindings, candidates)}
+                "proposed": sorted(result.by_field)}
 
-    match = next((c for c in candidates if c.field == wanted), None)
-    if match is None:
-        return {"state": NO_FIELD_MAPPING,
-                "reason": f"candidates were proposed for "
-                          f"{sorted({c.field for c in candidates})} and none "
-                          f"for {wanted!r}, which is what this case asserts",
-                "proposed": sorted({c.field for c in candidates}),
-                **_ticket(case, values, bindings, candidates)}
-    # The candidate's own span, never the whole sentence. Passing the utterance
-    # made fusion's ambiguity check fire on any sentence containing the word
-    # "rebalance", whatever field was being decided — "rebalance on the last
-    # session of each quarter" has a determinate day rule and an ambiguous verb,
-    # and they are different dimensions.
-    decision = fuse(match.field,
-                    model=Proposal(match.field, match.value,
-                                   "deterministic-stand-in@1",
-                                   match.source_span))
+    decision = result.by_field.get(wanted)
+    if decision is None:
+        # Neither witness produced the asserted field. Which of the two labels
+        # applies depends on whether anything at all was read here.
+        if result.candidates or result.decisions:
+            return {"state": NO_FIELD_MAPPING,
+                    "reason": f"readings were produced for "
+                              f"{sorted(result.by_field)} and none for "
+                              f"{wanted!r}, which is what this case asserts",
+                    "proposed": sorted(result.by_field),
+                    "intermediate": sorted({c.field for c in result.intermediate})}
+        return {"state": NO_LITERAL,
+                "reason": "neither witness produced a reading for this "
+                          "sentence at all"}
+
+    produced = _plain(decision.value) if decision.proceeds else None
+    expected = case.asserts.get("value")
+    witnesses = ["model"] if decision.model is not None else []
+    witnesses += ["syntax"] if decision.syntax else []
+
+    # Compared by the dimension's own rule, not by string equality. The model
+    # renders an amount as `£1k` and the corpus writes `1000`; calling that a
+    # mismatch here would reintroduce, in the report, exactly the formatting-as-
+    # conflict defect that `compare_as` was added to fusion to remove.
+    from src.discovery.fusion import REQUIREMENTS, Requirement, same_value
+
+    rule = REQUIREMENTS.get(wanted, Requirement()).compare_as
+    common = {"field": wanted, "witnesses": witnesses,
+              "value": produced, "expected": expected, "compared_as": rule,
+              "matches_expected": (produced is not None and expected is not None
+                                   and same_value(produced, expected, rule))}
 
     if decision.outcome is Fusion.AMBIGUOUS_BY_LANGUAGE:
         return {"state": AMBIGUOUS_BY_LANGUAGE, "reason": decision.detail,
-                "field": match.field}
+                **common}
+    if decision.outcome is Fusion.INSUFFICIENT_RELATION:
+        return {"state": INSUFFICIENT_RELATION, "reason": decision.detail,
+                **common}
     if decision.proceeds:
-        # Fusion's outcome and the corpus's expectation are different axes, and
-        # both are reported. "Fusion agreed" says the pipeline was internally
-        # consistent; `matches_expected` says it was also right. A state name
-        # carrying only the first would be a green number for a wrong value —
-        # which is how the six false positives above read before the value
-        # check existed.
-        produced, expected = _plain(match.value), case.asserts.get("value")
-        return {"state": MAPPED_AND_AGREED, "field": match.field,
-                "value": produced, "expected": expected,
-                "matches_expected": str(produced) == str(expected),
-                "reason": "a candidate was proposed and fusion let it through"}
-    return {"state": MAPPED_BUT_DISAGREED, "field": match.field,
-            "reason": decision.detail}
+        state = AGREE if len(witnesses) > 1 else MODEL_ONLY_ACCEPTED
+        return {"state": state, "reason": decision.detail, **common}
+    state = DISAGREE if len(witnesses) > 1 else MODEL_ONLY_UNRESOLVED
+    return {"state": state, "reason": decision.detail, **common}
 
 
 def _ticket(case, values, bindings, candidates) -> dict:
@@ -193,27 +221,43 @@ def _plain(value):
 
 
 def main() -> int:
-    recorded = RecordedReader()
+    from src.discovery.hosted_recording import RecordedHostedReader
+
+    recorded, hosted = RecordedReader(), RecordedHostedReader()
     pending = [c for c in load()
                if c.tier == "semantics"
                or (c.tier == "dependency" and not recorded.has(c.text, c.language))]
 
     rows = []
     for case in pending:
-        outcome = classify(case, recorded)
+        outcome = classify(case, recorded, hosted)
         rows.append({"id": case.id, "property": case.property,
                      "text": case.text, "language": case.language, **outcome})
 
     counts = Counter(row["state"] for row in rows)
-    agreed = [r for r in rows if r["state"] == MAPPED_AND_AGREED]
+    agreed = [r for r in rows if r["state"] in (AGREE, MODEL_ONLY_ACCEPTED)]
     wrong = [r["id"] for r in agreed if not r.get("matches_expected")]
     by_property: dict = {}
     for row in rows:
         by_property.setdefault(row["property"], Counter())[row["state"]] += 1
 
+    still_pending = [r for r in rows if r["state"] in COUNTS_AS_PENDING]
+    reclassified = [r["id"] for r in rows
+                    if r.get("previously_counted_as_pending")]
+
     OUT.write_text(json.dumps(
-        {"schema": "quantify-parser-closure@1",
-         "pending": len(rows),
+        {"schema": "quantify-parser-closure@2",
+         "cases": len(rows),
+         "pending": len(still_pending),
+         "excluded_from_pending": {
+             "state": INTERMEDIATE_SEMANTIC, "count": len(reclassified),
+             "ids": reclassified,
+             "classification": "intentionally outside the contract boundary",
+             "previously_counted_by_awaiting_a_parser": True,
+             "why": ("They assert semantics this pipeline computes and the "
+                     "contract does not carry. Counting them as pending "
+                     "measured the wrong boundary; the history is recorded "
+                     "here so the change is visible rather than quiet.")},
          "by_state": dict(counts),
          "agreed_and_correct": len(agreed) - len(wrong),
          "agreed_but_wrong_value": wrong,
@@ -235,12 +279,14 @@ def main() -> int:
                   "the counts made the difference matter."),
          "rows": rows}, indent=2, ensure_ascii=False) + "\n")
 
-    print(f"{len(rows)} pending cases -> {OUT}")
+    print(f"{len(rows)} cases, {len(still_pending)} pending -> {OUT}")
     for state in STATES:
         if counts.get(state):
             suffix = ""
-            if state == MAPPED_AND_AGREED:
-                suffix = f"  ({len(agreed) - len(wrong)} with the expected value)"
+            if state in (AGREE, MODEL_ONLY_ACCEPTED):
+                of_state = [r for r in rows if r["state"] == state]
+                right = sum(1 for r in of_state if r.get("matches_expected"))
+                suffix = f"  ({right} of {len(of_state)} with the expected value)"
             print(f"  {state:22} {counts[state]:3}{suffix}"
                   f"{'' if suffix else '   ' + OWNER[state]}")
     if wrong:

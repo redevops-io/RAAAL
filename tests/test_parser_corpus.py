@@ -34,13 +34,14 @@ RECORDED = RecordedReader()
 #:
 #: 108 when only tier 1 ran. English tier 2 took it to 54, the field mappings to
 #: 47, rewriting six fragment fixtures to 45, and the derivation families to 38.
-#: The schema-alignment pass took it back to 40: two cases that had been
-#: answered under mapper-only field names are now NOT_A_CONTRACT_FIELD,
-#: which is a truer count than the one that included them.
+#: The schema-alignment pass took it back to 40 — two cases had been "answered"
+#: under mapper-only field names. Wiring the hosted reader into the report then
+#: took it to 10: the model reads twenty-three fields nothing normalises, and
+#: six intermediate and two schema-gap cases are pending on nothing at all.
 #: Fourteen semantics cases are run end to end by `tests/test_semantics.py`,
 #: and `corpus/parser/closure.json` says who owns each of the rest rather
 #: than leaving them a single number.
-AWAITING_A_PARSER = 40
+AWAITING_A_PARSER = 10
 
 #: Semantics cases the deterministic path answers, asserted elsewhere. Read
 #: from the closure report because that is where the classification lives; the
@@ -48,8 +49,14 @@ AWAITING_A_PARSER = 40
 #: is not a number trusting itself.
 _CLOSURE = json.loads(
     (ROOT / "corpus" / "parser" / "closure.json").read_text())
+#: Cases no longer waiting on anything: answered by the pipeline, or asserting
+#: semantics outside the contract boundary, or naming a reading the schema
+#: cannot hold. The last two are not successes — they are cases pending on
+#: nothing, and counting them measured the wrong boundary.
+NOT_PENDING = {"AGREE", "MODEL_ONLY_ACCEPTED", "INTERMEDIATE_SEMANTIC",
+               "SCHEMA_GAP"}
 ANSWERED = {row["id"] for row in _CLOSURE["rows"]
-            if row["state"] == "MAPPED_AND_AGREED"}
+            if row["state"] in NOT_PENDING}
 
 
 def executable():

@@ -41,9 +41,11 @@ class TestTheReportDescribesTheCorpusItClaimsTo:
     def test_it_is_reproducible(self):
         """The committed file must be what the code produces. A hand-edited
         report is a report that says whatever its last editor wanted."""
-        recorded = RecordedReader()
+        from src.discovery.hosted_recording import RecordedHostedReader
+
+        recorded, hosted = RecordedReader(), RecordedHostedReader()
         for case in pending():
-            fresh = classify(case, recorded)
+            fresh = classify(case, recorded, hosted)
             stored = next(r for r in ROWS if r["id"] == case.id)
             assert fresh["state"] == stored["state"], case.id
 
@@ -64,12 +66,13 @@ class TestAgreementIsNotAssumed:
         and a state name carrying only the first is a green number for a wrong
         value."""
         for row in ROWS:
-            if row["state"] == "MAPPED_AND_AGREED":
+            if row["state"] in ("AGREE", "MODEL_ONLY_ACCEPTED"):
                 assert "value" in row and "matches_expected" in row, row["id"]
+                assert row["compared_as"] in ("TEXT", "NUMBER", "SET")
 
     def test_no_agreement_is_recorded_with_the_wrong_value(self):
         wrong = [row["id"] for row in ROWS
-                 if row["state"] == "MAPPED_AND_AGREED"
+                 if row["state"] in ("AGREE", "MODEL_ONLY_ACCEPTED")
                  and not row["matches_expected"]]
         assert not wrong, (
             f"{wrong} agreed with a value the case does not expect. Either the "
@@ -79,7 +82,7 @@ class TestAgreementIsNotAssumed:
         """The defect this file was written from. A candidate for some other
         field is not an answer to this case, however confident."""
         for row in ROWS:
-            if row["state"] == "MAPPED_AND_AGREED":
+            if row["state"] in ("AGREE", "MODEL_ONLY_ACCEPTED"):
                 case = next(c for c in pending() if c.id == row["id"])
                 assert row["field"] == case.asserts.get("field"), (
                     f"{row['id']} was answered with {row['field']!r} and "
@@ -105,7 +108,6 @@ class TestTheStatesMeanDifferentThings:
         states = {row["state"] for row in ROWS}
         assert "STILL_UNSUPPORTED" not in states, (
             "the merged state is back; a pile is not a queue")
-        assert {"NO_LITERAL", "NO_FIELD_MAPPING"} & states
 
     def test_every_state_names_who_owns_the_remaining_work(self):
         """"36 unsupported" is a pile. "25 waiting on the semantic reader, 15
@@ -117,7 +119,25 @@ class TestTheStatesMeanDifferentThings:
         assert "not defects" in REPORT["note"] or "not a defect" in REPORT["note"]
 
     def test_the_counts_add_up(self):
-        assert sum(REPORT["by_state"].values()) == REPORT["pending"] == len(ROWS)
+        assert sum(REPORT["by_state"].values()) == REPORT["cases"] == len(ROWS)
+
+    def test_agreement_by_two_witnesses_is_kept_apart_from_one(self):
+        """A field settled by both readers independently and one settled by the
+        model alone are different evidence. Collapsing them would let the report
+        claim agreement it never observed."""
+        for row in ROWS:
+            if row["state"] == "AGREE":
+                assert len(row["witnesses"]) > 1, row["id"]
+            if row["state"] == "MODEL_ONLY_ACCEPTED":
+                assert row["witnesses"] == ["model"], row["id"]
+
+    def test_reclassified_cases_keep_their_history(self):
+        """Excluding intermediates from the pending count is correcting the
+        boundary being measured, not improving the number — so the report says
+        they used to be counted."""
+        excluded = REPORT["excluded_from_pending"]
+        assert excluded["previously_counted_by_awaiting_a_parser"] is True
+        assert excluded["count"] == len(excluded["ids"])
 
     def test_no_parse_recorded_is_kept_separate(self):
         """"The Spanish model was never fetched" and "this sentence has nothing

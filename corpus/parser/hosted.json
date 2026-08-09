@@ -7,7 +7,7 @@
     "schema_version": "quantify-discovery-schema@2",
     "max_tokens": 8000
   },
-  "count": 52,
+  "count": 54,
   "note": "Replayed by the corpus. A recording is not an answer — fusion decides whether the model's proposal proceeds, exactly as it would for a live reply.",
   "readings": [
     {
@@ -478,6 +478,76 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "buy the index rather than through an ETF",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@2",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "the index",
+          "confidence": "0.6",
+          "source_span": "the index",
+          "note": "Person specifies buying 'the index' itself (e.g. a fund tracking it) as opposed to an ETF vehicle; not resolved to any specific ticker or fund name."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "buy through an ETF",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@2",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "an ETF",
+          "confidence": "0.7",
+          "source_span": "buy through an ETF",
+          "note": "Instrument type stated generically as 'an ETF', no specific fund or ticker named."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
         "moving_average_window",
         "objective",
         "observed_assets",

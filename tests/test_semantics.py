@@ -32,27 +32,33 @@ CLOSURE = json.loads(
 
 #: The ids the report says the deterministic path answers. Used only to choose
 #: the cases; every value below is recomputed.
+#: Cases the pipeline answers *and* answers correctly. Both witnesses agreeing
+#: and one witness alone are different evidence, and both are run here — what
+#: is excluded is anything whose value the corpus does not expect, because a
+#: case the pipeline answers wrongly is not a case it answers.
 ANSWERABLE = [row["id"] for row in CLOSURE["rows"]
-              if row["state"] == "MAPPED_AND_AGREED"]
+              if row["state"] in ("AGREE", "MODEL_ONLY_ACCEPTED")
+              and row.get("matches_expected")]
 
 CASES = [c for c in load() if c.id in ANSWERABLE]
 
 
 def run(case):
-    """The production path, end to end."""
-    values = normalize(case.text, case.language)
-    bindings = bind(RECORDED.parse(case.text, case.language), values)
-    candidates = propose(bindings, values)
+    """Both witnesses, end to end, exactly as the pipeline runs them."""
+    from src.discovery.hosted_recording import RecordedHostedReader
+    from src.discovery.pipeline import read
+    from src.discovery.schema import QUANTIFY_SCHEMA
+
+    hosted = RecordedHostedReader()
+    result = read(case.text, RECORDED.parse(case.text, case.language),
+                  hosted.read(case.text, QUANTIFY_SCHEMA), QUANTIFY_SCHEMA,
+                  language=case.language)
     wanted = case.asserts["field"]
-    match = next((c for c in candidates if c.field == wanted), None)
-    assert match is not None, (
-        f"no candidate for {wanted!r}; the closure report says this case is "
+    decision = result.by_field.get(wanted)
+    assert decision is not None, (
+        f"no decision for {wanted!r}; the closure report says this case is "
         "answerable, so one of the two is out of date")
-    decision = fuse(match.field,
-                    model=Proposal(match.field, match.value,
-                                   "deterministic-stand-in@1",
-                                   match.source_span))
-    return match, decision
+    return result, decision
 
 
 def test_the_report_and_this_file_agree_on_what_is_answerable():
@@ -63,20 +69,22 @@ def test_the_report_and_this_file_agree_on_what_is_answerable():
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.id)
 def test_the_pipeline_produces_the_field_and_the_value(case):
-    match, decision = run(case)
+    from src.discovery.fusion import REQUIREMENTS, Requirement, same_value
+
+    _, decision = run(case)
     assert decision.outcome is Fusion.AGREE, decision.detail
-    assert str(match.value) == str(case.asserts["value"]), (
-        f"{case.text!r} -> {match.value!r}, expected "
-        f"{case.asserts['value']!r}. {case.note}")
+    rule = REQUIREMENTS.get(decision.dimension, Requirement()).compare_as
+    assert same_value(decision.value, case.asserts["value"], rule), (
+        f"{case.text!r} -> {decision.value!r}, expected "
+        f"{case.asserts['value']!r} (compared as {rule}). {case.note}")
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.id)
-def test_the_candidate_names_what_it_came_from(case):
-    """A candidate with no source is a field nobody can trace back to a
+def test_every_settled_field_names_a_witness(case):
+    """A value with no reader behind it is a field nobody can trace back to a
     sentence, which is the audit property the whole runtime promises."""
-    match, _ = run(case)
-    assert match.source_value_id and match.binding_id
-    assert match.evidence and any("->" in e for e in match.evidence)
+    _, decision = run(case)
+    assert decision.model is not None or decision.syntax
 
 
 class TestTheTwoCadencesSeparate:

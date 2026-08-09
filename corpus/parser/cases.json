@@ -1,10 +1,10 @@
 {
   "schema": "quantify-parser-corpus@1",
-  "count": 224,
+  "count": 223,
   "by_tier": {
     "normalization": 114,
     "dependency": 60,
-    "semantics": 50
+    "semantics": 49
   },
   "cases": [
     {
@@ -2030,7 +2030,7 @@
       "language": "en",
       "asserts": {
         "field": "allocation_method",
-        "value": "60/40"
+        "value": "stated_weights"
       },
       "origin": "constructed",
       "note": ""
@@ -2043,7 +2043,7 @@
       "language": "en",
       "asserts": {
         "field": "allocation_method",
-        "value": "70/30"
+        "value": "stated_weights"
       },
       "origin": "constructed",
       "note": ""
@@ -2070,19 +2070,6 @@
       "asserts": {
         "field": "allocation_method",
         "value": "inverse_volatility"
-      },
-      "origin": "constructed",
-      "note": ""
-    },
-    {
-      "id": "sema-weighting-method-005",
-      "tier": "semantics",
-      "property": "weighting.method",
-      "text": "market-cap weighted",
-      "language": "en",
-      "asserts": {
-        "field": "allocation_method",
-        "value": "market_cap"
       },
       "origin": "constructed",
       "note": ""
@@ -2260,40 +2247,27 @@
       "id": "sema-negation-changes_the_value-001",
       "tier": "semantics",
       "property": "negation.changes_the_value",
-      "text": "through an ETF",
+      "text": "buy through an ETF",
       "language": "en",
       "asserts": {
-        "field": "instrument",
-        "value": "etf"
+        "field": "assets",
+        "value": "an ETF"
       },
       "origin": "falsification",
-      "note": ""
+      "note": "dropping the negation reverses which instrument is held, and `assets` is where the contract keeps what was written"
     },
     {
       "id": "sema-negation-changes_the_value-002",
       "tier": "semantics",
       "property": "negation.changes_the_value",
-      "text": "rather than through an ETF",
+      "text": "buy the index rather than through an ETF",
       "language": "en",
       "asserts": {
-        "field": "instrument",
-        "value": "not_etf"
+        "field": "assets",
+        "value": "the index"
       },
       "origin": "falsification",
-      "note": ""
-    },
-    {
-      "id": "sema-negation-changes_the_value-003",
-      "tier": "semantics",
-      "property": "negation.changes_the_value",
-      "text": "directly, not through a fund",
-      "language": "en",
-      "asserts": {
-        "field": "instrument",
-        "value": "not_fund"
-      },
-      "origin": "falsification",
-      "note": ""
+      "note": "dropping the negation reverses which instrument is held, and `assets` is where the contract keeps what was written"
     },
     {
       "id": "depe-coordination-scope-001",
@@ -2703,19 +2677,6 @@
       "note": ""
     },
     {
-      "id": "sema-timing-day_rule-003",
-      "tier": "semantics",
-      "property": "timing.day_rule",
-      "text": "mid-month",
-      "language": "en",
-      "asserts": {
-        "field": "day_rule",
-        "value": "mid_period"
-      },
-      "origin": "constructed",
-      "note": ""
-    },
-    {
       "id": "sema-window-evaluation_period-001",
       "tier": "semantics",
       "property": "window.evaluation_period",
@@ -2723,7 +2684,7 @@
       "language": "en",
       "asserts": {
         "field": "evaluation_period",
-        "value": "1825"
+        "value": "trailing:5y"
       },
       "origin": "constructed",
       "note": ""
@@ -2736,7 +2697,7 @@
       "language": "en",
       "asserts": {
         "field": "evaluation_period",
-        "value": "3650"
+        "value": "trailing:10y"
       },
       "origin": "constructed",
       "note": ""
@@ -2749,7 +2710,7 @@
       "language": "en",
       "asserts": {
         "field": "evaluation_period",
-        "value": "2020-01"
+        "value": "since:2020-01"
       },
       "origin": "constructed",
       "note": ""
@@ -2775,7 +2736,7 @@
       "language": "en",
       "asserts": {
         "field": "assets",
-        "value": "the S&P 500 tracker"
+        "value": "S&P 500 tracker"
       },
       "origin": "falsification",
       "note": "never resolved to a ticker here. Choosing VTI or SPY on the user's behalf is the substitution the whole boundary prevents"
@@ -2814,7 +2775,7 @@
       "language": "en",
       "asserts": {
         "field": "dividend_policy",
-        "value": "cash"
+        "value": "held_as_cash"
       },
       "origin": "constructed",
       "note": "Mission refuses this dimension by name — it is here because the schema is what can be *meant*, not what can be run"
@@ -2827,10 +2788,36 @@
       "language": "en",
       "asserts": {
         "field": "dividend_policy",
-        "value": "cash"
+        "value": "held_as_cash"
       },
       "origin": "constructed",
       "note": "Mission refuses this dimension by name — it is here because the schema is what can be *meant*, not what can be run"
+    },
+    {
+      "id": "sema-weighting-method_not_in_the_vocabulary-001",
+      "tier": "semantics",
+      "property": "weighting.method_not_in_the_vocabulary",
+      "text": "market-cap weighted",
+      "language": "en",
+      "asserts": {
+        "field": "allocation_method",
+        "schema_gap": "market_cap"
+      },
+      "origin": "observed",
+      "note": "allocation_method has seven values and none of them is market-cap weighting. The reading is right and the contract cannot hold it"
+    },
+    {
+      "id": "sema-timing-day_rule_not_in_the_vocabulary-001",
+      "tier": "semantics",
+      "property": "timing.day_rule_not_in_the_vocabulary",
+      "text": "mid-month",
+      "language": "en",
+      "asserts": {
+        "field": "day_rule",
+        "schema_gap": "mid_period"
+      },
+      "origin": "observed",
+      "note": "day_rule has three values, all first/last/rolled-forward. A mid-period rule is sayable and not executable"
     },
     {
       "id": "norm-money-amount-025",

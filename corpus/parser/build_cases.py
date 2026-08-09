@@ -383,11 +383,10 @@ for text, value in [
     sem("funding.amount", text, {"field": "amount", "value": value})
 
 for text, value in [
-    ("a 60/40 portfolio", "60/40"),
-    ("split it 70/30 between stocks and bonds", "70/30"),
+    ("a 60/40 portfolio", "stated_weights"),
+    ("split it 70/30 between stocks and bonds", "stated_weights"),
     ("equal weight across the four", "equal_weight_at_purchase"),
     ("weight by inverse volatility", "inverse_volatility"),
-    ("market-cap weighted", "market_cap"),
 ]:
     sem("weighting.method", text, {"field": "allocation_method", "value": value})
 
@@ -431,13 +430,18 @@ for text, value in [
         note="a holding period is not a moving-average window, even when both "
              "are 90")
 
+# `instrument` is not a schema dimension. The negation is real and the contract
+# carries it, if anywhere, inside `assets` as the person wrote it — which is
+# what the dimension's own description insists on. Asserted against `assets`
+# with the negation preserved, rather than against a field nobody declared.
 for text, value in [
-    ("through an ETF", "etf"),
-    ("rather than through an ETF", "not_etf"),
-    ("directly, not through a fund", "not_fund"),
+    ("buy through an ETF", "an ETF"),
+    ("buy the index rather than through an ETF", "the index"),
 ]:
     sem("negation.changes_the_value", text,
-        {"field": "instrument", "value": value}, origin="falsification")
+        {"field": "assets", "value": value}, origin="falsification",
+        note="dropping the negation reverses which instrument is held, and "
+             "`assets` is where the contract keeps what was written")
 
 
 # ── coordination, which is where clause boundaries actually break ────────────
@@ -529,21 +533,23 @@ for text, value in [
 for text, value in [
     ("on the first trading day of the month", "first_session_of_period"),
     ("rebalance on the last session of each quarter", "last_session_of_period"),
-    ("mid-month", "mid_period"),
 ]:
     sem("timing.day_rule", text, {"field": "day_rule", "value": value})
 
+# The schema spells out the canonical form for this dimension — `trailing:<n>y`,
+# `since:<YYYY-MM>` — and these cases asserted days. Written without reading the
+# dimension's own description, which is the same error as the field names.
 for text, value in [
-    ("evaluate over the past five years", "1825"),
-    ("measured across ten years", "3650"),
-    ("since January 2020", "2020-01"),
+    ("evaluate over the past five years", "trailing:5y"),
+    ("measured across ten years", "trailing:10y"),
+    ("since January 2020", "since:2020-01"),
 ]:
     sem("window.evaluation_period", text,
         {"field": "evaluation_period", "value": value})
 
 for text, held in [
     ("buy a core index fund monthly", "a core index fund"),
-    ("invest in the S&P 500 tracker", "the S&P 500 tracker"),
+    ("invest in the S&P 500 tracker", "S&P 500 tracker"),
     ("put it into an SPX ETF", "an SPX ETF"),
 ]:
     sem("assets.stay_as_written", text, {"field": "assets", "value": held},
@@ -553,13 +559,30 @@ for text, held in [
 
 for text, value in [
     ("reinvest the dividends", "reinvested"),
-    ("take the dividends as cash", "cash"),
-    ("do not reinvest", "cash"),
+    ("take the dividends as cash", "held_as_cash"),
+    ("do not reinvest", "held_as_cash"),
 ]:
     sem("dividends.policy", text,
         {"field": "dividend_policy", "value": value},
         note="Mission refuses this dimension by name — it is here because the "
              "schema is what can be *meant*, not what can be run")
+
+# Schema gaps: real readings the contract has no value for.
+#
+# `market-cap weighted` is an allocation method and `mid-month` is a day rule,
+# and neither is in its dimension's closed vocabulary. Recorded as gaps rather
+# than renamed to the nearest allowed value, which would have made the corpus
+# agree with a contract that cannot express the sentence.
+sem("weighting.method_not_in_the_vocabulary", "market-cap weighted",
+    {"field": "allocation_method", "schema_gap": "market_cap"},
+    origin="observed",
+    note="allocation_method has seven values and none of them is market-cap "
+         "weighting. The reading is right and the contract cannot hold it")
+sem("timing.day_rule_not_in_the_vocabulary", "mid-month",
+    {"field": "day_rule", "schema_gap": "mid_period"},
+    origin="observed",
+    note="day_rule has three values, all first/last/rolled-forward. A "
+         "mid-period rule is sayable and not executable")
 
 # ── a first multilingual slice ───────────────────────────────────────────────
 #

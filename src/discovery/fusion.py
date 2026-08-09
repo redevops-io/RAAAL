@@ -189,6 +189,10 @@ REQUIREMENTS: Mapping[str, Requirement] = {
     "trigger_semantics": Requirement(material=True),
     "execution_timing": Requirement(material=True),
     "day_rule": Requirement(material=False),
+    "evaluation_period": Requirement(material=True),
+    "periodic_rebalancing": Requirement(material=False),
+    "objective": Requirement(material=True),
+    "stated_weights": Requirement(material=True, compare_as="SET"),
     "account_allocation": Requirement(material=True, binds="account"),
     "dividend_policy": Requirement(material=False),
 }
@@ -212,14 +216,28 @@ def same_value(one: Any, other: Any, compare_as: str = "TEXT") -> bool:
     if left.lower() == right.lower():
         return True
     if compare_as == "NUMBER":
+        # Canonicalised by the *normaliser*, not by stripping punctuation.
+        #
+        # A regex that kept digits turned `£1k` into 1 and `12-month` into
+        # nothing, so the model's rendering and the deterministic path's value
+        # disagreed on three cases that mean the same thing. The normaliser
+        # already knows `£1k` is 1000 and `12-month` is a 12-period window;
+        # using it here means one place decides what a written number means,
+        # rather than two places deciding differently.
         def number(raw: str):
-            cleaned = re.sub(r"[^\d.\-]", "", raw)
+            from .syntax import normalize
+
+            for value in normalize(raw):
+                if value.kind in ("money", "duration", "percentage",
+                                  "moving_average_window"):
+                    return Decimal(str(value.canonical))
+            cleaned = re.sub(r"[^\d.]", "", raw)
             try:
                 return Decimal(cleaned) if cleaned else None
             except InvalidOperation:
                 return None
         a, b = number(left), number(right)
-        return a is not None and a == b
+        return a is not None and b is not None and a == b
     if compare_as == "SET":
         split = re.compile(r"[,;]|\band\b")
         return ({p.strip().lower() for p in split.split(left) if p.strip()}
