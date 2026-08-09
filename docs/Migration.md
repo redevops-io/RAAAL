@@ -1069,13 +1069,20 @@ comparisons.** These are what the runtime actually promises:
 
 | property | what fails it |
 |---|---|
-| `VerifiedIntent` → `MissionProgram` | an intent that compiles to a program not derivable from it |
-| replay determinism | the same program replayed twice reaching different terminal states |
-| capability manifest enforcement | anything outside the manifest executing rather than refusing by name |
-| authorization gates | a side-effecting capability running without its approval |
-| evidence and provenance preservation | a figure that cannot name the run, program, intent and author behind it |
-| cross-implementation replay | the same `MissionProgram` reaching different states under two runtimes |
+| identical program from identical intent | the same `VerifiedIntent` compiling to two different `MissionProgram`s |
+| deterministic replay | the same program replayed twice reaching different terminal states |
+| capability-manifest enforcement | anything outside the manifest executing rather than refusing by name |
+| authorization correctness | a side-effecting capability running without its approval, or an approval applying to a different capability than the one that asked |
+| event-log reproducibility | a fold over the same events producing a different state |
+| replay across implementations | the same `MissionProgram` reaching different states under two runtimes |
+| explainability and audit fidelity | a figure that cannot name the run, program, intent, reader and author behind it |
 | the vendored contract is gone | `src/contracts/` surviving alongside a real dependency on `runtime-contracts` |
+
+Note what is absent: **no agreement metric.** The input is now assumed
+canonical, and the only remaining question is whether Mission behaves as a
+deterministic execution runtime. Driving agreement from 95% to 97% would
+measure a reader that is about to be deleted; it is easy to produce another
+percentage and it would answer nothing.
 
 **Exit criterion, not a TODO.** RAAAL imports only the tagged
 `runtime-contracts` package, and `src/contracts/`, the vendoring note and
@@ -1384,6 +1391,54 @@ carries schema fingerprint, prompt digest, reader identities and enabled flags,
 token ceiling, run mode, output name, commit and tree-dirty state, and
 truncation count — and a six-check validity gate prints before any count,
 stating plainly that no semantic number may be quoted when it fails.
+
+---
+
+## 8.4 The shape every durable improvement here has taken
+
+Worth naming, because it is the reason the codebase looks the way it does and a
+new reader will otherwise see only a lot of unusual tests.
+
+Almost every improvement that survived started as a rule someone had to
+remember and ended as a rule the build enforces:
+
+    "developers should remember ..."   ->   "the build refuses ..."
+
+    preview/save equivalence           a divergence is a 409, not a habit
+    canonical key independence         hashes refuse floats outright
+    parser pinning                     a saved plan recompiles from its parse
+    replay determinism                 a bundle that replays differently fails
+    coverage honesty                   a declared-and-unexecuted element blocks
+                                       the figure
+    compiler/model adjudication        no reader type is privileged, and a test
+                                       greps for a precedence table
+    schema freezing                    a run under a changed instrument aborts
+    vendored contract removal          the copy and the dependency cannot
+                                       coexist
+    oracle detection                   an expectation naming a reader fails
+    policy registry placement          a non-policy in `policies/` names itself
+    drift detection                    a stale copy fails before it is read
+
+The pattern is not "write more tests". It is that a rule living in someone's
+head is a rule with a half-life, and the half-life is shorter than the project.
+Each line above began as a defect that a careful person had already been trying
+to avoid.
+
+Three properties make the difference between a check and a habit:
+
+- **It fires without being invoked.** A script someone runs before a deploy is
+  a habit with extra steps.
+- **It fails in the direction of the mistake.** Several of these are written to
+  skip in the expected state and fail only in the wrong one, so they cannot be
+  satisfied by intention.
+- **It names what it caught.** A red build that does not say which rule broke
+  gets disabled.
+
+The corollary, which this phase demonstrated three times: a safeguard that
+fires while you are documenting why it exists has already paid for itself. The
+policy-registry guard, the oracle scan and the drift check each caught a
+mistake days after they were written and none caught the mistake they were
+written for.
 
 ---
 
