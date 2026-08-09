@@ -1766,3 +1766,82 @@ step. Its claim was narrowed — the pieces exist in `coverage.py`,
 `CapabilitySpec`, `validate()` and the `unavailable` channel; what is new is a
 semantic capability contract *derived from the executor and asserted against it
 both ways* (§3.6).
+
+---
+
+## 10. What this migration did not answer
+
+Everything above removed a kind of *internal* uncertainty:
+
+    replay correctness            deterministic/runtime equivalence
+    parser ambiguity              schema drift
+    vocabulary drift              semantic coverage
+    recovery correctness          evidence gates
+    approval semantics            cross-runtime compatibility
+
+Those are engineering uncertainties, and engineering is what reduces them.
+Phase 5 asks a different question, and no amount of further engineering
+answers it:
+
+> **Does any of this make someone's job meaningfully easier?**
+
+The runtime work is finished and completely unvalidated by anyone outside the
+team that built it. Nothing here has been used by a person who was not
+constructing it. The tests, the dual-witness corpus, the cross-runtime replay
+gate — all of it measures whether the system does what was specified. None of
+it measures whether the specification was worth having.
+
+So the document reads, front to back:
+
+    Phases 0–4      platform engineering       done
+    Phase 5         product discovery          not started
+    later           platform evolution         driven by 5, not by 0–4
+
+### The achievement is not the test count
+
+It is that almost every subsystem acquired an **independent witness** — a
+second thing answering the same question without having seen the first's
+answer (§8.3a).
+
+| subsystem | its independent witness |
+|---|---|
+| the deterministic parser | the hosted model |
+| the hosted model | the deterministic parser |
+| replay | a second runtime's production path |
+| recovery | what could actually be reconstructed |
+| published packages | a consumer installing the tag |
+| the corpus | an executable producer |
+| a mission's history | replay from its event log |
+
+The pattern recurred often enough, across enough different kinds of defect,
+that it is worth carrying into the rest of the runtime family rather than
+treating as a lesson about this migration.
+
+### The risk has changed shape
+
+    at the start      will this system behave correctly?
+    now               will anyone need these capabilities?
+
+Engineering reduces the first. Only users reduce the second, and there is no
+substitute — a further verification pass is not a smaller version of asking
+someone.
+
+### The temptation to resist
+
+There will always be one more runtime improvement: another parser rule, another
+artifact, another replay property, another verification pass. The architecture
+is mature enough that each will probably be *locally correct*, which is exactly
+what makes the temptation dangerous — nothing will feel wrong about building
+it.
+
+The recommendation is therefore that the runtime enters **maintenance mode**.
+Not finished forever; specifically:
+
+- fix defects;
+- accept improvements that arise directly from pilot feedback;
+- decline speculative architecture.
+
+Engineering effort belongs behind the product surfaces from here, because that
+is where it will be discovered whether these abstractions were the right ones.
+
+> **The runtime is no longer the hypothesis. The products built on it are.**
