@@ -1,9 +1,9 @@
 {
   "schema": "quantify-real-phrasings@1",
-  "count": 44,
+  "count": 45,
   "by_group": {
     "allocation": 13,
-    "rebalancing": 12,
+    "rebalancing": 13,
     "cadence": 3,
     "funding": 7,
     "trigger": 3,
@@ -12,7 +12,7 @@
   },
   "by_provenance": {
     "user_reported": 11,
-    "variant": 12,
+    "variant": 13,
     "search_summary": 8,
     "stackexchange": 13
   },
@@ -166,6 +166,15 @@
     {
       "id": "real-rebalancing-009",
       "group": "rebalancing",
+      "text": "rebalance to 70/30",
+      "stresses": "both readings of `rebalance` available in one sentence",
+      "provenance": "variant",
+      "source": "",
+      "note": "the case that separates a live AMBIGUOUS_BY_LANGUAGE from the word merely appearing: a target is present, so 'restore the existing 70/30' and 'change the target to 70/30' are both on the table. 'rebalanced annually' carries the same word and only one reading, because there is no target in it"
+    },
+    {
+      "id": "real-rebalancing-010",
+      "group": "rebalancing",
       "text": "don't know how to rebalance/reallocate",
       "stresses": "the two senses the user cannot separate either",
       "provenance": "user_reported",
@@ -317,7 +326,7 @@
       "note": "verbatim, CC-BY-SA 4.0"
     },
     {
-      "id": "real-rebalancing-010",
+      "id": "real-rebalancing-011",
       "group": "rebalancing",
       "text": "Why do I want to rebalance down to 60-40?",
       "stresses": "target ratio as the goal of a rebalance verb",
@@ -335,7 +344,7 @@
       "note": "verbatim, CC-BY-SA 4.0"
     },
     {
-      "id": "real-rebalancing-011",
+      "id": "real-rebalancing-012",
       "group": "rebalancing",
       "text": "I understand that rebalancing once a year is better than doing it once every two years",
       "stresses": "two worded cadences compared in one sentence",
@@ -407,7 +416,7 @@
       "note": "verbatim, CC-BY-SA 4.0"
     },
     {
-      "id": "real-rebalancing-012",
+      "id": "real-rebalancing-013",
       "group": "rebalancing",
       "text": "I'm using Markowitz Mean-Variance Optimization to rebalance my portfolio of 30 holdings",
       "stresses": "a count that is not an amount, beside a rebalance verb",

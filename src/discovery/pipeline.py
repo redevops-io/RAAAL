@@ -64,6 +64,15 @@ class Read:
     def open(self) -> Sequence[Decision]:
         return tuple(d for d in self.decisions if not d.proceeds)
 
+    @property
+    def intermediate(self) -> Sequence[SemanticCandidate]:
+        """Semantics this pipeline computed that the contract does not carry.
+
+        Kept and reported rather than dropped: `amount_kind=fixed` is a real
+        reading of a real sentence, and discarding it because no contract field
+        exists would lose the evidence that the contract might need one."""
+        return tuple(c for c in self.candidates if not c.is_contract_field)
+
 
 #: What a deterministic candidate asserts, as a score. Always the same number.
 #:
@@ -101,14 +110,23 @@ def read(text: str, parse: Parse, model_reading: ReadingSet, schema: Schema,
     bindings = bind(parse, values)
     candidates = propose(bindings, values)
 
+    # Only contract fields enter fusion. An intermediate — `amount_kind`,
+    # `holding_period_days`, `account_allocation` — has no contract field for
+    # the other witness to answer with, so fusing it would report DISAGREE
+    # against a silence that could never have been anything else. They are
+    # carried on the Read as computed semantics, not as decisions.
+    from .semantics import INTERMEDIATE_FIELDS
+
     model_by_field = {p.dimension: p for p in proposals(model_reading)}
-    fields = sorted(set(model_by_field) | {c.field for c in candidates})
+    fields = sorted((set(model_by_field)
+                     | {c.field for c in candidates if c.is_contract_field}))
 
     decisions = []
     for name in fields:
         proposal = model_by_field.get(name)
         supporting = [as_evidence(c) for c in candidates if c.field == name]
-        decisions.append(fuse(name, model=proposal, syntax=supporting))
+        decisions.append(fuse(name, model=proposal, syntax=supporting,
+                              available=fields))
 
     return Read(text=text, values=values, bindings=bindings,
                 candidates=candidates, model=model_reading,

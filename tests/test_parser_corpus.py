@@ -34,10 +34,13 @@ RECORDED = RecordedReader()
 #:
 #: 108 when only tier 1 ran. English tier 2 took it to 54, the field mappings to
 #: 47, rewriting six fragment fixtures to 45, and the derivation families to 38.
-#: Sixteen semantics cases are now run end to end by `tests/test_semantics.py`,
-#: and `corpus/parser/closure.json` says who owns each of the remaining 38
-#: rather than leaving them a single number.
-AWAITING_A_PARSER = 38
+#: The schema-alignment pass took it back to 40: two cases that had been
+#: answered under mapper-only field names are now NOT_A_CONTRACT_FIELD,
+#: which is a truer count than the one that included them.
+#: Fourteen semantics cases are run end to end by `tests/test_semantics.py`,
+#: and `corpus/parser/closure.json` says who owns each of the rest rather
+#: than leaving them a single number.
+AWAITING_A_PARSER = 40
 
 #: Semantics cases the deterministic path answers, asserted elsewhere. Read
 #: from the closure report because that is where the classification lives; the

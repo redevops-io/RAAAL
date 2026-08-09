@@ -126,22 +126,45 @@ class TestAmbiguousByLanguage:
         """Neither a parser failure nor a model failure. People writing about
         their own portfolios use `rebalance` for both "back to target" and
         "change the target", so no reading is recoverable from the sentence."""
-        decision = fuse("cadence",
-                        model=model("cadence", "annually", "rebalance yearly"))
+        decision = fuse("periodic_rebalancing",
+                        model=model("periodic_rebalancing", "annual",
+                                    "rebalance to 70/30"),
+                        available=["periodic_rebalancing", "stated_weights"])
         assert decision.outcome is Fusion.AMBIGUOUS_BY_LANGUAGE
 
     def test_it_outranks_agreement(self):
         """Deliberately checked first. Two readers agreeing on a word that
         carries two meanings is two readers making the same assumption, which
         looks like confirmation and is not."""
-        decision = fuse("cadence",
-                        model=model("cadence", "annually", "rebalance yearly"),
-                        syntax=[syntax("cadence", "annually", 3, "rebalance")])
+        decision = fuse("periodic_rebalancing",
+                        model=model("periodic_rebalancing", "annual",
+                                    "rebalance to 70/30"),
+                        syntax=[syntax("periodic_rebalancing", "annual", 3,
+                                       "rebalance to 70/30")],
+                        available=["periodic_rebalancing", "stated_weights"])
         assert decision.outcome is Fusion.AMBIGUOUS_BY_LANGUAGE
 
     def test_an_unambiguous_sentence_is_not_caught(self):
         decision = fuse("cadence",
                         model=model("cadence", "monthly", "contribute monthly"))
+        assert decision.outcome is Fusion.AGREE
+
+    def test_the_word_alone_is_not_enough(self):
+        """The narrowing. `rebalanced annually` carries the term and only one
+        of its readings — the competing one needs a target the sentence does
+        not contain. Without this, the outcome fires on its own vocabulary."""
+        decision = fuse("periodic_rebalancing",
+                        model=model("periodic_rebalancing", "annual",
+                                    "rebalanced annually"),
+                        available=["periodic_rebalancing", "cadence"])
+        assert decision.outcome is Fusion.AGREE
+
+    def test_a_different_dimension_is_not_caught_by_it(self):
+        """The ambiguity is between two named fields. A third dimension in the
+        same sentence is not made ambiguous by their argument."""
+        decision = fuse("cadence",
+                        model=model("cadence", "monthly", "rebalance to 70/30"),
+                        available=["cadence", "stated_weights"])
         assert decision.outcome is Fusion.AGREE
 
     def test_every_ambiguous_term_cites_where_it_was_observed(self):
@@ -183,7 +206,10 @@ class TestWhatItMeansForSealing:
         here — nobody has put the question to the user yet, and recording it as
         a disagreement would misdescribe both the cause and the repair."""
         report = FusionReport(decisions=(
-            fuse("cadence", model=model("cadence", "annually", "rebalance")),))
+            fuse("periodic_rebalancing",
+                 model=model("periodic_rebalancing", "annual",
+                             "rebalance to 70/30"),
+                 available=["periodic_rebalancing", "stated_weights"]),))
         (unresolved,) = report.unresolved_for_contract()
         assert unresolved.reason is OpenReason.NOT_ASKED
 

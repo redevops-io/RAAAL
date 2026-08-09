@@ -90,16 +90,30 @@ class Fusion(str, Enum):
 #: may add a hunch to becomes a list of things nobody wants to implement, and
 #: the whole point of this outcome is that the ambiguity was *observed* in how
 #: people write rather than predicted from how the code is shaped.
-AMBIGUOUS_TERMS: Mapping[str, Mapping[str, str]] = {
+AMBIGUOUS_TERMS: Mapping[str, Mapping[str, Any]] = {
     "rebalance": {
         "readings": "rebalance back to target | change the target allocation",
+        "between": ("periodic_rebalancing", "stated_weights"),
         "evidence": "Bogleheads thread 'Don't Know How To Rebalance/Reallocate'",
         "source": "https://www.bogleheads.org/forum/viewtopic.php?t=459742"},
     "reallocate": {
         "readings": "rebalance back to target | change the target allocation",
+        "between": ("periodic_rebalancing", "stated_weights"),
         "evidence": "same thread; the two verbs are used interchangeably",
         "source": "https://www.bogleheads.org/forum/viewtopic.php?t=459742"},
 }
+"""Terms people demonstrably use for more than one thing.
+
+`between` names the contract fields the ambiguity is *between*, and it is what
+keeps this outcome from firing on its own vocabulary. "rebalanced annually"
+carries the word and no ambiguity at all: the reading is
+`periodic_rebalancing=annual`, and the competing reading — that the target is
+being changed — needs a target, which the sentence does not contain. "rebalance
+to 70/30" does contain one, and there the two readings are both available and
+neither is chosen by the words.
+
+So the rule is not "the word appeared". It is "both readings are on the table",
+which is what ambiguity means."""
 
 
 @dataclass(frozen=True)
@@ -230,8 +244,14 @@ def contradicts(evidence: SyntaxEvidence, proposal: Proposal,
 def fuse(dimension: str, *, model: Optional[Proposal] = None,
          syntax: Sequence[SyntaxEvidence] = (),
          requirement: Optional[Requirement] = None,
-         bound: bool = False) -> Decision:
+         bound: bool = False,
+         available: Sequence[str] = ()) -> Decision:
     """One dimension, one decision.
+
+    `available` names the other contract fields something proposed a reading
+    for in this utterance. It exists only for the ambiguity check: a lexical
+    ambiguity is real when both of its readings are on the table, and
+    "rebalanced annually" has only one of them.
 
     `bound` says whether the relation this dimension requires has actually been
     established. Passed in rather than worked out here, because fusion must
@@ -242,7 +262,7 @@ def fuse(dimension: str, *, model: Optional[Proposal] = None,
     requirement = requirement or REQUIREMENTS.get(dimension, Requirement())
     syntax = tuple(syntax)
 
-    ambiguous = _ambiguity(dimension, model, syntax)
+    ambiguous = _ambiguity(dimension, model, syntax, available)
     if ambiguous is not None:
         return Decision(
             dimension=dimension, outcome=Fusion.AMBIGUOUS_BY_LANGUAGE,
@@ -316,8 +336,17 @@ def fuse_with_bindings(dimension: str, value, *, bindings: Sequence[Any],
 
 
 def _ambiguity(dimension: str, model: Optional[Proposal],
-               syntax: Sequence[SyntaxEvidence]) -> Optional[str]:
-    """Whether an attested-ambiguous term is what this decision rests on."""
+               syntax: Sequence[SyntaxEvidence],
+               available: Sequence[str] = ()) -> Optional[str]:
+    """Whether an attested-ambiguous term genuinely leaves this open.
+
+    Two conditions, and the second is what stops the outcome firing on its own
+    ontology. The term must appear in the *user's words* — never the dimension
+    name, never the reader's paraphrase. And the dimension being decided must
+    be one of the fields the ambiguity is between, with at least one of the
+    others also proposed: an ambiguity nobody could have resolved differently
+    in this sentence is not an ambiguity.
+    """
     # The *user's words*, never the dimension name and never the reader's
     # paraphrase of them. Ambiguity is a property of the language someone
     # wrote, not of how a reader labelled it — and with the dimension name in
@@ -326,9 +355,17 @@ def _ambiguity(dimension: str, model: Optional[Proposal],
     haystack = " ".join(filter(None, [
         "" if model is None else model.source_span,
         " ".join(e.source_span for e in syntax)])).lower()
-    for term in AMBIGUOUS_TERMS:
-        if term in haystack:
-            return term
+    proposed = set(available)
+    for term, record in AMBIGUOUS_TERMS.items():
+        if term not in haystack:
+            continue
+        between = set(record.get("between", ()))
+        if between and dimension not in between:
+            continue
+        if between and not (between - {dimension}) & proposed:
+            # The competing reading is not on the table in this sentence.
+            continue
+        return term
     return None
 
 

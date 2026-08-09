@@ -428,6 +428,85 @@ read as an outcome that never fires.
 Each is a specific reason rather than a pile, which was the point of splitting
 the state. None of them was closed by widening a rule to fit it.
 
+## The schema-alignment pass
+
+**Contract field names are canonical at the fusion boundary.** Readers,
+mappers, fusion and corpus assertions all speak them. A parser feature may be
+called whatever is clearest locally, but it must be translated before it becomes
+a `SemanticCandidate` — because the moment two witnesses name the same thing
+differently they can never agree about it, and what that looks like is a
+permanent `DISAGREE` that is really a spelling difference.
+
+Five mapper-only names, adjudicated one at a time rather than by growing the
+schema to match the mapper. Only one was a rename.
+
+| field | verdict |
+|---|---|
+| `asset_weight` | → `stated_weights`. A clean rename. |
+| `rebalancing_cadence` | → **intermediate**. Right in name, wrong in shape |
+| `account_allocation` | → **intermediate**. A relation, not a dimension |
+| `amount_kind` | → **intermediate**. The manifest executes an amount, not a kind of amount |
+| `holding_period_days` | → **intermediate**. Nothing in the manifest makes it change a result |
+
+The `rebalancing_cadence` case is the instructive one. `periodic_rebalancing`
+holds a free-text description — its own schema examples are *"rebalance
+quarterly"* and *"when it drifts more than 5 points"* — and the deterministic
+path produces the canonical token `annual`. Under the dimension's declared
+`TEXT` comparison those are not the same value, so renaming converted a
+vocabulary mismatch into a *permanent* false `DISAGREE`. Left intermediate
+rather than resolved either way: making the mapper emit prose to match a reader
+is worse than the mismatch, and loosening the dimension's comparison is a schema
+decision.
+
+Intermediates are kept on the `Read` rather than dropped. `amount_kind=fixed` is
+a real reading of a real sentence, and discarding it because no contract field
+exists would lose the evidence that the contract might need one.
+
+### What alignment removed
+
+**Every live `DISAGREE`.** The one reported before this pass —
+`rebalancing_cadence` with the model silent — was entirely an artifact of the
+mismatch: the schema calls that dimension something else, so the model could
+only ever have been silent about it.
+
+And no contract field on any recorded sentence is now proposed by syntax alone.
+The model reads every contract field the deterministic path does. So the
+syntax-alone policy is exercised synthetically in `test_fusion.py` and has no
+live instance — asserted as an absence, so the first sentence that produces one
+is noticed rather than assumed.
+
+### The ambiguity rule, narrowed
+
+An attested-ambiguous term now fires only when **both of its readings are
+available in the sentence**. `AMBIGUOUS_TERMS` names the contract fields each
+ambiguity is between, and the outcome requires at least one of the others to
+have been proposed too:
+
+    rebalance to 70/30      AMBIGUOUS_BY_LANGUAGE   a target is present, so
+                                                    "restore 70/30" and "change
+                                                    the target to 70/30" are
+                                                    both on the table
+    rebalanced annually     AGREE                   same word, one reading —
+                                                    the competing one needs a
+                                                    target and there is none
+
+Two general rules came out of this, and both are about a check firing on its own
+ontology. Never put the field name in the evidence used to decide whether the
+*user's* language was ambiguous. And "the word appeared" is not ambiguity —
+ambiguity is both readings being on the table.
+
+### Counts after alignment
+
+    MAPPED_AND_AGREED      14   (all 14 with the expected value)
+    NOT_A_CONTRACT_FIELD    6   the schema, or nobody
+    NO_FIELD_MAPPING        7   semantics.py
+    NO_LITERAL             23   the semantic reader
+    NO_PARSE_RECORDED       4   stanza.download
+
+`AWAITING_A_PARSER` went 38 → **40**, upward, because two cases that had been
+answered were answered under mapper-only field names. A count that moves the
+wrong way for a good reason is worth more than one that only ever improves.
+
 ## Order of work
 
     real phrasings  ->  tier 1 regressions  ->  tier 2 fixtures  ->  fusion

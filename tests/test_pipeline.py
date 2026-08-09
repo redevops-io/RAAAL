@@ -27,6 +27,7 @@ PARSES = RecordedReader()
 
 YEAR_END = "I contribute monthly and rebalance at year end"
 BOTH_CADENCES = "contribute $500 monthly, rebalanced annually"
+AMBIGUOUS = "rebalance to 70/30"
 
 
 def run(text: str):
@@ -36,7 +37,7 @@ def run(text: str):
 
 class TestTheRecordingsAreUsable:
     def test_both_witnesses_have_recordings_for_the_acceptance_sentences(self):
-        for text in (YEAR_END, BOTH_CADENCES):
+        for text in (YEAR_END, BOTH_CADENCES, AMBIGUOUS):
             assert HOSTED.has(text), f"no model recording for {text!r}"
             assert PARSES.has(text), f"no parse recording for {text!r}"
 
@@ -78,7 +79,7 @@ class TestARecordingIsNotAuthority:
     def test_a_recorded_reading_can_still_be_refused(self):
         """The property that makes the previous test mean something: a stored
         proposal is not automatically settled."""
-        result = run(BOTH_CADENCES)
+        result = run(AMBIGUOUS)
         assert any(not d.proceeds for d in result.decisions), (
             "every recorded reading proceeded, so nothing here distinguishes "
             "fusion from a passthrough")
@@ -96,17 +97,71 @@ class TestNeitherWitnessIsPrivileged:
         result = run(BOTH_CADENCES)
         assert result.by_field["objective"].outcome is Fusion.AGREE
 
-    def test_syntax_alone_does_not(self):
-        """The asymmetry, and it is deliberate. `rebalancing_cadence` is
-        proposed by the deterministic path and by nothing else, and it does not
-        proceed — syntax never carries a field on its own."""
-        decision = run(BOTH_CADENCES).by_field["rebalancing_cadence"]
-        assert decision.model is None
-        assert decision.outcome is Fusion.DISAGREE
+    def test_no_contract_field_is_currently_proposed_by_syntax_alone(self):
+        """Recorded because it is the result of the alignment pass, not a gap.
+
+        Before contract names were canonical, `rebalancing_cadence` looked like
+        a real `DISAGREE` with the model silent. It was not: the schema calls
+        that dimension `periodic_rebalancing`, and the model could only ever
+        answer in schema terms. Once both witnesses speak the same vocabulary,
+        the deterministic path proposes no contract field the model missed —
+        on any recorded sentence.
+
+        So the syntax-alone policy is exercised synthetically in
+        `test_fusion.py` and has no live instance. That is a fact about these
+        sentences rather than about the rule, and it is asserted so that the
+        first sentence which *does* produce one is noticed.
+        """
+        for text in (BOTH_CADENCES, YEAR_END, AMBIGUOUS):
+            alone = [d.dimension for d in run(text).decisions if d.model is None]
+            assert not alone, (
+                f"{text!r} now proposes {alone} from syntax alone. Check it is "
+                "a real reading the model missed rather than a vocabulary "
+                "mismatch, then make it the DISAGREE acceptance case")
 
     def test_agreement_carries_the_model_s_value(self):
         result = run(BOTH_CADENCES)
         assert result.by_field["cadence"].value == "monthly"
+
+
+class TestAmbiguityNeedsBothReadingsOnTheTable:
+    """The narrowing, and the pair that shows it discriminates."""
+
+    def test_a_sentence_carrying_both_readings_is_ambiguous(self):
+        """`rebalance to 70/30` can mean restore an existing 70/30 target or
+        change the target to 70/30. Both readings need a target, and this
+        sentence has one — `stated_weights` is proposed alongside."""
+        result = run(AMBIGUOUS)
+        assert result.by_field["periodic_rebalancing"].outcome is (
+            Fusion.AMBIGUOUS_BY_LANGUAGE)
+        assert "stated_weights" in result.by_field
+
+    def test_the_same_word_without_a_target_is_not(self):
+        """`rebalanced annually` carries the word and only one reading: the
+        competing one needs a target and there is none. Firing here would be
+        firing on the vocabulary rather than on the ambiguity."""
+        result = run(BOTH_CADENCES)
+        assert result.by_field["periodic_rebalancing"].outcome is Fusion.AGREE
+
+
+class TestTheContractVocabularyIsCanonical:
+    def test_every_decision_is_about_a_contract_dimension(self):
+        """Readers, mappers, fusion and corpus assertions all speak contract
+        field names at this boundary. The moment two witnesses name the same
+        thing differently they can never agree about it."""
+        dimensions = {d.name for d in QUANTIFY_SCHEMA.dimensions}
+        for text in (BOTH_CADENCES, YEAR_END, AMBIGUOUS):
+            for decision in run(text).decisions:
+                assert decision.dimension in dimensions, decision.dimension
+
+    def test_intermediate_semantics_are_kept_rather_than_dropped(self):
+        """`rebalancing_cadence=annual` is a real reading of a real sentence.
+        The contract has no field for it, so it does not enter fusion — but
+        discarding it would lose the evidence that the contract might need
+        one."""
+        result = run(BOTH_CADENCES)
+        assert any(c.field == "rebalancing_cadence" for c in result.intermediate)
+        assert all(not c.is_contract_field for c in result.intermediate)
 
 
 class TestFormattingIsNotDisagreement:

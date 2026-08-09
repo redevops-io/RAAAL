@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 236,
+  "count": 237,
   "parses": [
     {
       "text": "$500 a month",
@@ -16534,6 +16534,49 @@
               "relation": "advmod",
               "start_char": 24,
               "end_char": 32
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "rebalance to 70/30",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "case",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "70/30",
+              "lemma": "70/30",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 13,
+              "end_char": 18
             }
           ]
         }

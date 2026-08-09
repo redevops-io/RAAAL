@@ -122,6 +122,14 @@ phrase("rebalancing", "I use a 5/25 band", "ratio-shaped notation that is not a 
 phrase("rebalancing", "rebalance annually or when a band is breached",
        "calendar cadence and threshold as alternatives",
        provenance="variant")
+phrase("rebalancing", "rebalance to 70/30",
+       "both readings of `rebalance` available in one sentence",
+       provenance="variant",
+       note="the case that separates a live AMBIGUOUS_BY_LANGUAGE from the "
+            "word merely appearing: a target is present, so 'restore the "
+            "existing 70/30' and 'change the target to 70/30' are both on the "
+            "table. 'rebalanced annually' carries the same word and only one "
+            "reading, because there is no target in it")
 phrase("rebalancing", "don't know how to rebalance/reallocate",
        "the two senses the user cannot separate either",
        provenance="user_reported", source="bh-459742",

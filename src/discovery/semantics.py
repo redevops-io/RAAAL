@@ -31,7 +31,64 @@ from typing import Any, Mapping, Optional, Sequence
 from .binding import RelationBinding, value_id
 from .syntax import Value
 
-MAPPER_VERSION = "quantify-semantics@1"
+MAPPER_VERSION = "quantify-semantics@2"
+
+#: **Contract field names are canonical at the fusion boundary.**
+#:
+#: Readers, mappers, fusion and corpus assertions all speak these. A parser
+#: feature may be called whatever is clearest locally — `rebalancing_cadence`
+#: reads better inside this file than `periodic_rebalancing` does — but it must
+#: be translated before it becomes a `SemanticCandidate`, because the moment two
+#: witnesses name the same thing differently they can never agree about it.
+#:
+#: That is not hypothetical: `rebalancing_cadence` produced a DISAGREE with the
+#: model silent, purely because the schema calls it `periodic_rebalancing`. A
+#: vocabulary duplication reported as a reading conflict.
+def contract_fields() -> frozenset:
+    from .schema import QUANTIFY_SCHEMA
+
+    return frozenset(d.name for d in QUANTIFY_SCHEMA.dimensions)
+
+
+#: Semantics this pipeline computes that the contract does not carry.
+#:
+#: Adjudicated one at a time rather than by growing the schema to match the
+#: mapper. A field belongs here when the *runtime* has no use for it — when
+#: promoting it would add a dimension nothing executes, which is the
+#: declared-but-not-executed shape this project already has a manifest to
+#: prevent.
+#:
+#:     amount_kind          fixed | proportional | residual. Derivable metadata
+#:                          around `amount`; the manifest executes an amount,
+#:                          not a kind of amount.
+#:     holding_period_days  an intermediate reading. Nothing in the manifest
+#:                          makes a holding period change a result.
+#:     account_allocation   which account holds which split. Real, and a
+#:                          *relation* rather than a dimension — the schema
+#:                          already models this shape with `portfolio_sleeves`
+#:                          and `account_transition`, and a flat field would be
+#:                          the flattening `RelationSpec` exists to refuse.
+#:
+#: These still produce candidates, and the candidates still carry evidence.
+#: What they do not do is enter fusion as contract fields, because there is no
+#: contract field for the other witness to answer with.
+#:     rebalancing_cadence  the rename to `periodic_rebalancing` was correct in
+#:                          *name* and wrong in *shape*. That dimension holds a
+#:                          free-text description — its own examples are
+#:                          "rebalance quarterly" and "when it drifts more than
+#:                          5 points" — and the deterministic path produces the
+#:                          canonical token `annual`. Under the dimension's
+#:                          declared TEXT comparison those are not the same
+#:                          value, so the rename turned a vocabulary mismatch
+#:                          into a permanent false DISAGREE.
+#:
+#:                          Left intermediate rather than resolved either way.
+#:                          Making the mapper emit prose to match a reader is
+#:                          worse than the mismatch, and giving the dimension a
+#:                          looser comparison policy is a schema decision.
+INTERMEDIATE_FIELDS = frozenset({
+    "amount_kind", "holding_period_days", "account_allocation",
+    "rebalancing_cadence"})
 
 #: Verbs that mean "money arrives", against those that mean something else
 #: happens on a schedule. This is the smallest table that separates the two
@@ -51,6 +108,11 @@ class SemanticCandidate:
     """One proposed field, and everything it was derived from."""
 
     field: str
+    """A contract field name, or one of `INTERMEDIATE_FIELDS`. Never a third
+    thing — `test_semantics.py` asserts it, because a candidate naming a field
+    neither the contract nor the intermediate list knows is a candidate no
+    other witness can ever answer."""
+
     value: Any
     source_value_id: str
     binding_id: str
@@ -67,8 +129,13 @@ class SemanticCandidate:
     evidence: Sequence[str] = ()
     mapper_version: str = MAPPER_VERSION
 
+    @property
+    def is_contract_field(self) -> bool:
+        return self.field not in INTERMEDIATE_FIELDS
+
     def to_json(self) -> dict:
         return {"field": self.field, "value": self.value,
+                "is_contract_field": self.is_contract_field,
                 "source_value_id": self.source_value_id,
                 "binding_id": self.binding_id,
                 "source_span": self.source_span,
@@ -100,7 +167,7 @@ class FieldMapping:
 
 MAPPINGS: Sequence[FieldMapping] = (
     # 1. asset ↔ weight
-    FieldMapping(field="asset_weight", relation="shares_head_with",
+    FieldMapping(field="stated_weights", relation="shares_head_with",
                  value_kinds=frozenset({"percentage", "ratio"}),
                  pairing="asset↔weight"),
     # 2. account ↔ allocation

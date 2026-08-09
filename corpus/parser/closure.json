@@ -2,12 +2,13 @@
   "schema": "quantify-parser-closure@1",
   "pending": 54,
   "by_state": {
-    "MAPPED_AND_AGREED": 16,
-    "NO_FIELD_MAPPING": 9,
-    "NO_LITERAL": 25,
+    "MAPPED_AND_AGREED": 14,
+    "NO_FIELD_MAPPING": 7,
+    "NO_LITERAL": 23,
+    "NOT_A_CONTRACT_FIELD": 6,
     "NO_PARSE_RECORDED": 4
   },
-  "agreed_and_correct": 16,
+  "agreed_and_correct": 14,
   "agreed_but_wrong_value": [],
   "by_property": {
     "assets.stay_as_written": {
@@ -24,9 +25,7 @@
       "MAPPED_AND_AGREED": 3
     },
     "funding.amount_kind": {
-      "NO_FIELD_MAPPING": 2,
-      "MAPPED_AND_AGREED": 1,
-      "NO_LITERAL": 1
+      "NOT_A_CONTRACT_FIELD": 4
     },
     "funding.cadence": {
       "MAPPED_AND_AGREED": 5,
@@ -58,8 +57,7 @@
       "NO_LITERAL": 3
     },
     "window.holding_period": {
-      "MAPPED_AND_AGREED": 1,
-      "NO_LITERAL": 1
+      "NOT_A_CONTRACT_FIELD": 2
     },
     "window.moving_average": {
       "MAPPED_AND_AGREED": 2,
@@ -71,6 +69,7 @@
     "MAPPED_BUT_DISAGREED": "adjudication",
     "INSUFFICIENT_RELATION": "binder or corpus",
     "AMBIGUOUS_BY_LANGUAGE": "the user, via clarification",
+    "NOT_A_CONTRACT_FIELD": "the schema, or nobody — see INTERMEDIATE_FIELDS",
     "NO_FIELD_MAPPING": "semantics.py — field derivation",
     "NO_LITERAL": "the semantic reader",
     "NO_PARSE_RECORDED": "stanza.download"
@@ -404,20 +403,16 @@
       "property": "window.holding_period",
       "text": "hold the bonus for 90 days",
       "language": "en",
-      "state": "MAPPED_AND_AGREED",
-      "field": "holding_period_days",
-      "value": "90",
-      "expected": "90",
-      "matches_expected": true,
-      "reason": "a candidate was proposed and fusion let it through"
+      "state": "NOT_A_CONTRACT_FIELD",
+      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; the case asserts something outside the fusion boundary"
     },
     {
       "id": "sema-window-holding_period-002",
       "property": "window.holding_period",
       "text": "keep it for six months",
       "language": "en",
-      "state": "NO_LITERAL",
-      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+      "state": "NOT_A_CONTRACT_FIELD",
+      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; the case asserts something outside the fusion boundary"
     },
     {
       "id": "sema-negation-changes_the_value-001",
@@ -448,64 +443,32 @@
       "property": "funding.amount_kind",
       "text": "invest whatever is left over each month",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field",
-      "observed": [
-        "cadence=monthly"
-      ],
-      "bound_to": [
-        "governed_by->left"
-      ],
-      "expected": {
-        "field": "amount_kind",
-        "value": "residual"
-      },
-      "missing": "semantic_derivation"
+      "state": "NOT_A_CONTRACT_FIELD",
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts something outside the fusion boundary"
     },
     {
       "id": "sema-funding-amount_kind-002",
       "property": "funding.amount_kind",
       "text": "contribute a fixed $500",
       "language": "en",
-      "state": "MAPPED_AND_AGREED",
-      "field": "amount_kind",
-      "value": "fixed",
-      "expected": "fixed",
-      "matches_expected": true,
-      "reason": "a candidate was proposed and fusion let it through"
+      "state": "NOT_A_CONTRACT_FIELD",
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts something outside the fusion boundary"
     },
     {
       "id": "sema-funding-amount_kind-003",
       "property": "funding.amount_kind",
       "text": "invest 10% of my salary monthly",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "candidates were proposed for ['asset_weight', 'cadence'] and none for 'amount_kind', which is what this case asserts",
-      "proposed": [
-        "asset_weight",
-        "cadence"
-      ],
-      "observed": [
-        "percentage=0.1",
-        "cadence=monthly"
-      ],
-      "bound_to": [
-        "governed_by->invest",
-        "shares_head_with->salary monthly"
-      ],
-      "expected": {
-        "field": "amount_kind",
-        "value": "proportional"
-      },
-      "missing": "semantic_derivation"
+      "state": "NOT_A_CONTRACT_FIELD",
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts something outside the fusion boundary"
     },
     {
       "id": "sema-funding-amount_kind-004",
       "property": "funding.amount_kind",
       "text": "put in half of any bonus",
       "language": "en",
-      "state": "NO_LITERAL",
-      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+      "state": "NOT_A_CONTRACT_FIELD",
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; the case asserts something outside the fusion boundary"
     },
     {
       "id": "sema-timing-execution-001",

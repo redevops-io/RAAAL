@@ -52,12 +52,14 @@ MAPPED_AND_AGREED = "MAPPED_AND_AGREED"
 MAPPED_BUT_DISAGREED = "MAPPED_BUT_DISAGREED"
 INSUFFICIENT_RELATION = "INSUFFICIENT_RELATION"
 AMBIGUOUS_BY_LANGUAGE = "AMBIGUOUS_BY_LANGUAGE"
+NOT_A_CONTRACT_FIELD = "NOT_A_CONTRACT_FIELD"
 NO_LITERAL = "NO_LITERAL"
 NO_FIELD_MAPPING = "NO_FIELD_MAPPING"
 NO_PARSE = "NO_PARSE_RECORDED"
 
 STATES = (MAPPED_AND_AGREED, MAPPED_BUT_DISAGREED, INSUFFICIENT_RELATION,
-          AMBIGUOUS_BY_LANGUAGE, NO_FIELD_MAPPING, NO_LITERAL, NO_PARSE)
+          AMBIGUOUS_BY_LANGUAGE, NOT_A_CONTRACT_FIELD, NO_FIELD_MAPPING,
+          NO_LITERAL, NO_PARSE)
 
 #: Which layer owns each state's remaining work. Printed with the counts,
 #: because "36 unsupported" is a pile and "36 waiting on the semantic reader"
@@ -66,6 +68,7 @@ OWNER = {MAPPED_AND_AGREED: "—",
          MAPPED_BUT_DISAGREED: "adjudication",
          INSUFFICIENT_RELATION: "binder or corpus",
          AMBIGUOUS_BY_LANGUAGE: "the user, via clarification",
+         NOT_A_CONTRACT_FIELD: "the schema, or nobody — see INTERMEDIATE_FIELDS",
          NO_FIELD_MAPPING: "semantics.py — field derivation",
          NO_LITERAL: "the semantic reader",
          NO_PARSE: "stanza.download"}
@@ -76,6 +79,18 @@ def classify(case, recorded: RecordedReader) -> dict:
     if not recorded.has(case.text, case.language):
         return {"state": NO_PARSE,
                 "reason": f"no {case.language} model has been fetched"}
+
+    # Contract field names are canonical at the fusion boundary. A case
+    # asserting an intermediate is testing semantics this pipeline computes and
+    # the contract does not carry — real, and outside the boundary. Naming that
+    # separately stops it being counted as a mapping nobody wrote.
+    from src.discovery.semantics import INTERMEDIATE_FIELDS
+
+    if case.asserts.get("field") in INTERMEDIATE_FIELDS:
+        return {"state": NOT_A_CONTRACT_FIELD,
+                "reason": f"{case.asserts['field']!r} is computed by this "
+                          "pipeline and is not a contract dimension; the case "
+                          "asserts something outside the fusion boundary"}
 
     values = normalize(case.text, case.language)
     if not values:
