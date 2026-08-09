@@ -114,17 +114,18 @@ which is the correct answer for `12/25` and the wrong one here. No rule over
 digits alone separates them; it needs the surrounding words, which means it
 belongs above tier 1.
 
-**Nothing binds a ratio to its account.** `401k (50/50), Roth IRA (85/15),
-taxable brokerage (70/30)` normalises to three ratios and no accounts. The
-binding is a relation, and the contract already has the right shape for it —
-this is the `RelationSpec` rule verbatim: meaning depends on which value
-belongs to which participant.
+**Nothing binds a ratio to its account.** *Resolved — see "The relation
+reader" below.* `401k (50/50), Roth IRA (85/15), taxable brokerage (70/30)`
+normalises to three ratios and no accounts, and normalisation was never going
+to bind them: this is the `RelationSpec` rule verbatim, that meaning depends on
+which value belongs to which participant. The binder now establishes all three.
 
-**And the parser tokenises that sentence three different ways.** In one string
-Stanza keeps `50/50` as a single token, splits `85/15` into `85`, `/`, `15`,
-and splits `70/30` into `70/` and `30`. An extractor written against any one
-shape is wrong about the other two, and no scoring rule reaches this — it is
-below the level the scorer sees.
+**And the parser tokenises that sentence three different ways.** *Resolved by
+`align()`.* In one string Stanza keeps `50/50` as a single token, splits
+`85/15` into `85`, `/`, `15`, and splits `70/30` into `70/` and `30`. An
+extractor written against any one shape is wrong about the other two, and no
+scoring rule reaches this — it is below the level the scorer sees, which is why
+the fix was an ordering change rather than a rule.
 
 **Two ratios arrive with nothing marking which is the target.** In *"my 60/40
 is acting like 70/30"* the first is the target; in *"70/30 vs 60/40"* neither
@@ -224,6 +225,120 @@ refuses on, so nothing downstream can execute a guess. An
 `AMBIGUOUS_BY_LANGUAGE` becomes `NOT_ASKED` rather than
 `UNRESOLVED_DISAGREEMENT` — nobody disagreed, nobody has asked yet, and
 recording it as a disagreement would misdescribe both the cause and the repair.
+
+## The relation reader
+
+[`src/discovery/binding.py`](../src/discovery/binding.py). The layer fusion
+could refuse without but never supply: **who does this value modify?**
+
+    401k (50/50), Roth IRA (85/15), taxable brokerage (70/30)
+
+    ratio@6-11   appositive_of  BOUND  -> 401k
+    ratio@24-29  appositive_of  BOUND  -> Roth IRA
+    ratio@51-56  appositive_of  BOUND  -> taxable brokerage
+
+Three ratios, three accounts, through three different tokenisations — the
+binder consumes normalised values aligned to spans, so the tokenizer's
+inconsistency never reaches it.
+
+**It emits structure and never meaning.** A binding says a value is the
+appositive of `401k`; it does not say `401k` is an account. Each rule declares
+which semantic pairing it is *evidence for* — `account↔allocation`,
+`asset↔weight`, `cadence↔action` — and that declaration lives on the rule, not
+in the output, so a consumer cannot mistake a structural fact for a settled
+field. A test asserts no binding ever names a semantic field.
+
+Three statuses, and the middle one is the point. `AMBIGUOUS` is not `UNBOUND`
+with extra steps: a value with two candidate targets is one where picking
+either is a coin toss dressed as a reading. Both reach fusion as
+`INSUFFICIENT_RELATION` today; they stay distinct because the repairs differ —
+one needs a rule, the other needs a question.
+
+Two things the sentences corrected while it was being written. The rule first
+looked *upward* for a shared head, and `40%` reached across the `conj` edge to
+match `VTI` as well as `BND`; looking downward at what hangs off the value's
+own phrase cannot cross a coordination boundary. And targets were reported as
+`k`, because Stanza splits `401k` and makes `k` the head — structurally right
+and useless, since a target nobody can identify is a binding nobody can check.
+Phrases are now rebuilt by character offset, which knows that `401` and `k` are
+adjacent and `Roth` and `IRA` are not.
+
+**The seam with fusion is tested as a dependency, not as a substring.** Two
+earlier versions of that test scanned `fuse`'s source for the word "parse" and
+matched, first, its own explanation of why it does not parse, and then a
+refusal message written for a user — the self-matching scan this project has
+now produced three times. A text search cannot tell an access from prose about
+the access. The property is that fusion does not depend on the structural
+types, and an import graph says that exactly. Mutating either side proves it:
+importing `Parse` into fusion fails it, and removing the binder predicate fails
+it and the live-binding test together.
+
+## Phase 6 — the field mappers, and the metric
+
+[`src/discovery/semantics.py`](../src/discovery/semantics.py). Consumes
+`RelationBinding` and normalised values, emits `SemanticCandidate`, touches no
+parse — the binder already turned structure into a typed fact, and a mapper
+going back to the tokens would be the third place in the pipeline reading
+dependencies.
+
+    normalisation → binding → semantic candidate → fusion → field | Unresolved
+
+A candidate is a proposal, not a field. It carries no confidence and no rank —
+only what it proposes, what it came from, and the evidence. Fusion decides
+whether it survives, and that separation is what stops the mapper becoming the
+authority.
+
+`cadence` joined the normaliser to make the mappings possible: recognising that
+`monthly` names the MONTHLY period is lexical work, the same class as `$1k` →
+1000. What that period governs is the binder's job; which field it fills is the
+mapper's. The payoff is the sentence the layer was built for:
+
+    contribute $500 monthly, rebalanced annually
+      amount               500
+      cadence              monthly
+      rebalancing_cadence  annual
+
+Two cadences, two fields, decided by which verb each one attaches to.
+
+### The metric
+
+[`corpus/parser/closure.json`](../corpus/parser/closure.json), regenerated by
+[`closure.py`](../corpus/parser/closure.py) and checked by
+`tests/test_closure.py`. Not "how many cases left `AWAITING_A_PARSER`" — a
+number rules can move — but why each one is still there:
+
+| state | count | what it means |
+|---|---|---|
+| `MAPPED_AND_AGREED` | 7 | a candidate was proposed and fusion let it through |
+| `INSUFFICIENT_RELATION` | 6 | the value exists; nothing binds it |
+| `AMBIGUOUS_BY_LANGUAGE` | 1 | the words carry both readings |
+| `STILL_UNSUPPORTED` | 36 | no literal to normalise, or no mapping for the field asserted |
+| `NO_PARSE_RECORDED` | 4 | the non-English models have not been fetched |
+
+`AWAITING_A_PARSER` went 108 → 54 → **47**, and the seven that left are run end
+to end by `tests/test_semantics.py` rather than merely counted as handled.
+
+`STILL_UNSUPPORTED` is the largest bucket and is not a defect of these layers.
+*"weight by inverse volatility"* has no literal in it; there is nothing to
+normalise and nothing to bind. Those belong to the semantic reader, and naming
+them stops the deterministic layers being blamed for work that was never theirs
+— or, worse, growing a rule to claim it.
+
+### The report shipped with the defect it was built to catch
+
+The first version took `candidates[0]` when no candidate matched the field a
+case asserts. So *"when SPY crosses below its 200-day average"* was answered
+with a 200-day **holding period** and counted as a success for trigger
+semantics. Six of thirteen agreements were that shape — the
+comparator-manufactures-agreement defect, reproduced inside the instrument
+built to measure the pipeline.
+
+Two things now stop it. A candidate for another field is `STILL_UNSUPPORTED`
+and names what *was* proposed. And `MAPPED_AND_AGREED` carries
+`matches_expected`, because fusion's outcome and the corpus's expectation are
+different axes: agreeing says the pipeline was internally consistent, matching
+says it was also right. Restoring the fallback takes agreements from 7 to 12
+and fails both guards.
 
 ## Order of work
 

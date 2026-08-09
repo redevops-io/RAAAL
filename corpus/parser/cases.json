@@ -1,8 +1,8 @@
 {
   "schema": "quantify-parser-corpus@1",
-  "count": 218,
+  "count": 224,
   "by_tier": {
-    "normalization": 108,
+    "normalization": 114,
     "dependency": 60,
     "semantics": 50
   },
@@ -1371,12 +1371,88 @@
       "asserts": {
         "kinds": [
           "money",
+          "cadence",
           "ratio",
           "duration"
         ]
       },
       "origin": "constructed",
+      "note": "four kinds, in reading order. `cadence` joined when worded periods became normalisable — lexical work, like `$1k` -> 1000; what the period governs is the binder's job and which field it fills is the mapper's"
+    },
+    {
+      "id": "norm-cadence-worded_period-001",
+      "tier": "normalization",
+      "property": "cadence.worded_period",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "asserts": {
+        "kind": "cadence",
+        "canonical": "monthly"
+      },
+      "origin": "constructed",
       "note": ""
+    },
+    {
+      "id": "norm-cadence-worded_period-002",
+      "tier": "normalization",
+      "property": "cadence.worded_period",
+      "text": "add $250 every two weeks",
+      "language": "en",
+      "asserts": {
+        "kind": "cadence",
+        "canonical": "biweekly"
+      },
+      "origin": "falsification",
+      "note": "longest match first, or `every two weeks` reads as `every week`"
+    },
+    {
+      "id": "norm-cadence-worded_period-003",
+      "tier": "normalization",
+      "property": "cadence.worded_period",
+      "text": "a one-off $10,000 investment",
+      "language": "en",
+      "asserts": {
+        "kind": "cadence",
+        "canonical": "once"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-cadence-a_duration_is_not_a_cadence-001",
+      "tier": "normalization",
+      "property": "cadence.a_duration_is_not_a_cadence",
+      "text": "hold the position for 5 years",
+      "language": "en",
+      "asserts": {
+        "absent": "cadence"
+      },
+      "origin": "falsification",
+      "note": "`5 years` contains `years`; reading it as an annual cadence is the duration/window collision in another costume. The duration claims the span first, which is the same mechanism"
+    },
+    {
+      "id": "norm-cadence-a_duration_is_not_a_cadence-002",
+      "tier": "normalization",
+      "property": "cadence.a_duration_is_not_a_cadence",
+      "text": "an investment horizon of 50 years",
+      "language": "en",
+      "asserts": {
+        "absent": "cadence"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "norm-cadence-a_day_rule_is_not_a_cadence-001",
+      "tier": "normalization",
+      "property": "cadence.a_day_rule_is_not_a_cadence",
+      "text": "rebalance at year end",
+      "language": "en",
+      "asserts": {
+        "absent": "cadence"
+      },
+      "origin": "falsification",
+      "note": "a period boundary, not a period. Inventing a cadence here would be tier 1 making a semantic decision"
     },
     {
       "id": "depe-cadence-attaches_to_contribution-001",

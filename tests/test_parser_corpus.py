@@ -15,7 +15,9 @@ the work, which is the only version of this that stays true.
 """
 from __future__ import annotations
 
+import json
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -23,17 +25,27 @@ from corpus.parser.loader import load
 from src.discovery.syntax import normalize
 from src.discovery.syntax_stanza import RecordedReader
 
+ROOT = Path(__file__).resolve().parent.parent
 CASES = load()
 RECORDED = RecordedReader()
 
-#: Cases nothing runs yet: every semantics case, plus any dependency case whose
-#: language has no recorded parse. Lowered when a tier or a language lands,
-#: raised when cases are added — and asserted, so neither happens quietly.
+#: Cases nothing asserts yet. Lowered when work lands, raised when cases are
+#: added — and asserted, so neither happens quietly.
 #:
-#: It was 108 when only tier 1 ran. English tier 2 landing took it to 54:
-#: the 50 semantics cases, and the 4 non-English dependency cases whose
-#: models have not been fetched.
-AWAITING_A_PARSER = 54
+#: 108 when only tier 1 ran. English tier 2 took it to 54. The field mappers
+#: took it to 47: seven semantics cases are now run end to end by
+#: `tests/test_semantics.py`, and `corpus/parser/closure.json` says why each of
+#: the remaining 47 is still there rather than leaving them a single number.
+AWAITING_A_PARSER = 47
+
+#: Semantics cases the deterministic path answers, asserted elsewhere. Read
+#: from the closure report because that is where the classification lives; the
+#: report is itself regenerated and checked by `tests/test_closure.py`, so this
+#: is not a number trusting itself.
+_CLOSURE = json.loads(
+    (ROOT / "corpus" / "parser" / "closure.json").read_text())
+ANSWERED = {row["id"] for row in _CLOSURE["rows"]
+            if row["state"] == "MAPPED_AND_AGREED"}
 
 
 def executable():
@@ -42,8 +54,10 @@ def executable():
 
 def pending():
     return [c for c in CASES
-            if c.tier == "semantics"
-            or (c.tier == "dependency" and not RECORDED.has(c.text, c.language))]
+            if c.id not in ANSWERED
+            and (c.tier == "semantics"
+                 or (c.tier == "dependency"
+                     and not RECORDED.has(c.text, c.language)))]
 
 
 class TestTheCorpusIsWhatItClaims:
@@ -80,10 +94,14 @@ class TestTheCorpusIsWhatItClaims:
         waiting either on the semantics tier or on a language model nobody has
         fetched, and those are the only two answers."""
         for case in pending():
-            reason = ("semantics tier not built" if case.tier == "semantics"
+            reason = ("no mapping answers this case yet"
+                      if case.tier == "semantics"
                       else f"no {case.language} parse recorded")
             assert case.tier == "semantics" or not RECORDED.has(
                 case.text, case.language), reason
+            assert case.id not in ANSWERED, (
+                f"{case.id} is answered by the pipeline and still counted as "
+                "pending; the count and the work must move together")
 
 
 @pytest.mark.parametrize("case", executable(), ids=lambda c: c.id)

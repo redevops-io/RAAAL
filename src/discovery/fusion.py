@@ -193,9 +193,10 @@ def fuse(dimension: str, *, model: Optional[Proposal] = None,
     """One dimension, one decision.
 
     `bound` says whether the relation this dimension requires has actually been
-    supplied. Passed in rather than inspected, because whether a ratio is bound
-    to an account is something the reader above knows and this module cannot
-    see from a value.
+    established. Passed in rather than worked out here, because fusion must
+    never inspect a parse — that is `binding.py`'s job, and a fusion layer that
+    learned to read structure would become the second parser this architecture
+    exists to avoid. `fuse_with_bindings` is the wiring; this is the decision.
     """
     requirement = requirement or REQUIREMENTS.get(dimension, Requirement())
     syntax = tuple(syntax)
@@ -246,6 +247,30 @@ def fuse(dimension: str, *, model: Optional[Proposal] = None,
                     model=model, syntax=syntax,
                     detail="syntax supports the reading" if syntax
                            else "the model read it and syntax was silent")
+
+
+def fuse_with_bindings(dimension: str, value, *, bindings: Sequence[Any],
+                       model: Optional[Proposal] = None,
+                       syntax: Sequence[SyntaxEvidence] = (),
+                       requirement: Optional[Requirement] = None) -> Decision:
+    """`fuse`, with `bound` answered by a real binder rather than a caller.
+
+    The whole seam in one function: `binding.is_bound` reads structure and
+    returns a boolean, `fuse` reads the boolean and decides. Neither imports
+    the other's judgement — fusion still cannot see a parse, and the binder
+    still cannot see an outcome.
+
+    `value` is the normalised `Value` a binding would be about. Passing the
+    value rather than its id keeps the identity function in one place; two
+    modules computing an id separately is how a lookup starts silently missing.
+    """
+    from .binding import is_bound
+
+    requirement = requirement or REQUIREMENTS.get(dimension, Requirement())
+    established = (True if not requirement.binds
+                   else bool(value is not None and is_bound(bindings, value)))
+    return fuse(dimension, model=model, syntax=syntax,
+                requirement=requirement, bound=established)
 
 
 def _ambiguity(dimension: str, model: Optional[Proposal],

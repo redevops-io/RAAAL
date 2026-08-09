@@ -214,7 +214,31 @@ norm("span.both_survive_one_sentence",
           "claiming spans rather than emitting every match")
 norm("span.order_is_reading_order",
      "put $500 monthly into a 60/40 split for 10 years",
-     {"kinds": ["money", "ratio", "duration"]})
+     {"kinds": ["money", "cadence", "ratio", "duration"]},
+     note="four kinds, in reading order. `cadence` joined when worded periods "
+          "became normalisable — lexical work, like `$1k` -> 1000; what the "
+          "period governs is the binder's job and which field it fills is the "
+          "mapper's")
+
+norm("cadence.worded_period", "invest $500 monthly",
+     {"kind": "cadence", "canonical": "monthly"})
+norm("cadence.worded_period", "add $250 every two weeks",
+     {"kind": "cadence", "canonical": "biweekly"},
+     origin="falsification",
+     note="longest match first, or `every two weeks` reads as `every week`")
+norm("cadence.worded_period", "a one-off $10,000 investment",
+     {"kind": "cadence", "canonical": "once"})
+norm("cadence.a_duration_is_not_a_cadence", "hold the position for 5 years",
+     {"absent": "cadence"}, origin="falsification",
+     note="`5 years` contains `years`; reading it as an annual cadence is the "
+          "duration/window collision in another costume. The duration claims "
+          "the span first, which is the same mechanism")
+norm("cadence.a_duration_is_not_a_cadence", "an investment horizon of 50 years",
+     {"absent": "cadence"}, origin="falsification")
+norm("cadence.a_day_rule_is_not_a_cadence", "rebalance at year end",
+     {"absent": "cadence"}, origin="falsification",
+     note="a period boundary, not a period. Inventing a cadence here would be "
+          "tier 1 making a semantic decision")
 
 # ── Tier 2: dependency ───────────────────────────────────────────────────────
 # Which token governs which. Needs a parse; asserts one edge.

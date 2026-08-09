@@ -85,12 +85,14 @@ class TestNormalisationOnRealPhrasings:
                  if v.kind == "ratio"]
         assert found == [(50, 50), (85, 15), (70, 30)]
 
-    def test_but_nothing_binds_a_ratio_to_its_account(self):
-        """DEFECT, and a structural one. Tier 1 emits three ratios and no
-        accounts, so a consumer reading only normalisation has the numbers and
-        cannot say which is the 401k. The binding is a relation, and relations
-        are tier 2 — this test exists so the gap is recorded rather than
-        assumed to be covered."""
+    def test_normalisation_alone_does_not_bind_a_ratio_to_its_account(self):
+        """Not a defect — a boundary, and one worth keeping asserted.
+
+        Tier 1 emits three ratios and no accounts, so a consumer reading only
+        normalisation has the numbers and cannot say which is the 401k. That
+        gap is now filled by `binding.py` rather than by widening this layer,
+        which is the point: if normalisation ever started emitting targets it
+        would be making a structural decision with no parse in front of it."""
         values = normalize("401k (50/50), Roth IRA (85/15), "
                            "taxable brokerage (70/30)")
         assert all(not v.unit for v in values if v.kind == "ratio")

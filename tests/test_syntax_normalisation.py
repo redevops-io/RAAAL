@@ -112,5 +112,11 @@ class TestEverySpanPointsAtItsOwnInput:
             assert value.source_span.strip()
 
     def test_values_come_back_in_reading_order(self):
+        """Four kinds now: `cadence` joined when worded periods became
+        normalisable. Reading order is what makes a span checkable against the
+        text, so it is asserted rather than assumed."""
         found = normalize("put $500 monthly into a 60/40 split for 10 years")
-        assert [v.kind for v in found] == ["money", "ratio", "duration"]
+        assert [v.kind for v in found] == ["money", "cadence", "ratio",
+                                           "duration"]
+        assert [v.start_char for v in found] == sorted(
+            v.start_char for v in found)

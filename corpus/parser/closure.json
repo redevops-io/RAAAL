@@ -1,0 +1,549 @@
+{
+  "schema": "quantify-parser-closure@1",
+  "pending": 54,
+  "by_state": {
+    "MAPPED_AND_AGREED": 7,
+    "AMBIGUOUS_BY_LANGUAGE": 1,
+    "STILL_UNSUPPORTED": 36,
+    "INSUFFICIENT_RELATION": 6,
+    "NO_PARSE_RECORDED": 4
+  },
+  "agreed_and_correct": 7,
+  "agreed_but_wrong_value": [],
+  "by_property": {
+    "assets.stay_as_written": {
+      "STILL_UNSUPPORTED": 3
+    },
+    "cadence.attaches_to_other_verb": {
+      "NO_PARSE_RECORDED": 4
+    },
+    "dividends.policy": {
+      "STILL_UNSUPPORTED": 3
+    },
+    "funding.amount": {
+      "MAPPED_AND_AGREED": 3
+    },
+    "funding.amount_kind": {
+      "STILL_UNSUPPORTED": 4
+    },
+    "funding.cadence": {
+      "MAPPED_AND_AGREED": 3,
+      "AMBIGUOUS_BY_LANGUAGE": 1,
+      "STILL_UNSUPPORTED": 1,
+      "INSUFFICIENT_RELATION": 1
+    },
+    "negation.changes_the_value": {
+      "STILL_UNSUPPORTED": 3
+    },
+    "timing.day_rule": {
+      "STILL_UNSUPPORTED": 2,
+      "INSUFFICIENT_RELATION": 1
+    },
+    "timing.execution": {
+      "STILL_UNSUPPORTED": 4
+    },
+    "trigger.asset_roles": {
+      "STILL_UNSUPPORTED": 3
+    },
+    "trigger.semantics": {
+      "STILL_UNSUPPORTED": 4,
+      "INSUFFICIENT_RELATION": 1
+    },
+    "weighting.method": {
+      "STILL_UNSUPPORTED": 5
+    },
+    "window.evaluation_period": {
+      "STILL_UNSUPPORTED": 3
+    },
+    "window.holding_period": {
+      "MAPPED_AND_AGREED": 1,
+      "STILL_UNSUPPORTED": 1
+    },
+    "window.moving_average": {
+      "INSUFFICIENT_RELATION": 3
+    }
+  },
+  "note": "STILL_UNSUPPORTED is not a defect of the deterministic layers. It names cases with no literal to normalise, which belong to the semantic reader — recorded so they are not confused with cases a rule could close.",
+  "rows": [
+    {
+      "id": "sema-funding-cadence-001",
+      "property": "funding.cadence",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "state": "MAPPED_AND_AGREED",
+      "field": "cadence",
+      "value": "monthly",
+      "expected": "monthly",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
+    },
+    {
+      "id": "sema-funding-cadence-002",
+      "property": "funding.cadence",
+      "text": "contribute $500 monthly, rebalanced annually",
+      "language": "en",
+      "state": "AMBIGUOUS_BY_LANGUAGE",
+      "reason": "'rebalance' is used for both readings in attested writing (rebalance back to target | change the target allocation); a better parse cannot settle what the words do not",
+      "field": "cadence"
+    },
+    {
+      "id": "sema-funding-cadence-003",
+      "property": "funding.cadence",
+      "text": "add $250 every two weeks",
+      "language": "en",
+      "state": "MAPPED_AND_AGREED",
+      "field": "cadence",
+      "value": "biweekly",
+      "expected": "biweekly",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
+    },
+    {
+      "id": "sema-funding-cadence-004",
+      "property": "funding.cadence",
+      "text": "put in $1,000 each quarter",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "values normalised but no declared mapping consumes this relation for this field"
+    },
+    {
+      "id": "sema-funding-cadence-005",
+      "property": "funding.cadence",
+      "text": "deposit $100 a week",
+      "language": "en",
+      "state": "MAPPED_AND_AGREED",
+      "field": "cadence",
+      "value": "weekly",
+      "expected": "weekly",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
+    },
+    {
+      "id": "sema-funding-cadence-006",
+      "property": "funding.cadence",
+      "text": "a one-off $10,000 investment",
+      "language": "en",
+      "state": "INSUFFICIENT_RELATION",
+      "reason": "a value was normalised and nothing binds it"
+    },
+    {
+      "id": "sema-funding-amount-001",
+      "property": "funding.amount",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "state": "MAPPED_AND_AGREED",
+      "field": "amount",
+      "value": "500",
+      "expected": "500",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
+    },
+    {
+      "id": "sema-funding-amount-002",
+      "property": "funding.amount",
+      "text": "contribute £1k a month",
+      "language": "en",
+      "state": "MAPPED_AND_AGREED",
+      "field": "amount",
+      "value": "1000",
+      "expected": "1000",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
+    },
+    {
+      "id": "sema-funding-amount-003",
+      "property": "funding.amount",
+      "text": "add $2.5k quarterly",
+      "language": "en",
+      "state": "MAPPED_AND_AGREED",
+      "field": "amount",
+      "value": "2500",
+      "expected": "2500",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
+    },
+    {
+      "id": "sema-weighting-method-001",
+      "property": "weighting.method",
+      "text": "a 60/40 portfolio",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "values normalised but no declared mapping consumes this relation for this field"
+    },
+    {
+      "id": "sema-weighting-method-002",
+      "property": "weighting.method",
+      "text": "split it 70/30 between stocks and bonds",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "values normalised but no declared mapping consumes this relation for this field"
+    },
+    {
+      "id": "sema-weighting-method-003",
+      "property": "weighting.method",
+      "text": "equal weight across the four",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-weighting-method-004",
+      "property": "weighting.method",
+      "text": "weight by inverse volatility",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-weighting-method-005",
+      "property": "weighting.method",
+      "text": "market-cap weighted",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-trigger-semantics-001",
+      "property": "trigger.semantics",
+      "text": "when SPY crosses below its 200-day average",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "candidates were proposed for ['holding_period_days'] and none for 'trigger_semantics', which is what this case asserts",
+      "proposed": [
+        "holding_period_days"
+      ]
+    },
+    {
+      "id": "sema-trigger-semantics-002",
+      "property": "trigger.semantics",
+      "text": "whenever SPY drops under the 200-day",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "candidates were proposed for ['holding_period_days'] and none for 'trigger_semantics', which is what this case asserts",
+      "proposed": [
+        "holding_period_days"
+      ]
+    },
+    {
+      "id": "sema-trigger-semantics-003",
+      "property": "trigger.semantics",
+      "text": "while SPY stays below its average",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-trigger-semantics-004",
+      "property": "trigger.semantics",
+      "text": "as long as SPY is under trend",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-trigger-semantics-005",
+      "property": "trigger.semantics",
+      "text": "any time SPY is below the 200-day",
+      "language": "en",
+      "state": "INSUFFICIENT_RELATION",
+      "reason": "a value was normalised and nothing binds it"
+    },
+    {
+      "id": "sema-trigger-asset_roles-001",
+      "property": "trigger.asset_roles",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-trigger-asset_roles-002",
+      "property": "trigger.asset_roles",
+      "text": "purchase VTI whenever QQQ drops 10%",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "values normalised but no declared mapping consumes this relation for this field"
+    },
+    {
+      "id": "sema-trigger-asset_roles-003",
+      "property": "trigger.asset_roles",
+      "text": "add to BND while TLT is under its 200-day",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "this case asserts a role pair rather than a single field; no mapping produces role pairs yet",
+      "proposed": [
+        "holding_period_days"
+      ]
+    },
+    {
+      "id": "sema-window-moving_average-011",
+      "property": "window.moving_average",
+      "text": "below the 200-day moving average",
+      "language": "en",
+      "state": "INSUFFICIENT_RELATION",
+      "reason": "a value was normalised and nothing binds it"
+    },
+    {
+      "id": "sema-window-moving_average-012",
+      "property": "window.moving_average",
+      "text": "under its 50-day average",
+      "language": "en",
+      "state": "INSUFFICIENT_RELATION",
+      "reason": "a value was normalised and nothing binds it"
+    },
+    {
+      "id": "sema-window-moving_average-013",
+      "property": "window.moving_average",
+      "text": "beneath the 12-month moving average",
+      "language": "en",
+      "state": "INSUFFICIENT_RELATION",
+      "reason": "a value was normalised and nothing binds it"
+    },
+    {
+      "id": "sema-window-holding_period-001",
+      "property": "window.holding_period",
+      "text": "hold the bonus for 90 days",
+      "language": "en",
+      "state": "MAPPED_AND_AGREED",
+      "field": "holding_period_days",
+      "value": "90",
+      "expected": "90",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
+    },
+    {
+      "id": "sema-window-holding_period-002",
+      "property": "window.holding_period",
+      "text": "keep it for six months",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-negation-changes_the_value-001",
+      "property": "negation.changes_the_value",
+      "text": "through an ETF",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-negation-changes_the_value-002",
+      "property": "negation.changes_the_value",
+      "text": "rather than through an ETF",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-negation-changes_the_value-003",
+      "property": "negation.changes_the_value",
+      "text": "directly, not through a fund",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-funding-amount_kind-001",
+      "property": "funding.amount_kind",
+      "text": "invest whatever is left over each month",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "values normalised but no declared mapping consumes this relation for this field"
+    },
+    {
+      "id": "sema-funding-amount_kind-002",
+      "property": "funding.amount_kind",
+      "text": "contribute a fixed $500",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "candidates were proposed for ['amount'] and none for 'amount_kind', which is what this case asserts",
+      "proposed": [
+        "amount"
+      ]
+    },
+    {
+      "id": "sema-funding-amount_kind-003",
+      "property": "funding.amount_kind",
+      "text": "invest 10% of my salary monthly",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "candidates were proposed for ['asset_weight', 'cadence'] and none for 'amount_kind', which is what this case asserts",
+      "proposed": [
+        "asset_weight",
+        "cadence"
+      ]
+    },
+    {
+      "id": "sema-funding-amount_kind-004",
+      "property": "funding.amount_kind",
+      "text": "put in half of any bonus",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-timing-execution-001",
+      "property": "timing.execution",
+      "text": "buy at the next open",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-timing-execution-002",
+      "property": "timing.execution",
+      "text": "execute at the close",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-timing-execution-003",
+      "property": "timing.execution",
+      "text": "trade at the following day's open",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-timing-execution-004",
+      "property": "timing.execution",
+      "text": "fill on the signal bar",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-timing-day_rule-001",
+      "property": "timing.day_rule",
+      "text": "on the first trading day of the month",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-timing-day_rule-002",
+      "property": "timing.day_rule",
+      "text": "on the last session of each quarter",
+      "language": "en",
+      "state": "INSUFFICIENT_RELATION",
+      "reason": "a value was normalised and nothing binds it"
+    },
+    {
+      "id": "sema-timing-day_rule-003",
+      "property": "timing.day_rule",
+      "text": "mid-month",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-window-evaluation_period-001",
+      "property": "window.evaluation_period",
+      "text": "evaluate over the past five years",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-window-evaluation_period-002",
+      "property": "window.evaluation_period",
+      "text": "measured across ten years",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-window-evaluation_period-003",
+      "property": "window.evaluation_period",
+      "text": "since January 2020",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-assets-stay_as_written-001",
+      "property": "assets.stay_as_written",
+      "text": "buy a core index fund monthly",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "candidates were proposed for ['cadence'] and none for 'assets', which is what this case asserts",
+      "proposed": [
+        "cadence"
+      ]
+    },
+    {
+      "id": "sema-assets-stay_as_written-002",
+      "property": "assets.stay_as_written",
+      "text": "invest in the S&P 500 tracker",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-assets-stay_as_written-003",
+      "property": "assets.stay_as_written",
+      "text": "put it into an SPX ETF",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-dividends-policy-001",
+      "property": "dividends.policy",
+      "text": "reinvest the dividends",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-dividends-policy-002",
+      "property": "dividends.policy",
+      "text": "take the dividends as cash",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "sema-dividends-policy-003",
+      "property": "dividends.policy",
+      "text": "do not reinvest",
+      "language": "en",
+      "state": "STILL_UNSUPPORTED",
+      "reason": "no normalised value in the sentence; this needs the semantic reader, not a deterministic rule"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-007",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "invertir 500 € cada mes, reequilibrado anualmente",
+      "language": "es",
+      "state": "NO_PARSE_RECORDED",
+      "reason": "no es model has been fetched"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-008",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "monatlich investieren, jährlich neu gewichten",
+      "language": "de",
+      "state": "NO_PARSE_RECORDED",
+      "reason": "no de model has been fetched"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-009",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "investir chaque mois, rééquilibré chaque année",
+      "language": "fr",
+      "state": "NO_PARSE_RECORDED",
+      "reason": "no fr model has been fetched"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-010",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "инвестировать ежемесячно, ребалансировать ежегодно",
+      "language": "ru",
+      "state": "NO_PARSE_RECORDED",
+      "reason": "no ru model has been fetched"
+    }
+  ]
+}

@@ -144,10 +144,11 @@ class TestNormalisationHappensBeforeScoring:
                        start_char=900, end_char=907, unit="days")
         assert align(parse, [beyond]) == ()
 
-        # And the control: a value whose span *is* covered comes back, so the
-        # rule is "drop what does not overlap" rather than "drop everything".
+        # And the control: values whose spans *are* covered all come back, so
+        # the rule is "drop what does not overlap" rather than "drop
+        # everything". Both the amount and the cadence are covered here.
         real = normalize("invest $500 monthly")
-        assert len(align(parse, real)) == len(real) == 1
+        assert len(align(parse, real)) == len(real) == 2
 
     def test_scoring_a_value_and_scoring_its_anchor_agree(self):
         """`score_value` is a wrapper, not a second implementation. If the two

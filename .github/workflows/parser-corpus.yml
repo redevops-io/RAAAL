@@ -50,7 +50,10 @@ jobs:
             tests/test_syntax_normalisation.py \
             tests/test_syntax_attachment.py \
             tests/test_real_phrasings.py \
-            tests/test_fusion.py
+            tests/test_fusion.py \
+            tests/test_binding.py \
+            tests/test_semantics.py \
+            tests/test_closure.py
 
       - name: The generators and the files agree
         # The JSON is the artifact and the builder is how it is made. A
@@ -58,7 +61,7 @@ jobs:
         # and for the attested pack it is also how an invented sentence
         # acquires a source link it never had.
         run: |
-          for pair in "cases:build_cases" "real_phrasings:real_phrasings"; do
+          for pair in "cases:build_cases" "real_phrasings:real_phrasings" "closure:closure"; do
             name="${pair%%:*}"; builder="${pair##*:}"
             cp "corpus/parser/${name}.json" "/tmp/${name}.committed.json"
             python "corpus/parser/${builder}.py"

@@ -251,6 +251,41 @@ _WINDOW = re.compile(
     r"(?:moving[\s-]average|ma|sma|ema)\b", re.I)
 
 
+#: Worded periods, to their canonical name.
+#:
+#: Lexical, not semantic — the same class of work as `$1k` -> 1000. Recognising
+#: that "monthly" names the MONTHLY period is a fact about the word. *What that
+#: period governs* is the binder's job, and *which field it fills* is the
+#: mapper's; neither is decided here, and a normaliser that reached for either
+#: would be the regex compiler again.
+#:
+#: `at year end` is deliberately absent. It is a day rule rather than a period,
+#: and inventing a cadence for it here would be exactly the overreach above.
+_CADENCE = {
+    "daily": "daily", "a day": "daily", "each day": "daily",
+    "every day": "daily", "per day": "daily",
+    "weekly": "weekly", "a week": "weekly", "each week": "weekly",
+    "every week": "weekly", "per week": "weekly",
+    "biweekly": "biweekly", "fortnightly": "biweekly",
+    "every two weeks": "biweekly", "every other week": "biweekly",
+    "monthly": "monthly", "a month": "monthly", "each month": "monthly",
+    "every month": "monthly", "per month": "monthly",
+    "quarterly": "quarterly", "a quarter": "quarterly",
+    "each quarter": "quarterly", "every quarter": "quarterly",
+    "per quarter": "quarterly",
+    "annually": "annual", "yearly": "annual", "a year": "annual",
+    "each year": "annual", "every year": "annual", "per year": "annual",
+    "annual": "annual",
+    "one-off": "once", "one off": "once", "once": "once",
+    "a lump sum": "once", "lump sum": "once", "one time": "once",
+}
+
+#: Longest first, so `every two weeks` is not read as `every week` plus noise.
+_CADENCE_PATTERN = re.compile(
+    r"\b(" + "|".join(sorted((re.escape(k) for k in _CADENCE),
+                             key=len, reverse=True)) + r")\b", re.I)
+
+
 def _decimal(raw: str) -> Optional[Decimal]:
     try:
         return Decimal(raw.replace(",", ""))
@@ -325,6 +360,11 @@ def normalize(text: str, language: str = "en") -> Sequence[Value]:
         mult = (match.group("mult") or match.group("mult2")
                 or match.group("mult3") or "").lower()
         amount *= _MULTIPLIER.get(mult, 1)
+        # `$2.5k` multiplies out to Decimal("2500.0"), and a trailing zero is a
+        # different string for the same money — which matters, because these
+        # values are compared as strings inside a content-hashed artifact.
+        if amount == amount.to_integral_value():
+            amount = amount.to_integral_value()
         currency = (_SYMBOL_CURRENCY.get(match.group("symbol")
                                          or match.group("symbol2") or "")
                     or _WORD_CURRENCY.get((match.group("word") or "").lower(), ""))
@@ -352,6 +392,13 @@ def normalize(text: str, language: str = "en") -> Sequence[Value]:
         unit = match.group("unit").lower().rstrip("s")
         claim(Value("duration", int(amount * _DURATION_DAYS[unit]),
                     match.group(0), *match.span(), unit="days"))
+
+    # Cadence last, so a duration claims its span first. "for 5 years" is a
+    # horizon and contains "years"; reading it as an annual cadence is the
+    # duration/window collision in another costume.
+    for match in _CADENCE_PATTERN.finditer(text):
+        claim(Value("cadence", _CADENCE[match.group(1).lower()],
+                    match.group(0), *match.span()))
 
     return tuple(sorted(found, key=lambda v: v.start_char))
 
