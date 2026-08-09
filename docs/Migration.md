@@ -1158,10 +1158,52 @@ The forcing function worked as written — the suite stayed red until the copy
 was gone — and has been replaced by the invariant that outlives it,
 `tests/test_the_contract_is_not_re_vendored.py` (§2.4).
 
-**Gate:** every one of the six holds, and the migration's central invariant
+**Gate:** every one of the seven holds, and the migration's central invariant
 holds on every corpus prompt — **nothing Mission executed was less than what
 Discovery verified, unless it said so by name.** The corpora remain the
 regression instrument; they stop being a comparison instrument.
+
+#### Cross-runtime replay is blocked, and not on effort
+
+Four of the seven properties hold. The fifth — *replay across implementations* —
+cannot be measured yet, for a reason worth stating precisely rather than
+working around.
+
+**Only one runtime speaks the contract.** RAAAL consumes `VerifiedIntent` on
+its production path. `agentic-os` does not: it mentions the type in one
+`planner.py` docstring and imports nothing. Its entry point is
+`create_mission(goal: str, …)`, and `TemplatePlanner._match` chooses the
+template by keyword-matching that string — `"onboard"`, `"overdue"`,
+`"invoice"`. That is a prose reader sitting *below* the boundary, which is the
+same shape as the regex compiler this migration exists to delete, in the
+runtime that is supposed to have replaced it.
+
+So a comparator written today would have to contain the translation from
+`VerifiedIntent` to `Mission(goal=…)` itself. That translation is a
+reimplementation living inside the measurement, which §8.3's third principle
+forbids for exactly this reason: a comparator that translates is measuring its
+own adapter. `runtime-contracts/docs/IMPLEMENTATION_SPLIT.md` states the same
+thing from the other side — *reproducing a golden hash proves translation only;
+it does not prove that the production path adopted the contract.* Golden
+fixtures cannot substitute here.
+
+**The prerequisite is adoption, not a harness.** `agentic-os` needs an entry
+point that takes a sealed intent, refuses an unsealed one, records
+`intent_hash` in `MissionCreated`, and reaches no keyword matcher. Adoption is
+also self-evidencing in a way a harness is not, because `VerifiedIntent`
+carries `utterance_ref` and never the utterance: a runtime handed one *cannot*
+re-read the sentence. The discriminating test is two-way — change the prose and
+hold the intent, and the plan must be byte-identical; change the intent and
+hold the prose, and it must not be.
+
+**And that adoption has a licence consequence which is a genuine blocker, not a
+label.** `agentic-os` is AGPL-3.0-or-later. `runtime-contracts` is AGPL
+**with Commons Clause**, and AGPL §7 forbids imposing further restrictions on
+AGPL-covered work. This is not the soft mismatch `runtime-contracts/LICENSE.md`
+anticipated for `mission-sdk`, where a permissive grant merely stopped
+describing reality — a pure-AGPL project cannot take a Commons-Clause
+dependency and remain distributable as AGPL. It needs a decision (§6.6) before
+the import exists, not after.
 
 ### Phase 5 — The surface (undecided, §6)
 
@@ -1253,6 +1295,31 @@ contracts package sanctions — but it means Phase 3 is genuinely new
 construction, not integration, and the estimate should be read with that in
 mind. The mitigating fact is that Quantify has already built most of a
 discovery runtime once, badly, and knows exactly what it needs to do.
+
+**6. Which licence the mission runtime carries — blocking Phase 4's last
+property.** `agentic-os` must import `runtime-contracts` for cross-runtime
+replay to mean anything (Phase 4). `agentic-os` is AGPL-3.0-or-later;
+`runtime-contracts` is AGPL **with Commons Clause**; AGPL §7 forbids further
+restrictions. Three ways out, and they are not equivalent:
+
+- *Relicense `agentic-os` to AGPL + Commons Clause*, matching RAAAL and
+  `runtime-contracts`. Consistent, and honest about what the runtime family
+  is — but it is a public repository under a licence people may already have
+  relied on, and Commons Clause makes it not open source.
+- *Drop Commons Clause from `runtime-contracts`*, returning it to plain AGPL.
+  The contract package becomes something any runtime can depend on, which is
+  what a contract package is for; the network copyleft still holds. Gives up
+  the commercial restriction on the one component least able to carry it.
+- *Do not share the package.* Each runtime keeps its own types and equivalence
+  is proved against golden fixtures — which is precisely the option
+  `IMPLEMENTATION_SPLIT.md` says proves translation and not adoption. It makes
+  the gate unmeasurable rather than blocked, which is worse.
+
+The decision belongs to whoever owns the licensing, not to the change that
+happens to need the import. Recorded here so the first person to write
+`import runtime_contracts` in `agentic-os` does not decide it by accident —
+which is the same failure `LICENSE.md` records for `mission-sdk`, arriving
+sooner and harder.
 
 ---
 
