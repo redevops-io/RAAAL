@@ -30,9 +30,9 @@ from ..discovery.schema import QUANTIFY_SCHEMA
 from .pilot import InterpreterUnavailable, PilotReading, answer, read, reopen
 from .pilot_events import (answers_already_in_the_prompt, attempts_by, observe,
                            observe_resubmission, observe_save)
+from .pilot_consent import may_keep_prose
 from .pilot_session import (attach, last_prompt, new_participant,
-                            participant_in, record as record_transcript,
-                            retained)
+                            participant_in, record as record_transcript)
 
 router = APIRouter()
 
@@ -83,7 +83,9 @@ def _observe_attempt(request, describe: str, reading: PilotReading,
     answers = answers or {}
 
     prior = attempts_by(participant)
-    previous = last_prompt(participant) if retained() else ""
+    # Gated on the same predicate the recorder uses, so a declining
+    # participant is never compared against a sentence that should not exist.
+    previous = last_prompt(participant) if may_keep_prose(participant) else ""
 
     if prior:
         observe_resubmission(
@@ -205,8 +207,17 @@ def draft(request: Request, describe: str = ""):
     from .routes import TEMPLATES
 
     if not describe.strip():
-        return TEMPLATES.TemplateResponse(request, "pilot.html",
-                                          {"text": "", "reading": None})
+        # A token on the empty page, before anything is typed.
+        #
+        # Issuing it only on submission would make the protocol unrunnable:
+        # consent is recorded against a token, so there would be nothing to
+        # record it against until after the participant's first sentence had
+        # already been discarded — and the unprompted first phrasing is the
+        # most informative thing they produce all session.
+        empty = TEMPLATES.TemplateResponse(request, "pilot.html",
+                                           {"text": "", "reading": None})
+        attach(empty, participant_in(request) or new_participant())
+        return empty
     try:
         reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA)
     except InterpreterUnavailable as down:

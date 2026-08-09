@@ -181,7 +181,13 @@ def last_prompt(participant: str) -> str:
 
 
 def record(participant: str, text: str, attempt: int, **detail: Any) -> None:
-    """One attempt, verbatim, if this deployment said to keep it.
+    """One attempt, verbatim, if this deployment *and* this person said so.
+
+    Two gates, not one. `retained()` is the deployment's declaration that a
+    study is running at all; `may_keep_prose` is whether this particular
+    participant agreed. A deployment switch alone would keep the words of the
+    one person who declined along with the nine who did not, which is the
+    opposite of what the notice promises them.
 
     `attempt` is passed in rather than counted here, and it comes from the
     events table. A transcript-local counter would number the same submission
@@ -194,7 +200,9 @@ def record(participant: str, text: str, attempt: int, **detail: Any) -> None:
     not: a participant losing their plan because a study table was locked would
     be a worse outcome than losing the transcript.
     """
-    if not retained() or not participant:
+    from .pilot_consent import may_keep_prose
+
+    if not may_keep_prose(participant):
         return
 
     from datetime import datetime, timezone

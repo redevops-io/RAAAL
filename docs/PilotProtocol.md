@@ -79,20 +79,79 @@ Two stores, kept apart on purpose.
 Off by default, and only an explicit affirmative turns it on — a typo in that
 variable must fail towards *not* keeping what people typed.
 
+That variable says the study *may* keep prose. It cannot say whether a given
+person agreed, so it is not the whole gate. Consent is recorded per
+participant, and both gates must open before a sentence is stored.
+
+### The three modes
+
+Each participant is in exactly one, and the system can tell them apart:
+
+| Mode | What is collected | How |
+|---|---|---|
+| events only | counts and codes | the default; nothing to do |
+| events + transcript | their sentences too | `grant(participant)` |
+| events + transcript + interview | and the conversation | `grant` + the five questions |
+
+The third is not a system state — it is whether a conversation happens. It is
+in the table because conflating it with the second is how a study ends up
+believing it interviewed everyone whose transcript it kept.
+
+### The notice
+
+The exact words live in `pilot_consent.NOTICE`, in the repository, versioned.
+Read them out before the session starts:
+
+> **Pilot notice**
+>
+> During this pilot we may record the prompts you enter and the system's
+> responses to help us improve the interpreter. These transcripts are used only
+> for product improvement, are retained for up to 30 days, and can be deleted on
+> request at any time. Participation is voluntary, and transcript recording is
+> disabled unless you explicitly agree.
+
+Then, verbally:
+
+> "We'll ask whether we may keep the conversation transcript for analysis. If
+> you'd rather not, we'll still collect anonymous usage events and run the
+> session normally."
+
+A test asserts the notice's promises against the mechanism: thirty days is the
+default retention, withdrawal exists, and recording is off unless declared. It
+is the one document here a non-engineer relies on, so its claims are checked
+rather than trusted.
+
+### Running it
+
+    participant opens the pilot page          → a token is issued
+    read the notice, ask                      → grant(token) or decline(token)
+    they work                                 → prose kept only if granted
+    they ask to be removed, ever              → withdraw(token)
+
+The token is issued by the empty page view, before anything is typed, so the
+unprompted first sentence — the most informative thing anyone produces all
+session — is inside the consented window rather than discarded before consent
+could exist.
+
+**Consent is not retroactive.** Sentences typed before someone agreed stay
+unkept, and no code path can reach back for them. Agreeing at the end of a
+session is agreeing to what happens next.
+
+**Consent is versioned.** Change the notice, bump `NOTICE_VERSION`, and every
+earlier grant reads as `UNKNOWN` until those people are asked again.
+
+**An empty transcript store is never ambiguous.** `pilot_consent.by_state()`
+separates "declined" from "nobody asked" — the same distinction as zero events
+versus zero usage, and the same reason for making it.
+
 Requests carry an opaque participant token in a cookie. It is not identity: no
 name, no address, nothing derived from the request. It exists because a revision
 chain is invisible without it, and because forty compiles is a busy pilot or one
 person struggling and those are opposite conclusions.
 
-**Tell the cohort this, in these words**, before they start:
-
-> Quantify records what you type here and what the system did with it, so the
-> conversation afterwards is about your actual sentences rather than anyone's
-> memory of them. It is kept for thirty days. It is not linked to your name, and
-> if you want it deleted at any point, say so and it is deleted.
-
-`pilot_session.forget(participant)` is that deletion, and it works today —
-written before the pilot rather than after somebody asks.
+The wording read to participants, and the consent it records, are below under
+*The three modes*. `pilot_consent.withdraw(participant)` is the deletion, and it
+works today — written before the pilot rather than after somebody asks.
 
 ## What the telemetry answers
 

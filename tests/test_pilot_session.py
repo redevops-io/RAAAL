@@ -50,9 +50,33 @@ def counting_only(monkeypatch, tmp_path):
 
 
 @pytest.fixture
+def asked_but_not_agreed(monkeypatch, tmp_path):
+    """The study is on and this participant has not agreed to anything.
+
+    The default state for anybody who walks up to the page, and the one the
+    notice describes: recording is off until they say otherwise.
+    """
+    client = _client(monkeypatch, tmp_path, transcripts="yes")
+    client.get(NEW)                      # issues the token, keeps no prose
+    return client
+
+
+@pytest.fixture
 def keeping_words(monkeypatch, tmp_path):
-    """A deployment that declared transcript retention."""
-    return _client(monkeypatch, tmp_path, transcripts="yes")
+    """A deployment running the study, and a participant who agreed to it.
+
+    Two separate facts, and the fixture needs both — which is the whole point
+    of the consent layer. `_client` alone gives a deployment that *may* keep
+    prose and a person who has not been asked.
+    """
+    client = _client(monkeypatch, tmp_path, transcripts="yes")
+    client.get(NEW)
+
+    from src.workspace.pilot_consent import grant
+    from src.workspace.pilot_session import COOKIE
+
+    grant(client.cookies.get(COOKIE))
+    return client
 
 
 class TestRetentionIsDeclaredAndOffByDefault:
