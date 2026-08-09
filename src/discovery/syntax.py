@@ -200,15 +200,47 @@ _WORD_CURRENCY = {"dollar": "USD", "dollars": "USD", "usd": "USD",
 #: `60%`, `4.5 %`
 _PERCENT = re.compile(r"(?P<amount>\d+(?:\.\d+)?)\s?%")
 
-#: `60/40`, `70 / 20 / 10` — a split, which is not two percentages that happen
-#: to be adjacent. Kept as ordered weights because which sleeve gets which is
-#: the whole content.
-_RATIO = re.compile(r"\b(?P<parts>\d{1,3}(?:\s?/\s?\d{1,3}){1,4})\b")
+#: `60/40`, `70 / 20 / 10`, and `60-40` — a split, which is not two percentages
+#: that happen to be adjacent. Kept as ordered weights because which sleeve gets
+#: which is the whole content.
+#:
+#: The hyphen form was missing entirely until the Stack Exchange harvest, where
+#: four of the first twenty-nine attested sentences wrote `60-40` or `80-20`.
+#: Every invented case had used a slash. The sums-to-100 test does the same work
+#: for both: `80-20` is a split, `2012-2015` and `10-20` are not.
+_RATIO = re.compile(
+    r"\b(?P<parts>\d{1,3}(?:\s?/\s?\d{1,3}){1,4})\b"
+    r"|\b(?P<hyphen>\d{1,3}(?:\s?-\s?\d{1,3}){1,4})\b(?!\s?%)")
+
+#: `$200-$220k`, `10-20%` — a range, whose ends this module refuses to read.
+#:
+#: Both were attested and both were read wrongly. `10-20%` came back as 20%,
+#: silently collapsing to the upper bound. `~$200-$220k` came back as two
+#: amounts, `200` and `220000`, so the low end was out by a factor of a
+#: thousand — the multiplier at the far end governs both, and a reader taking
+#: the first match cannot know that.
+#:
+#: Refused rather than resolved. A range is a thing to ask the user about, and
+#: a plausible wrong amount is worse than a question.
+#: `and` is a range marker only after `between`. On its own it joins two
+#: separate amounts — "contribute $500 and $200 to the second sleeve" is two
+#: contributions, not a range, and treating every `and` as one would refuse
+#: perfectly readable sentences.
+_AMOUNT = r"[$£€]\s?\d[\d.,]*\s?(?:k|m|bn|b)?"
+_MONEY_RANGE = re.compile(
+    rf"{_AMOUNT}\s?(?:-|–|\bto\b)\s?[$£€]?\s?\d[\d.,]*\s?(?:k|m|bn|b)?"
+    rf"|\bbetween\s+{_AMOUNT}\s+and\s+[$£€]?\s?\d[\d.,]*\s?(?:k|m|bn|b)?",
+    re.I)
+_PERCENT_RANGE = re.compile(r"\d+(?:\.\d+)?\s?(?:-|–|\bto\b)\s?\d+(?:\.\d+)?\s?%")
 
 #: `5 years`, `60 months`, `90 days`, `18-month`
+#:
+#: `(?! old)` because "Me - 32 years old" was attested and came back as an
+#: 11,680-day duration. An age is not a horizon, and a reader that cannot tell
+#: them apart turns a biography into a backtest length.
 _DURATION = re.compile(
     r"\b(?P<amount>\d+(?:\.\d+)?)[\s-]?(?P<unit>day|days|week|weeks|month|months|"
-    r"year|years|yr|yrs)\b", re.I)
+    r"year|years|yr|yrs)\b(?!\s+old\b)", re.I)
 
 _DURATION_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365,
                   "yr": 365}
@@ -260,7 +292,17 @@ def normalize(text: str, language: str = "en") -> Sequence[Value]:
     """
     found: list = []
 
+    # Ranges are claimed first and emit nothing, so a later pass cannot read one
+    # end of a range as a standalone value. Claiming the span is the mechanism:
+    # the same rule that stops "90-day moving average" becoming a holding
+    # period stops "$200-$220k" becoming two amounts.
+    refused = [match.span() for pattern in (_MONEY_RANGE, _PERCENT_RANGE)
+               for match in pattern.finditer(text)]
+
     def claim(value: Value) -> None:
+        for start, end in refused:
+            if not (value.end_char <= start or value.start_char >= end):
+                return
         for existing in found:
             if not (value.end_char <= existing.start_char
                     or value.start_char >= existing.end_char):
@@ -289,7 +331,8 @@ def normalize(text: str, language: str = "en") -> Sequence[Value]:
         claim(Value("money", amount, match.group(0), *match.span(), unit=currency))
 
     for match in _RATIO.finditer(text):
-        parts = [int(p) for p in re.split(r"\s?/\s?", match.group("parts"))]
+        raw = match.group("parts") or match.group("hyphen")
+        parts = [int(p) for p in re.split(r"\s?[/-]\s?", raw)]
         # A ratio whose parts sum to 100 is a split. One that does not is
         # probably a date or an identifier, and guessing which would be the
         # substitution this project refuses.
@@ -377,6 +420,65 @@ ATTACHMENTS: Mapping[str, Attachment] = {
         against={"rebalance": -4, "harvest": -4, "adjust": -4,
                  "withdraw": -3, "review": -3}),
 }
+
+
+@dataclass(frozen=True)
+class Aligned:
+    """A normalised value, and the tokens whose characters it covers.
+
+    **Normalisation happens before scoring, and this is what makes that true.**
+    Stanza tokenises `401k (50/50), Roth IRA (85/15), taxable brokerage (70/30)`
+    three different ways in one sentence — `50/50` whole, `85/15` into three
+    tokens, `70/30` into `70/` and `30`. A scorer reasoning over tokens is
+    reasoning over whatever the tokenizer happened to do that time.
+
+    So the scorer is handed a `Value` with a character span, and the tokens are
+    looked up from the span rather than the other way round. The unit it
+    reasons about is then the same unit in every sentence, whatever the parser
+    did to the characters.
+    """
+
+    value: Value
+    sentence: Sentence
+    tokens: Sequence[Token]
+
+    @property
+    def anchor(self) -> Optional[Token]:
+        """The token to walk up from: the last one the value covers.
+
+        The last rather than the first, because the head of a numeric phrase
+        sits at its right edge in English — in `200-day moving average` it is
+        `average`, not `200`, that attaches to the verb.
+        """
+        return self.tokens[-1] if self.tokens else None
+
+
+def align(parse: Parse, values: Sequence[Value]) -> Sequence[Aligned]:
+    """Match normalised values to the tokens covering their characters.
+
+    A value whose span no token overlaps is dropped rather than guessed at —
+    that means the parse and the normaliser disagree about the text, and
+    picking a nearby token would invent an attachment neither of them made.
+    """
+    aligned = []
+    for value in values:
+        for sentence in parse.sentences:
+            covered = tuple(
+                token for token in sentence.tokens
+                if not (token.end_char <= value.start_char
+                        or token.start_char >= value.end_char))
+            if covered:
+                aligned.append(Aligned(value=value, sentence=sentence,
+                                       tokens=covered))
+                break
+    return tuple(aligned)
+
+
+def score_value(aligned: Aligned, rule: Attachment) -> tuple:
+    """`(score, features)` for a normalised value rather than a token."""
+    if aligned.anchor is None:
+        return 0, ()
+    return score_attachment(aligned.sentence, aligned.anchor, rule)
 
 
 def score_attachment(sentence: Sentence, token: Token,

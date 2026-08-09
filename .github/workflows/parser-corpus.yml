@@ -49,7 +49,8 @@ jobs:
             tests/test_parser_corpus.py \
             tests/test_syntax_normalisation.py \
             tests/test_syntax_attachment.py \
-            tests/test_real_phrasings.py
+            tests/test_real_phrasings.py \
+            tests/test_fusion.py
 
       - name: The generators and the files agree
         # The JSON is the artifact and the builder is how it is made. A

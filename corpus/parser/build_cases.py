@@ -114,6 +114,51 @@ for text, parts in [
     norm("ratio.split", f"a {text} portfolio",
          {"kind": "ratio", "canonical": parts})
 
+# Hyphenated splits. Every invented case used a slash; four of the first
+# twenty-nine sentences harvested from Stack Exchange wrote a hyphen, and the
+# normaliser read none of them.
+for text, parts in [
+    ("I start with a 60-40 equity to fixed asset allocation", [60, 40]),
+    ("my allocation becomes 80-20", [80, 20]),
+    ("rebalance down to 60-40", [60, 40]),
+    ("I really want an 80-20 split", [80, 20]),
+    ("a 50-50 split between the two", [50, 50]),
+]:
+    norm("ratio.split_written_with_a_hyphen", text,
+         {"kind": "ratio", "canonical": parts}, origin="observed",
+         note="attested on money.stackexchange.com; the slash-only rule read "
+              "nothing at all here")
+
+norm("ratio.not_a_split", "upgraded from 2012 to 2015", {"absent": "ratio"},
+     origin="observed",
+     note="the sums-to-100 test does the same work for hyphens as for slashes")
+
+# Ranges. Both of these were read *wrongly* rather than not at all, which is
+# the worse failure — a plausible number for a request nobody made.
+norm("range.percentage_is_refused", "10-20% of my allocation",
+     {"absent": "percentage"}, origin="observed",
+     note="attested; came back as 20%, silently collapsing to the upper bound")
+norm("range.money_is_refused", "currently make ~$200-$220k per year",
+     {"absent": "money"}, origin="observed",
+     note="attested; came back as 200 and 220000, so the low end was out by a "
+          "factor of a thousand — the multiplier at the far end governs both, "
+          "and a reader taking the first match cannot know that")
+norm("range.money_is_refused", "somewhere between $500 and $800 a month",
+     {"absent": "money"}, origin="falsification",
+     note="the worded form of the same thing")
+
+norm("duration.an_age_is_not_a_horizon", "Me - 32 years old, currently",
+     {"absent": "duration"}, origin="observed",
+     note="attested; came back as an 11,680-day duration. A biography is not "
+          "a backtest length")
+norm("duration.an_age_is_not_a_horizon", "I am 45 years old and retiring soon",
+     {"absent": "duration"}, origin="falsification")
+norm("duration.days", "an investment horizon of 50 years",
+     {"kind": "duration", "canonical": 18250, "unit": "days"},
+     origin="observed",
+     note="the discriminating opposite: the age rule must not eat real "
+          "horizons, which are written the same way minus one word")
+
 norm("ratio.order_is_content", "a 70/30 portfolio",
      {"kind": "ratio", "canonical": [70, 30]}, origin="falsification",
      note="70/30 is not 30/70; flattening a split to a set loses the sentence")

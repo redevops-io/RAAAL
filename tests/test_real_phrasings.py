@@ -39,20 +39,31 @@ class TestThePackIsHonestAboutWhereItCameFrom:
         was."""
         for entry in ENTRIES:
             assert entry["provenance"] in (
-                "user_reported", "search_summary", "variant")
+                "user_reported", "search_summary", "stackexchange", "variant")
 
     def test_attested_entries_carry_a_source(self):
         for entry in ENTRIES:
-            if entry["provenance"] == "user_reported":
+            if entry["provenance"] in ("user_reported", "stackexchange"):
                 assert entry["source"].startswith("http"), entry["id"]
 
     def test_the_collection_method_is_recorded(self):
-        """Bogleheads 402s this fetcher and reddit and Stack Exchange are
-        blocked to it. A pack that did not say so would read as scraped."""
+        """Bogleheads 402s this fetcher and reddit blocks it; Stack Exchange
+        publishes an API and is where the verbatim entries came from. A pack
+        that did not say which was which would read as uniformly scraped."""
         assert "402" in PACK["collection_note"]
+        assert "stackexchange" in PACK["collection_note"].lower() or any(
+            e["provenance"] == "stackexchange" for e in ENTRIES)
+
+    def test_the_attested_share_is_the_majority(self):
+        """The harvest was the point. If invented sentences outnumber attested
+        ones the pack stops being evidence about real language."""
+        attested = sum(1 for e in ENTRIES
+                       if e["provenance"] in ("stackexchange", "user_reported"))
+        assert attested > len(ENTRIES) / 2, (
+            f"only {attested}/{len(ENTRIES)} entries are attested")
 
     def test_the_invented_share_is_visible(self):
-        """Just under half is mine. Stated rather than discovered later."""
+        """Stated rather than discovered later."""
         variants = sum(1 for e in ENTRIES if e["provenance"] == "variant")
         assert variants / len(ENTRIES) < 0.5, (
             f"{variants}/{len(ENTRIES)} entries are invented; the pack stops "

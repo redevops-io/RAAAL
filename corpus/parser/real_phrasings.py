@@ -7,20 +7,25 @@ and **not** labelled with an expected plan. Labelling them would re-introduce
 the same defect one layer up.
 
 **Provenance is recorded per entry and is not uniform.** Bogleheads returns HTTP
-402 to this environment's fetcher, and reddit.com and the Stack Exchange sites
-are blocked to it outright, so these were not scraped. Each entry says where it
-actually came from:
+402 to this environment's fetcher and reddit.com blocks it; those are stated
+preferences about automated reading, not obstacles to route around, so neither
+was scraped. Stack Exchange publishes an API for exactly this and licenses its
+content CC-BY-SA, so that is where the verbatim entries come from. Each entry
+says where it actually came from:
 
     user_reported   quoted by the user from a cited Bogleheads thread
     search_summary  appeared in a search-result summary I read
+    stackexchange   verbatim from a Stack Exchange post under CC-BY-SA 4.0,
+                    pulled through the public API, with its question URL
     variant         a minimal variation I wrote on an attested form, to
                     isolate one property — marked so it is never mistaken for
                     attested language
 
-Anything not marked `user_reported` or `search_summary` is mine, and should
-carry the same discount as `cases.json`. The honest state of this pack is
-"seeded from a handful of attested constructions", not "a sample of how people
-write" — see `docs/parser-corpus.md` for what it would take to earn that.
+Anything marked `variant` is mine and carries the same discount as
+`cases.json`. It is still not a sample of how people write — the searches were
+chosen to surface descriptions of actions, and that is a selection — but the
+attested share is now real text with a URL rather than recollection. See
+`docs/parser-corpus.md` for what the harvest found.
 
 Run: `python corpus/parser/real_phrasings.py`
 """
@@ -180,6 +185,64 @@ phrase("timing", "as soon as it is available", "timing as a condition",
        provenance="search_summary")
 
 
+# ── harvested from Stack Exchange, reviewed ──────────────────────────────────
+#
+# Verbatim, under CC-BY-SA 4.0, each with the question it came from. Pulled by
+# `harvest_stackexchange.py` through the public API — Bogleheads and reddit
+# block automated fetchers, which is a stated preference rather than an
+# obstacle to route around, so neither was scraped.
+#
+# These are the ones I read and kept. The full candidate list is in
+# `stackexchange_candidates.json`; nothing merges automatically, because an
+# unreviewed sentence is a sentence nobody has read.
+
+SE = "https://money.stackexchange.com"
+
+for text, group, stresses_it, source in [
+    ("I start with a 60-40 equity to fixed asset allocation",
+     "allocation", "split written with a hyphen, not a slash",
+     f"{SE}/questions/1849"),
+    ("After year 1 my allocation becomes 80-20",
+     "allocation", "hyphenated split as the result of drift",
+     f"{SE}/questions/1849"),
+    ("Why do I want to rebalance down to 60-40?",
+     "rebalancing", "target ratio as the goal of a rebalance verb",
+     f"{SE}/questions/1849"),
+    ("Possibly my initial asset allocation was not correct and I really want an 80-20 split",
+     "allocation", "target change rather than a rebalance",
+     f"{SE}/questions/1849"),
+    ("I understand that rebalancing once a year is better than doing it once every two years",
+     "rebalancing", "two worded cadences compared in one sentence",
+     f"{SE}/questions/1849"),
+    ("I also have a 401k (contributing about $13k/year) and an emergency fund",
+     "funding", "amount and cadence fused by a slash, inside a parenthetical",
+     f"{SE}/questions/2789"),
+    ("There is about $1800 in each account and we are automatically contributing $50 to each account each month",
+     "funding", "balance and contribution in one sentence, both bare amounts",
+     f"{SE}/questions/2789"),
+    ("The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other",
+     "allocation", "three-way split with a trailing percent and a slashed noun list",
+     f"{SE}/questions/2789"),
+    ("I have recently began to question the wisdom of a 100% stock allocation",
+     "allocation", "allocation as a single percentage, no ratio",
+     f"{SE}/questions/2789"),
+    ("I have an investment horizon of 50 years",
+     "window", "horizon stated as a duration",
+     f"{SE}/questions/2789"),
+    ("My employer will contribute $100 to the HSA, and will match another 400 of my contributions",
+     "funding", "a second amount with no currency symbol at all",
+     f"{SE}/questions/2789"),
+    ("To do this, I would have to divert a portion of my current monthly contributions",
+     "funding", "proportional amount with no number",
+     f"{SE}/questions/2789"),
+    ("I'm using Markowitz Mean-Variance Optimization to rebalance my portfolio of 30 holdings",
+     "rebalancing", "a count that is not an amount, beside a rebalance verb",
+     f"{SE}/questions/2789"),
+]:
+    phrase(group, text, stresses_it, provenance="stackexchange", source=source,
+           note="verbatim, CC-BY-SA 4.0")
+
+
 if __name__ == "__main__":
     groups: dict = {}
     provenance: dict = {}
@@ -191,10 +254,17 @@ if __name__ == "__main__":
         {"schema": SCHEMA, "count": len(entries),
          "by_group": groups, "by_provenance": provenance,
          "collection_note": (
-             "Not scraped. Bogleheads returns HTTP 402 to this environment's "
-             "fetcher; reddit.com and the Stack Exchange sites are blocked to "
-             "it. Attested entries were quoted by the user from cited threads "
-             "or read in search-result summaries; `variant` entries are mine."),
+             "Bogleheads returns HTTP 402 to this environment's fetcher and "
+             "reddit.com blocks it; those are stated preferences about "
+             "automated reading, not obstacles to route around, so neither was "
+             "scraped. The stackexchange entries are verbatim under CC-BY-SA "
+             "4.0 through the public API, each with its question URL. The rest "
+             "were quoted by the user from cited threads, read in "
+             "search-result summaries, or are `variant` sentences of mine."),
+         "licence_note": (
+             "Entries with provenance 'stackexchange' are quoted from Stack "
+             "Exchange under CC-BY-SA 4.0; the source URL is the attribution "
+             "the licence requires."),
          "entries": entries}, indent=2, ensure_ascii=False) + "\n")
     print(f"{len(entries)} phrasings -> {OUT}")
     for group, count in sorted(groups.items()):

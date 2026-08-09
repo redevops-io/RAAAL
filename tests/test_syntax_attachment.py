@@ -18,7 +18,9 @@ from __future__ import annotations
 import pytest
 
 from corpus.parser.loader import load
-from src.discovery.syntax import ATTACHMENTS, score_attachment
+from src.discovery.syntax import (
+    ATTACHMENTS, align, normalize, score_attachment, score_value,
+)
 from src.discovery.syntax_stanza import RecordedReader
 
 RECORDED = RecordedReader()
@@ -98,6 +100,65 @@ def test_the_dependent_attaches_to_the_stated_head(case):
         assert token.relation.split(":")[0] == case.asserts["relation"], (
             f"{token.text!r} attaches with {token.relation!r}, expected "
             f"{case.asserts['relation']!r}")
+
+
+class TestNormalisationHappensBeforeScoring:
+    """The ordering constraint the tokenisation defect forced.
+
+    A scorer reasoning over tokens is reasoning over whatever the tokenizer
+    happened to do. `align()` hands it normalised values matched by character
+    span instead, so the unit it reasons about is the same in every sentence.
+    """
+
+    ACCOUNTS = "401k (50/50), Roth IRA (85/15), taxable brokerage (70/30)"
+
+    def test_the_tokenizer_is_genuinely_inconsistent_here(self):
+        """Establish the premise before relying on it. If Stanza ever
+        tokenises these three uniformly, the alignment layer stops earning its
+        place here and this test says so."""
+        parse = RECORDED.parse(self.ACCOUNTS)
+        numeric = [t.text for s in parse.sentences for t in s.tokens
+                   if any(ch.isdigit() for ch in t.text)]
+        assert "50/50" in numeric, "one ratio survives as a single token"
+        assert "85" in numeric and "15" in numeric, "another is split apart"
+        assert len({"50/50" in numeric, "85/15" in numeric}) == 2, (
+            f"the three ratios are tokenised uniformly now: {numeric}. The "
+            "alignment layer was added for this inconsistency — if it is gone, "
+            "say so rather than leaving a test that no longer describes it")
+
+    def test_alignment_presents_three_uniform_values(self):
+        """Three shapes in, three identical shapes out."""
+        parse = RECORDED.parse(self.ACCOUNTS)
+        aligned = align(parse, normalize(self.ACCOUNTS))
+        assert [a.value.canonical for a in aligned] == [(50, 50), (85, 15), (70, 30)]
+        assert all(a.anchor is not None for a in aligned)
+
+    def test_a_value_the_parse_does_not_cover_is_dropped_not_guessed(self):
+        """A span no token overlaps means the parse and the normaliser disagree
+        about the text. Picking a nearby token would invent an attachment
+        neither of them made."""
+        from src.discovery.syntax import Value
+
+        parse = RECORDED.parse("invest $500 monthly")
+        beyond = Value(kind="duration", canonical=90, source_span="90 days",
+                       start_char=900, end_char=907, unit="days")
+        assert align(parse, [beyond]) == ()
+
+        # And the control: a value whose span *is* covered comes back, so the
+        # rule is "drop what does not overlap" rather than "drop everything".
+        real = normalize("invest $500 monthly")
+        assert len(align(parse, real)) == len(real) == 1
+
+    def test_scoring_a_value_and_scoring_its_anchor_agree(self):
+        """`score_value` is a wrapper, not a second implementation. If the two
+        could differ, the layer would have two scoring rules and one of them
+        would rot."""
+        text = "invest $500 monthly and rebalance annually"
+        parse = RECORDED.parse(text)
+        for aligned in align(parse, normalize(text)):
+            direct = score_attachment(aligned.sentence, aligned.anchor,
+                                      ATTACHMENTS["cadence"])
+            assert score_value(aligned, ATTACHMENTS["cadence"]) == direct
 
 
 class TestScoringSeparatesTheTwoCadences:

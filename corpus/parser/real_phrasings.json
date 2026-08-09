@@ -1,21 +1,23 @@
 {
   "schema": "quantify-real-phrasings@1",
-  "count": 30,
+  "count": 43,
   "by_group": {
-    "allocation": 8,
-    "rebalancing": 9,
+    "allocation": 13,
+    "rebalancing": 12,
     "cadence": 3,
-    "funding": 3,
+    "funding": 7,
     "trigger": 2,
-    "window": 2,
+    "window": 3,
     "timing": 3
   },
   "by_provenance": {
     "user_reported": 11,
     "variant": 11,
-    "search_summary": 8
+    "search_summary": 8,
+    "stackexchange": 13
   },
-  "collection_note": "Not scraped. Bogleheads returns HTTP 402 to this environment's fetcher; reddit.com and the Stack Exchange sites are blocked to it. Attested entries were quoted by the user from cited threads or read in search-result summaries; `variant` entries are mine.",
+  "collection_note": "Bogleheads returns HTTP 402 to this environment's fetcher and reddit.com blocks it; those are stated preferences about automated reading, not obstacles to route around, so neither was scraped. The stackexchange entries are verbatim under CC-BY-SA 4.0 through the public API, each with its question URL. The rest were quoted by the user from cited threads, read in search-result summaries, or are `variant` sentences of mine.",
+  "licence_note": "Entries with provenance 'stackexchange' are quoted from Stack Exchange under CC-BY-SA 4.0; the source URL is the attribution the licence requires.",
   "entries": [
     {
       "id": "real-allocation-001",
@@ -286,6 +288,123 @@
       "provenance": "search_summary",
       "source": "",
       "note": ""
+    },
+    {
+      "id": "real-allocation-009",
+      "group": "allocation",
+      "text": "I start with a 60-40 equity to fixed asset allocation",
+      "stresses": "split written with a hyphen, not a slash",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/1849",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-allocation-010",
+      "group": "allocation",
+      "text": "After year 1 my allocation becomes 80-20",
+      "stresses": "hyphenated split as the result of drift",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/1849",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-rebalancing-010",
+      "group": "rebalancing",
+      "text": "Why do I want to rebalance down to 60-40?",
+      "stresses": "target ratio as the goal of a rebalance verb",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/1849",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-allocation-011",
+      "group": "allocation",
+      "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split",
+      "stresses": "target change rather than a rebalance",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/1849",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-rebalancing-011",
+      "group": "rebalancing",
+      "text": "I understand that rebalancing once a year is better than doing it once every two years",
+      "stresses": "two worded cadences compared in one sentence",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/1849",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-funding-004",
+      "group": "funding",
+      "text": "I also have a 401k (contributing about $13k/year) and an emergency fund",
+      "stresses": "amount and cadence fused by a slash, inside a parenthetical",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-funding-005",
+      "group": "funding",
+      "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month",
+      "stresses": "balance and contribution in one sentence, both bare amounts",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-allocation-012",
+      "group": "allocation",
+      "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other",
+      "stresses": "three-way split with a trailing percent and a slashed noun list",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-allocation-013",
+      "group": "allocation",
+      "text": "I have recently began to question the wisdom of a 100% stock allocation",
+      "stresses": "allocation as a single percentage, no ratio",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-window-003",
+      "group": "window",
+      "text": "I have an investment horizon of 50 years",
+      "stresses": "horizon stated as a duration",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-funding-006",
+      "group": "funding",
+      "text": "My employer will contribute $100 to the HSA, and will match another 400 of my contributions",
+      "stresses": "a second amount with no currency symbol at all",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-funding-007",
+      "group": "funding",
+      "text": "To do this, I would have to divert a portion of my current monthly contributions",
+      "stresses": "proportional amount with no number",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
+    },
+    {
+      "id": "real-rebalancing-012",
+      "group": "rebalancing",
+      "text": "I'm using Markowitz Mean-Variance Optimization to rebalance my portfolio of 30 holdings",
+      "stresses": "a count that is not an amount, beside a rebalance verb",
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2789",
+      "note": "verbatim, CC-BY-SA 4.0"
     }
   ]
 }

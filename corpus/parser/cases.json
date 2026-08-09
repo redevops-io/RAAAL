@@ -1,8 +1,8 @@
 {
   "schema": "quantify-parser-corpus@1",
-  "count": 206,
+  "count": 218,
   "by_tier": {
-    "normalization": 96,
+    "normalization": 108,
     "dependency": 60,
     "semantics": 50
   },
@@ -650,6 +650,172 @@
       "note": ""
     },
     {
+      "id": "norm-ratio-split_written_with_a_hyphen-001",
+      "tier": "normalization",
+      "property": "ratio.split_written_with_a_hyphen",
+      "text": "I start with a 60-40 equity to fixed asset allocation",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          60,
+          40
+        ]
+      },
+      "origin": "observed",
+      "note": "attested on money.stackexchange.com; the slash-only rule read nothing at all here"
+    },
+    {
+      "id": "norm-ratio-split_written_with_a_hyphen-002",
+      "tier": "normalization",
+      "property": "ratio.split_written_with_a_hyphen",
+      "text": "my allocation becomes 80-20",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          80,
+          20
+        ]
+      },
+      "origin": "observed",
+      "note": "attested on money.stackexchange.com; the slash-only rule read nothing at all here"
+    },
+    {
+      "id": "norm-ratio-split_written_with_a_hyphen-003",
+      "tier": "normalization",
+      "property": "ratio.split_written_with_a_hyphen",
+      "text": "rebalance down to 60-40",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          60,
+          40
+        ]
+      },
+      "origin": "observed",
+      "note": "attested on money.stackexchange.com; the slash-only rule read nothing at all here"
+    },
+    {
+      "id": "norm-ratio-split_written_with_a_hyphen-004",
+      "tier": "normalization",
+      "property": "ratio.split_written_with_a_hyphen",
+      "text": "I really want an 80-20 split",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          80,
+          20
+        ]
+      },
+      "origin": "observed",
+      "note": "attested on money.stackexchange.com; the slash-only rule read nothing at all here"
+    },
+    {
+      "id": "norm-ratio-split_written_with_a_hyphen-005",
+      "tier": "normalization",
+      "property": "ratio.split_written_with_a_hyphen",
+      "text": "a 50-50 split between the two",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          50,
+          50
+        ]
+      },
+      "origin": "observed",
+      "note": "attested on money.stackexchange.com; the slash-only rule read nothing at all here"
+    },
+    {
+      "id": "norm-ratio-not_a_split-001",
+      "tier": "normalization",
+      "property": "ratio.not_a_split",
+      "text": "upgraded from 2012 to 2015",
+      "language": "en",
+      "asserts": {
+        "absent": "ratio"
+      },
+      "origin": "observed",
+      "note": "the sums-to-100 test does the same work for hyphens as for slashes"
+    },
+    {
+      "id": "norm-range-percentage_is_refused-001",
+      "tier": "normalization",
+      "property": "range.percentage_is_refused",
+      "text": "10-20% of my allocation",
+      "language": "en",
+      "asserts": {
+        "absent": "percentage"
+      },
+      "origin": "observed",
+      "note": "attested; came back as 20%, silently collapsing to the upper bound"
+    },
+    {
+      "id": "norm-range-money_is_refused-001",
+      "tier": "normalization",
+      "property": "range.money_is_refused",
+      "text": "currently make ~$200-$220k per year",
+      "language": "en",
+      "asserts": {
+        "absent": "money"
+      },
+      "origin": "observed",
+      "note": "attested; came back as 200 and 220000, so the low end was out by a factor of a thousand — the multiplier at the far end governs both, and a reader taking the first match cannot know that"
+    },
+    {
+      "id": "norm-range-money_is_refused-002",
+      "tier": "normalization",
+      "property": "range.money_is_refused",
+      "text": "somewhere between $500 and $800 a month",
+      "language": "en",
+      "asserts": {
+        "absent": "money"
+      },
+      "origin": "falsification",
+      "note": "the worded form of the same thing"
+    },
+    {
+      "id": "norm-duration-an_age_is_not_a_horizon-001",
+      "tier": "normalization",
+      "property": "duration.an_age_is_not_a_horizon",
+      "text": "Me - 32 years old, currently",
+      "language": "en",
+      "asserts": {
+        "absent": "duration"
+      },
+      "origin": "observed",
+      "note": "attested; came back as an 11,680-day duration. A biography is not a backtest length"
+    },
+    {
+      "id": "norm-duration-an_age_is_not_a_horizon-002",
+      "tier": "normalization",
+      "property": "duration.an_age_is_not_a_horizon",
+      "text": "I am 45 years old and retiring soon",
+      "language": "en",
+      "asserts": {
+        "absent": "duration"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-001",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "an investment horizon of 50 years",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 18250,
+        "unit": "days"
+      },
+      "origin": "observed",
+      "note": "the discriminating opposite: the age rule must not eat real horizons, which are written the same way minus one word"
+    },
+    {
       "id": "norm-ratio-order_is_content-001",
       "tier": "normalization",
       "property": "ratio.order_is_content",
@@ -666,7 +832,7 @@
       "note": "70/30 is not 30/70; flattening a split to a set loses the sentence"
     },
     {
-      "id": "norm-ratio-not_a_split-001",
+      "id": "norm-ratio-not_a_split-002",
       "tier": "normalization",
       "property": "ratio.not_a_split",
       "text": "due 12/25",
@@ -678,7 +844,7 @@
       "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
     },
     {
-      "id": "norm-ratio-not_a_split-002",
+      "id": "norm-ratio-not_a_split-003",
       "tier": "normalization",
       "property": "ratio.not_a_split",
       "text": "3/4 of the way",
@@ -690,7 +856,7 @@
       "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
     },
     {
-      "id": "norm-ratio-not_a_split-003",
+      "id": "norm-ratio-not_a_split-004",
       "tier": "normalization",
       "property": "ratio.not_a_split",
       "text": "section 9/11",
@@ -702,7 +868,7 @@
       "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
     },
     {
-      "id": "norm-ratio-not_a_split-004",
+      "id": "norm-ratio-not_a_split-005",
       "tier": "normalization",
       "property": "ratio.not_a_split",
       "text": "a 2/3 majority",
@@ -714,7 +880,7 @@
       "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
     },
     {
-      "id": "norm-duration-days-001",
+      "id": "norm-duration-days-002",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 90 days",
@@ -728,7 +894,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-002",
+      "id": "norm-duration-days-003",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 30 days",
@@ -742,7 +908,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-003",
+      "id": "norm-duration-days-004",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 day",
@@ -756,7 +922,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-004",
+      "id": "norm-duration-days-005",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 14 days",
@@ -770,7 +936,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-005",
+      "id": "norm-duration-days-006",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 2 weeks",
@@ -784,7 +950,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-006",
+      "id": "norm-duration-days-007",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 6 weeks",
@@ -798,7 +964,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-007",
+      "id": "norm-duration-days-008",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 week",
@@ -812,7 +978,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-008",
+      "id": "norm-duration-days-009",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 3 months",
@@ -826,7 +992,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-009",
+      "id": "norm-duration-days-010",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 6 months",
@@ -840,7 +1006,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-010",
+      "id": "norm-duration-days-011",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 18 months",
@@ -854,7 +1020,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-011",
+      "id": "norm-duration-days-012",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 12 months",
@@ -868,7 +1034,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-012",
+      "id": "norm-duration-days-013",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 month",
@@ -882,7 +1048,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-013",
+      "id": "norm-duration-days-014",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 5 years",
@@ -896,7 +1062,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-014",
+      "id": "norm-duration-days-015",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 10 years",
@@ -910,7 +1076,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-015",
+      "id": "norm-duration-days-016",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 year",
@@ -924,7 +1090,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-016",
+      "id": "norm-duration-days-017",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 20 years",
@@ -938,7 +1104,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-017",
+      "id": "norm-duration-days-018",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 2 yrs",
@@ -952,7 +1118,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-018",
+      "id": "norm-duration-days-019",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 18-month",
@@ -966,7 +1132,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-019",
+      "id": "norm-duration-days-020",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 90-day",
@@ -980,7 +1146,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-020",
+      "id": "norm-duration-days-021",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 5-year",

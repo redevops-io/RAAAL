@@ -1,0 +1,345 @@
+{
+  "schema": "quantify-stackexchange-candidates@1",
+  "count": 29,
+  "by_group": {
+    "rebalancing": 7,
+    "allocation": 11,
+    "cadence": 10,
+    "funding": 8,
+    "window": 3
+  },
+  "licence": "CC-BY-SA 4.0",
+  "attribution": "Sentences are quoted verbatim from Stack Exchange posts under CC-BY-SA 4.0. Each carries the URL of the question it came from, which is the attribution the licence requires.",
+  "collection_note": "Harvested through the public Stack Exchange API. Bogleheads and reddit block automated fetchers; that is a stated preference, not an obstacle to route around, so neither was scraped.",
+  "candidates": [
+    {
+      "text": "I'm looking for an application that can help me rebalance my investment portfolio.",
+      "stresses": [
+        "rebalancing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/2850/asset-allocation-software-application-or-tool-to-help-me-rebalance-my-investmen",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "However, consider that I start with a 60-40 equity to fixed asset allocation.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "After year 1 my allocation (because of incredible equity performance) becomes 80-20.",
+      "stresses": [
+        "allocation",
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Why do I want to rebalance down to 60-40?",
+      "stresses": [
+        "rebalancing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm not going to be contributing to these funds within the above timeframe.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/24864/when-to-liquidate-mutual-funds-for-a-home-downpayment",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Should this be part of my consideration in asset allocation?",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/169162/in-considering-asset-allocation-should-one-take-into-account-the-buy-low-sell-h",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Would I need to rebalance over time if holding SPY?",
+      "stresses": [
+        "rebalancing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/12714/401k-with-paltry-match-or-spy-etf",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm pretty sure that contributing pretax to 401k is a good idea because I won't be in the 28% tax bracket when I retire.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/12714/401k-with-paltry-match-or-spy-etf",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I also have a 401k (contributing about $13k/year) and an emergency fund.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/16057/what-else-besides-fees-should-i-consider-in-rebalancing-my-fund-portfolios-asse",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Next year I will contribute about $10k to this portfolio.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/16057/what-else-besides-fees-should-i-consider-in-rebalancing-my-fund-portfolios-asse",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "However, I just upgraded from 2012 to 2015, and it radically changed what it thought my asset allocation was.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/45366/can-i-use-quicken-asset-class-information-to-rebalance-my-portfolio",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have invested some money in NHAI and IRFC bonds, with a lock-in period of 10 years (the least offered).",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/56265/can-i-sell-section-54ec-infra-bonds-before-maturity",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm not so comfortable if this is the right asset allocation strategy for this.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/115042/how-do-i-properly-allocate-capital-into-the-different-stocks-i-own",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm using Markowitz Mean-Variance Optimization to rebalance my portfolio of 30 holdings.",
+      "stresses": [
+        "rebalancing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/145454/is-there-a-quantitative-answer-to-how-frequently-i-should-optimize-my-portfolio",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I understand that rebalancing once a year is better than doing it once every two years.",
+      "stresses": [
+        "rebalancing",
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/145454/is-there-a-quantitative-answer-to-how-frequently-i-should-optimize-my-portfolio",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My employer will contribute $100 to the HSA, and will match another 400 of my contributions.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I currently max out my HSA contributions.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "To do this, I would have to divert a portion of my current monthly contributions.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/142774/what-is-the-best-place-to-park-the-money-while-waiting-for-a-sizable-future-mark",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "(10-20% of my allocation?)",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/80799/my-first-401k-starting-late-ish-should-i-stick-with-target-date",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'll do my best to keep this brief: Me - 32 years old, currently make ~$200-$220k per year, feeling restless.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/7963/help-with-asset-allocation-for-an-early-30s-guy-with-an-uncertain-future",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm rebalancing my portfolio.",
+      "stresses": [
+        "rebalancing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/119220/how-should-i-distribute-investment-types-between-differently-taxed-accounts",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "After doing some research, I’ve grown concerned about the allocation strategy of this target date fund.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/163800/confused-about-the-use-of-bond-etfs-in-target-date-funds-instead-of-raw-bonds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/55630/first-401k-portfolio-with-high-expense-ratios-which-funds-to-pick-24yo",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have an investment horizon of 50 years, so by \"long-term\", I mean 50 years.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/128030/why-should-i-buy-bonds-for-my-long-term-portfolio-when-bonds-have-a-lower-upside",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have recently began to question the wisdom of a 100% stock allocation for my long-term portfolio.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/128030/why-should-i-buy-bonds-for-my-long-term-portfolio-when-bonds-have-a-lower-upside",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My question concerns the asset allocation of stocks , so we leave the bonds out of the question.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/127366/is-there-a-criterion-for-the-different-allocation-values-in-etf-or-funds-diver",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/76425/should-i-switch-to-a-new-ira-custodian",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
+      "stresses": [
+        "rebalancing",
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://quant.stackexchange.com/questions/78187/portfolio-optimization-with-etfs-and-futures",
+      "site": "quant",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    }
+  ]
+}
