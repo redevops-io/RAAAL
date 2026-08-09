@@ -41,3 +41,10 @@ runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.
 # (AGPL-3.0-or-later WITH Commons-Clause), which is what made the import legal:
 # see docs/Migration.md §6.6.
 agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.2
+
+# --- Discovery: deterministic syntax evidence ---
+# Only needed to *record* parses (`corpus/parser/record_parses.py`) and to run
+# `tests/test_parse_fixtures_are_current.py`. The corpus itself replays
+# recordings, so the core image and the everyday suite need neither this nor
+# its models. Deliberately absent from requirements-core.txt.
+stanza>=1.14

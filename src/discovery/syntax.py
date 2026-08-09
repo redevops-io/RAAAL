@@ -163,12 +163,34 @@ class Value:
 
 _MULTIPLIER = {"k": 1000, "m": 1_000_000, "bn": 1_000_000_000, "b": 1_000_000_000}
 
-#: `$1,500`, `1.5k`, `€2m`, `500 dollars`
+#: `$1,500`, `1.5k`, `€2m`, `500 dollars`, and `500 €` — the postfix order most
+#: of Europe writes, which the first version of this missed entirely and the
+#: corpus caught on its first run.
 _MONEY = re.compile(
-    r"(?P<symbol>[$£€])\s?(?P<amount>\d[\d,]*(?:\.\d+)?)\s?(?P<mult>k|m|bn|b)?\b"
-    r"|(?P<amount2>\d[\d,]*(?:\.\d+)?)\s?(?P<mult2>k|m|bn|b)?\s?"
-    r"(?P<word>dollars?|usd|pounds?|gbp|euros?|eur)\b",
+    r"(?P<symbol>[$£€])\s?(?P<amount>\d[\d.,]*)\s?(?P<mult>k|m|bn|b)?\b"
+    r"|(?P<amount2>\d[\d.,]*)\s?(?P<mult2>k|m|bn|b)?\s?"
+    r"(?P<word>dollars?|usd|pounds?|gbp|euros?|eur)\b"
+    r"|(?P<amount3>\d[\d.,]*)\s?(?P<mult3>k|m|bn|b)?\s?(?P<symbol2>[$£€])",
     re.I)
+
+#: Which separator groups and which one divides.
+#:
+#: This is the one genuinely locale-dependent thing in the module, and the
+#: first version had no opinion about it — which is not neutrality, it is
+#: silently assuming en. `1.000 €` is a thousand euros in Madrid and one euro
+#: in New York; `500,50` is five hundred and a half in Berlin and fifty
+#: thousand and fifty in Chicago. Both readings are common and neither is
+#: recoverable from the digits.
+#:
+#: So `normalize` takes a language, `en` is a *declared* default rather than an
+#: assumed one, and a string that is not well-formed under the convention in
+#: force is refused instead of read under the other.
+_GROUPING = {
+    "en": re.compile(r"^\d{1,3}(?:,\d{3})*(?:\.\d+)?$|^\d+(?:\.\d+)?$"),
+}
+_EUROPEAN = re.compile(r"^\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^\d+(?:,\d+)?$")
+for _language in ("es", "de", "fr", "it", "pt", "nl", "ru", "tr", "pl"):
+    _GROUPING[_language] = _EUROPEAN
 
 _SYMBOL_CURRENCY = {"$": "USD", "£": "GBP", "€": "EUR"}
 _WORD_CURRENCY = {"dollar": "USD", "dollars": "USD", "usd": "USD",
@@ -204,7 +226,29 @@ def _decimal(raw: str) -> Optional[Decimal]:
         return None
 
 
-def normalize(text: str) -> Sequence[Value]:
+def _amount(raw: str, language: str) -> Optional[Decimal]:
+    """A written number under one convention, or nothing.
+
+    Returns `None` for a string that is not well-formed under the language in
+    force rather than falling back to the other convention. A wrong amount that
+    looks plausible is worse than a dimension the user is asked about, which is
+    the same reason this project has no synonym table.
+    """
+    raw = raw.strip().rstrip(".,")
+    grouping = _GROUPING.get(language.lower()[:2])
+    if grouping is None or not grouping.match(raw):
+        return None
+    if grouping is _EUROPEAN:
+        raw = raw.replace(".", "").replace(",", ".")
+    else:
+        raw = raw.replace(",", "")
+    try:
+        return Decimal(raw)
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def normalize(text: str, language: str = "en") -> Sequence[Value]:
     """Every literal this module can canonicalise, with its span.
 
     Order matters and is deliberate: a moving-average window is recognised
@@ -231,13 +275,16 @@ def normalize(text: str) -> Sequence[Value]:
                         *match.span(), unit=unit))
 
     for match in _MONEY.finditer(text):
-        raw = match.group("amount") or match.group("amount2")
-        amount = _decimal(raw)
+        raw = (match.group("amount") or match.group("amount2")
+               or match.group("amount3"))
+        amount = _amount(raw, language)
         if amount is None:
             continue
-        mult = (match.group("mult") or match.group("mult2") or "").lower()
+        mult = (match.group("mult") or match.group("mult2")
+                or match.group("mult3") or "").lower()
         amount *= _MULTIPLIER.get(mult, 1)
-        currency = (_SYMBOL_CURRENCY.get(match.group("symbol") or "")
+        currency = (_SYMBOL_CURRENCY.get(match.group("symbol")
+                                         or match.group("symbol2") or "")
                     or _WORD_CURRENCY.get((match.group("word") or "").lower(), ""))
         claim(Value("money", amount, match.group(0), *match.span(), unit=currency))
 

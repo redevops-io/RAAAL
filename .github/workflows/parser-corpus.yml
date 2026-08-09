@@ -1,0 +1,107 @@
+name: Parser corpus
+
+# Two jobs, because the corpus has two costs.
+#
+#   corpus    reads recorded parses. Seconds. Runs on every push.
+#   parser    loads the real Stanza model and diffs it against those
+#             recordings. Minutes and ~500MB. Runs on a schedule, on changes
+#             to the parser layer, and on demand.
+#
+# Splitting them is the point. A single job that needed the model would be one
+# nobody runs locally and everybody skips in CI, and a corpus whose recordings
+# are never checked against the parser is a corpus measuring a snapshot of
+# whatever the fixtures happen to say.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Weekly. A parser upgrade is the thing that moves an attachment, and that
+    # happens on release cycles rather than on commits.
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: parser-corpus-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  corpus:
+    name: corpus (recorded parses)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          pip install -r requirements-core.txt
+
+      - name: Tier 1 and the corpus invariants
+        run: |
+          python -m pytest -q \
+            tests/test_parser_corpus.py \
+            tests/test_syntax_normalisation.py
+
+      - name: The generator and the file agree
+        # `cases.json` is the artifact and `build_cases.py` is how it is made.
+        # A hand-edited fixture is how a corpus stops describing its own rules.
+        run: |
+          cp corpus/parser/cases.json /tmp/committed.json
+          python corpus/parser/build_cases.py
+          diff -u /tmp/committed.json corpus/parser/cases.json || {
+            echo "::error::cases.json does not match build_cases.py — "\
+                 "regenerate it rather than editing it by hand"
+            exit 1
+          }
+
+  parser:
+    name: parser (live Stanza)
+    runs-on: ubuntu-latest
+    # Not a required check. A model download failing upstream must not block a
+    # merge that has nothing to do with the parser; it must be visible, which
+    # is what a scheduled red job is for.
+    continue-on-error: true
+    if: >
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[parser]') ||
+      github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest stanza
+          pip install -r requirements-core.txt
+
+      - name: Cache the Stanza models
+        uses: actions/cache@v4
+        with:
+          path: ~/stanza_resources
+          key: stanza-en-${{ hashFiles('corpus/parser/parses.json') }}
+          restore-keys: stanza-en-
+
+      - name: Fetch the English model
+        run: python -c "import stanza; stanza.download('en', verbose=False)"
+
+      - name: The recordings still match the parser
+        run: python -m pytest -q tests/test_parse_fixtures_are_current.py
+
+      - name: Show what drifted
+        if: failure()
+        run: |
+          echo "A recorded parse no longer matches the live parser."
+          echo "Re-record with: python corpus/parser/record_parses.py"
+          echo "Then read the diff — a changed attachment is a changed reading."

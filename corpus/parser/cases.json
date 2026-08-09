@@ -1,0 +1,2778 @@
+{
+  "schema": "quantify-parser-corpus@1",
+  "count": 206,
+  "by_tier": {
+    "normalization": 96,
+    "dependency": 60,
+    "semantics": 50
+  },
+  "cases": [
+    {
+      "id": "norm-money-amount-001",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $500 each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-002",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $1,500 each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1500",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-003",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $1k each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1000",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-004",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $1.5k each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1500",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-005",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $2K each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "2000",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-006",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $3m each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "3000000",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-007",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $2.5m each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "2500000",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-008",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $1bn each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1000000000",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-009",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute £500 each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500",
+        "unit": "GBP"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-010",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute £1,250 each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1250",
+        "unit": "GBP"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-011",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute £2k each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "2000",
+        "unit": "GBP"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-012",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute €500 each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500",
+        "unit": "EUR"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-013",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute €1.2k each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1200",
+        "unit": "EUR"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-014",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute €10m each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "10000000",
+        "unit": "EUR"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-015",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 500 dollars each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-016",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 1,000 dollars each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1000",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-017",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 250 USD each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "250",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-018",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 400 usd each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "400",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-019",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 300 pounds each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "300",
+        "unit": "GBP"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-020",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 750 GBP each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "750",
+        "unit": "GBP"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-021",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 600 euros each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "600",
+        "unit": "EUR"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-022",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute 900 EUR each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "900",
+        "unit": "EUR"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-023",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $0.50 each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "0.50",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-amount-024",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "contribute $12,345.67 each month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "12345.67",
+        "unit": "USD"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-money-absent-001",
+      "tier": "normalization",
+      "property": "money.absent",
+      "text": "hold 90 shares of VTI",
+      "language": "en",
+      "asserts": {
+        "absent": "money"
+      },
+      "origin": "falsification",
+      "note": "a bare number is not an amount; if it were, every window and every duration would be one too"
+    },
+    {
+      "id": "norm-money-absent-002",
+      "tier": "normalization",
+      "property": "money.absent",
+      "text": "buy 200 units",
+      "language": "en",
+      "asserts": {
+        "absent": "money"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "norm-money-currency_is_not_assumed-001",
+      "tier": "normalization",
+      "property": "money.currency_is_not_assumed",
+      "text": "invest £500 a month",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "unit": "GBP"
+      },
+      "origin": "falsification",
+      "note": "dropping the symbol makes every non-dollar prompt silently wrong rather than unsupported"
+    },
+    {
+      "id": "norm-percentage-fraction-001",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 60% to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.60"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-fraction-002",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 40% to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.40"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-fraction-003",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 4.5% to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.045"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-fraction-004",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 0.5% to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.005"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-fraction-005",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 100% to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "1.00"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-fraction-006",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 7 % to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.07"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-fraction-007",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 12.75% to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.1275"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-fraction-008",
+      "tier": "normalization",
+      "property": "percentage.fraction",
+      "text": "allocate 3% to equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.03"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-001",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 60/40 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          60,
+          40
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-002",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 70/30 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          70,
+          30
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-003",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 80/20 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          80,
+          20
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-004",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 50/50 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          50,
+          50
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-005",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 90/10 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          90,
+          10
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-006",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 45/55 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          45,
+          55
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-007",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 70/20/10 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          70,
+          20,
+          10
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-008",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 60/30/10 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          60,
+          30,
+          10
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-009",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 40/40/20 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          40,
+          40,
+          20
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-split-010",
+      "tier": "normalization",
+      "property": "ratio.split",
+      "text": "a 25/25/25/25 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          25,
+          25,
+          25,
+          25
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-ratio-order_is_content-001",
+      "tier": "normalization",
+      "property": "ratio.order_is_content",
+      "text": "a 70/30 portfolio",
+      "language": "en",
+      "asserts": {
+        "kind": "ratio",
+        "canonical": [
+          70,
+          30
+        ]
+      },
+      "origin": "falsification",
+      "note": "70/30 is not 30/70; flattening a split to a set loses the sentence"
+    },
+    {
+      "id": "norm-ratio-not_a_split-001",
+      "tier": "normalization",
+      "property": "ratio.not_a_split",
+      "text": "due 12/25",
+      "language": "en",
+      "asserts": {
+        "absent": "ratio"
+      },
+      "origin": "falsification",
+      "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
+    },
+    {
+      "id": "norm-ratio-not_a_split-002",
+      "tier": "normalization",
+      "property": "ratio.not_a_split",
+      "text": "3/4 of the way",
+      "language": "en",
+      "asserts": {
+        "absent": "ratio"
+      },
+      "origin": "falsification",
+      "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
+    },
+    {
+      "id": "norm-ratio-not_a_split-003",
+      "tier": "normalization",
+      "property": "ratio.not_a_split",
+      "text": "section 9/11",
+      "language": "en",
+      "asserts": {
+        "absent": "ratio"
+      },
+      "origin": "falsification",
+      "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
+    },
+    {
+      "id": "norm-ratio-not_a_split-004",
+      "tier": "normalization",
+      "property": "ratio.not_a_split",
+      "text": "a 2/3 majority",
+      "language": "en",
+      "asserts": {
+        "absent": "ratio"
+      },
+      "origin": "falsification",
+      "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
+    },
+    {
+      "id": "norm-duration-days-001",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 90 days",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 90,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-002",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 30 days",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 30,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-003",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 1 day",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 1,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-004",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 14 days",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 14,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-005",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 2 weeks",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 14,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-006",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 6 weeks",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 42,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-007",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 1 week",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 7,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-008",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 3 months",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 90,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-009",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 6 months",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 180,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-010",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 18 months",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 540,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-011",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 12 months",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 360,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-012",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 1 month",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 30,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-013",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 5 years",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 1825,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-014",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 10 years",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 3650,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-015",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 1 year",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 365,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-016",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 20 years",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 7300,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-017",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 2 yrs",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 730,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-018",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 18-month",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 540,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-019",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 90-day",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 90,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-020",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "hold the position for 5-year",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 1825,
+        "unit": "days"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-001",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 200-day moving average",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 200,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-002",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 50-day moving average",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 50,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-003",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 90 day moving average",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 90,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-004",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 20-day SMA",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 20,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-005",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 100-day sma",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 100,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-006",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 12-month moving average",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 12,
+        "unit": "month"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-007",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 10-week moving average",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 10,
+        "unit": "week"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-008",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 50 day MA",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 50,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-009",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 200-day ma",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 200,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-moving_average-010",
+      "tier": "normalization",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 30-day EMA",
+      "language": "en",
+      "asserts": {
+        "kind": "moving_average_window",
+        "canonical": 30,
+        "unit": "day"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "norm-window-not_a_duration-001",
+      "tier": "normalization",
+      "property": "window.not_a_duration",
+      "text": "buy below the 90-day moving average",
+      "language": "en",
+      "asserts": {
+        "absent": "duration"
+      },
+      "origin": "falsification",
+      "note": "the plan's own case: reading 90 as a holding period must fail. One span carries one reading"
+    },
+    {
+      "id": "norm-window-not_a_duration-002",
+      "tier": "normalization",
+      "property": "window.not_a_duration",
+      "text": "sell under the 200-day moving average",
+      "language": "en",
+      "asserts": {
+        "absent": "duration"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-not_a_window-001",
+      "tier": "normalization",
+      "property": "duration.not_a_window",
+      "text": "hold the annual bonus for 90 days",
+      "language": "en",
+      "asserts": {
+        "absent": "moving_average_window"
+      },
+      "origin": "falsification",
+      "note": "the mirror case, and the one a single-pass regex gets wrong"
+    },
+    {
+      "id": "norm-duration-not_a_window-002",
+      "tier": "normalization",
+      "property": "duration.not_a_window",
+      "text": "keep the cash for 200 days",
+      "language": "en",
+      "asserts": {
+        "absent": "moving_average_window"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "norm-span-both_survive_one_sentence-001",
+      "tier": "normalization",
+      "property": "span.both_survive_one_sentence",
+      "text": "hold the bonus for 90 days, then buy below the 200-day moving average",
+      "language": "en",
+      "asserts": {
+        "kinds": [
+          "duration",
+          "moving_average_window"
+        ]
+      },
+      "origin": "falsification",
+      "note": "two values, two spans, no overlap — the case that motivated claiming spans rather than emitting every match"
+    },
+    {
+      "id": "norm-span-order_is_reading_order-001",
+      "tier": "normalization",
+      "property": "span.order_is_reading_order",
+      "text": "put $500 monthly into a 60/40 split for 10 years",
+      "language": "en",
+      "asserts": {
+        "kinds": [
+          "money",
+          "ratio",
+          "duration"
+        ]
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_contribution-001",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_contribution",
+      "text": "contribute $500 monthly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "contribute"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_contribution-002",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_contribution",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "invest"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_contribution-003",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_contribution",
+      "text": "deposit $200 weekly",
+      "language": "en",
+      "asserts": {
+        "dependent": "weekly",
+        "head_lemma": "deposit"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_contribution-004",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_contribution",
+      "text": "add $1,000 quarterly",
+      "language": "en",
+      "asserts": {
+        "dependent": "quarterly",
+        "head_lemma": "add"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_contribution-005",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_contribution",
+      "text": "save $300 every month",
+      "language": "en",
+      "asserts": {
+        "dependent": "month",
+        "head_lemma": "save"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_contribution-006",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_contribution",
+      "text": "buy $500 of VTI monthly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "buy"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-001",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "rebalance the portfolio annually",
+      "language": "en",
+      "asserts": {
+        "dependent": "annually",
+        "head_lemma": "rebalance"
+      },
+      "origin": "falsification",
+      "note": "attaching this cadence to a contribution verb must fail"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-002",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "rebalanced monthly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "rebalance"
+      },
+      "origin": "falsification",
+      "note": "attaching this cadence to a contribution verb must fail"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-003",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "harvest losses daily",
+      "language": "en",
+      "asserts": {
+        "dependent": "daily",
+        "head_lemma": "harvest"
+      },
+      "origin": "falsification",
+      "note": "attaching this cadence to a contribution verb must fail"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-004",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "adjust the weights quarterly",
+      "language": "en",
+      "asserts": {
+        "dependent": "quarterly",
+        "head_lemma": "adjust"
+      },
+      "origin": "falsification",
+      "note": "attaching this cadence to a contribution verb must fail"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-005",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "review the allocation yearly",
+      "language": "en",
+      "asserts": {
+        "dependent": "yearly",
+        "head_lemma": "review"
+      },
+      "origin": "falsification",
+      "note": "attaching this cadence to a contribution verb must fail"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-006",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "withdraw $500 monthly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "withdraw"
+      },
+      "origin": "falsification",
+      "note": "attaching this cadence to a contribution verb must fail"
+    },
+    {
+      "id": "depe-cadence-two_in_one_sentence-001",
+      "tier": "dependency",
+      "property": "cadence.two_in_one_sentence",
+      "text": "invest $500 monthly and rebalance annually",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "invest"
+      },
+      "origin": "falsification",
+      "note": "the sentence the whole layer exists for: a reader that collects cadences finds two and picks one"
+    },
+    {
+      "id": "depe-cadence-two_in_one_sentence-002",
+      "tier": "dependency",
+      "property": "cadence.two_in_one_sentence",
+      "text": "invest $500 monthly and rebalance annually",
+      "language": "en",
+      "asserts": {
+        "dependent": "annually",
+        "head_lemma": "rebalance"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-two_in_one_sentence-003",
+      "tier": "dependency",
+      "property": "cadence.two_in_one_sentence",
+      "text": "contribute weekly, rebalanced quarterly",
+      "language": "en",
+      "asserts": {
+        "dependent": "weekly",
+        "head_lemma": "contribute"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "depe-cadence-attaches_to_an_unscored_verb-001",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_an_unscored_verb",
+      "text": "gift $500 monthly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "gift"
+      },
+      "origin": "falsification",
+      "note": "`gift` is in neither the supporting nor the opposing table, and the scorer must return zero rather than a guess — the case that keeps `against` from becoming the complement of `supports`"
+    },
+    {
+      "id": "depe-condition-subject_of_the_trigger-001",
+      "tier": "dependency",
+      "property": "condition.subject_of_the_trigger",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "asserts": {
+        "dependent": "SPY",
+        "head_lemma": "cross"
+      },
+      "origin": "falsification",
+      "note": "the observed asset is the subject of the crossing, not the thing being bought"
+    },
+    {
+      "id": "depe-condition-subject_of_the_trigger-002",
+      "tier": "dependency",
+      "property": "condition.subject_of_the_trigger",
+      "text": "purchase VTI if QQQ drops",
+      "language": "en",
+      "asserts": {
+        "dependent": "QQQ",
+        "head_lemma": "drop"
+      },
+      "origin": "falsification",
+      "note": "the observed asset is the subject of the crossing, not the thing being bought"
+    },
+    {
+      "id": "depe-condition-subject_of_the_trigger-003",
+      "tier": "dependency",
+      "property": "condition.subject_of_the_trigger",
+      "text": "buy BND while TLT stays below trend",
+      "language": "en",
+      "asserts": {
+        "dependent": "TLT",
+        "head_lemma": "stay"
+      },
+      "origin": "falsification",
+      "note": "the observed asset is the subject of the crossing, not the thing being bought"
+    },
+    {
+      "id": "depe-condition-object_of_the_purchase-001",
+      "tier": "dependency",
+      "property": "condition.object_of_the_purchase",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "asserts": {
+        "dependent": "VOO",
+        "head_lemma": "buy"
+      },
+      "origin": "falsification",
+      "note": "held and observed are different roles; swapping them must fail"
+    },
+    {
+      "id": "depe-condition-object_of_the_purchase-002",
+      "tier": "dependency",
+      "property": "condition.object_of_the_purchase",
+      "text": "purchase VTI if QQQ drops",
+      "language": "en",
+      "asserts": {
+        "dependent": "VTI",
+        "head_lemma": "purchase"
+      },
+      "origin": "falsification",
+      "note": "held and observed are different roles; swapping them must fail"
+    },
+    {
+      "id": "depe-condition-object_of_the_purchase-003",
+      "tier": "dependency",
+      "property": "condition.object_of_the_purchase",
+      "text": "sell BND after the signal",
+      "language": "en",
+      "asserts": {
+        "dependent": "BND",
+        "head_lemma": "sell"
+      },
+      "origin": "falsification",
+      "note": "held and observed are different roles; swapping them must fail"
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-001",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "buy at the next open",
+      "language": "en",
+      "asserts": {
+        "dependent": "open",
+        "head_lemma": "buy"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-002",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "execute at the close",
+      "language": "en",
+      "asserts": {
+        "dependent": "close",
+        "head_lemma": "execute"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-003",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "invest on the first session of the month",
+      "language": "en",
+      "asserts": {
+        "dependent": "session",
+        "head_lemma": "invest"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-window-attaches_to_its_verb-001",
+      "tier": "dependency",
+      "property": "window.attaches_to_its_verb",
+      "text": "hold the bonus for 90 days",
+      "language": "en",
+      "asserts": {
+        "dependent": "days",
+        "head_lemma": "hold"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-window-attaches_to_its_verb-002",
+      "tier": "dependency",
+      "property": "window.attaches_to_its_verb",
+      "text": "keep the cash for six months",
+      "language": "en",
+      "asserts": {
+        "dependent": "months",
+        "head_lemma": "keep"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-window-attaches_to_its_verb-003",
+      "tier": "dependency",
+      "property": "window.attaches_to_its_verb",
+      "text": "evaluate over five years",
+      "language": "en",
+      "asserts": {
+        "dependent": "years",
+        "head_lemma": "evaluate"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-window-attaches_to_its_verb-004",
+      "tier": "dependency",
+      "property": "window.attaches_to_its_verb",
+      "text": "measure across ten years",
+      "language": "en",
+      "asserts": {
+        "dependent": "years",
+        "head_lemma": "measure"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-timing-case_marker-001",
+      "tier": "dependency",
+      "property": "timing.case_marker",
+      "text": "since Jan 2020",
+      "language": "en",
+      "asserts": {
+        "dependent": "since",
+        "head_lemma": "jan",
+        "relation": "case"
+      },
+      "origin": "observed",
+      "note": "UD again: the month is the head and `since` attaches to it. Written the other way round first, and the recorded parse disagreed"
+    },
+    {
+      "id": "depe-negation-is_carried-001",
+      "tier": "dependency",
+      "property": "negation.is_carried",
+      "text": "rather than through an ETF",
+      "language": "en",
+      "asserts": {
+        "negated": "ETF"
+      },
+      "origin": "falsification",
+      "note": "dropping the negation reverses the sentence"
+    },
+    {
+      "id": "depe-negation-is_carried-002",
+      "tier": "dependency",
+      "property": "negation.is_carried",
+      "text": "not through a mutual fund",
+      "language": "en",
+      "asserts": {
+        "negated": "fund"
+      },
+      "origin": "falsification",
+      "note": "dropping the negation reverses the sentence"
+    },
+    {
+      "id": "depe-negation-is_carried-003",
+      "tier": "dependency",
+      "property": "negation.is_carried",
+      "text": "instead of buying bonds",
+      "language": "en",
+      "asserts": {
+        "negated": "bonds"
+      },
+      "origin": "falsification",
+      "note": "dropping the negation reverses the sentence"
+    },
+    {
+      "id": "depe-negation-is_carried-004",
+      "tier": "dependency",
+      "property": "negation.is_carried",
+      "text": "without using leverage",
+      "language": "en",
+      "asserts": {
+        "negated": "leverage"
+      },
+      "origin": "falsification",
+      "note": "dropping the negation reverses the sentence"
+    },
+    {
+      "id": "depe-negation-absent_when_absent-001",
+      "tier": "dependency",
+      "property": "negation.absent_when_absent",
+      "text": "through an ETF",
+      "language": "en",
+      "asserts": {
+        "negated": null
+      },
+      "origin": "falsification",
+      "note": "the discriminating opposite: if everything looked negated, the signal would carry no information"
+    },
+    {
+      "id": "sema-funding-cadence-001",
+      "tier": "semantics",
+      "property": "funding.cadence",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "asserts": {
+        "field": "cadence",
+        "value": "monthly"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-cadence-002",
+      "tier": "semantics",
+      "property": "funding.cadence",
+      "text": "contribute $500 monthly, rebalanced annually",
+      "language": "en",
+      "asserts": {
+        "field": "cadence",
+        "value": "monthly"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-cadence-003",
+      "tier": "semantics",
+      "property": "funding.cadence",
+      "text": "add $250 every two weeks",
+      "language": "en",
+      "asserts": {
+        "field": "cadence",
+        "value": "biweekly"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-cadence-004",
+      "tier": "semantics",
+      "property": "funding.cadence",
+      "text": "put in $1,000 each quarter",
+      "language": "en",
+      "asserts": {
+        "field": "cadence",
+        "value": "quarterly"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-cadence-005",
+      "tier": "semantics",
+      "property": "funding.cadence",
+      "text": "deposit $100 a week",
+      "language": "en",
+      "asserts": {
+        "field": "cadence",
+        "value": "weekly"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-cadence-006",
+      "tier": "semantics",
+      "property": "funding.cadence",
+      "text": "a one-off $10,000 investment",
+      "language": "en",
+      "asserts": {
+        "field": "cadence",
+        "value": "once"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-amount-001",
+      "tier": "semantics",
+      "property": "funding.amount",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "asserts": {
+        "field": "amount",
+        "value": "500"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-amount-002",
+      "tier": "semantics",
+      "property": "funding.amount",
+      "text": "contribute £1k a month",
+      "language": "en",
+      "asserts": {
+        "field": "amount",
+        "value": "1000"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-amount-003",
+      "tier": "semantics",
+      "property": "funding.amount",
+      "text": "add $2.5k quarterly",
+      "language": "en",
+      "asserts": {
+        "field": "amount",
+        "value": "2500"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-weighting-method-001",
+      "tier": "semantics",
+      "property": "weighting.method",
+      "text": "a 60/40 portfolio",
+      "language": "en",
+      "asserts": {
+        "field": "allocation_method",
+        "value": "60/40"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-weighting-method-002",
+      "tier": "semantics",
+      "property": "weighting.method",
+      "text": "split it 70/30 between stocks and bonds",
+      "language": "en",
+      "asserts": {
+        "field": "allocation_method",
+        "value": "70/30"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-weighting-method-003",
+      "tier": "semantics",
+      "property": "weighting.method",
+      "text": "equal weight across the four",
+      "language": "en",
+      "asserts": {
+        "field": "allocation_method",
+        "value": "equal_weight_at_purchase"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-weighting-method-004",
+      "tier": "semantics",
+      "property": "weighting.method",
+      "text": "weight by inverse volatility",
+      "language": "en",
+      "asserts": {
+        "field": "allocation_method",
+        "value": "inverse_volatility"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-weighting-method-005",
+      "tier": "semantics",
+      "property": "weighting.method",
+      "text": "market-cap weighted",
+      "language": "en",
+      "asserts": {
+        "field": "allocation_method",
+        "value": "market_cap"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-trigger-semantics-001",
+      "tier": "semantics",
+      "property": "trigger.semantics",
+      "text": "when SPY crosses below its 200-day average",
+      "language": "en",
+      "asserts": {
+        "field": "trigger_semantics",
+        "value": "crossing_event"
+      },
+      "origin": "falsification",
+      "note": "crosses-below is an event; stays-below is a state. Collapsing them changes how often the strategy fires"
+    },
+    {
+      "id": "sema-trigger-semantics-002",
+      "tier": "semantics",
+      "property": "trigger.semantics",
+      "text": "whenever SPY drops under the 200-day",
+      "language": "en",
+      "asserts": {
+        "field": "trigger_semantics",
+        "value": "crossing_event"
+      },
+      "origin": "falsification",
+      "note": "crosses-below is an event; stays-below is a state. Collapsing them changes how often the strategy fires"
+    },
+    {
+      "id": "sema-trigger-semantics-003",
+      "tier": "semantics",
+      "property": "trigger.semantics",
+      "text": "while SPY stays below its average",
+      "language": "en",
+      "asserts": {
+        "field": "trigger_semantics",
+        "value": "persistent_condition"
+      },
+      "origin": "falsification",
+      "note": "crosses-below is an event; stays-below is a state. Collapsing them changes how often the strategy fires"
+    },
+    {
+      "id": "sema-trigger-semantics-004",
+      "tier": "semantics",
+      "property": "trigger.semantics",
+      "text": "as long as SPY is under trend",
+      "language": "en",
+      "asserts": {
+        "field": "trigger_semantics",
+        "value": "persistent_condition"
+      },
+      "origin": "falsification",
+      "note": "crosses-below is an event; stays-below is a state. Collapsing them changes how often the strategy fires"
+    },
+    {
+      "id": "sema-trigger-semantics-005",
+      "tier": "semantics",
+      "property": "trigger.semantics",
+      "text": "any time SPY is below the 200-day",
+      "language": "en",
+      "asserts": {
+        "field": "trigger_semantics",
+        "value": "persistent_condition"
+      },
+      "origin": "falsification",
+      "note": "crosses-below is an event; stays-below is a state. Collapsing them changes how often the strategy fires"
+    },
+    {
+      "id": "sema-trigger-asset_roles-001",
+      "tier": "semantics",
+      "property": "trigger.asset_roles",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "asserts": {
+        "held": "VOO",
+        "observed": "SPY"
+      },
+      "origin": "falsification",
+      "note": "swapping held and observed must fail"
+    },
+    {
+      "id": "sema-trigger-asset_roles-002",
+      "tier": "semantics",
+      "property": "trigger.asset_roles",
+      "text": "purchase VTI whenever QQQ drops 10%",
+      "language": "en",
+      "asserts": {
+        "held": "VTI",
+        "observed": "QQQ"
+      },
+      "origin": "falsification",
+      "note": "swapping held and observed must fail"
+    },
+    {
+      "id": "sema-trigger-asset_roles-003",
+      "tier": "semantics",
+      "property": "trigger.asset_roles",
+      "text": "add to BND while TLT is under its 200-day",
+      "language": "en",
+      "asserts": {
+        "held": "BND",
+        "observed": "TLT"
+      },
+      "origin": "falsification",
+      "note": "swapping held and observed must fail"
+    },
+    {
+      "id": "sema-window-moving_average-011",
+      "tier": "semantics",
+      "property": "window.moving_average",
+      "text": "below the 200-day moving average",
+      "language": "en",
+      "asserts": {
+        "field": "moving_average_window",
+        "value": "200"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-window-moving_average-012",
+      "tier": "semantics",
+      "property": "window.moving_average",
+      "text": "under its 50-day average",
+      "language": "en",
+      "asserts": {
+        "field": "moving_average_window",
+        "value": "50"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-window-moving_average-013",
+      "tier": "semantics",
+      "property": "window.moving_average",
+      "text": "beneath the 12-month moving average",
+      "language": "en",
+      "asserts": {
+        "field": "moving_average_window",
+        "value": "12"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-window-holding_period-001",
+      "tier": "semantics",
+      "property": "window.holding_period",
+      "text": "hold the bonus for 90 days",
+      "language": "en",
+      "asserts": {
+        "field": "holding_period_days",
+        "value": "90"
+      },
+      "origin": "falsification",
+      "note": "a holding period is not a moving-average window, even when both are 90"
+    },
+    {
+      "id": "sema-window-holding_period-002",
+      "tier": "semantics",
+      "property": "window.holding_period",
+      "text": "keep it for six months",
+      "language": "en",
+      "asserts": {
+        "field": "holding_period_days",
+        "value": "180"
+      },
+      "origin": "falsification",
+      "note": "a holding period is not a moving-average window, even when both are 90"
+    },
+    {
+      "id": "sema-negation-changes_the_value-001",
+      "tier": "semantics",
+      "property": "negation.changes_the_value",
+      "text": "through an ETF",
+      "language": "en",
+      "asserts": {
+        "field": "instrument",
+        "value": "etf"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "sema-negation-changes_the_value-002",
+      "tier": "semantics",
+      "property": "negation.changes_the_value",
+      "text": "rather than through an ETF",
+      "language": "en",
+      "asserts": {
+        "field": "instrument",
+        "value": "not_etf"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "sema-negation-changes_the_value-003",
+      "tier": "semantics",
+      "property": "negation.changes_the_value",
+      "text": "directly, not through a fund",
+      "language": "en",
+      "asserts": {
+        "field": "instrument",
+        "value": "not_fund"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "depe-coordination-scope-001",
+      "tier": "dependency",
+      "property": "coordination.scope",
+      "text": "buy VTI and BND monthly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "buy"
+      },
+      "origin": "falsification",
+      "note": "a conjunction is where a reader most often carries a modifier across a boundary it does not cross"
+    },
+    {
+      "id": "depe-coordination-scope-002",
+      "tier": "dependency",
+      "property": "coordination.scope",
+      "text": "hold VTI, BND and GLD, rebalanced yearly",
+      "language": "en",
+      "asserts": {
+        "dependent": "yearly",
+        "head_lemma": "rebalance"
+      },
+      "origin": "falsification",
+      "note": "a conjunction is where a reader most often carries a modifier across a boundary it does not cross"
+    },
+    {
+      "id": "depe-coordination-scope-003",
+      "tier": "dependency",
+      "property": "coordination.scope",
+      "text": "invest monthly and withdraw quarterly",
+      "language": "en",
+      "asserts": {
+        "dependent": "monthly",
+        "head_lemma": "invest"
+      },
+      "origin": "falsification",
+      "note": "a conjunction is where a reader most often carries a modifier across a boundary it does not cross"
+    },
+    {
+      "id": "depe-coordination-scope-004",
+      "tier": "dependency",
+      "property": "coordination.scope",
+      "text": "invest monthly and withdraw quarterly",
+      "language": "en",
+      "asserts": {
+        "dependent": "quarterly",
+        "head_lemma": "withdraw"
+      },
+      "origin": "falsification",
+      "note": "a conjunction is where a reader most often carries a modifier across a boundary it does not cross"
+    },
+    {
+      "id": "depe-coordination-scope-005",
+      "tier": "dependency",
+      "property": "coordination.scope",
+      "text": "contribute $500 and $200 to the second sleeve",
+      "language": "en",
+      "asserts": {
+        "dependent": "$500",
+        "head_lemma": "contribute"
+      },
+      "origin": "falsification",
+      "note": "a conjunction is where a reader most often carries a modifier across a boundary it does not cross"
+    },
+    {
+      "id": "depe-temporal-window_versus_cadence-001",
+      "tier": "dependency",
+      "property": "temporal.window_versus_cadence",
+      "text": "invest $500 monthly for the past five years",
+      "language": "en",
+      "asserts": {
+        "dependent": "years",
+        "head_lemma": "invest"
+      },
+      "origin": "falsification",
+      "note": "'every month for five years' has a cadence and an evaluation period; reading the period as the cadence is the common miss"
+    },
+    {
+      "id": "depe-temporal-window_versus_cadence-002",
+      "tier": "dependency",
+      "property": "temporal.window_versus_cadence",
+      "text": "every month for the past five years",
+      "language": "en",
+      "asserts": {
+        "dependent": "years",
+        "head_lemma": "month"
+      },
+      "origin": "falsification",
+      "note": "'every month for five years' has a cadence and an evaluation period; reading the period as the cadence is the common miss"
+    },
+    {
+      "id": "depe-temporal-window_versus_cadence-003",
+      "tier": "dependency",
+      "property": "temporal.window_versus_cadence",
+      "text": "hold the bonus for 90 days each year",
+      "language": "en",
+      "asserts": {
+        "dependent": "days",
+        "head_lemma": "hold"
+      },
+      "origin": "falsification",
+      "note": "'every month for five years' has a cadence and an evaluation period; reading the period as the cadence is the common miss"
+    },
+    {
+      "id": "depe-relation-direction-001",
+      "tier": "dependency",
+      "property": "relation.direction",
+      "text": "move the cash from the ISA to the SIPP",
+      "language": "en",
+      "asserts": {
+        "dependent": "from",
+        "head_lemma": "isa",
+        "relation": "case"
+      },
+      "origin": "falsification",
+      "note": "from and to reversed is the opposite transaction; the contract makes member order part of identity for exactly this"
+    },
+    {
+      "id": "depe-relation-direction-002",
+      "tier": "dependency",
+      "property": "relation.direction",
+      "text": "move the cash from the ISA to the SIPP",
+      "language": "en",
+      "asserts": {
+        "dependent": "to",
+        "head_lemma": "sipp",
+        "relation": "case"
+      },
+      "origin": "falsification",
+      "note": "from and to reversed is the opposite transaction; the contract makes member order part of identity for exactly this"
+    },
+    {
+      "id": "depe-relation-direction-003",
+      "tier": "dependency",
+      "property": "relation.direction",
+      "text": "transfer from the 401k into the IRA",
+      "language": "en",
+      "asserts": {
+        "dependent": "from",
+        "head_lemma": "401k",
+        "relation": "case"
+      },
+      "origin": "falsification",
+      "note": "from and to reversed is the opposite transaction; the contract makes member order part of identity for exactly this"
+    },
+    {
+      "id": "depe-relation-direction-004",
+      "tier": "dependency",
+      "property": "relation.direction",
+      "text": "transfer from the 401k into the IRA",
+      "language": "en",
+      "asserts": {
+        "dependent": "into",
+        "head_lemma": "ira",
+        "relation": "case"
+      },
+      "origin": "falsification",
+      "note": "from and to reversed is the opposite transaction; the contract makes member order part of identity for exactly this"
+    },
+    {
+      "id": "depe-relation-member_qualifier-001",
+      "tier": "dependency",
+      "property": "relation.member_qualifier",
+      "text": "60% to VTI and 40% to BND",
+      "language": "en",
+      "asserts": {
+        "dependent": "60",
+        "shares_head_with": "VTI"
+      },
+      "origin": "falsification",
+      "note": "a set of weights beside a set of assets is not the same fact as knowing which belongs to which"
+    },
+    {
+      "id": "depe-relation-member_qualifier-002",
+      "tier": "dependency",
+      "property": "relation.member_qualifier",
+      "text": "60% to VTI and 40% to BND",
+      "language": "en",
+      "asserts": {
+        "dependent": "40",
+        "shares_head_with": "BND"
+      },
+      "origin": "falsification",
+      "note": "a set of weights beside a set of assets is not the same fact as knowing which belongs to which"
+    },
+    {
+      "id": "depe-relation-member_qualifier-003",
+      "tier": "dependency",
+      "property": "relation.member_qualifier",
+      "text": "put 70% in equities, 30% in bonds",
+      "language": "en",
+      "asserts": {
+        "dependent": "70",
+        "shares_head_with": "equities"
+      },
+      "origin": "falsification",
+      "note": "a set of weights beside a set of assets is not the same fact as knowing which belongs to which"
+    },
+    {
+      "id": "depe-relation-member_qualifier-004",
+      "tier": "dependency",
+      "property": "relation.member_qualifier",
+      "text": "put 70% in equities, 30% in bonds",
+      "language": "en",
+      "asserts": {
+        "dependent": "30",
+        "shares_head_with": "bonds"
+      },
+      "origin": "falsification",
+      "note": "a set of weights beside a set of assets is not the same fact as knowing which belongs to which"
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-004",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "invest what is left after expenses",
+      "language": "en",
+      "asserts": {
+        "dependent": "expenses",
+        "head_lemma": "leave"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-005",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "contribute whatever remains each month",
+      "language": "en",
+      "asserts": {
+        "dependent": "month",
+        "head_lemma": "remain"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-006",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "buy on the first Monday of the month",
+      "language": "en",
+      "asserts": {
+        "dependent": "Monday",
+        "head_lemma": "buy"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-007",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "execute at the following session's open",
+      "language": "en",
+      "asserts": {
+        "dependent": "open",
+        "head_lemma": "execute"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "depe-timing-attaches_to_execution-008",
+      "tier": "dependency",
+      "property": "timing.attaches_to_execution",
+      "text": "start in January 2020",
+      "language": "en",
+      "asserts": {
+        "dependent": "January",
+        "head_lemma": "start"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-amount_kind-001",
+      "tier": "semantics",
+      "property": "funding.amount_kind",
+      "text": "invest whatever is left over each month",
+      "language": "en",
+      "asserts": {
+        "field": "amount_kind",
+        "value": "residual"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-amount_kind-002",
+      "tier": "semantics",
+      "property": "funding.amount_kind",
+      "text": "contribute a fixed $500",
+      "language": "en",
+      "asserts": {
+        "field": "amount_kind",
+        "value": "fixed"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-amount_kind-003",
+      "tier": "semantics",
+      "property": "funding.amount_kind",
+      "text": "invest 10% of my salary monthly",
+      "language": "en",
+      "asserts": {
+        "field": "amount_kind",
+        "value": "proportional"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-funding-amount_kind-004",
+      "tier": "semantics",
+      "property": "funding.amount_kind",
+      "text": "put in half of any bonus",
+      "language": "en",
+      "asserts": {
+        "field": "amount_kind",
+        "value": "proportional"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-timing-execution-001",
+      "tier": "semantics",
+      "property": "timing.execution",
+      "text": "buy at the next open",
+      "language": "en",
+      "asserts": {
+        "field": "execution_timing",
+        "value": "next_session_open"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-timing-execution-002",
+      "tier": "semantics",
+      "property": "timing.execution",
+      "text": "execute at the close",
+      "language": "en",
+      "asserts": {
+        "field": "execution_timing",
+        "value": "same_session_close"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-timing-execution-003",
+      "tier": "semantics",
+      "property": "timing.execution",
+      "text": "trade at the following day's open",
+      "language": "en",
+      "asserts": {
+        "field": "execution_timing",
+        "value": "next_session_open"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-timing-execution-004",
+      "tier": "semantics",
+      "property": "timing.execution",
+      "text": "fill on the signal bar",
+      "language": "en",
+      "asserts": {
+        "field": "execution_timing",
+        "value": "same_session_close"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-timing-day_rule-001",
+      "tier": "semantics",
+      "property": "timing.day_rule",
+      "text": "on the first trading day of the month",
+      "language": "en",
+      "asserts": {
+        "field": "day_rule",
+        "value": "first_session_of_period"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-timing-day_rule-002",
+      "tier": "semantics",
+      "property": "timing.day_rule",
+      "text": "on the last session of each quarter",
+      "language": "en",
+      "asserts": {
+        "field": "day_rule",
+        "value": "last_session_of_period"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-timing-day_rule-003",
+      "tier": "semantics",
+      "property": "timing.day_rule",
+      "text": "mid-month",
+      "language": "en",
+      "asserts": {
+        "field": "day_rule",
+        "value": "mid_period"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-window-evaluation_period-001",
+      "tier": "semantics",
+      "property": "window.evaluation_period",
+      "text": "evaluate over the past five years",
+      "language": "en",
+      "asserts": {
+        "field": "evaluation_period",
+        "value": "1825"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-window-evaluation_period-002",
+      "tier": "semantics",
+      "property": "window.evaluation_period",
+      "text": "measured across ten years",
+      "language": "en",
+      "asserts": {
+        "field": "evaluation_period",
+        "value": "3650"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-window-evaluation_period-003",
+      "tier": "semantics",
+      "property": "window.evaluation_period",
+      "text": "since January 2020",
+      "language": "en",
+      "asserts": {
+        "field": "evaluation_period",
+        "value": "2020-01"
+      },
+      "origin": "constructed",
+      "note": ""
+    },
+    {
+      "id": "sema-assets-stay_as_written-001",
+      "tier": "semantics",
+      "property": "assets.stay_as_written",
+      "text": "buy a core index fund monthly",
+      "language": "en",
+      "asserts": {
+        "field": "assets",
+        "value": "a core index fund"
+      },
+      "origin": "falsification",
+      "note": "never resolved to a ticker here. Choosing VTI or SPY on the user's behalf is the substitution the whole boundary prevents"
+    },
+    {
+      "id": "sema-assets-stay_as_written-002",
+      "tier": "semantics",
+      "property": "assets.stay_as_written",
+      "text": "invest in the S&P 500 tracker",
+      "language": "en",
+      "asserts": {
+        "field": "assets",
+        "value": "the S&P 500 tracker"
+      },
+      "origin": "falsification",
+      "note": "never resolved to a ticker here. Choosing VTI or SPY on the user's behalf is the substitution the whole boundary prevents"
+    },
+    {
+      "id": "sema-assets-stay_as_written-003",
+      "tier": "semantics",
+      "property": "assets.stay_as_written",
+      "text": "put it into an SPX ETF",
+      "language": "en",
+      "asserts": {
+        "field": "assets",
+        "value": "an SPX ETF"
+      },
+      "origin": "falsification",
+      "note": "never resolved to a ticker here. Choosing VTI or SPY on the user's behalf is the substitution the whole boundary prevents"
+    },
+    {
+      "id": "sema-dividends-policy-001",
+      "tier": "semantics",
+      "property": "dividends.policy",
+      "text": "reinvest the dividends",
+      "language": "en",
+      "asserts": {
+        "field": "dividend_policy",
+        "value": "reinvested"
+      },
+      "origin": "constructed",
+      "note": "Mission refuses this dimension by name — it is here because the schema is what can be *meant*, not what can be run"
+    },
+    {
+      "id": "sema-dividends-policy-002",
+      "tier": "semantics",
+      "property": "dividends.policy",
+      "text": "take the dividends as cash",
+      "language": "en",
+      "asserts": {
+        "field": "dividend_policy",
+        "value": "cash"
+      },
+      "origin": "constructed",
+      "note": "Mission refuses this dimension by name — it is here because the schema is what can be *meant*, not what can be run"
+    },
+    {
+      "id": "sema-dividends-policy-003",
+      "tier": "semantics",
+      "property": "dividends.policy",
+      "text": "do not reinvest",
+      "language": "en",
+      "asserts": {
+        "field": "dividend_policy",
+        "value": "cash"
+      },
+      "origin": "constructed",
+      "note": "Mission refuses this dimension by name — it is here because the schema is what can be *meant*, not what can be run"
+    },
+    {
+      "id": "norm-money-amount-025",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "invertir 500 € cada mes",
+      "language": "es",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500",
+        "unit": "EUR"
+      },
+      "origin": "observed",
+      "note": "postfix currency, which the first normaliser missed entirely — it read only `€500` and this corpus caught it on the first run"
+    },
+    {
+      "id": "norm-money-amount-026",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "monatlich 500 € investieren",
+      "language": "de",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500",
+        "unit": "EUR"
+      },
+      "origin": "observed",
+      "note": "postfix currency, which the first normaliser missed entirely — it read only `€500` and this corpus caught it on the first run"
+    },
+    {
+      "id": "norm-money-amount-027",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "investir 500 € par mois",
+      "language": "fr",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500",
+        "unit": "EUR"
+      },
+      "origin": "observed",
+      "note": "postfix currency, which the first normaliser missed entirely — it read only `€500` and this corpus caught it on the first run"
+    },
+    {
+      "id": "norm-money-amount-028",
+      "tier": "normalization",
+      "property": "money.amount",
+      "text": "aportar 1.000 € al mes",
+      "language": "es",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1000",
+        "unit": "EUR"
+      },
+      "origin": "observed",
+      "note": "postfix currency, which the first normaliser missed entirely — it read only `€500` and this corpus caught it on the first run"
+    },
+    {
+      "id": "norm-money-grouping_follows_the_language-001",
+      "tier": "normalization",
+      "property": "money.grouping_follows_the_language",
+      "text": "monatlich 500,50 € investieren",
+      "language": "de",
+      "asserts": {
+        "kind": "money",
+        "canonical": "500.50"
+      },
+      "origin": "observed",
+      "note": "under a declared convention this is not ambiguous at all. The first normaliser had no language and therefore silently assumed en, which is not neutrality"
+    },
+    {
+      "id": "norm-money-grouping_follows_the_language-002",
+      "tier": "normalization",
+      "property": "money.grouping_follows_the_language",
+      "text": "investir 1.234,56 € par mois",
+      "language": "fr",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1234.56"
+      },
+      "origin": "observed",
+      "note": "under a declared convention this is not ambiguous at all. The first normaliser had no language and therefore silently assumed en, which is not neutrality"
+    },
+    {
+      "id": "norm-money-grouping_follows_the_language-003",
+      "tier": "normalization",
+      "property": "money.grouping_follows_the_language",
+      "text": "aportar 2.500,75 € al mes",
+      "language": "es",
+      "asserts": {
+        "kind": "money",
+        "canonical": "2500.75"
+      },
+      "origin": "observed",
+      "note": "under a declared convention this is not ambiguous at all. The first normaliser had no language and therefore silently assumed en, which is not neutrality"
+    },
+    {
+      "id": "norm-money-malformed_for_the_language_is_refused-001",
+      "tier": "normalization",
+      "property": "money.malformed_for_the_language_is_refused",
+      "text": "invest 500,50 EUR monthly",
+      "language": "en",
+      "asserts": {
+        "absent": "money"
+      },
+      "origin": "falsification",
+      "note": "`500,50` is not a well-formed en number — comma before two digits is no thousands group. Refused rather than read under the other convention, because a plausible wrong amount is worse than a question"
+    },
+    {
+      "id": "norm-money-malformed_for_the_language_is_refused-002",
+      "tier": "normalization",
+      "property": "money.malformed_for_the_language_is_refused",
+      "text": "contribute 1.234,56 EUR each month",
+      "language": "en",
+      "asserts": {
+        "absent": "money"
+      },
+      "origin": "falsification",
+      "note": "`500,50` is not a well-formed en number — comma before two digits is no thousands group. Refused rather than read under the other convention, because a plausible wrong amount is worse than a question"
+    },
+    {
+      "id": "norm-money-grouping_follows_the_language-004",
+      "tier": "normalization",
+      "property": "money.grouping_follows_the_language",
+      "text": "invest $1.000 monthly",
+      "language": "en",
+      "asserts": {
+        "kind": "money",
+        "canonical": "1.000"
+      },
+      "origin": "falsification",
+      "note": "one dollar, not a thousand. Correct under the declared convention and surprising to a European reader, which is exactly why the convention is declared rather than inferred"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-007",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "invertir 500 € cada mes, reequilibrado anualmente",
+      "language": "es",
+      "asserts": {
+        "dependent": "anualmente",
+        "head_lemma": "reequilibrar"
+      },
+      "origin": "falsification",
+      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-008",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "monatlich investieren, jährlich neu gewichten",
+      "language": "de",
+      "asserts": {
+        "dependent": "jährlich",
+        "head_lemma": "gewichten"
+      },
+      "origin": "falsification",
+      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-009",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "investir chaque mois, rééquilibré chaque année",
+      "language": "fr",
+      "asserts": {
+        "dependent": "année",
+        "head_lemma": "rééquilibrer"
+      },
+      "origin": "falsification",
+      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
+    },
+    {
+      "id": "depe-cadence-attaches_to_other_verb-010",
+      "tier": "dependency",
+      "property": "cadence.attaches_to_other_verb",
+      "text": "инвестировать ежемесячно, ребалансировать ежегодно",
+      "language": "ru",
+      "asserts": {
+        "dependent": "ежегодно",
+        "head_lemma": "ребалансировать"
+      },
+      "origin": "falsification",
+      "note": "the same two-cadence sentence as the English case. If the layer generalises at all, it generalises here"
+    }
+  ]
+}
