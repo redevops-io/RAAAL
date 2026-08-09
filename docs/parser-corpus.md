@@ -361,6 +361,73 @@ different axes: agreeing says the pipeline was internally consistent, matching
 says it was also right. Restoring the fallback takes agreements from 7 to 12
 and fails both guards.
 
+## Phase 6b — derivation families
+
+Six families, not fifteen rules, in
+[`semantics.py`](../src/discovery/semantics.py). A family says which evidence
+determines which value, and fires only when that evidence is present.
+
+    amount_kind        `fixed` modifying an amount        -> fixed
+                       a percentage governed by `of`      -> proportional
+    trigger_semantics  comparison + a change-of-state verb -> crossing_event
+                       comparison + a copula               -> persistent_condition
+    day_rule           `last` modifying a period          -> last_session_of_period
+                       `first` modifying a period         -> first_session_of_period
+
+**The verb is the discriminator; the preposition is only the signal.** `below`
+alone does not mean a persistent condition — *crosses below* is an event and
+*is below* is a state. A family requiring the preposition without the verb
+would be inferring from a preposition, so both are required and neither is
+sufficient.
+
+The binder grew two fields to make this possible without a mapper reading a
+parse: `target_lemma` (the head's lemma, unrebuilt — a verb table compared
+against the readable span `"put in"` missed exactly the multiword cases) and
+`modifiers` (the lemmas describing the value's phrase). Both are still
+structure with no meaning attached: the binder reports that `fixed` modifies
+the amount and says nothing about what that implies.
+
+### Movement
+
+    MAPPED_AND_AGREED   9  ->  16    (all 16 with the expected value)
+    NO_FIELD_MAPPING   15  ->   9
+    NO_LITERAL         25       25
+    NO_PARSE_RECORDED   4        4
+
+`AWAITING_A_PARSER`: 108 → 54 → 47 → 45 → **38**.
+
+**A defect surfaced in how fusion was being called, not in fusion.** The first
+run put five cases into `MAPPED_AND_AGREED` and one into
+`AMBIGUOUS_BY_LANGUAGE` — *"rebalance on the last session of each quarter"*,
+flagged because the sentence contains "rebalance". But the caller was passing
+the **whole utterance** as the proposal's source span, so any sentence
+containing an ambiguous term made *every* field of that sentence ambiguous. A
+candidate now carries its own span, and fusion reads that.
+
+**`AMBIGUOUS_BY_LANGUAGE` is now zero, and that is correct.** The
+rebalance/reallocate ambiguity is about *what the action does*. It does not
+touch how often the action happens or which session of the period it happens
+on, which are the fields these cases assert. The corpus has no case asserting
+the field the ambiguity actually affects — so the outcome is exercised
+synthetically in `test_fusion.py`, and a live instance would be a corpus
+addition rather than a code change. Recorded in the report so a zero is not
+read as an outcome that never fires.
+
+### The nine that did not move, and why none got a rule
+
+| case | what it needs |
+|---|---|
+| `a 60/40 portfolio`, `split it 70/30 …` | a `modifies_nominal` **binding** — a ratio modifying an allocation noun. A binder rule, out of scope here, and "unbound ratio → allocation_method" would be a rule firing on absence, which `70/30 vs 60/40` shows is wrong |
+| `purchase VTI whenever QQQ drops 10%`, `add to BND while TLT …` | role **pairs**. Tier 2 already establishes subject-of-condition and object-of-action; what is missing is a candidate shape that carries a pair |
+| `make a one-off $10,000 investment` | `make` is not a funding verb and adding it would fire on "make a withdrawal". The funding is in the noun `investment` |
+| `sell when it drops under its 50-day average` | the elided-head window gap — two attested instances, waiting for a third |
+| `invest whatever is left over each month` | no literal for the amount at all |
+| `invest 10% of my salary monthly` | the percentage binds to `salary monthly` rather than through `of` |
+| `buy a core index fund monthly` | `assets` is a span, not a normalisable literal |
+
+Each is a specific reason rather than a pile, which was the point of splitting
+the state. None of them was closed by widening a rule to fit it.
+
 ## Order of work
 
     real phrasings  ->  tier 1 regressions  ->  tier 2 fixtures  ->  fusion

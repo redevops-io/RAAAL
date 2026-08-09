@@ -88,6 +88,20 @@ class RelationBinding:
     is what makes a binding checkable a year later; without it a binding is an
     assertion."""
 
+    target_lemma: str = ""
+    """The head's lemma, unrebuilt. `target_span` is for a person to read —
+    "put in", "401k" — and matching a verb table against it fails on exactly
+    the multiword cases, so the lemma is carried separately for code."""
+
+    modifiers: Sequence[str] = ()
+    """Lemmas of the words modifying the value's own phrase — `fixed` in "a
+    fixed $500", `last` in "the last session".
+
+    Carried by the binder because a derivation needs this evidence and must not
+    read a parse to get it. Still structure and still no meaning: the binder
+    reports that `fixed` modifies the amount, and says nothing about what that
+    implies for `amount_kind`."""
+
     supports: str = ""
     """The semantic pairing this is evidence *for* — declared by the rule, not
     concluded by the binder."""
@@ -101,6 +115,8 @@ class RelationBinding:
     def to_json(self) -> dict:
         return {"value_id": self.value_id, "relation": self.relation,
                 "status": self.status.value, "target_span": self.target_span,
+                "target_lemma": self.target_lemma,
+                "modifiers": list(self.modifiers),
                 "target_index": self.target_index,
                 "candidates": list(self.candidates),
                 "evidence": list(self.evidence), "supports": self.supports,
@@ -151,6 +167,38 @@ def _edge(sentence: Sentence, token: Token) -> str:
 
 #: Words that are part of a head's own name rather than separate participants.
 _NAME_PARTS = frozenset({"compound", "amod", "nummod", "det:predet", "flat"})
+
+#: Relations that mark a word as *describing* the value's phrase.
+_MODIFYING = frozenset({"amod", "advmod", "det", "nmod:poss", "case", "mark",
+                        "compound", "cop", "nsubj"})
+
+
+def modifiers_of(aligned: Aligned) -> Sequence[str]:
+    """Lemmas describing the value's own phrase, and the words introducing it.
+
+    "a fixed $500" gives `fixed`; "the last session" gives `last`; "when it
+    crosses" gives `when`. A derivation needs these and must not open a parse to
+    find them, so the binder reports them — as lemmas, with no claim about what
+    any of them means.
+    """
+    covered = {token.index for token in aligned.tokens}
+    found = []
+    for token in aligned.sentence.tokens:
+        if token.index in covered:
+            continue
+        if token.head in covered and token.relation.split(":")[0] in _MODIFYING:
+            found.append(token.lemma)
+    # And the words attached to the value's own head, which is where `when`,
+    # `whenever` and the copula sit in a condition clause.
+    for token in aligned.tokens:
+        head = aligned.sentence.head_of(token)
+        if head is None:
+            continue
+        for sibling in aligned.sentence.tokens:
+            if (sibling.head == head.index and sibling.index not in covered
+                    and sibling.relation.split(":")[0] in _MODIFYING):
+                found.append(sibling.lemma)
+    return tuple(sorted(set(found)))
 
 
 def phrase_of(sentence: Sentence, head: Token) -> str:
@@ -257,7 +305,9 @@ def bind_value(aligned: Aligned, rule: BindingRule) -> RelationBinding:
     if not targets:
         return RelationBinding(value_id=identity, relation=rule.relation,
                                status=BindingStatus.UNBOUND,
+                               modifiers=modifiers_of(aligned),
                                supports=rule.supports)
+    modifiers = modifiers_of(aligned)
     if len(targets) > 1:
         # Not resolved by position. "the first candidate" is a coin toss with a
         # rule's name on it, and the sentences this binder exists for are
@@ -265,12 +315,13 @@ def bind_value(aligned: Aligned, rule: BindingRule) -> RelationBinding:
         return RelationBinding(value_id=identity, relation=rule.relation,
                                status=BindingStatus.AMBIGUOUS,
                                candidates=tuple(spans), evidence=tuple(evidence),
-                               supports=rule.supports)
+                               modifiers=modifiers, supports=rule.supports)
     return RelationBinding(value_id=identity, relation=rule.relation,
                            status=BindingStatus.BOUND,
                            target_span=spans[0], target_index=targets[0].index,
+                           target_lemma=targets[0].lemma,
                            candidates=tuple(spans), evidence=tuple(evidence),
-                           supports=rule.supports)
+                           modifiers=modifiers, supports=rule.supports)
 
 
 def bind(parse: Parse, values: Sequence[Value],

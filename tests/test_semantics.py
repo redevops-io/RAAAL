@@ -50,7 +50,8 @@ def run(case):
         "answerable, so one of the two is out of date")
     decision = fuse(match.field,
                     model=Proposal(match.field, match.value,
-                                   "deterministic-stand-in@1", case.text))
+                                   "deterministic-stand-in@1",
+                                   match.source_span))
     return match, decision
 
 

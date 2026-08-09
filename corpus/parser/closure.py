@@ -98,7 +98,8 @@ def classify(case, recorded: RecordedReader) -> dict:
                     "reason": "a value was normalised and nothing binds it"}
         return {"state": NO_FIELD_MAPPING,
                 "reason": "values normalised and bound, and no declared "
-                          "mapping consumes this relation for this field"}
+                          "mapping consumes this relation for this field",
+                **_ticket(case, values, bindings, candidates)}
 
     # A candidate exists — but for *which* field?
     #
@@ -114,7 +115,8 @@ def classify(case, recorded: RecordedReader) -> dict:
         return {"state": NO_FIELD_MAPPING,
                 "reason": "this case asserts a role pair rather than a single "
                           "field; no mapping produces role pairs yet",
-                "proposed": sorted({c.field for c in candidates})}
+                "proposed": sorted({c.field for c in candidates}),
+                **_ticket(case, values, bindings, candidates)}
 
     match = next((c for c in candidates if c.field == wanted), None)
     if match is None:
@@ -122,10 +124,17 @@ def classify(case, recorded: RecordedReader) -> dict:
                 "reason": f"candidates were proposed for "
                           f"{sorted({c.field for c in candidates})} and none "
                           f"for {wanted!r}, which is what this case asserts",
-                "proposed": sorted({c.field for c in candidates})}
+                "proposed": sorted({c.field for c in candidates}),
+                **_ticket(case, values, bindings, candidates)}
+    # The candidate's own span, never the whole sentence. Passing the utterance
+    # made fusion's ambiguity check fire on any sentence containing the word
+    # "rebalance", whatever field was being decided — "rebalance on the last
+    # session of each quarter" has a determinate day rule and an ambiguous verb,
+    # and they are different dimensions.
     decision = fuse(match.field,
                     model=Proposal(match.field, match.value,
-                                   "deterministic-stand-in@1", case.text))
+                                   "deterministic-stand-in@1",
+                                   match.source_span))
 
     if decision.outcome is Fusion.AMBIGUOUS_BY_LANGUAGE:
         return {"state": AMBIGUOUS_BY_LANGUAGE, "reason": decision.detail,
@@ -144,6 +153,20 @@ def classify(case, recorded: RecordedReader) -> dict:
                 "reason": "a candidate was proposed and fusion let it through"}
     return {"state": MAPPED_BUT_DISAGREED, "field": match.field,
             "reason": decision.detail}
+
+
+def _ticket(case, values, bindings, candidates) -> dict:
+    """What already exists and what is missing, for one unmapped case.
+
+    A `NO_FIELD_MAPPING` row without this is a label. With it the row is close
+    to an implementation ticket, and — more usefully — the next person does not
+    re-debug normalisation and binding to find out they both worked.
+    """
+    return {"observed": [f"{v.kind}={v.canonical}" for v in values],
+            "bound_to": sorted({f"{b.relation}->{b.target_span}"
+                                for b in bindings if b.established}),
+            "expected": {k: v for k, v in case.asserts.items()},
+            "missing": "semantic_derivation"}
 
 
 def _plain(value):
@@ -181,6 +204,15 @@ def main() -> int:
          "agreed_but_wrong_value": wrong,
          "by_property": {k: dict(v) for k, v in sorted(by_property.items())},
          "owner": {state: OWNER[state] for state in STATES},
+         "ambiguity_note": (
+             "AMBIGUOUS_BY_LANGUAGE has no live instance in this corpus, and "
+             "that is correct rather than a gap in fusion. The rebalance / "
+             "reallocate ambiguity is about *what the action does*; it does not "
+             "touch how often it happens or which session of the period it "
+             "happens on, which are the fields these cases assert. The corpus "
+             "has no case asserting the field the ambiguity actually affects. "
+             "It is exercised synthetically in tests/test_fusion.py, and a "
+             "real case would be a corpus addition, not a code change."),
          "note": ("NO_LITERAL and NO_FIELD_MAPPING are not defects of the "
                   "deterministic layers, and they want opposite work: one "
                   "needs the semantic reader, the other needs field derivation "

@@ -32,12 +32,12 @@ RECORDED = RecordedReader()
 #: Cases nothing asserts yet. Lowered when work lands, raised when cases are
 #: added — and asserted, so neither happens quietly.
 #:
-#: 108 when only tier 1 ran. English tier 2 took it to 54, the field mappers to
-#: 47, and rewriting six fragment fixtures into complete utterances to 45. Nine
-#: semantics cases are now run end to end by `tests/test_semantics.py`, and
-#: `corpus/parser/closure.json` says who owns each of the remaining 45 rather
-#: than leaving them a single number.
-AWAITING_A_PARSER = 45
+#: 108 when only tier 1 ran. English tier 2 took it to 54, the field mappings to
+#: 47, rewriting six fragment fixtures to 45, and the derivation families to 38.
+#: Sixteen semantics cases are now run end to end by `tests/test_semantics.py`,
+#: and `corpus/parser/closure.json` says who owns each of the remaining 38
+#: rather than leaving them a single number.
+AWAITING_A_PARSER = 38
 
 #: Semantics cases the deterministic path answers, asserted elsewhere. Read
 #: from the closure report because that is where the classification lives; the

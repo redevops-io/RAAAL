@@ -2,13 +2,12 @@
   "schema": "quantify-parser-closure@1",
   "pending": 54,
   "by_state": {
-    "MAPPED_AND_AGREED": 9,
-    "AMBIGUOUS_BY_LANGUAGE": 1,
-    "NO_FIELD_MAPPING": 15,
+    "MAPPED_AND_AGREED": 16,
+    "NO_FIELD_MAPPING": 9,
     "NO_LITERAL": 25,
     "NO_PARSE_RECORDED": 4
   },
-  "agreed_and_correct": 9,
+  "agreed_and_correct": 16,
   "agreed_but_wrong_value": [],
   "by_property": {
     "assets.stay_as_written": {
@@ -25,20 +24,20 @@
       "MAPPED_AND_AGREED": 3
     },
     "funding.amount_kind": {
-      "NO_FIELD_MAPPING": 3,
+      "NO_FIELD_MAPPING": 2,
+      "MAPPED_AND_AGREED": 1,
       "NO_LITERAL": 1
     },
     "funding.cadence": {
-      "MAPPED_AND_AGREED": 3,
-      "AMBIGUOUS_BY_LANGUAGE": 1,
-      "NO_FIELD_MAPPING": 2
+      "MAPPED_AND_AGREED": 5,
+      "NO_FIELD_MAPPING": 1
     },
     "negation.changes_the_value": {
       "NO_LITERAL": 3
     },
     "timing.day_rule": {
       "NO_LITERAL": 2,
-      "NO_FIELD_MAPPING": 1
+      "MAPPED_AND_AGREED": 1
     },
     "timing.execution": {
       "NO_LITERAL": 4
@@ -48,7 +47,7 @@
       "NO_FIELD_MAPPING": 2
     },
     "trigger.semantics": {
-      "NO_FIELD_MAPPING": 3,
+      "MAPPED_AND_AGREED": 3,
       "NO_LITERAL": 2
     },
     "weighting.method": {
@@ -76,6 +75,7 @@
     "NO_LITERAL": "the semantic reader",
     "NO_PARSE_RECORDED": "stanza.download"
   },
+  "ambiguity_note": "AMBIGUOUS_BY_LANGUAGE has no live instance in this corpus, and that is correct rather than a gap in fusion. The rebalance / reallocate ambiguity is about *what the action does*; it does not touch how often it happens or which session of the period it happens on, which are the fields these cases assert. The corpus has no case asserting the field the ambiguity actually affects. It is exercised synthetically in tests/test_fusion.py, and a real case would be a corpus addition, not a code change.",
   "note": "NO_LITERAL and NO_FIELD_MAPPING are not defects of the deterministic layers, and they want opposite work: one needs the semantic reader, the other needs field derivation from structure already in hand. They were one state until the counts made the difference matter.",
   "rows": [
     {
@@ -95,9 +95,12 @@
       "property": "funding.cadence",
       "text": "contribute $500 monthly, rebalanced annually",
       "language": "en",
-      "state": "AMBIGUOUS_BY_LANGUAGE",
-      "reason": "'rebalance' is used for both readings in attested writing (rebalance back to target | change the target allocation); a better parse cannot settle what the words do not",
-      "field": "cadence"
+      "state": "MAPPED_AND_AGREED",
+      "field": "cadence",
+      "value": "monthly",
+      "expected": "monthly",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
     },
     {
       "id": "sema-funding-cadence-003",
@@ -116,8 +119,12 @@
       "property": "funding.cadence",
       "text": "put in $1,000 each quarter",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field"
+      "state": "MAPPED_AND_AGREED",
+      "field": "cadence",
+      "value": "quarterly",
+      "expected": "quarterly",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
     },
     {
       "id": "sema-funding-cadence-005",
@@ -137,7 +144,19 @@
       "text": "make a one-off $10,000 investment",
       "language": "en",
       "state": "NO_FIELD_MAPPING",
-      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field"
+      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field",
+      "observed": [
+        "cadence=once",
+        "money=10000"
+      ],
+      "bound_to": [
+        "governed_by->make"
+      ],
+      "expected": {
+        "field": "cadence",
+        "value": "once"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-funding-amount-001",
@@ -181,7 +200,16 @@
       "text": "a 60/40 portfolio",
       "language": "en",
       "state": "NO_FIELD_MAPPING",
-      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field"
+      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field",
+      "observed": [
+        "ratio=(60, 40)"
+      ],
+      "bound_to": [],
+      "expected": {
+        "field": "allocation_method",
+        "value": "60/40"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-weighting-method-002",
@@ -189,7 +217,16 @@
       "text": "split it 70/30 between stocks and bonds",
       "language": "en",
       "state": "NO_FIELD_MAPPING",
-      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field"
+      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field",
+      "observed": [
+        "ratio=(70, 30)"
+      ],
+      "bound_to": [],
+      "expected": {
+        "field": "allocation_method",
+        "value": "70/30"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-weighting-method-003",
@@ -220,22 +257,24 @@
       "property": "trigger.semantics",
       "text": "when SPY crosses below its 200-day average",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "candidates were proposed for ['holding_period_days'] and none for 'trigger_semantics', which is what this case asserts",
-      "proposed": [
-        "holding_period_days"
-      ]
+      "state": "MAPPED_AND_AGREED",
+      "field": "trigger_semantics",
+      "value": "crossing_event",
+      "expected": "crossing_event",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
     },
     {
       "id": "sema-trigger-semantics-002",
       "property": "trigger.semantics",
       "text": "whenever SPY drops under the 200-day",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "candidates were proposed for ['holding_period_days'] and none for 'trigger_semantics', which is what this case asserts",
-      "proposed": [
-        "holding_period_days"
-      ]
+      "state": "MAPPED_AND_AGREED",
+      "field": "trigger_semantics",
+      "value": "crossing_event",
+      "expected": "crossing_event",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
     },
     {
       "id": "sema-trigger-semantics-003",
@@ -258,11 +297,12 @@
       "property": "trigger.semantics",
       "text": "buy any time SPY is below the 200-day average",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "candidates were proposed for ['holding_period_days'] and none for 'trigger_semantics', which is what this case asserts",
-      "proposed": [
-        "holding_period_days"
-      ]
+      "state": "MAPPED_AND_AGREED",
+      "field": "trigger_semantics",
+      "value": "persistent_condition",
+      "expected": "persistent_condition",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
     },
     {
       "id": "sema-trigger-asset_roles-001",
@@ -278,7 +318,16 @@
       "text": "purchase VTI whenever QQQ drops 10%",
       "language": "en",
       "state": "NO_FIELD_MAPPING",
-      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field"
+      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field",
+      "observed": [
+        "percentage=0.1"
+      ],
+      "bound_to": [],
+      "expected": {
+        "held": "VTI",
+        "observed": "QQQ"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-trigger-asset_roles-003",
@@ -288,8 +337,20 @@
       "state": "NO_FIELD_MAPPING",
       "reason": "this case asserts a role pair rather than a single field; no mapping produces role pairs yet",
       "proposed": [
-        "holding_period_days"
-      ]
+        "holding_period_days",
+        "trigger_semantics"
+      ],
+      "observed": [
+        "duration=200"
+      ],
+      "bound_to": [
+        "governed_by->add"
+      ],
+      "expected": {
+        "held": "BND",
+        "observed": "TLT"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-window-moving_average-011",
@@ -309,10 +370,22 @@
       "text": "sell when it drops under its 50-day average",
       "language": "en",
       "state": "NO_FIELD_MAPPING",
-      "reason": "candidates were proposed for ['holding_period_days'] and none for 'moving_average_window', which is what this case asserts",
+      "reason": "candidates were proposed for ['holding_period_days', 'trigger_semantics'] and none for 'moving_average_window', which is what this case asserts",
       "proposed": [
-        "holding_period_days"
-      ]
+        "holding_period_days",
+        "trigger_semantics"
+      ],
+      "observed": [
+        "duration=50"
+      ],
+      "bound_to": [
+        "governed_by->drops"
+      ],
+      "expected": {
+        "field": "moving_average_window",
+        "value": "50"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-window-moving_average-013",
@@ -376,18 +449,30 @@
       "text": "invest whatever is left over each month",
       "language": "en",
       "state": "NO_FIELD_MAPPING",
-      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field"
+      "reason": "values normalised and bound, and no declared mapping consumes this relation for this field",
+      "observed": [
+        "cadence=monthly"
+      ],
+      "bound_to": [
+        "governed_by->left"
+      ],
+      "expected": {
+        "field": "amount_kind",
+        "value": "residual"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-funding-amount_kind-002",
       "property": "funding.amount_kind",
       "text": "contribute a fixed $500",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "candidates were proposed for ['amount'] and none for 'amount_kind', which is what this case asserts",
-      "proposed": [
-        "amount"
-      ]
+      "state": "MAPPED_AND_AGREED",
+      "field": "amount_kind",
+      "value": "fixed",
+      "expected": "fixed",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
     },
     {
       "id": "sema-funding-amount_kind-003",
@@ -399,7 +484,20 @@
       "proposed": [
         "asset_weight",
         "cadence"
-      ]
+      ],
+      "observed": [
+        "percentage=0.1",
+        "cadence=monthly"
+      ],
+      "bound_to": [
+        "governed_by->invest",
+        "shares_head_with->salary monthly"
+      ],
+      "expected": {
+        "field": "amount_kind",
+        "value": "proportional"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-funding-amount_kind-004",
@@ -454,11 +552,12 @@
       "property": "timing.day_rule",
       "text": "rebalance on the last session of each quarter",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "candidates were proposed for ['rebalancing_cadence'] and none for 'day_rule', which is what this case asserts",
-      "proposed": [
-        "rebalancing_cadence"
-      ]
+      "state": "MAPPED_AND_AGREED",
+      "field": "day_rule",
+      "value": "last_session_of_period",
+      "expected": "last_session_of_period",
+      "matches_expected": true,
+      "reason": "a candidate was proposed and fusion let it through"
     },
     {
       "id": "sema-timing-day_rule-003",
@@ -501,7 +600,18 @@
       "reason": "candidates were proposed for ['cadence'] and none for 'assets', which is what this case asserts",
       "proposed": [
         "cadence"
-      ]
+      ],
+      "observed": [
+        "cadence=monthly"
+      ],
+      "bound_to": [
+        "governed_by->buy"
+      ],
+      "expected": {
+        "field": "assets",
+        "value": "a core index fund"
+      },
+      "missing": "semantic_derivation"
     },
     {
       "id": "sema-assets-stay_as_written-002",

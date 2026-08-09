@@ -54,6 +54,16 @@ class SemanticCandidate:
     value: Any
     source_value_id: str
     binding_id: str
+    source_span: str = ""
+    """The characters this candidate rests on — the value's own span, not the
+    sentence around it.
+
+    Carried because fusion's ambiguity check reads it, and a caller that handed
+    over the whole utterance made *every* field of a sentence containing
+    "rebalance" ambiguous. The day rule in "rebalance on the last session of
+    each quarter" is perfectly determinate; what is ambiguous is what
+    rebalancing does, which is a different dimension of the same sentence."""
+
     evidence: Sequence[str] = ()
     mapper_version: str = MAPPER_VERSION
 
@@ -61,6 +71,7 @@ class SemanticCandidate:
         return {"field": self.field, "value": self.value,
                 "source_value_id": self.source_value_id,
                 "binding_id": self.binding_id,
+                "source_span": self.source_span,
                 "evidence": list(self.evidence),
                 "mapper_version": self.mapper_version}
 
@@ -117,6 +128,122 @@ MAPPINGS: Sequence[FieldMapping] = (
 )
 
 
+@dataclass(frozen=True)
+class DerivationFamily:
+    """A field whose value comes from the *evidence*, not from the literal.
+
+    `contribute a fixed $500` carries the amount in the literal and the
+    *kind* of amount in the word `fixed`. A family says which evidence
+    determines which value, and it fires only when that evidence is present —
+    never as a default, and never on partial support.
+
+    The constraint that shapes all of these: a family may propose a value only
+    when the linguistic evidence genuinely determines it. `below` alone does
+    not mean a persistent condition; `is below` does, and `crosses below` means
+    the opposite. So the discriminator is the verb, and the preposition is only
+    the signal that a comparison is happening at all. A family requiring one
+    without the other would be inferring from a preposition, which is how a
+    mapper starts guessing.
+    """
+
+    name: str
+    field: str
+    value: Any
+    value_kinds: frozenset
+    #: Every one of these must be among the binding's modifiers.
+    needs_modifiers: frozenset = frozenset()
+    #: At least one of these must be.
+    needs_any_modifier: frozenset = frozenset()
+    #: The bound target's lemma must be one of these.
+    needs_target: frozenset = frozenset()
+    #: None of these may be among the modifiers.
+    forbids_modifiers: frozenset = frozenset()
+
+
+#: Verbs that describe a *change* of state — the crossing itself.
+_DYNAMIC = frozenset({"cross", "drop", "fall", "rise", "break", "go", "move",
+                      "dip", "climb", "decline"})
+
+#: Prepositions that mark a comparison against a level. Necessary and never
+#: sufficient: what separates an event from a state is the verb beside them.
+_COMPARISON = frozenset({"below", "under", "above", "beneath", "over"})
+
+DERIVATIONS: Sequence[DerivationFamily] = (
+    # amount_kind — the literal says how much, a modifier says what sort
+    DerivationFamily(
+        name="fixed amount", field="amount_kind", value="fixed",
+        value_kinds=frozenset({"money"}),
+        needs_any_modifier=frozenset({"fix", "fixed", "flat", "set"})),
+    DerivationFamily(
+        name="proportional amount", field="amount_kind", value="proportional",
+        value_kinds=frozenset({"percentage"}),
+        needs_any_modifier=frozenset({"of"})),
+
+    # trigger_semantics — decided by the verb, signalled by the preposition
+    DerivationFamily(
+        name="crossing event", field="trigger_semantics", value="crossing_event",
+        value_kinds=frozenset({"duration", "moving_average_window",
+                               "percentage"}),
+        needs_any_modifier=_COMPARISON, needs_target=_DYNAMIC),
+    DerivationFamily(
+        name="persistent condition", field="trigger_semantics",
+        value="persistent_condition",
+        value_kinds=frozenset({"duration", "moving_average_window"}),
+        needs_any_modifier=_COMPARISON, needs_modifiers=frozenset({"be"}),
+        forbids_modifiers=_DYNAMIC),
+
+    # day_rule — an ordinal on the period noun
+    DerivationFamily(
+        name="last session of period", field="day_rule",
+        value="last_session_of_period", value_kinds=frozenset({"cadence"}),
+        needs_any_modifier=frozenset({"last", "final"})),
+    DerivationFamily(
+        name="first session of period", field="day_rule",
+        value="first_session_of_period", value_kinds=frozenset({"cadence"}),
+        needs_any_modifier=frozenset({"first"})),
+)
+
+
+def derive(bindings: Sequence[RelationBinding], values: Sequence[Value],
+           families: Sequence[DerivationFamily] = DERIVATIONS,
+           ) -> Sequence[SemanticCandidate]:
+    """Candidates whose value comes from evidence rather than from the literal."""
+    by_id = {value_id(value): value for value in values}
+    candidates = []
+
+    for binding in bindings:
+        if not binding.established:
+            continue
+        value = by_id.get(binding.value_id)
+        if value is None:
+            continue
+        modifiers = set(binding.modifiers)
+        for family in families:
+            if value.kind not in family.value_kinds:
+                continue
+            if not family.needs_modifiers <= modifiers:
+                continue
+            if family.needs_any_modifier and not (
+                    family.needs_any_modifier & modifiers):
+                continue
+            if family.needs_target and binding.target_lemma not in family.needs_target:
+                continue
+            if family.forbids_modifiers & modifiers:
+                continue
+            if family.forbids_modifiers and binding.target_lemma in family.forbids_modifiers:
+                continue
+            candidates.append(SemanticCandidate(
+                field=family.field, value=family.value,
+                source_value_id=binding.value_id,
+                binding_id=binding_id(binding),
+                source_span=value.source_span,
+                evidence=tuple(binding.evidence) + (
+                    f"family={family.name}",
+                    f"target={binding.target_lemma}",
+                    f"modifiers={sorted(modifiers)}")))
+    return tuple(candidates)
+
+
 class Unmappable(str):
     """Why no candidate could be proposed. A string subclass so it reads as the
     reason it is, and never as a value."""
@@ -147,19 +274,22 @@ def propose(bindings: Sequence[RelationBinding], values: Sequence[Value],
                 continue
             if mapping.pairing not in binding.supports:
                 continue
-            if mapping.target_in is not None and (
-                    binding.target_span.lower().rstrip("d")
-                    not in {v.rstrip("d") for v in mapping.target_in}
-                    and binding.target_span.lower() not in mapping.target_in):
+            # Matched on the *lemma*, never the rebuilt span. `put in $1,000
+            # each quarter` binds to a target whose readable span is "put in"
+            # and whose lemma is `put`, and a table compared against the span
+            # missed exactly the multiword cases.
+            if (mapping.target_in is not None
+                    and binding.target_lemma not in mapping.target_in):
                 continue
             candidates.append(SemanticCandidate(
                 field=mapping.field,
                 value=_value_for(mapping, value, binding),
                 source_value_id=binding.value_id,
                 binding_id=binding_id(binding),
+                source_span=value.source_span,
                 evidence=tuple(binding.evidence) + (
                     f"target={binding.target_span}",)))
-    return tuple(candidates)
+    return tuple(candidates) + derive(bindings, values)
 
 
 def _value_for(mapping: FieldMapping, value: Value,
