@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from src.contracts import Author, IntentField, NotSealable, Unresolved, OpenReason, VerifiedIntent
+from runtime_contracts import Author, IntentField, NotSealable, Unresolved, OpenReason, VerifiedIntent
 from src.mission.from_intent import (
     COMPILER_VERSION,
     DEFAULTS,

@@ -28,3 +28,10 @@ gymnasium>=0.29
 
 # --- Broker Execution (install manually, not yet on Python 3.13) ---
 # alpaca-trade-api>=3.0
+
+# --- The Discovery -> Mission boundary contract ---
+# Owned by neither runtime, so pinned to a tag rather than a branch: a mutable
+# ref can be rebased under a consumer, which is the fragility this project
+# criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
+# that moves silently is not a contract.
+runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.1

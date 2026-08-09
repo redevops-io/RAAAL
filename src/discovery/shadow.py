@@ -234,7 +234,7 @@ def evidence_for(comparison: Comparison, dimension: str) -> Sequence:
     different fact from one that was never in doubt, and only the first
     justifies asking again when the readers change.
     """
-    from ..contracts import DecisionEvidence, ReaderKind
+    from runtime_contracts import DecisionEvidence, ReaderKind
 
     for one in comparison.fields:
         if one.dimension != dimension:

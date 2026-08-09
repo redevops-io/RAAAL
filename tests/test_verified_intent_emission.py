@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.contracts import Author, OpenReason
+from runtime_contracts import Author, OpenReason
 from src.mission.compiler import compile_scenario, parse
 from src.mission.verified_intent import (
     READER_VERSION,
@@ -180,7 +180,7 @@ class TestTodaysCompilerProducesDraftsAndSaysSo:
     of letting a half-understood plan look settled."""
 
     def test_an_intent_with_open_questions_refuses_to_seal(self):
-        from src.contracts import NotSealable
+        from runtime_contracts import NotSealable
 
         i = intent_for(CROSSING)
         assert i.unresolved, "this prompt should leave questions open"
@@ -191,7 +191,7 @@ class TestTodaysCompilerProducesDraftsAndSaysSo:
             assert one.dimension in str(raised.value)
 
     def test_it_starts_as_a_draft(self):
-        from src.contracts import IntentState
+        from runtime_contracts import IntentState
 
         assert intent_for(CROSSING).state is IntentState.DRAFT
         assert not intent_for(CROSSING).is_verified

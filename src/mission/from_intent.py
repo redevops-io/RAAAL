@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Mapping, Optional, Sequence
 
-from ..contracts import Author, VerifiedIntent
+from runtime_contracts import Author, VerifiedIntent
 from .capability import Refusal, refusals_for
 from .funding import EventTriggered, Scheduled, Trigger
 from .scenario import (

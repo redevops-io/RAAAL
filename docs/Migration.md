@@ -1,6 +1,9 @@
 # Migrating Quantify to the ReDevOps runtime architecture
 
-**Status:** Phases 0–3 built and measured. Phase 4 not started.
+**Status:** Phases 0–3 built and measured. Phase 4 in progress — four of the
+seven properties hold (compile-from-intent, event-log reproducibility,
+authorization correctness, the vendored contract gone); cross-runtime replay is
+the remaining gate.
 **Date:** 2026-08-08
 **Supersedes:** `docs/Roadmap.md` for everything above the execution engine.
 
@@ -229,18 +232,32 @@ was public; it is now public under **AGPL-3.0-or-later WITH Commons-Clause**,
 the same terms as this repository. Both reasons the schema spine could not be
 depended on are gone.
 
-One thing still holds the swap, and it is narrower: the contract lives on
+The last thing holding the swap was narrower still: the contract lived on
 `feat/verified-intent`, not on `main`. Depending on an unmerged ref pins this
 repository to something that can be force-pushed under it — the same fragility
 this document criticises in `mission-sdk`'s bare-commit pin on `agentic-os`
-(§2.6). The swap becomes correct when the contract lands on `main` and carries
-a tag, at which point `src/contracts/` and its drift check are both deleted.
+(§2.6).
 
-*Status:* vendored under `src/contracts/`, with
-`scripts/check_vendored_contracts.py` failing on divergence. That check is now
-doing more work than when it was written, not less — the source is a branch
-under active development, and it caught the copy falling behind within an hour
-of the relicence.
+*Status:* **done.** `feat/verified-intent` is merged to `main` and tagged, and
+this repository depends on `runtime-contracts @ v0.2.1`. `src/contracts/` and
+`scripts/check_vendored_contracts.py` were deleted in the same change, because
+`tests/` would not go green otherwise.
+
+Two things the swap itself found, both of which only a consumer could find:
+
+- `v0.2.0` shipped `pyproject` at `0.2.0` and `__version__` at `0.1.0`. Nothing
+  in that repository reads its own version, so nothing there could have caught
+  it; installing the tag here did, immediately. Fixed and guarded upstream, and
+  `v0.2.1` is the tag pinned.
+- The guard that forced this deletion is now the wrong guard. Its "while the
+  copy exists, keep its note honest" tests describe something that no longer
+  exists, and a test whose subject is gone skips or passes forever while
+  reading like a guarantee. It was replaced, not retired, by
+  `tests/test_the_contract_is_not_re_vendored.py`: the pin is a tag and not a
+  moving ref, the pinned version is the installed one, and no module here
+  redefines a boundary type under any name. The failure it now guards is not
+  the old copy surviving — it is somebody needing one extra field on a Friday
+  and copying `intent.py` back to add it.
 
 **A consequence of the relicence worth carrying.** These contracts are
 canonical *within this runtime family*, not an open standard anyone may
@@ -1122,7 +1139,7 @@ comparisons.** These are what the runtime actually promises:
 | event-log reproducibility | a fold over the same events producing a different state |
 | replay across implementations | the same `MissionProgram` reaching different states under two runtimes |
 | explainability and audit fidelity | a figure that cannot name the run, program, intent, reader and author behind it |
-| the vendored contract is gone | `src/contracts/` surviving alongside a real dependency on `runtime-contracts` |
+| the contract is depended on, not copied | any module here redefining a boundary type, or the pin naming a branch instead of a tag |
 
 Note what is absent: **no agreement metric.** The input is now assumed
 canonical, and the only remaining question is whether Mission behaves as a
@@ -1130,17 +1147,16 @@ deterministic execution runtime. Driving agreement from 95% to 97% would
 measure a reader that is about to be deleted; it is easy to produce another
 percentage and it would answer nothing.
 
-**Exit criterion, not a TODO.** RAAAL imports only the tagged
-`runtime-contracts` package, and `src/contracts/`, the vendoring note and
-`scripts/check_vendored_contracts.py` are deleted **in the same change** as the
-dependency is added. Two authoritative copies kept "just in case" is how a
+**Exit criterion, met.** RAAAL imports only the tagged `runtime-contracts`
+package (`v0.2.1`); `src/contracts/`, the vendoring note and
+`scripts/check_vendored_contracts.py` were deleted in the same change as the
+dependency was added. Two authoritative copies kept "just in case" is how a
 contract acquires a second version nobody declared, and the one that drifts is
 always the one nobody is reading.
 
-Enforced by `tests/test_vendored_copy_is_temporary.py`, which is unfailable
-today and unavoidable later: it skips while the copy is the expected state, and
-fails the moment anything declares or installs the real package while the copy
-survives. The deletion therefore happens in that change or the suite stays red.
+The forcing function worked as written — the suite stayed red until the copy
+was gone — and has been replaced by the invariant that outlives it,
+`tests/test_the_contract_is_not_re_vendored.py` (§2.4).
 
 **Gate:** every one of the six holds, and the migration's central invariant
 holds on every corpus prompt — **nothing Mission executed was less than what

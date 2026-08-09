@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from ..contracts import (
+from runtime_contracts import (
     Author,
     DecisionEvidence,
     IntentField,
@@ -41,7 +41,7 @@ from ..contracts import (
     Unresolved,
     VerifiedIntent,
 )
-from ..contracts.canonical import decimal_string
+from runtime_contracts.canonical import decimal_string
 
 #: Stamped on every intent this reader produces.
 #:

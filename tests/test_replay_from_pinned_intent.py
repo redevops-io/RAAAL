@@ -20,7 +20,7 @@ from dataclasses import replace
 
 import pytest
 
-from src.contracts import (
+from runtime_contracts import (
     Author,
     CorruptIntent,
     IntentField,
