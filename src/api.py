@@ -280,6 +280,16 @@ app.include_router(ui_router)
 # hostname without any code moving with it.
 app.include_router(workspace_router)
 
+# The pilot surface. Mounted always and *served* only when the deployment
+# declares `QUANTIFY_PARSER_MODE=RUNTIME` — the routes themselves check, so
+# that a deployment which has not made the declaration cannot reach the runtime
+# by knowing a URL. Mounting conditionally would have made the route table
+# depend on an environment variable, and `test_boundary_sweep` derives its
+# inventory from that table.
+from .workspace.pilot_routes import router as pilot_router  # noqa: E402
+
+app.include_router(pilot_router)
+
 
 @app.get("/health/live")
 def live() -> Dict[str, Any]:

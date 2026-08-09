@@ -68,6 +68,15 @@ PARSER_MODE_VAR = "QUANTIFY_PARSER_MODE"
 PARSER_FALLBACK_VAR = "QUANTIFY_PARSER_FALLBACK"
 PARSER_PROMPT_VERSION_VAR = "QUANTIFY_PARSER_PROMPT_VERSION"
 
+#: Which reader the pilot interpreter consults. `recorded` replays fixtures
+#: instead of calling the provider — for acceptance tests and for a demo
+#: without a key.
+#:
+#: Resolved here rather than read in the route, which is the whole rule of this
+#: module: a request handler deciding for itself where its answers come from is
+#: how one instance serves fixtures while reporting them as the model's.
+PILOT_READER_VAR = "QUANTIFY_PILOT_READER"
+
 
 def _model_target(source: Mapping[str, str]) -> "ModelTarget":
     from ..mission.parse_model import PARSER_VERSION
@@ -83,10 +92,16 @@ def _model_target(source: Mapping[str, str]) -> "ModelTarget":
                     else ParserFallback.REFUSE)
     except ValueError:
         fallback = ParserFallback.REFUSE
+    raw_reader = (source.get(PILOT_READER_VAR) or "").strip().upper()
+    try:
+        reader = PilotReader(raw_reader) if raw_reader else PilotReader.HOSTED
+    except ValueError:
+        reader = PilotReader.HOSTED
     return ModelTarget(
         _api_key=source.get("ANTHROPIC_API_KEY"),
         model=source.get("QUANTIFY_PARSER_MODEL"),
         mode=mode, fallback=fallback, declared=bool(raw_mode),
+        pilot_reader=reader,
         prompt_version=source.get(PARSER_PROMPT_VERSION_VAR) or PARSER_VERSION)
 
 
@@ -155,6 +170,35 @@ class ParserMode(str, Enum):
     MODEL_ASSISTED = "MODEL_ASSISTED"
     DETERMINISTIC = "DETERMINISTIC"
 
+    RUNTIME = "RUNTIME"
+    """The pilot interpreter: hosted reader → fusion → `VerifiedIntent` →
+    `compile_intent`.
+
+    A third *declared* mode rather than a flag on `MODEL_ASSISTED`, for the
+    reason that enum's docstring already gives: a deployment states what it is,
+    and an entire pilot was once measured model-assisted because a variable was
+    set in a shell nobody had decided about. `RUNTIME` and `MODEL_ASSISTED`
+    both call a model and produce different artifacts — one a
+    `ScenarioSpecification` from prose, the other a plan compiled from a pinned
+    intent — and a plan cannot say which it was unless the deployment did.
+
+    Model-only is the *witness profile* under this mode, not a fourth mode.
+    Whether the deterministic reader is installed is a property of the image;
+    `discovery.witnesses` carries it onto the artifact."""
+
+
+class PilotReader(str, Enum):
+    HOSTED = "HOSTED"
+    """Call the provider. What a real deployment does."""
+
+    RECORDED = "RECORDED"
+    """Replay recorded readings. A *declared* choice, never a fallback.
+
+    A route that replayed fixtures because a key was missing would serve
+    answers from a file and report them as the model's — the same class of
+    failure as parsing deterministically under a model-assisted declaration,
+    and harder to notice because the answers look right."""
+
 
 class ParserFallback(str, Enum):
     REFUSE = "REFUSE"
@@ -186,6 +230,7 @@ class ModelTarget:
     model: Optional[str] = None
     mode: "ParserMode" = ParserMode.DETERMINISTIC
     fallback: "ParserFallback" = ParserFallback.REFUSE
+    pilot_reader: "PilotReader" = PilotReader.HOSTED
     prompt_version: str = ""
 
     declared: bool = False
@@ -211,6 +256,24 @@ class ModelTarget:
     def model_assisted(self) -> bool:
         return self.mode is ParserMode.MODEL_ASSISTED
 
+    @property
+    def uses_the_runtime(self) -> bool:
+        """The pilot interpreter: hosted reader, fusion, pinned intent."""
+        return self.mode is ParserMode.RUNTIME
+
+    @property
+    def needs_a_model(self) -> bool:
+        """Both model-calling modes, so the coherence check covers each.
+
+        Written as a property rather than repeated at the call site: adding
+        `RUNTIME` to the enum without adding it here would have let a
+        deployment declare the pilot interpreter with no API key and pass the
+        preflight, then refuse every description at request time with the
+        startup proof still reporting a valid configuration. That is the exact
+        failure the `MODEL_ASSISTED` check exists to prevent, one mode later.
+        """
+        return self.model_assisted or self.uses_the_runtime
+
     def api_key(self) -> Optional[str]:
         """The one accessor. Named so a grep for it finds every use."""
         return self._api_key
@@ -229,18 +292,19 @@ class ModelTarget:
                 "serve a narrower product than the one reviewed, with fewer "
                 "recognitions and different blockers, while the startup proof "
                 "reported a valid configuration",)
-        if not self.model_assisted:
+        if not self.needs_a_model:
             return ()
         found = []
         if not self.available:
             found.append(
-                "parser mode is MODEL_ASSISTED and no API key is configured. "
+                f"parser mode is {self.mode.value} and no API key is "
+                "configured. "
                 "Serving would mean either refusing every description or "
                 "silently parsing with a narrower grammar than this "
                 "deployment declares")
         if not self.model:
             found.append(
-                "parser mode is MODEL_ASSISTED and no model is pinned. An "
+                f"parser mode is {self.mode.value} and no model is pinned. An "
                 "unpinned model changes what a description means without a "
                 "version anyone can cite")
         return tuple(found)
