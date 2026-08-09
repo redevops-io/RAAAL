@@ -287,8 +287,16 @@ app.include_router(workspace_router)
 # depend on an environment variable, and `test_boundary_sweep` derives its
 # inventory from that table.
 from .workspace.pilot_routes import router as pilot_router  # noqa: E402
+from .workspace.pilot_session import note_departures  # noqa: E402
 
 app.include_router(pilot_router)
+
+# A pilot participant reaching the legacy workspace is the strongest negative
+# signal the study can collect, and the only one no counter would otherwise
+# show: `plan_compiled` staying flat looks the same whether people tried the
+# runtime and went back to what they knew, or never arrived at all. Middleware,
+# so the legacy handlers stay unaware there is an experiment.
+note_departures(app)
 
 
 @app.get("/health/live")

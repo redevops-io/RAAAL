@@ -28,7 +28,11 @@ from fastapi.responses import HTMLResponse
 from ..deploy.context import ParserMode
 from ..discovery.schema import QUANTIFY_SCHEMA
 from .pilot import InterpreterUnavailable, PilotReading, answer, read, reopen
-from .pilot_events import observe, observe_save
+from .pilot_events import (answers_already_in_the_prompt, attempts_by, observe,
+                           observe_resubmission, observe_save)
+from .pilot_session import (attach, last_prompt, new_participant,
+                            participant_in, record as record_transcript,
+                            retained)
 
 router = APIRouter()
 
@@ -59,6 +63,44 @@ def configured_reader():
     from ..discovery.readers_quantify import HostedReader
 
     return HostedReader(model=model.model or "claude-sonnet-5")
+
+
+def _observe_attempt(request, describe: str, reading: PilotReading,
+                     answers: Optional[Dict[str, str]] = None,
+                     run: Optional[Dict[str, Any]] = None) -> str:
+    """Everything one submission implies about the person making it.
+
+    Returns the participant token so the caller can put it on the response.
+    Ordered so the *previous* prompt is read before this one is written —
+    reversing those two makes every submission look like a reword of itself.
+
+    A submission after a first one is a resubmission whether the text changed
+    or not: someone who resends the identical sentence after answering a
+    question has still been sent round the loop, and that is the thing worth
+    counting.
+    """
+    participant = participant_in(request) or new_participant()
+    answers = answers or {}
+
+    prior = attempts_by(participant)
+    previous = last_prompt(participant) if retained() else ""
+
+    if prior:
+        observe_resubmission(
+            participant=participant, attempt=prior + 1,
+            # `None`, not `False`, when there is nothing to compare against.
+            changed=(None if not previous else previous.strip() != describe.strip()),
+            answered=tuple(answers),
+            repeated=answers_already_in_the_prompt(describe, answers))
+
+    observe(reading, participant=participant, run=run)
+    record_transcript(
+        participant, describe, attempt=prior + 1,
+        questions=list(reading.questions),
+        answered=dict(answers),
+        refused=[getattr(r, "dimension", "") for r in reading.refusals],
+        executable=bool(reading.executable))
+    return participant
 
 
 def execute(reading: PilotReading, *, plan_id: str = "") -> Dict[str, Any]:
@@ -174,9 +216,11 @@ def draft(request: Request, describe: str = ""):
             status_code=503)
 
     run = execute(reading)
-    observe(reading, run=run)
-    return TEMPLATES.TemplateResponse(
+    participant = _observe_attempt(request, describe, reading, run=run)
+    response = TEMPLATES.TemplateResponse(
         request, "pilot.html", page(reading, text=describe, run=run))
+    attach(response, participant)
+    return response
 
 
 @router.get("/pilot", response_class=HTMLResponse)
@@ -218,9 +262,11 @@ async def pilot_answer(request: Request, describe: str = Form(...)):
 
     answered = answer(reading, answers)
     run = execute(answered)
-    observe(answered, run=run)
-    return TEMPLATES.TemplateResponse(
+    participant = _observe_attempt(request, describe, answered, answers, run)
+    response = TEMPLATES.TemplateResponse(
         request, "pilot.html", page(answered, text=describe, run=run))
+    attach(response, participant)
+    return response
 
 
 @router.post("/pilot/save")
@@ -248,11 +294,14 @@ async def pilot_save(request: Request, describe: str = Form(...)):
     if answers:
         reading = answer(reading, answers)
 
+    participant = participant_in(request) or new_participant()
     plan_id = save(reading)
     # After the write, never before. A handler recording SAVED first would
     # report a save that failed.
-    observe_save(reading, plan_id)
-    return RedirectResponse(f"/pilot/plans/{plan_id}", status_code=303)
+    observe_save(reading, plan_id, participant)
+    response = RedirectResponse(f"/pilot/plans/{plan_id}", status_code=303)
+    attach(response, participant)
+    return response
 
 
 @router.get("/pilot/plans/{plan_id}", response_class=HTMLResponse)
@@ -276,9 +325,13 @@ def pilot_plan(request: Request, plan_id: str):
     # Executed from the persisted artifact, not from a fresh reading. The
     # figure a user sees on reopening is the figure their confirmed plan
     # produces, and nothing on this path can consult a model to get there.
+    participant = participant_in(request) or new_participant()
     run = execute(reading, plan_id=plan_id)
-    observe(reading, plan_id=plan_id, reopened=True, run=run)
+    observe(reading, plan_id=plan_id, participant=participant, reopened=True,
+            run=run)
     context = page(reading, text=stored.get("text", ""), run=run)
     context["plan_id"] = plan_id
     context["reopened"] = True
-    return TEMPLATES.TemplateResponse(request, "pilot.html", context)
+    response = TEMPLATES.TemplateResponse(request, "pilot.html", context)
+    attach(response, participant)
+    return response

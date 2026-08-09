@@ -34,6 +34,12 @@ REQUIRED_DEPLOYMENT_FACTS: Sequence[str] = (
 OPTIONAL_DEPLOYMENT_FACTS: Sequence[str] = (
     "PILOT_DATA_POLICY",
     "QUANTIFY_RUNTIME_CONTRACTS_VERSION",
+    # Whether participants' own sentences are kept. Declared here so a
+    # deployment that retains prose says so in the same place it says
+    # everything else about itself — a retention decision nobody can read off
+    # the running system is a decision the cohort cannot be told about
+    # accurately.
+    "QUANTIFY_PILOT_TRANSCRIPTS",
 )
 
 #: Fields safe to return to a client. Everything else stays private: an image

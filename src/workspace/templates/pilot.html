@@ -3,7 +3,11 @@
 
 <h1>Plan</h1>
 
-<form method="get" action="/pilot">
+{# `/workspace/new`, not `/pilot`. A participant who enters at the workspace's
+   own URL and edits their sentence was being moved to the diagnostic alias by
+   this form — a different URL for the second attempt than the first, which is
+   the one interaction the study most needs to observe cleanly. #}
+<form method="get" action="/workspace/new">
   <label for="describe">What do you want to work out?</label>
   <textarea id="describe" name="describe" rows="3"
             placeholder="invest $500 a month into VTI">{{ text or "" }}</textarea>

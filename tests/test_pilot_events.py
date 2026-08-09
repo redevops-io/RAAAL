@@ -18,6 +18,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 SENTENCE = "invest $500 monthly"
+#: A reword of the same goal, and one the recorded reader knows. Deliberately
+#: a real second sentence rather than the same one twice: `text_changed` is a
+#: field, and a test that never changed the text would leave it unexercised.
+REVISED = "contribute $500 monthly, rebalanced annually"
 NEW = "/workspace/new"
 
 
@@ -49,6 +53,16 @@ def _journey(client):
     return saved.headers["location"]
 
 
+def _everything_a_participant_can_do(client):
+    """The journey plus the two things people do that are not the happy path:
+    they retype, and they go back to what they knew."""
+    client.get(NEW, params={"describe": SENTENCE})
+    client.get(NEW, params={"describe": REVISED})                  # resubmit
+    location = _journey(client)
+    client.get("/workspace/")                                      # departure
+    return location
+
+
 class TestEveryProducerIsReachableFromTheRealJourney:
     """An event nothing emits is a column that reads as zero forever.
 
@@ -57,8 +71,8 @@ class TestEveryProducerIsReachableFromTheRealJourney:
     recorder directly, which would prove only that the recorder works.
     """
 
-    def test_all_five_appear(self, client):
-        _journey(client)
+    def test_all_seven_appear(self, client):
+        _everything_a_participant_can_do(client)
 
         from src.workspace.pilot_events import KINDS, every_event
 
@@ -79,18 +93,19 @@ class TestRefusalRecordsTheNamedReason:
                    and e.get("refusal_code") == CAPABILITY_REFUSED
                    for e in refusals)
 
-    def test_no_event_carries_rendered_copy_or_user_text(self, client):
+    def test_no_event_carries_rendered_copy_or_user_text(self, client):  # noqa: D401
         """The first version stored the engine's `unavailable` *message*. A
         message can embed whatever the user typed and changes whenever the
         wording does — a field that moves when a sentence is reworded cannot be
         counted across a cohort."""
-        _journey(client)
+        _everything_a_participant_can_do(client)
 
         from src.workspace.pilot_events import every_event
 
         for event in every_event():
             flat = " ".join(str(v) for v in event.values())
             assert SENTENCE not in flat, f"{event['kind']} carries user text"
+            assert REVISED not in flat
             assert "$500" not in flat
             for value in event.values():
                 assert len(str(value)) < 60, (

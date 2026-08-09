@@ -50,17 +50,36 @@ TRACE_PATH_VAR = "QUANTIFY_TRACE_PATH"
 TRACE_RETENTION_VAR = "QUANTIFY_TRACE_RETENTION_DAYS"
 
 
-def _retention(raw: Optional[str]) -> int:
+#: Whether pilot participants' own sentences are retained, and for how long.
+TRANSCRIPTS_VAR = "QUANTIFY_PILOT_TRANSCRIPTS"
+TRANSCRIPT_RETENTION_VAR = "QUANTIFY_PILOT_TRANSCRIPT_DAYS"
+
+
+def _retention(raw: Optional[str], *, default: Optional[int] = None) -> int:
     """Days, or the default. An unreadable value keeps the default rather than
     raising: a malformed retention setting must not stop a deployment serving,
     because telemetry is the expendable half."""
-    from ..telemetry.trace_store import DEFAULT_RETENTION_DAYS
+    if default is None:
+        from ..telemetry.trace_store import DEFAULT_RETENTION_DAYS
+
+        default = DEFAULT_RETENTION_DAYS
 
     try:
         days = int(str(raw))
     except (TypeError, ValueError):
-        return DEFAULT_RETENTION_DAYS
-    return days if days > 0 else DEFAULT_RETENTION_DAYS
+        return default
+    return days if days > 0 else default
+
+
+def _affirmative(raw: Optional[str]) -> bool:
+    """Only an explicit yes turns transcript retention on.
+
+    Anything unrecognised reads as off. The asymmetry is deliberate: a typo in
+    this variable must fail towards *not* keeping what people typed, and a
+    deployment that meant to retain will notice an empty transcript store far
+    sooner than a cohort would notice prose being kept it was not told about.
+    """
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 #: Declared, never inferred. A deployment states which parser it is running.
@@ -378,6 +397,34 @@ class TelemetryTarget:
 
 
 @dataclass(frozen=True)
+class StudyTarget:
+    """Whether this deployment keeps what pilot participants typed.
+
+    Separate from `telemetry` because it is a different kind of thing held for a
+    different reason. Telemetry is counts, it needs no permission, and it is
+    expendable. A transcript is a person's own words, kept so an interview can
+    quote them accurately instead of from the interviewer's memory — and the
+    only honest default for that is off.
+
+    **Declared, never inferred.** Not derived from `PARSER_MODE=RUNTIME`, and
+    not switched on because a pilot happens to be running: a deployment that
+    started retaining prose because some other variable changed would be
+    keeping people's words on the strength of a side effect. Whoever set this
+    is the person who told the cohort it was set.
+    """
+
+    retain_transcripts: bool = False
+    retention_days: int = 30
+    """Shorter than telemetry's 90 by default. Counts stay useful long after a
+    pilot; the sentence someone typed is evidence for one conversation, and
+    keeping it past that conversation is keeping it for no stated reason."""
+
+    def to_json(self) -> dict:
+        return {"retain_transcripts": self.retain_transcripts,
+                "retention_days": self.retention_days}
+
+
+@dataclass(frozen=True)
 class DeploymentContext:
     """What this deployment is. Immutable, and resolved exactly once."""
 
@@ -386,6 +433,7 @@ class DeploymentContext:
     market_data: MarketDataTarget
     model: ModelTarget
     telemetry: "TelemetryTarget"
+    study: "StudyTarget"
     build: Any
     """The `BuildManifest`, which already resolves itself from the environment
     and is carried here so nothing re-reads it."""
@@ -401,6 +449,7 @@ class DeploymentContext:
                 "market_data": self.market_data.to_json(),
                 "model": self.model.to_json(),
                 "telemetry": self.telemetry.to_json(),
+                "study": self.study.to_json(),
                 "build": {"observable": getattr(self.build, "observable", None)}}
 
 
@@ -496,4 +545,8 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
         telemetry=TelemetryTarget(
             path=source.get(TRACE_PATH_VAR, str(DEFAULT_TRACE_PATH)) or None,
             retention_days=_retention(source.get(TRACE_RETENTION_VAR))),
+        study=StudyTarget(
+            retain_transcripts=_affirmative(source.get(TRANSCRIPTS_VAR)),
+            retention_days=_retention(source.get(TRANSCRIPT_RETENTION_VAR),
+                                      default=30)),
         build=read_manifest(source))
