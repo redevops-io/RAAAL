@@ -28,6 +28,7 @@ from fastapi.responses import HTMLResponse
 from ..deploy.context import ParserMode
 from ..discovery.schema import QUANTIFY_SCHEMA
 from .pilot import InterpreterUnavailable, PilotReading, answer, read, reopen
+from .pilot_events import observe, observe_save
 
 router = APIRouter()
 
@@ -172,9 +173,10 @@ def draft(request: Request, describe: str = ""):
             {"text": describe, "reading": None, "unavailable": str(down)},
             status_code=503)
 
+    run = execute(reading)
+    observe(reading, run=run)
     return TEMPLATES.TemplateResponse(
-        request, "pilot.html",
-        page(reading, text=describe, run=execute(reading)))
+        request, "pilot.html", page(reading, text=describe, run=run))
 
 
 @router.get("/pilot", response_class=HTMLResponse)
@@ -215,9 +217,10 @@ async def pilot_answer(request: Request, describe: str = Form(...)):
             status_code=503)
 
     answered = answer(reading, answers)
+    run = execute(answered)
+    observe(answered, run=run)
     return TEMPLATES.TemplateResponse(
-        request, "pilot.html",
-        page(answered, text=describe, run=execute(answered)))
+        request, "pilot.html", page(answered, text=describe, run=run))
 
 
 @router.post("/pilot/save")
@@ -246,6 +249,9 @@ async def pilot_save(request: Request, describe: str = Form(...)):
         reading = answer(reading, answers)
 
     plan_id = save(reading)
+    # After the write, never before. A handler recording SAVED first would
+    # report a save that failed.
+    observe_save(reading, plan_id)
     return RedirectResponse(f"/pilot/plans/{plan_id}", status_code=303)
 
 
@@ -270,8 +276,9 @@ def pilot_plan(request: Request, plan_id: str):
     # Executed from the persisted artifact, not from a fresh reading. The
     # figure a user sees on reopening is the figure their confirmed plan
     # produces, and nothing on this path can consult a model to get there.
-    context = page(reading, text=stored.get("text", ""),
-                   run=execute(reading, plan_id=plan_id))
+    run = execute(reading, plan_id=plan_id)
+    observe(reading, plan_id=plan_id, reopened=True, run=run)
+    context = page(reading, text=stored.get("text", ""), run=run)
     context["plan_id"] = plan_id
     context["reopened"] = True
     return TEMPLATES.TemplateResponse(request, "pilot.html", context)
