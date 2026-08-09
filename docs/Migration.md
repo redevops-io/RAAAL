@@ -10,7 +10,7 @@
 | 1 · capability manifest | done | derived from the executor, asserted both ways, 3 mutations killed |
 | 2 · Mission binding | done | `VerifiedIntent` emitted by today's compiler, stamped `produced_by` |
 | 3 · Discovery in shadow | **closed** | `tests/test_phase3_exit_gate.py` — nine conditions, checked |
-| 4 · cutover | not started | see below; the question is no longer about agreement |
+| 4 · cutover | in progress | property 1 done: `compile_intent` + replay from pinned intent. Properties 2–3 blocked on §2.2a |
 | 5 · the surface | undecided | §6.1 |
 
 Phase 3's evidence package: `corpus/shadow/` (both matrices with provenance and
@@ -146,6 +146,52 @@ already believes than anything we would have designed.
 
 That last principle is the one this migration is about, already written down —
 though the *statement* of it needed changing, and has been (§3.2b).
+
+### 2.2a The upstream branch this whole design rests on
+
+`feat/disagreement-decision-evidence` predates this migration. It was written
+before the plan existed, and everything in §3.5 — `DecisionEvidence`, no
+privileged reader, materiality by default — is its work rather than this
+document's. **Keep it.** The alternative is rebuilding the same mechanism with
+a different name, which is how two answers to one question end up in a
+codebase.
+
+Two things follow, and both are sequencing rather than design.
+
+**It is entirely unmerged.** `agentic_os.mission` on `main` has no
+`DecisionEvidence` at all. So the Discovery design does not currently rest on
+`agentic-os`; it rests on a branch of it. That is fine while Quantify is
+building against contracts, and it becomes a hard dependency at Phase 4
+properties 2 and 3 — event-log reproducibility and authorization correctness
+are the mission kernel's, and the kernel on `main` is not the one this design
+assumes.
+
+**The branches stack, and the merge order is the reverse of what convenience
+suggests:**
+
+```
+main
+ └─ 75f30ef  feat/disagreement-decision-evidence      upstream, theirs
+     └─ d70e41e  feat/discovery-evidence-to-controller   three fixes (§3.5)
+         └─ 04eabbe  feat/discovery-boundary-invariant   the restated invariant
+```
+
+Both of the later branches *contain* the first. Merging either of mine would
+carry `75f30ef` in as part of a review of something else, and its author's work
+would never be reviewed on its own terms. So the upstream branch merges first,
+on its own, and the two above it rebase to nothing more than what they add.
+
+**Where the mechanism eventually lives.** The branch puts semantic disagreement
+in `agentic_os/mission/`, which was correct when Mission was the top of the
+stack. Under the split it is Discovery's: deciding what a sentence meant is not
+Mission's question (§3.1a). The mechanism does not change — fusion, evidence,
+materiality, the human gate — only the package, when `agentic_os/discovery/`
+exists.
+
+Mission keeps a narrower version rather than none. Two capabilities claiming to
+satisfy the same outcome differently *is* an execution disagreement and belongs
+there. What must not remain is Mission adjudicating what the user's English
+meant, because by then the intent is sealed and its author is the user.
 
 ### 2.3 `sidekick` — a coding-agent orchestrator, not the user-facing agent
 
