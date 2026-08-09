@@ -722,6 +722,121 @@ class MissionOutcome(str, Enum):
         return self is MissionOutcome.EXECUTABLE
 
 
+class CorruptIntent(ValueError):
+    """A stored intent does not hold together on read.
+
+    Raised rather than repaired. An intent that has been edited in storage, or
+    written by a producer with a bug, is not a lesser intent — it is one whose
+    author is unknown, and downstream code cannot tell a repaired one from a
+    genuine one.
+    """
+
+
+def intent_from_json(payload: Mapping[str, Any]) -> VerifiedIntent:
+    """Restore a pinned intent. **Replay is impossible without this.**
+
+    Every type here could be written and none could be read back, which meant a
+    plan could pin an intent and never recompile from it — so "re-run from the
+    pinned intent, never from the sentence" was a rule with no mechanism.
+
+    Two properties this must have, and both are tested:
+
+    **The round trip preserves `intent_hash`.** If it did not, a plan pinned
+    before storage would not be the plan that ran after it, and every replay
+    would look like a different request.
+
+    **The seal is re-checked on read.** `seal()` is the only route to VERIFIED
+    when constructing, and this is the second — so it re-runs the same check
+    rather than trusting the stored flag. A stored VERIFIED intent that no
+    longer satisfies it has been edited or written by a broken producer, and
+    raising is the only answer that does not quietly downgrade someone's
+    settled decision into a draft.
+    """
+    def evidence(items) -> tuple:
+        return tuple(DecisionEvidence(
+            reader_id=str(e.get("reader_id", "")),
+            kind=ReaderKind(e.get("kind", ReaderKind.PRIOR.value)),
+            value=e.get("value"),
+            confidence=str(e.get("confidence", "1")),
+            source_ref=str(e.get("source_ref", "") or ""))
+            for e in (items or ()))
+
+    fields = {}
+    for name, raw in (payload.get("fields") or {}).items():
+        fields[name] = IntentField(
+            value=raw.get("value"),
+            author=Author(raw.get("author", Author.DEFAULT.value)),
+            produced_by=str(raw.get("produced_by", "") or ""),
+            confidence=str(raw.get("confidence", "1")),
+            source_span=str(raw.get("source_span", "") or ""),
+            evidence=evidence(raw.get("evidence")),
+            contested=bool(raw.get("contested", False)))
+
+    relations = tuple(
+        IntentRelation(
+            kind=str(r.get("kind", "")),
+            members=tuple(RelationMember(
+                role=str(m.get("role", "")), subject=str(m.get("subject", "")),
+                qualifiers={str(k): str(v)
+                            for k, v in (m.get("qualifiers") or {}).items()},
+                evidence=evidence(m.get("evidence")))
+                for m in (r.get("members") or ())),
+            attributes={str(k): str(v)
+                        for k, v in (r.get("attributes") or {}).items()},
+            author=Author(r.get("author", Author.MODEL.value)),
+            produced_by=str(r.get("produced_by", "") or ""),
+            source_span=str(r.get("source_span", "") or ""))
+        for r in (payload.get("relations") or ()))
+
+    unresolved = tuple(
+        Unresolved(dimension=str(u.get("dimension", "")),
+                   reason=OpenReason(u.get("reason", OpenReason.NOT_ASKED.value)),
+                   detail=str(u.get("detail", "") or ""),
+                   evidence=evidence(u.get("evidence")),
+                   result_changing=bool(u.get("result_changing", True)))
+        for u in (payload.get("unresolved") or ()))
+
+    amendments = tuple(
+        Amendment(dimension=str(a.get("dimension", "")),
+                  from_value=a.get("from_value"), to_value=a.get("to_value"),
+                  author=Author(a.get("author", Author.USER.value)),
+                  at=a.get("at"))
+        for a in (payload.get("amendments") or ()))
+
+    try:
+        restored = VerifiedIntent(
+            objective=str(payload.get("objective", "")),
+            fields=fields, relations=relations, unresolved=unresolved,
+            amendments=amendments,
+            produced_by=str(payload.get("produced_by", "") or ""),
+            utterance_ref=str(payload.get("utterance_ref", "") or ""),
+            created_at=payload.get("created_at"))
+    except ValueError as why:
+        # The constructor's own invariants — a dimension both settled and
+        # open, a contested field with no evidence — fire before the seal
+        # check. Wrapped so a caller needs one exception type to mean "this
+        # stored record is not usable": a reader forced to catch two will
+        # eventually catch one.
+        raise CorruptIntent(f"stored intent does not hold together: {why}") from why
+
+    stated = str(payload.get("state", IntentState.DRAFT.value))
+    if stated == IntentState.VERIFIED.value:
+        try:
+            restored = restored.seal()
+        except NotSealable as why:
+            raise CorruptIntent(
+                f"stored as VERIFIED and does not satisfy the seal: {why}"
+            ) from why
+
+    recorded = payload.get("intent_hash")
+    if recorded and recorded != restored.intent_hash:
+        raise CorruptIntent(
+            f"stored hash {recorded} does not match the restored intent "
+            f"{restored.intent_hash} — the record and its identity disagree, "
+            "so one of them has been edited")
+    return restored
+
+
 @dataclass(frozen=True)
 class Derivation:
     """How an executable artifact came from an intent.

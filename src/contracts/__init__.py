@@ -41,10 +41,12 @@ source and fails if they have diverged, so the copy cannot rot silently.
 from .intent import (  # noqa: F401
     Amendment,
     Author,
+    CorruptIntent,
     IntentState,
     MissionOutcome,
     MissionProposal,
     NotSealable,
+    intent_from_json,
     CapabilityRefusal,
     DecisionEvidence,
     Derivation,
