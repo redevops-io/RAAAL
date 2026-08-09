@@ -221,6 +221,9 @@ class DerivationFamily:
     needs_modifiers: frozenset = frozenset()
     #: At least one of these must be.
     needs_any_modifier: frozenset = frozenset()
+    #: At least one of these must modify the *target*. `10% of my salary` puts
+    #: the `of` on the salary, not on the percentage.
+    needs_any_target_modifier: frozenset = frozenset()
     #: The bound target's lemma must be one of these.
     needs_target: frozenset = frozenset()
     #: None of these may be among the modifiers.
@@ -244,7 +247,13 @@ DERIVATIONS: Sequence[DerivationFamily] = (
     DerivationFamily(
         name="proportional amount", field="amount_kind", value="proportional",
         value_kinds=frozenset({"percentage"}),
-        needs_any_modifier=frozenset({"of"})),
+        needs_any_target_modifier=frozenset({"of"})),
+    # The amount is whatever is left. No target constraint: the phrase means
+    # residual whatever governs it, and in "invest whatever is left over each
+    # month" the nearest verb is `leave` rather than `invest` anyway.
+    DerivationFamily(
+        name="residual amount", field="amount_kind", value="residual",
+        value_kinds=frozenset({"residual"})),
 
     # trigger_semantics — decided by the verb, signalled by the preposition
     DerivationFamily(
@@ -292,6 +301,10 @@ def derive(bindings: Sequence[RelationBinding], values: Sequence[Value],
                 continue
             if family.needs_any_modifier and not (
                     family.needs_any_modifier & modifiers):
+                continue
+            if family.needs_any_target_modifier and not (
+                    family.needs_any_target_modifier
+                    & set(binding.target_modifiers)):
                 continue
             if family.needs_target and binding.target_lemma not in family.needs_target:
                 continue

@@ -159,6 +159,74 @@ norm("duration.days", "an investment horizon of 50 years",
      note="the discriminating opposite: the age rule must not eat real "
           "horizons, which are written the same way minus one word")
 
+# Worded quantities. Narrow on purpose: one to twelve covers every attested
+# case, and guessing at larger worded numbers adds more false positives than
+# readings.
+for text, days in [
+    ("keep it for six months", 180), ("hold for three years", 1095),
+    ("wait two weeks", 14), ("over ten years", 3650),
+    ("for one month", 30),
+]:
+    norm("duration.written_as_a_word", text,
+         {"kind": "duration", "canonical": days, "unit": "days"},
+         origin="observed",
+         note="`_DURATION` required digits, so a worded quantity read as "
+              "nothing and the case looked like a missing mapper")
+
+# The collision worded numbers created, and both directions of it.
+norm("cadence.beats_a_duration_when_repeated", "add $250 every two weeks",
+     {"kind": "cadence", "canonical": "biweekly"}, origin="observed",
+     note="`every two weeks` is a cadence and `for two weeks` is a duration, "
+          "and the words between are identical. Until `two` was readable the "
+          "collision could not happen; the moment it was, the duration pass "
+          "claimed the span and the cadence vanished")
+norm("cadence.beats_a_duration_when_repeated", "put in $1,000 each quarter",
+     {"kind": "cadence", "canonical": "quarterly"}, origin="observed")
+norm("duration.days", "keep it for two weeks",
+     {"kind": "duration", "canonical": 14, "unit": "days"},
+     origin="falsification",
+     note="the discriminating opposite: without `every`, it is a duration "
+          "again, so the fix is a rule about repetition and not about the "
+          "number")
+
+norm("percentage.a_period_is_not_a_fraction", "rebalance each quarter",
+     {"absent": "percentage"}, origin="observed",
+     note="`quarter` as a fraction silently replaced a quarterly cadence with "
+          "0.25. Bare `quarter` and bare `third` are out of the table; only "
+          "forms that cannot be a period or an ordinal are in it")
+norm("percentage.a_period_is_not_a_fraction", "the third session of the month",
+     {"absent": "percentage"}, origin="falsification")
+norm("percentage.written_as_a_word", "a quarter of each bonus",
+     {"kind": "percentage", "canonical": "0.25"}, origin="falsification",
+     note="and `a quarter` still reads, so the narrowing did not cost the "
+          "reading it was added for")
+
+norm("duration.a_word_that_is_not_a_number", "keep it for several months",
+     {"absent": "duration"}, origin="falsification",
+     note="the table is one to twelve and a few round numbers; `several` is "
+          "not a quantity and inventing one would be worse than not reading it")
+
+for text, fraction in [
+    ("put in half of any bonus", "0.5"),
+    ("three quarters in equities", "0.75"),
+]:
+    norm("percentage.written_as_a_word", text,
+         {"kind": "percentage", "canonical": fraction}, origin="observed",
+         note="a fraction is a proportion of something; *of what* is the "
+              "binder's job and *what it makes it* is the mapper's")
+
+for text in ["invest whatever is left over each month",
+             "put in the remainder", "contribute whatever remains"]:
+    norm("residual.marker", text, {"kind": "residual", "canonical": "residual"},
+         origin="observed",
+         note="a phrase naming a concept, exactly as `monthly` names a period. "
+              "Lexical work, and it says nothing about which field it fills")
+
+norm("residual.not_every_leftover_word", "sell what is left of the position",
+     {"kind": "residual", "canonical": "residual"}, origin="falsification",
+     note="the marker is about the phrase, not the verb — a residual sale is "
+          "still a residual quantity, and the mapper decides what it fills")
+
 norm("ratio.order_is_content", "a 70/30 portfolio",
      {"kind": "ratio", "canonical": [70, 30]}, origin="falsification",
      note="70/30 is not 30/70; flattening a split to a set loses the sentence")

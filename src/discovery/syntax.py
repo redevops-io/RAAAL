@@ -233,13 +233,53 @@ _MONEY_RANGE = re.compile(
     re.I)
 _PERCENT_RANGE = re.compile(r"\d+(?:\.\d+)?\s?(?:-|–|\bto\b)\s?\d+(?:\.\d+)?\s?%")
 
-#: `5 years`, `60 months`, `90 days`, `18-month`
+#: Numbers people write as words. Narrow on purpose: one to twelve covers every
+#: attested case and every larger worded number is rare enough that guessing at
+#: it would add more false positives than readings.
+_NUMBER_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
+    "eighteen": 18, "twenty": 20, "thirty": 30, "sixty": 60, "ninety": 90,
+}
+
+#: Fractions written as words. `half of any bonus` is a proportion of something,
+#: and the proportion is the part this module can read — *of what* is the
+#: binder's job, and *what that makes it* is the mapper's.
+#: Only the forms that cannot be a period or an ordinal. Bare `quarter` and
+#: bare `third` are out: "each quarter" is a period and "the third session" is
+#: an ordinal, and reading either as 0.25 or 0.333 silently replaced a cadence
+#: with a proportion — which is what happened on the first run.
+_FRACTION_WORDS = {"half": "0.5", "a third": "0.3333",
+                   "a quarter": "0.25",
+                   "three quarters": "0.75", "two thirds": "0.6667"}
+
+_FRACTION = re.compile(
+    r"\b(" + "|".join(sorted((re.escape(k) for k in _FRACTION_WORDS),
+                             key=len, reverse=True)) + r")\b", re.I)
+
+#: The amount is whatever is left after everything else. A phrase naming a
+#: concept, exactly like `monthly` names a period — lexical work, and it says
+#: nothing about which field the concept fills.
+_RESIDUAL = re.compile(
+    r"\b(whatever (?:is |\'s )?(?:left|remain(?:s|ing))(?: over)?"
+    r"|what(?:ever)?(?:\'s| is) left(?: over)?"
+    r"|the (?:remainder|rest)"
+    r"|anything (?:left|remaining)(?: over)?)\b", re.I)
+
+#: `5 years`, `60 months`, `90 days`, `18-month`, and `six months`
 #:
 #: `(?! old)` because "Me - 32 years old" was attested and came back as an
 #: 11,680-day duration. An age is not a horizon, and a reader that cannot tell
 #: them apart turns a biography into a backtest length.
+#: `(?<!every )` and its siblings: "every two weeks" is a cadence and "for two
+#: weeks" is a duration, and the words in between are identical. Worded numbers
+#: made the collision visible — `every two weeks` had been a biweekly cadence
+#: until `two` became readable, and then the duration pass claimed the span
+#: first and the cadence vanished.
 _DURATION = re.compile(
-    r"\b(?P<amount>\d+(?:\.\d+)?)[\s-]?(?P<unit>day|days|week|weeks|month|months|"
+    r"(?<!every )(?<!each )(?<!per )(?<!every-)"
+    r"\b(?P<amount>\d+(?:\.\d+)?|" + "|".join(_NUMBER_WORDS) + r")"
+    r"[\s-]?(?P<unit>day|days|week|weeks|month|months|"
     r"year|years|yr|yrs)\b(?!\s+old\b)", re.I)
 
 _DURATION_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365,
@@ -386,12 +426,21 @@ def normalize(text: str, language: str = "en") -> Sequence[Value]:
                         *match.span()))
 
     for match in _DURATION.finditer(text):
-        amount = _decimal(match.group("amount"))
+        raw = match.group("amount")
+        amount = (Decimal(_NUMBER_WORDS[raw.lower()])
+                  if raw.lower() in _NUMBER_WORDS else _decimal(raw))
         if amount is None:
             continue
         unit = match.group("unit").lower().rstrip("s")
         claim(Value("duration", int(amount * _DURATION_DAYS[unit]),
                     match.group(0), *match.span(), unit="days"))
+
+    for match in _FRACTION.finditer(text):
+        claim(Value("percentage", Decimal(_FRACTION_WORDS[match.group(1).lower()]),
+                    match.group(0), *match.span()))
+
+    for match in _RESIDUAL.finditer(text):
+        claim(Value("residual", "residual", match.group(0), *match.span()))
 
     # Cadence last, so a duration claims its span first. "for 5 years" is a
     # horizon and contains "years"; reading it as an annual cadence is the

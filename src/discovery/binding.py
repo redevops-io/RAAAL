@@ -102,6 +102,15 @@ class RelationBinding:
     reports that `fixed` modifies the amount, and says nothing about what that
     implies for `amount_kind`."""
 
+    target_modifiers: Sequence[str] = ()
+    """Lemmas of the words modifying the *target*, as distinct from the value.
+
+    `10% of my salary` puts the `of` on `salary`, not on the percentage — so a
+    derivation looking only at the value's own modifiers never saw it, and the
+    proportional reading never fired. Which side a marker sits on is a fact
+    about the parse rather than about the meaning, so the binder reports both
+    and the mapper decides which it needs."""
+
     supports: str = ""
     """The semantic pairing this is evidence *for* — declared by the rule, not
     concluded by the binder."""
@@ -117,6 +126,7 @@ class RelationBinding:
                 "status": self.status.value, "target_span": self.target_span,
                 "target_lemma": self.target_lemma,
                 "modifiers": list(self.modifiers),
+                "target_modifiers": list(self.target_modifiers),
                 "target_index": self.target_index,
                 "candidates": list(self.candidates),
                 "evidence": list(self.evidence), "supports": self.supports,
@@ -149,7 +159,7 @@ RULES: Sequence[BindingRule] = (
                 strategy="shared_head", supports="asset↔weight"),
     BindingRule(relation="governed_by",
                 applies_to=frozenset({"duration", "moving_average_window",
-                                      "money", "cadence"}),
+                                      "money", "cadence", "residual"}),
                 strategy="governing_verb",
                 supports="cadence↔action | condition↔action | timing↔action"),
 )
@@ -223,6 +233,15 @@ def phrase_of(sentence: Sentence, head: Token) -> str:
         rebuilt += ("" if token.start_char == previous.end_char else " ")
         rebuilt += token.text
     return rebuilt
+
+
+def modifiers_of_target(aligned: Aligned, target: Token) -> Sequence[str]:
+    """Lemmas describing the bound target. Same shape, other side."""
+    covered = {token.index for token in aligned.tokens}
+    return tuple(sorted({
+        token.lemma for token in aligned.sentence.tokens
+        if token.head == target.index and token.index not in covered
+        and token.relation.split(":")[0] in _MODIFYING}))
 
 
 def _appositive_head(aligned: Aligned) -> tuple:
@@ -320,6 +339,8 @@ def bind_value(aligned: Aligned, rule: BindingRule) -> RelationBinding:
                            status=BindingStatus.BOUND,
                            target_span=spans[0], target_index=targets[0].index,
                            target_lemma=targets[0].lemma,
+                           target_modifiers=modifiers_of_target(aligned,
+                                                                targets[0]),
                            candidates=tuple(spans), evidence=tuple(evidence),
                            modifiers=modifiers, supports=rule.supports)
 

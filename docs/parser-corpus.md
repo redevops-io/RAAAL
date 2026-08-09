@@ -1,5 +1,10 @@
 # The parser corpora, and what the web pass found
 
+**Status: Phase 6 frozen.** `AWAITING_A_PARSER = 2`, and both are
+deliberate — a units-policy decision and an asymmetry witness. Every
+other case has an owner and a proven producer. See *Phase 6, frozen*
+for the boundary and the three explicit non-goals.
+
 Three files, and the difference between them is the whole point.
 
 | | cases | provenance | asserts |
@@ -674,6 +679,51 @@ sessions and the phrase says months. Normalising it away needs a declared
 trading-calendar convention, and until one exists neither side should win — a
 units mismatch resolved by whichever reader is louder is the failure this whole
 layer was built to prevent.
+
+## Phase 6, frozen
+
+The parser boundary, as built:
+
+    normalization
+    → relation binding
+    → semantic derivation
+    → independent witnesses
+    → fusion
+    → contract field | unresolved
+
+Each failure state is owned by the layer that can fix it, and the report names
+the owner rather than the symptom.
+
+**Three explicit non-goals, left outside this phase.** Named so a later reader
+does not mistake them for oversights:
+
+- **Calendar-month ↔ trading-session conversion.** The one live `DISAGREE`
+  needs it and does not get it. Converting months to sessions is a market
+  calendar policy, not a parser normalisation, and a units mismatch settled by
+  whichever reader is louder is the failure this layer exists to prevent.
+- **Schema expansion for unsupported concepts.** `market-cap weighted` and
+  `mid-month` stay `SCHEMA_GAP`. The parser understanding something the runtime
+  cannot represent is a boundary worth keeping, not a bug to coerce away.
+- **Multilingual support.** Deferred with its fixtures preserved. The corpus
+  describes the supported scope, not the aspirational one.
+
+### The lesson worth carrying
+
+> **Adding recognition capacity creates new ambiguity surfaces. Every new
+> literal class must be tested against neighbouring semantic dimensions, not
+> only against the examples it was added to recognise.**
+
+Worded numbers were added so `six months` would read. Both new cases passed, and
+two neighbours broke silently: `every two weeks` became a 14-day duration
+instead of a biweekly cadence, and `each quarter` became the fraction 0.25.
+Neither showed in the totals — the same cases stayed answered with the right
+values. What exposed it was that agreements by *two* witnesses fell from 12 to
+9 while the answered count held, because three cases had quietly lost their
+second witness.
+
+That is the argument for keeping per-state witness counts rather than a single
+"answered" number. A total that still sums correctly is the easiest place for a
+lost witness to hide.
 
 ## Order of work
 

@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 239,
+  "count": 252,
   "parses": [
     {
       "text": "$500 a month",
@@ -3986,6 +3986,69 @@
               "relation": "root",
               "start_char": 18,
               "end_char": 28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "a quarter of each bonus",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 2,
+              "relation": "det",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 9
+            },
+            {
+              "index": 3,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 13,
+              "end_char": 17
+            },
+            {
+              "index": 5,
+              "text": "bonus",
+              "lemma": "bonus",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod",
+              "start_char": 18,
+              "end_char": 23
             }
           ]
         }
@@ -9439,6 +9502,49 @@
       ]
     },
     {
+      "text": "contribute whatever remains",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "contribute",
+              "lemma": "contribute",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 10
+            },
+            {
+              "index": 2,
+              "text": "whatever",
+              "lemma": "whatever",
+              "upos": "PRON",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 19
+            },
+            {
+              "index": 3,
+              "text": "remains",
+              "lemma": "remain",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "acl:relcl",
+              "start_char": 20,
+              "end_char": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "contribute whatever remains each month",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -10915,6 +11021,49 @@
       ]
     },
     {
+      "text": "for one month",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "for",
+              "lemma": "for",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "case",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "one",
+              "lemma": "one",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 4,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 8,
+              "end_char": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "for retirement in 10 years",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -11234,6 +11383,59 @@
               "relation": "advmod",
               "start_char": 34,
               "end_char": 40
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "hold for three years",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "hold",
+              "lemma": "hold",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "for",
+              "lemma": "for",
+              "upos": "ADP",
+              "head": 4,
+              "relation": "case",
+              "start_char": 5,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "three",
+              "lemma": "three",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 9,
+              "end_char": 14
+            },
+            {
+              "index": 4,
+              "text": "years",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 15,
+              "end_char": 20
             }
           ]
         }
@@ -14164,6 +14366,69 @@
       ]
     },
     {
+      "text": "keep it for several months",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "keep",
+              "lemma": "keep",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 5,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "for",
+              "lemma": "for",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 8,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "several",
+              "lemma": "several",
+              "upos": "ADJ",
+              "head": 5,
+              "relation": "amod",
+              "start_char": 12,
+              "end_char": 19
+            },
+            {
+              "index": 5,
+              "text": "months",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 20,
+              "end_char": 26
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "keep it for six months",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -14221,6 +14486,69 @@
               "relation": "obl",
               "start_char": 16,
               "end_char": 22
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "keep it for two weeks",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "keep",
+              "lemma": "keep",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 5,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "for",
+              "lemma": "for",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 8,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "two",
+              "lemma": "two",
+              "upos": "NUM",
+              "head": 5,
+              "relation": "nummod",
+              "start_char": 12,
+              "end_char": 15
+            },
+            {
+              "index": 5,
+              "text": "weeks",
+              "lemma": "week",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 16,
+              "end_char": 21
             }
           ]
         }
@@ -15584,6 +15912,49 @@
       ]
     },
     {
+      "text": "over ten years",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "over",
+              "lemma": "over",
+              "upos": "ADV",
+              "head": 2,
+              "relation": "advmod",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "ten",
+              "lemma": "ten",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 5,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "years",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 9,
+              "end_char": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "over the last 10 years",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -16185,6 +16556,59 @@
       ]
     },
     {
+      "text": "put in the remainder",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "put",
+              "lemma": "put",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 1,
+              "relation": "compound:prt",
+              "start_char": 4,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 4,
+              "relation": "det",
+              "start_char": 7,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "remainder",
+              "lemma": "remainder",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "put it into an SPX ETF",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -16534,6 +16958,49 @@
               "relation": "nmod",
               "start_char": 21,
               "end_char": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "rebalance each quarter",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 3,
+              "relation": "det",
+              "start_char": 10,
+              "end_char": 14
+            },
+            {
+              "index": 3,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 15,
+              "end_char": 22
             }
           ]
         }
@@ -17329,6 +17796,89 @@
       ]
     },
     {
+      "text": "sell what is left of the position",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "sell",
+              "lemma": "sell",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "what",
+              "lemma": "what",
+              "upos": "PRON",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 5,
+              "end_char": 9
+            },
+            {
+              "index": 3,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 4,
+              "relation": "aux:pass",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "left",
+              "lemma": "leave",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "acl:relcl",
+              "start_char": 13,
+              "end_char": 17
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 18,
+              "end_char": 20
+            },
+            {
+              "index": 6,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 21,
+              "end_char": 24
+            },
+            {
+              "index": 7,
+              "text": "position",
+              "lemma": "position",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "obl",
+              "start_char": 25,
+              "end_char": 33
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "sell when it drops under its 50-day average",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -17840,6 +18390,132 @@
       ]
     },
     {
+      "text": "the third session of the month",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 3,
+              "relation": "det",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "third",
+              "lemma": "third",
+              "upos": "ADJ",
+              "head": 3,
+              "relation": "amod",
+              "start_char": 4,
+              "end_char": 9
+            },
+            {
+              "index": 3,
+              "text": "session",
+              "lemma": "session",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 10,
+              "end_char": 17
+            },
+            {
+              "index": 4,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 18,
+              "end_char": 20
+            },
+            {
+              "index": 5,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 21,
+              "end_char": 24
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "nmod",
+              "start_char": 25,
+              "end_char": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "three quarters in equities",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "three",
+              "lemma": "three",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 0,
+              "end_char": 5
+            },
+            {
+              "index": 2,
+              "text": "quarters",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 6,
+              "end_char": 14
+            },
+            {
+              "index": 3,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 4,
+              "relation": "case",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 4,
+              "text": "equities",
+              "lemma": "equity",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod",
+              "start_char": 18,
+              "end_char": 26
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "through an ETF",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -18179,6 +18855,49 @@
               "relation": "obl",
               "start_char": 22,
               "end_char": 26
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "wait two weeks",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "wait",
+              "lemma": "wait",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "two",
+              "lemma": "two",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 5,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "weeks",
+              "lemma": "week",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 14
             }
           ]
         }

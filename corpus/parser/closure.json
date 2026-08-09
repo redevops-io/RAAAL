@@ -1,13 +1,17 @@
 {
   "schema": "quantify-parser-closure@2",
   "cases": 52,
-  "pending": 6,
+  "pending": 2,
   "excluded_from_pending": {
     "state": "INTERMEDIATE_SEMANTIC",
-    "count": 2,
+    "count": 6,
     "ids": [
       "sema-window-holding_period-001",
-      "sema-funding-amount_kind-002"
+      "sema-window-holding_period-002",
+      "sema-funding-amount_kind-001",
+      "sema-funding-amount_kind-002",
+      "sema-funding-amount_kind-003",
+      "sema-funding-amount_kind-004"
     ],
     "classification": "intentionally outside the contract boundary",
     "previously_counted_by_awaiting_a_parser": true,
@@ -18,8 +22,7 @@
     "MODEL_ONLY_ACCEPTED": 30,
     "SYNTAX_ONLY_UNRESOLVED": 1,
     "DISAGREE": 1,
-    "INTERMEDIATE_SEMANTIC": 2,
-    "INTERMEDIATE_NOT_PRODUCED": 4,
+    "INTERMEDIATE_SEMANTIC": 6,
     "SCHEMA_GAP": 2
   },
   "agreed_and_correct": 42,
@@ -35,8 +38,7 @@
       "AGREE": 3
     },
     "funding.amount_kind": {
-      "INTERMEDIATE_NOT_PRODUCED": 3,
-      "INTERMEDIATE_SEMANTIC": 1
+      "INTERMEDIATE_SEMANTIC": 4
     },
     "funding.cadence": {
       "AGREE": 5,
@@ -79,8 +81,7 @@
       "MODEL_ONLY_ACCEPTED": 3
     },
     "window.holding_period": {
-      "INTERMEDIATE_SEMANTIC": 1,
-      "INTERMEDIATE_NOT_PRODUCED": 1
+      "INTERMEDIATE_SEMANTIC": 2
     },
     "window.moving_average": {
       "AGREE": 1,
@@ -569,9 +570,13 @@
       "property": "window.holding_period",
       "text": "keep it for six months",
       "language": "en",
-      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "state": "INTERMEDIATE_SEMANTIC",
       "field": "holding_period_days",
-      "reason": "the case asserts 'holding_period_days' and the mapper produced []; nothing computes it, so being outside the contract is not the reason it is unanswered"
+      "value": "180",
+      "expected": "180",
+      "matches_expected": true,
+      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
     },
     {
       "id": "sema-negation-changes_the_value-001",
@@ -610,9 +615,13 @@
       "property": "funding.amount_kind",
       "text": "invest whatever is left over each month",
       "language": "en",
-      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "state": "INTERMEDIATE_SEMANTIC",
       "field": "amount_kind",
-      "reason": "the case asserts 'amount_kind' and the mapper produced []; nothing computes it, so being outside the contract is not the reason it is unanswered"
+      "value": "residual",
+      "expected": "residual",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
     },
     {
       "id": "sema-funding-amount_kind-002",
@@ -632,18 +641,26 @@
       "property": "funding.amount_kind",
       "text": "invest 10% of my salary monthly",
       "language": "en",
-      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "state": "INTERMEDIATE_SEMANTIC",
       "field": "amount_kind",
-      "reason": "the case asserts 'amount_kind' and the mapper produced ['cadence', 'stated_weights']; nothing computes it, so being outside the contract is not the reason it is unanswered"
+      "value": "proportional",
+      "expected": "proportional",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
     },
     {
       "id": "sema-funding-amount_kind-004",
       "property": "funding.amount_kind",
       "text": "put in half of any bonus",
       "language": "en",
-      "state": "INTERMEDIATE_NOT_PRODUCED",
+      "state": "INTERMEDIATE_SEMANTIC",
       "field": "amount_kind",
-      "reason": "the case asserts 'amount_kind' and the mapper produced []; nothing computes it, so being outside the contract is not the reason it is unanswered"
+      "value": "proportional",
+      "expected": "proportional",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
     },
     {
       "id": "sema-timing-execution-001",

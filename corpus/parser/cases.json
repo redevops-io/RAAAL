@@ -1,8 +1,8 @@
 {
   "schema": "quantify-parser-corpus@1",
-  "count": 222,
+  "count": 240,
   "by_tier": {
-    "normalization": 114,
+    "normalization": 132,
     "dependency": 56,
     "semantics": 52
   },
@@ -816,6 +816,243 @@
       "note": "the discriminating opposite: the age rule must not eat real horizons, which are written the same way minus one word"
     },
     {
+      "id": "norm-duration-written_as_a_word-001",
+      "tier": "normalization",
+      "property": "duration.written_as_a_word",
+      "text": "keep it for six months",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 180,
+        "unit": "days"
+      },
+      "origin": "observed",
+      "note": "`_DURATION` required digits, so a worded quantity read as nothing and the case looked like a missing mapper"
+    },
+    {
+      "id": "norm-duration-written_as_a_word-002",
+      "tier": "normalization",
+      "property": "duration.written_as_a_word",
+      "text": "hold for three years",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 1095,
+        "unit": "days"
+      },
+      "origin": "observed",
+      "note": "`_DURATION` required digits, so a worded quantity read as nothing and the case looked like a missing mapper"
+    },
+    {
+      "id": "norm-duration-written_as_a_word-003",
+      "tier": "normalization",
+      "property": "duration.written_as_a_word",
+      "text": "wait two weeks",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 14,
+        "unit": "days"
+      },
+      "origin": "observed",
+      "note": "`_DURATION` required digits, so a worded quantity read as nothing and the case looked like a missing mapper"
+    },
+    {
+      "id": "norm-duration-written_as_a_word-004",
+      "tier": "normalization",
+      "property": "duration.written_as_a_word",
+      "text": "over ten years",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 3650,
+        "unit": "days"
+      },
+      "origin": "observed",
+      "note": "`_DURATION` required digits, so a worded quantity read as nothing and the case looked like a missing mapper"
+    },
+    {
+      "id": "norm-duration-written_as_a_word-005",
+      "tier": "normalization",
+      "property": "duration.written_as_a_word",
+      "text": "for one month",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 30,
+        "unit": "days"
+      },
+      "origin": "observed",
+      "note": "`_DURATION` required digits, so a worded quantity read as nothing and the case looked like a missing mapper"
+    },
+    {
+      "id": "norm-cadence-beats_a_duration_when_repeated-001",
+      "tier": "normalization",
+      "property": "cadence.beats_a_duration_when_repeated",
+      "text": "add $250 every two weeks",
+      "language": "en",
+      "asserts": {
+        "kind": "cadence",
+        "canonical": "biweekly"
+      },
+      "origin": "observed",
+      "note": "`every two weeks` is a cadence and `for two weeks` is a duration, and the words between are identical. Until `two` was readable the collision could not happen; the moment it was, the duration pass claimed the span and the cadence vanished"
+    },
+    {
+      "id": "norm-cadence-beats_a_duration_when_repeated-002",
+      "tier": "normalization",
+      "property": "cadence.beats_a_duration_when_repeated",
+      "text": "put in $1,000 each quarter",
+      "language": "en",
+      "asserts": {
+        "kind": "cadence",
+        "canonical": "quarterly"
+      },
+      "origin": "observed",
+      "note": ""
+    },
+    {
+      "id": "norm-duration-days-002",
+      "tier": "normalization",
+      "property": "duration.days",
+      "text": "keep it for two weeks",
+      "language": "en",
+      "asserts": {
+        "kind": "duration",
+        "canonical": 14,
+        "unit": "days"
+      },
+      "origin": "falsification",
+      "note": "the discriminating opposite: without `every`, it is a duration again, so the fix is a rule about repetition and not about the number"
+    },
+    {
+      "id": "norm-percentage-a_period_is_not_a_fraction-001",
+      "tier": "normalization",
+      "property": "percentage.a_period_is_not_a_fraction",
+      "text": "rebalance each quarter",
+      "language": "en",
+      "asserts": {
+        "absent": "percentage"
+      },
+      "origin": "observed",
+      "note": "`quarter` as a fraction silently replaced a quarterly cadence with 0.25. Bare `quarter` and bare `third` are out of the table; only forms that cannot be a period or an ordinal are in it"
+    },
+    {
+      "id": "norm-percentage-a_period_is_not_a_fraction-002",
+      "tier": "normalization",
+      "property": "percentage.a_period_is_not_a_fraction",
+      "text": "the third session of the month",
+      "language": "en",
+      "asserts": {
+        "absent": "percentage"
+      },
+      "origin": "falsification",
+      "note": ""
+    },
+    {
+      "id": "norm-percentage-written_as_a_word-001",
+      "tier": "normalization",
+      "property": "percentage.written_as_a_word",
+      "text": "a quarter of each bonus",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.25"
+      },
+      "origin": "falsification",
+      "note": "and `a quarter` still reads, so the narrowing did not cost the reading it was added for"
+    },
+    {
+      "id": "norm-duration-a_word_that_is_not_a_number-001",
+      "tier": "normalization",
+      "property": "duration.a_word_that_is_not_a_number",
+      "text": "keep it for several months",
+      "language": "en",
+      "asserts": {
+        "absent": "duration"
+      },
+      "origin": "falsification",
+      "note": "the table is one to twelve and a few round numbers; `several` is not a quantity and inventing one would be worse than not reading it"
+    },
+    {
+      "id": "norm-percentage-written_as_a_word-002",
+      "tier": "normalization",
+      "property": "percentage.written_as_a_word",
+      "text": "put in half of any bonus",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.5"
+      },
+      "origin": "observed",
+      "note": "a fraction is a proportion of something; *of what* is the binder's job and *what it makes it* is the mapper's"
+    },
+    {
+      "id": "norm-percentage-written_as_a_word-003",
+      "tier": "normalization",
+      "property": "percentage.written_as_a_word",
+      "text": "three quarters in equities",
+      "language": "en",
+      "asserts": {
+        "kind": "percentage",
+        "canonical": "0.75"
+      },
+      "origin": "observed",
+      "note": "a fraction is a proportion of something; *of what* is the binder's job and *what it makes it* is the mapper's"
+    },
+    {
+      "id": "norm-residual-marker-001",
+      "tier": "normalization",
+      "property": "residual.marker",
+      "text": "invest whatever is left over each month",
+      "language": "en",
+      "asserts": {
+        "kind": "residual",
+        "canonical": "residual"
+      },
+      "origin": "observed",
+      "note": "a phrase naming a concept, exactly as `monthly` names a period. Lexical work, and it says nothing about which field it fills"
+    },
+    {
+      "id": "norm-residual-marker-002",
+      "tier": "normalization",
+      "property": "residual.marker",
+      "text": "put in the remainder",
+      "language": "en",
+      "asserts": {
+        "kind": "residual",
+        "canonical": "residual"
+      },
+      "origin": "observed",
+      "note": "a phrase naming a concept, exactly as `monthly` names a period. Lexical work, and it says nothing about which field it fills"
+    },
+    {
+      "id": "norm-residual-marker-003",
+      "tier": "normalization",
+      "property": "residual.marker",
+      "text": "contribute whatever remains",
+      "language": "en",
+      "asserts": {
+        "kind": "residual",
+        "canonical": "residual"
+      },
+      "origin": "observed",
+      "note": "a phrase naming a concept, exactly as `monthly` names a period. Lexical work, and it says nothing about which field it fills"
+    },
+    {
+      "id": "norm-residual-not_every_leftover_word-001",
+      "tier": "normalization",
+      "property": "residual.not_every_leftover_word",
+      "text": "sell what is left of the position",
+      "language": "en",
+      "asserts": {
+        "kind": "residual",
+        "canonical": "residual"
+      },
+      "origin": "falsification",
+      "note": "the marker is about the phrase, not the verb — a residual sale is still a residual quantity, and the mapper decides what it fills"
+    },
+    {
       "id": "norm-ratio-order_is_content-001",
       "tier": "normalization",
       "property": "ratio.order_is_content",
@@ -880,7 +1117,7 @@
       "note": "parts not summing to 100 are a date, a fraction or an identifier; guessing which would be a substitution"
     },
     {
-      "id": "norm-duration-days-002",
+      "id": "norm-duration-days-003",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 90 days",
@@ -894,7 +1131,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-003",
+      "id": "norm-duration-days-004",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 30 days",
@@ -908,7 +1145,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-004",
+      "id": "norm-duration-days-005",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 day",
@@ -922,7 +1159,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-005",
+      "id": "norm-duration-days-006",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 14 days",
@@ -936,7 +1173,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-006",
+      "id": "norm-duration-days-007",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 2 weeks",
@@ -950,7 +1187,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-007",
+      "id": "norm-duration-days-008",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 6 weeks",
@@ -964,7 +1201,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-008",
+      "id": "norm-duration-days-009",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 week",
@@ -978,7 +1215,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-009",
+      "id": "norm-duration-days-010",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 3 months",
@@ -992,7 +1229,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-010",
+      "id": "norm-duration-days-011",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 6 months",
@@ -1006,7 +1243,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-011",
+      "id": "norm-duration-days-012",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 18 months",
@@ -1020,7 +1257,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-012",
+      "id": "norm-duration-days-013",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 12 months",
@@ -1034,7 +1271,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-013",
+      "id": "norm-duration-days-014",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 month",
@@ -1048,7 +1285,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-014",
+      "id": "norm-duration-days-015",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 5 years",
@@ -1062,7 +1299,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-015",
+      "id": "norm-duration-days-016",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 10 years",
@@ -1076,7 +1313,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-016",
+      "id": "norm-duration-days-017",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 1 year",
@@ -1090,7 +1327,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-017",
+      "id": "norm-duration-days-018",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 20 years",
@@ -1104,7 +1341,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-018",
+      "id": "norm-duration-days-019",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 2 yrs",
@@ -1118,7 +1355,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-019",
+      "id": "norm-duration-days-020",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 18-month",
@@ -1132,7 +1369,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-020",
+      "id": "norm-duration-days-021",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 90-day",
@@ -1146,7 +1383,7 @@
       "note": ""
     },
     {
-      "id": "norm-duration-days-021",
+      "id": "norm-duration-days-022",
       "tier": "normalization",
       "property": "duration.days",
       "text": "hold the position for 5-year",
