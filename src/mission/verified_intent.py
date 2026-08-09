@@ -163,6 +163,29 @@ def _from_prose(text: str, already: Dict[str, IntentField]) -> Dict[str, IntentF
                                        kind=ReaderKind.RULE, value=value,
                                        source_ref=span),))
 
+    # Assets, the watched series and the average length. All three are things
+    # the compiler reads and none is a `Recognition`, so an intent built from
+    # recognitions alone names nothing to hold — and a plan compiled from it
+    # holds nothing.
+    #
+    # `src/discovery/readers_quantify.py` bridges the same three for the shadow
+    # comparison. The duplication is deliberate and temporary: this module is
+    # Phase 2 scaffolding that dies when the legacy compiler is deleted, and
+    # collapsing the two now would mean maintaining a merge of a thing that is
+    # going away.
+    from .compiler import moving_average_window
+    from .time_window import detect as detect_window
+
+    parsed = _parse_once(text)
+    if parsed is not None:
+        if parsed.assets:
+            add("assets", ", ".join(parsed.assets), "")
+        if parsed.observed and set(parsed.observed) != set(parsed.assets):
+            add("observed_assets", ", ".join(parsed.observed), "")
+    window = moving_average_window(text)
+    if window:
+        add("moving_average_window", str(window), "")
+
     weights = stated_weights(text)
     if weights:
         # As decimal strings, because the canonical form refuses floats:
@@ -180,6 +203,15 @@ def _from_prose(text: str, already: Dict[str, IntentField]) -> Dict[str, IntentF
             phrase = _clause(match.group(0))
             add(name, phrase, phrase)
     return found
+
+
+def _parse_once(text: str):
+    from .compiler import parse
+
+    try:
+        return parse(text)
+    except Exception:                                             # noqa: BLE001
+        return None
 
 
 def _clause(matched: str) -> str:
