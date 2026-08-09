@@ -1,9 +1,8 @@
 # Migrating Quantify to the ReDevOps runtime architecture
 
-**Status:** Phases 0–3 built and measured. Phase 4 in progress — four of the
-seven properties hold (compile-from-intent, event-log reproducibility,
-authorization correctness, the vendored contract gone); cross-runtime replay is
-the remaining gate.
+**Status:** Phases 0–3 built and measured. Phase 4's seven properties all hold,
+including cross-runtime replay against `agentic-os` over one canonical
+`VerifiedIntent`. Phase 5 (the surface) is undecided — §6.1.
 **Date:** 2026-08-08
 **Supersedes:** `docs/Roadmap.md` for everything above the execution engine.
 
@@ -1137,7 +1136,7 @@ comparisons.** These are what the runtime actually promises:
 | capability-manifest enforcement | anything outside the manifest executing rather than refusing by name |
 | authorization correctness | a side-effecting capability running without its approval, or an approval applying to a different capability than the one that asked |
 | event-log reproducibility | a fold over the same events producing a different state |
-| replay across implementations | the same `MissionProgram` reaching different states under two runtimes |
+| replay across implementations | the two runtimes disagreeing about one canonical `VerifiedIntent` — accepting a draft, editing the artifact, approximating instead of refusing, or reading it differently on replay |
 | explainability and audit fidelity | a figure that cannot name the run, program, intent, reader and author behind it |
 | the contract is depended on, not copied | any module here redefining a boundary type, or the pin naming a branch instead of a tag |
 
@@ -1163,11 +1162,49 @@ holds on every corpus prompt — **nothing Mission executed was less than what
 Discovery verified, unless it said so by name.** The corpora remain the
 regression instrument; they stop being a comparison instrument.
 
-#### Cross-runtime replay is blocked, and not on effort
+#### Cross-runtime replay — blocked, then unblocked, then measured
 
-Four of the seven properties hold. The fifth — *replay across implementations* —
-cannot be measured yet, for a reason worth stating precisely rather than
-working around.
+*Resolved.* `tests/test_cross_runtime_replay.py` drives both runtimes over one
+canonical artifact. The record of why it was blocked is kept below, because the
+blocker was a real constraint and the way out was a decision rather than effort.
+
+**How it is measured.** Each case builds one `VerifiedIntent`, serialises it
+once, and hands the identical JSON to `intent_from_json` on both sides. Quantify
+is driven through `compile_intent`, `agentic-os` through
+`create_mission_from_intent` — each runtime's real production entry point. There
+is no adapter, no field mapping, no shim between them. Results are read in each
+runtime's own idiom (Quantify returns refusals, `agentic-os` raises), and that
+translation is of *results*, stated rather than hidden; the intent crosses
+untouched, which is the property under test.
+
+**What is compared, and what deliberately is not.** The two runtimes do
+different jobs, and nothing compares a scenario to an execution graph.
+Vocabulary is not compared either: Quantify executes
+`evaluate_investment_strategy`, `agentic-os` executes `onboard_customer` and
+`recover_overdue_payment`, and each refuses the other's. That is the capability
+manifest working. Mistaking it for divergence would push towards a shared
+vocabulary, which is the coupling the contract exists to avoid.
+
+Five properties hold in both: the seal is honoured, an unresolved disagreement
+refuses, the artifact is never edited, refusal is by name, and replay from
+storage is stable. The gate discriminates — disabling `agentic-os`'s seal check
+fails exactly the draft test, and making it approximate an unmapped objective
+instead of refusing fails exactly the refusal tests.
+
+**One finding from writing it.** `unsealable` is broader than `blocking`: an
+unresolved disagreement blocks *sealing* as well as execution, so "VERIFIED and
+still contested" cannot be constructed through `seal()` at all. Both runtimes
+carry a `blocking` check that therefore cannot fire — kept as a backstop against
+a future loosening, but the real guarantee is the contract's, not either
+runtime's. What can still occur is a *stored* artifact claiming `VERIFIED`, and
+`intent_from_json` re-checks the seal on read; the cross-runtime property is
+that neither side reads any other way.
+
+<details>
+<summary>Why it was blocked, and what the block was made of</summary>
+
+Four of the seven properties held. The fifth could not be measured, for a
+reason worth stating precisely rather than working around.
 
 **Only one runtime speaks the contract.** RAAAL consumes `VerifiedIntent` on
 its production path. `agentic-os` does not: it mentions the type in one
@@ -1202,8 +1239,17 @@ label.** `agentic-os` is AGPL-3.0-or-later. `runtime-contracts` is AGPL
 AGPL-covered work. This is not the soft mismatch `runtime-contracts/LICENSE.md`
 anticipated for `mission-sdk`, where a permissive grant merely stopped
 describing reality — a pure-AGPL project cannot take a Commons-Clause
-dependency and remain distributable as AGPL. It needs a decision (§6.6) before
-the import exists, not after.
+dependency and remain distributable as AGPL. It needed a decision (§6.6) before
+the import existed, not after.
+
+**The decision was option 1.** `agentic-os` is relicensed to AGPL-3.0-or-later
+WITH Commons Clause, effective from its own commit, with prior releases
+explicitly unaffected. One runtime family under one licence, rather than a seam
+at exactly the boundary the contracts exist to hold together. It then took the
+tagged `runtime-contracts` dependency and adopted `VerifiedIntent` on its
+production path, which is what made the gate above measurable.
+
+</details>
 
 ### Phase 5 — The surface (undecided, §6)
 

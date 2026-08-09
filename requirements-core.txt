@@ -50,3 +50,9 @@ psycopg[binary]>=3.1
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
 runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.1
+
+# --- The Mission Runtime, for the cross-runtime replay gate ---
+# Tag-pinned for the same reason as the contracts above. Same licence family
+# (AGPL-3.0-or-later WITH Commons-Clause), which is what made the import legal:
+# see docs/Migration.md §6.6.
+agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.2
