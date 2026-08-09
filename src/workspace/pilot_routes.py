@@ -103,14 +103,16 @@ def _refuse_unless_declared(request: Request):
         status_code=404)
 
 
-@router.get("/pilot", response_class=HTMLResponse)
-def pilot_new(request: Request, describe: str = ""):
-    """Submit a goal and see what the runtime made of it."""
-    from .routes import TEMPLATES
+def draft(request: Request, describe: str = ""):
+    """The pilot draft, as one implementation with two callers.
 
-    refused = _refuse_unless_declared(request)
-    if refused is not None:
-        return refused
+    `/new` reaches this when the deployment declares the runtime, which is how
+    a cohort meets it — the entry point is the workspace's own, and the legacy
+    path is not the default experience for a pilot that was meant to test the
+    runtime. `/pilot` reaches the same function as a diagnostic alias, so there
+    is never a second implementation to keep in step with this one.
+    """
+    from .routes import TEMPLATES
 
     if not describe.strip():
         return TEMPLATES.TemplateResponse(request, "pilot.html",
@@ -125,6 +127,21 @@ def pilot_new(request: Request, describe: str = ""):
 
     return TEMPLATES.TemplateResponse(request, "pilot.html",
                                       page(reading, text=describe))
+
+
+@router.get("/pilot", response_class=HTMLResponse)
+def pilot_new(request: Request, describe: str = ""):
+    """Diagnostic alias for `/new` under the runtime mode.
+
+    Kept for development and deliberately **not** the cohort entry point: two
+    URLs serving one journey is two surfaces to describe, and the experiment is
+    about whether the workspace people already use is better with the runtime
+    underneath it. Delegates rather than duplicating.
+    """
+    refused = _refuse_unless_declared(request)
+    if refused is not None:
+        return refused
+    return draft(request, describe)
 
 
 @router.post("/pilot/answer", response_class=HTMLResponse)

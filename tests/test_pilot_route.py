@@ -205,3 +205,236 @@ class TestTheGate:
         problems = target.problems()
         assert len(problems) == 2
         assert all("RUNTIME" in p for p in problems)
+
+
+class TestTheDeploymentControlsTheReader:
+    """The selection must be *controlled by the context*, not hardwired.
+
+    Every other test in this file runs with `PilotReader.RECORDED`, so all of
+    them would pass equally well if `configured_reader` ignored the deployment
+    and returned a recording unconditionally. That is the shape of a test
+    suite proving its own fixture. The reciprocal closes it.
+    """
+
+    def _reader_under(self, monkeypatch, tmp_path, declared: str):
+        from src.deploy import context as deploy_context
+
+        monkeypatch.setenv("QUANTIFY_PARSER_MODE", "RUNTIME")
+        monkeypatch.setenv("QUANTIFY_PILOT_READER", declared)
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "unused-here")
+        monkeypatch.setenv("QUANTIFY_PARSER_MODEL", "claude-sonnet-5")
+        monkeypatch.setenv("QUANTIFY_DATABASE_URL", f"sqlite:///{tmp_path}/r.db")
+
+        resolved = deploy_context.resolve(dict(os.environ))
+        monkeypatch.setattr(deploy_context, "current", lambda: resolved)
+
+        from src.workspace.pilot_routes import configured_reader
+
+        return configured_reader()
+
+    def test_recorded_gives_the_replaying_reader(self, monkeypatch, tmp_path):
+        from src.discovery.hosted_recording import RecordedHostedReader
+
+        reader = self._reader_under(monkeypatch, tmp_path, "recorded")
+        assert isinstance(reader, RecordedHostedReader)
+
+    def test_hosted_gives_the_provider_reader(self, monkeypatch, tmp_path):
+        """Constructed, not called — this asserts the *selection*, and calling
+        it would put a provider request in the suite."""
+        from src.discovery.readers_quantify import HostedReader
+
+        reader = self._reader_under(monkeypatch, tmp_path, "hosted")
+        assert isinstance(reader, HostedReader)
+        assert reader.model == "claude-sonnet-5"
+
+    def test_an_absent_declaration_defaults_to_the_provider(self, monkeypatch,
+                                                            tmp_path):
+        """Not to recordings. A deployment that silently replayed fixtures
+        because nobody declared a reader would serve answers from a file and
+        report them as the model's — the failure the enum's docstring names."""
+        from src.discovery.readers_quantify import HostedReader
+
+        monkeypatch.delenv("QUANTIFY_PILOT_READER", raising=False)
+        reader = self._reader_under(monkeypatch, tmp_path, "")
+        assert isinstance(reader, HostedReader)
+
+
+class TestThePersistedArtifactRecordsTheProfile:
+    """Not only the page. A pilot's conclusions are drawn from what was stored,
+    and a page that displayed the profile while the artifact omitted it would
+    leave the analysis unable to separate model-only plans from dual-witness
+    ones."""
+
+    def test_the_stored_plan_says_one_witness_and_says_why(
+            self, pilot_client, monkeypatch):
+        _legacy_must_not_run(monkeypatch)
+
+        pilot_client.post("/pilot/save",
+                          data={"describe": SENTENCE, "answer_assets": "VTI"},
+                          follow_redirects=True)
+
+        from src.workspace.pilot_store import every_plan
+
+        (plan,) = every_plan()
+        assert plan["profile"]["single_witness"] is True
+        assert plan["profile"]["available"] == ["model"]
+        assert "not installed" in plan["profile"]["reason"]
+
+    def test_every_settled_field_is_model_only_and_none_claim_agreement(
+            self, pilot_client, monkeypatch):
+        _legacy_must_not_run(monkeypatch)
+
+        pilot_client.post("/pilot/save",
+                          data={"describe": SENTENCE, "answer_assets": "VTI"},
+                          follow_redirects=True)
+
+        from src.workspace.pilot_store import every_plan
+
+        (plan,) = every_plan()
+        provenances = {f["provenance"] for f in plan["settled"]}
+        assert "AGREE" not in provenances
+        assert provenances <= {"MODEL_ONLY_ACCEPTED", "USER_ANSWERED"}
+
+    def test_the_human_answer_is_recorded_as_the_human_s(
+            self, pilot_client, monkeypatch):
+        """"The user agreed" and "the model proposed" must never be the same
+        record — the distinction Mission's declared defaults depend on."""
+        _legacy_must_not_run(monkeypatch)
+
+        pilot_client.post("/pilot/save",
+                          data={"describe": SENTENCE, "answer_assets": "VTI"},
+                          follow_redirects=True)
+
+        from src.workspace.pilot_store import every_plan
+
+        (plan,) = every_plan()
+        authors = {name: field["author"]
+                   for name, field in plan["intent"]["fields"].items()}
+        assert authors["assets"] == "USER"
+        assert authors["cadence"] == "MODEL"
+
+
+#: The workspace router carries a prefix, so the entry point a cohort actually
+#: types is `/workspace/new`. Named once here rather than spelled out at each
+#: call site — the first version of these tests used `/new`, got 404 from every
+#: one of them, and the failure looked like the branch not working.
+NEW = "/workspace/new"
+
+
+class TestNewIsTheEntryPoint:
+    """`/workspace/new` is where a cohort arrives, so that is what must be
+    tested.
+
+    A separate `/pilot` URL would have left the legacy path as the default
+    experience, and an experiment about whether the runtime improves *this*
+    workspace cannot be run on a surface people do not arrive at. So the branch
+    is on the resolved deployment mode and the route chooses nothing itself.
+    """
+
+    def test_in_pilot_mode_new_reaches_the_runtime(self, pilot_client,
+                                                   monkeypatch):
+        _legacy_must_not_run(monkeypatch)
+
+        page = pilot_client.get(NEW, params={"describe": SENTENCE})
+        assert page.status_code == 200
+        assert "MODEL_ONLY_ACCEPTED" in page.text
+        assert "claude-sonnet-5@1" in page.text
+
+    def test_and_the_artifact_it_saves_records_the_witness_profile(
+            self, pilot_client, monkeypatch):
+        _legacy_must_not_run(monkeypatch)
+
+        pilot_client.get(NEW, params={"describe": SENTENCE})
+        pilot_client.post("/pilot/save",
+                          data={"describe": SENTENCE, "answer_assets": "VTI"},
+                          follow_redirects=True)
+
+        from src.workspace.pilot_store import every_plan
+
+        (plan,) = every_plan()
+        assert plan["derivation"]["compiled_by"] == "quantify-mission@1"
+        assert plan["profile"]["available"] == ["model"]
+        assert plan["profile"]["single_witness"] is True
+
+    def test_the_alias_and_the_entry_point_render_the_same_page(
+            self, pilot_client, monkeypatch):
+        """Delegation, not duplication. Two implementations of one journey
+        drift, and the drift is invisible until a user reports a difference
+        nobody can reproduce."""
+        _legacy_must_not_run(monkeypatch)
+
+        through_new = pilot_client.get(NEW, params={"describe": SENTENCE})
+        through_alias = pilot_client.get("/pilot", params={"describe": SENTENCE})
+        assert through_new.text == through_alias.text
+
+
+class TestLegacyModeIsUntouched:
+    """The reciprocal. Without it, "pilot mode reaches the runtime" would be
+    satisfied by a build that reached the runtime always — and the legacy path,
+    which is what every existing user is on, would have been replaced silently.
+    """
+
+    @pytest.fixture
+    def legacy_client(self, monkeypatch, tmp_path):
+        from src.deploy import context as deploy_context
+
+        monkeypatch.setenv("QUANTIFY_PARSER_MODE", "DETERMINISTIC")
+        monkeypatch.setenv("QUANTIFY_DATABASE_URL",
+                           f"sqlite:///{tmp_path}/legacy.db")
+        monkeypatch.delenv("QUANTIFY_PILOT_READER", raising=False)
+
+        resolved = deploy_context.resolve(dict(os.environ))
+        monkeypatch.setattr(deploy_context, "current", lambda: resolved)
+
+        from src.api import app
+
+        return TestClient(app)
+
+    def test_new_still_goes_through_the_legacy_compiler(self, legacy_client,
+                                                        monkeypatch):
+        """Proved by making it fail: the legacy compiler is replaced with a
+        probe, and a legacy request must reach it.
+
+        The probe targets `draft.compile_draft`, not `compile_scenario`. The
+        first version patched the latter and the test failed — correctly, and
+        for a reason that was about my assumption rather than the code: the
+        *draft* path has compiled through `compile_draft` since a defect where
+        the preview and the save path used different functions. Patching the
+        one the route does not call would have asserted nothing while looking
+        like a reciprocal.
+        """
+        import src.workspace.draft as draft
+
+        reached = {"yes": False}
+
+        def probe(*args, **kwargs):
+            reached["yes"] = True
+            raise RuntimeError("reached, as expected")
+
+        monkeypatch.setattr(draft, "compile_draft", probe)
+        try:
+            legacy_client.get(NEW, params={"describe": SENTENCE})
+        except Exception:
+            pass
+        assert reached["yes"], (
+            "a deterministic deployment did not reach the legacy compiler; "
+            "the pilot branch is serving users who never opted into it")
+
+    def test_and_never_touches_the_pilot_pipeline(self, legacy_client,
+                                                  monkeypatch):
+        """`compile_intent` is replaced with a function that raises. A legacy
+        journey completing is evidence it was not called."""
+        import src.workspace.pilot as pilot
+
+        def refuse(*args, **kwargs):
+            raise AssertionError(
+                "compile_intent was reached on a deterministic deployment; "
+                "the runtime is serving a deployment that did not declare it")
+
+        monkeypatch.setattr(pilot, "compile_intent", refuse)
+        page = legacy_client.get(NEW, params={"describe": SENTENCE})
+        assert page.status_code in (200, 500)
+
+    def test_the_pilot_alias_is_refused_in_legacy_mode(self, legacy_client):
+        page = legacy_client.get("/pilot", params={"describe": SENTENCE})
+        assert page.status_code == 404

@@ -1100,6 +1100,19 @@ def new_plan(request: Request, describe: str = ""):
     trace. Everything after that point is one, so the recorder is constructed
     here and the drafting work happens under it.
     """
+    # One URL, two declared implementations. The deployment decides which
+    # interpreter serves a description; the route does not read an environment
+    # and does not choose for itself.
+    #
+    # Branching here rather than mounting a second entry point is a product
+    # decision: a separate `/pilot` URL would leave the legacy path as the
+    # default experience, and an experiment about whether the runtime improves
+    # this workspace cannot be run on a surface people do not arrive at.
+    from .pilot_routes import deployment_uses_the_runtime, draft as pilot_draft
+
+    if deployment_uses_the_runtime():
+        return pilot_draft(request, describe)
+
     if not describe.strip():
         return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
 

@@ -1680,6 +1680,44 @@ Two practical consequences, both of which have paid for themselves here:
 
 ---
 
+## 8.3b Engineering principle — exceptions need evidence, not a mechanism
+
+> **A declared escape hatch is not a justified exception.** Exceptions require
+> independent evidence of *necessity*, not merely a mechanism for declaration.
+
+The companion to §8.3a, and it came from the same place: a check that offered a
+way to record an exception, where taking it would have satisfied governance and
+made the architecture worse.
+
+`test_error_surface` permits a module to name a database driver directly *if it
+declares a reason*. The pilot store imported `sqlite3`, and writing a reason
+would have turned the run green in one line. There was no reason.
+`db.engine.Database` already resolves the target, picks the dialect and returns
+a connection whose failures the translation layer understands — so the
+declaration would have left one table's errors reaching users untranslated
+while every other table's did not, with a comment explaining that this was
+intentional.
+
+The question a declaration mechanism invites is *can this be declared?* The
+question worth asking is *what property of this case requires bypassing the
+abstraction?* Those have different answers, and only the second one is about
+the code.
+
+Three instances from wiring the pilot surface, all caught by the suite:
+
+| what was pierced | the shortcut | what was required instead |
+|---|---|---|
+| configuration source | read `os.environ` in a route | resolve once in `deploy/context.py`; a route is not an authority about its own inputs |
+| database access | import `sqlite3`, declare a reason | use the shared database and error boundary; no capability required piercing it |
+| endpoint inventory | mount conditionally so the route vanishes | declare it; a surface absent from the derived inventory is a surface nothing audits |
+
+The pattern to carry: **treat every requested exception as a design review
+point rather than a path to green.** These checks earn their cost precisely by
+making locally easy shortcuts expensive, and the moment one is satisfied by a
+sentence rather than by a reason, it has stopped doing that.
+
+---
+
 ## 8.4 The shape every durable improvement here has taken
 
 Worth naming, because it is the reason the codebase looks the way it does and a
