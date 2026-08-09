@@ -68,12 +68,33 @@ def plan_id_for(reading: PilotReading) -> str:
     return "plan-" + sha256(reading.intent.intent_hash.encode()).hexdigest()[:12]
 
 
+def _deployment_record() -> dict:
+    """Which branch produced this plan, as a recorded fact.
+
+    `compiled_by=quantify-mission@1` already implies the runtime path, and
+    `single_witness` already implies the profile — but both are *inferences* a
+    later analyst has to make, and an inference is not the same as a statement.
+    Recording the declared mode makes the branch selection itself evidence, so
+    a pilot conclusion can say which execution path produced a plan rather than
+    reconstructing it from what the plan happens to contain.
+
+    Read through the resolved context, like everything else here.
+    """
+    from ..deploy.context import current
+
+    model = current().model
+    return {"parser_mode": model.mode.value,
+            "pilot_reader": model.pilot_reader.value,
+            "model": model.model or ""}
+
+
 def save(reading: PilotReading) -> str:
     from datetime import datetime, timezone
 
     plan_id = plan_id_for(reading)
     artifact = reading.to_json()
     artifact["text"] = reading.text
+    artifact["deployment"] = _deployment_record()
 
     connection = _connect()
     try:

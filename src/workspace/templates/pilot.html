@@ -74,6 +74,25 @@
     </form>
   {% endif %}
 
+  {% if figure is not none %}
+    <section class="result">
+      <h2>Result</h2>
+      <p class="figure">{{ figure }}</p>
+      {% if gain is not none %}<p class="quiet">gain {{ "%.2f"|format(gain) }}</p>{% endif %}
+      <p class="quiet">
+        This figure was produced from the plan you confirmed. Reopening it
+        recompiles from that same plan and does not read your sentence again.
+      </p>
+    </section>
+  {% elif strategy_not_executed %}
+    {# A refusal is a result. The figure is absent and the reason is the
+       engine's own, never a generic one. #}
+    <section class="refusal">
+      <h2>This did not produce a figure</h2>
+      <p>{{ unavailable or "the engine refused to execute this plan" }}</p>
+    </section>
+  {% endif %}
+
   {% if refusals %}
     <section class="refusal">
       <h2>What this will not do</h2>

@@ -368,6 +368,53 @@ class TestNewIsTheEntryPoint:
         assert through_new.text == through_alias.text
 
 
+class TestTheBranchSelectionIsRecorded:
+    """Which execution path produced a plan, stated rather than inferred.
+
+    `compiled_by=quantify-mission@1` and `single_witness: true` both *imply*
+    the runtime path, and a later analyst can reconstruct it from them. An
+    inference is not a statement: a pilot conclusion about model-only versus
+    dual-witness plans should rest on what the deployment declared, recorded at
+    the moment the plan was saved, not on what the artifact happens to contain.
+    """
+
+    def test_the_artifact_names_the_declared_mode_and_reader(
+            self, pilot_client, monkeypatch):
+        _legacy_must_not_run(monkeypatch)
+
+        pilot_client.post("/pilot/save",
+                          data={"describe": SENTENCE, "answer_assets": "VTI"},
+                          follow_redirects=True)
+
+        from src.workspace.pilot_store import every_plan
+
+        (plan,) = every_plan()
+        assert plan["deployment"]["parser_mode"] == "RUNTIME"
+        assert plan["deployment"]["pilot_reader"] == "RECORDED"
+
+    def test_the_recorded_mode_is_read_from_the_deployment(self, monkeypatch,
+                                                            tmp_path):
+        """The discriminating opposite. Without it, `parser_mode: RUNTIME`
+        could be a constant — every pilot plan is saved under that mode, so
+        nothing in the pilot journey alone can tell a recorded fact from a
+        hardcoded string."""
+        from src.deploy import context as deploy_context
+
+        monkeypatch.setenv("QUANTIFY_PARSER_MODE", "MODEL_ASSISTED")
+        monkeypatch.setenv("QUANTIFY_PILOT_READER", "hosted")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+        monkeypatch.setenv("QUANTIFY_PARSER_MODEL", "claude-sonnet-5")
+        monkeypatch.setenv("QUANTIFY_DATABASE_URL", f"sqlite:///{tmp_path}/d.db")
+        resolved = deploy_context.resolve(dict(os.environ))
+        monkeypatch.setattr(deploy_context, "current", lambda: resolved)
+
+        from src.workspace.pilot_store import _deployment_record
+
+        record = _deployment_record()
+        assert record["parser_mode"] == "MODEL_ASSISTED"
+        assert record["pilot_reader"] == "HOSTED"
+
+
 class TestLegacyModeIsUntouched:
     """The reciprocal. Without it, "pilot mode reaches the runtime" would be
     satisfied by a build that reached the runtime always — and the legacy path,

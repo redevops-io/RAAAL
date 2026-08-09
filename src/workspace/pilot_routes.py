@@ -60,10 +60,57 @@ def configured_reader():
     return HostedReader(model=model.model or "claude-sonnet-5")
 
 
-def page(reading: PilotReading, *, text: str) -> Dict[str, Any]:
+def execute(reading: PilotReading, *, plan_id: str = "") -> Dict[str, Any]:
+    """Run an executable plan and return the figure with its evidence.
+
+    Through `execution.execute_compiled_plan`, which both paths call. The pilot
+    does not get its own copy of Quantify's execution logic — two copies drift,
+    and the drift shows up as two users getting different numbers from the same
+    plan.
+
+    A plan that is not executable returns no run at all rather than a partial
+    one. A figure beside an unanswered question is a figure for a request
+    nobody finished making.
+    """
+    if not reading.executable or reading.compiled is None:
+        return {}
+
+    from .run_boundary import execute_compiled_plan, market_data_for
+
+    scenario = reading.compiled.scenario
+    access = market_data_for(scenario, context="pilot", plan_id=plan_id)
+
+    # The same guard the legacy path applies, and for the same reason: `_run`
+    # takes the frame's index without checking, so an unusable source reaches
+    # it as `None` and raises an AttributeError a user would see as a 500. An
+    # absent data source is a refusal with a reason, not a crash.
+    if not access.usable:
+        return {"result": None, "strategy_not_executed": True,
+                "unavailable": "market data is not available in this "
+                               "deployment, so no figure can be produced for "
+                               "this plan"}
+
+    return execute_compiled_plan(scenario, access, stated_text=reading.text)
+
+
+def page(reading: PilotReading, *, text: str,
+         run: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """What the template needs, and nothing the template must interpret."""
     compiled = reading.compiled
+    run = run or {}
     return {
+        "run": run,
+        # From the result, not the payload. The payload carries the
+        # comparison — benchmarks, notes, the recommendation assessment — and
+        # the figure a user came for is on the result itself. Reading the wrong
+        # object produced a page that had executed a plan and showed no number.
+        "figure": (None if run.get("result") is None
+                   else f"{run['result'].final_value:,.2f}"),
+        "gain": (None if run.get("result") is None
+                 else getattr(run["result"], "gain", None)),
+        "coverage": run.get("coverage"),
+        "unavailable": run.get("unavailable"),
+        "strategy_not_executed": run.get("strategy_not_executed", False),
         "text": text,
         "reading": reading,
         "understood": [f for f in reading.settled if f.value is not None],
@@ -125,8 +172,9 @@ def draft(request: Request, describe: str = ""):
             {"text": describe, "reading": None, "unavailable": str(down)},
             status_code=503)
 
-    return TEMPLATES.TemplateResponse(request, "pilot.html",
-                                      page(reading, text=describe))
+    return TEMPLATES.TemplateResponse(
+        request, "pilot.html",
+        page(reading, text=describe, run=execute(reading)))
 
 
 @router.get("/pilot", response_class=HTMLResponse)
@@ -166,8 +214,10 @@ async def pilot_answer(request: Request, describe: str = Form(...)):
             {"text": describe, "reading": None, "unavailable": str(down)},
             status_code=503)
 
+    answered = answer(reading, answers)
     return TEMPLATES.TemplateResponse(
-        request, "pilot.html", page(answer(reading, answers), text=describe))
+        request, "pilot.html",
+        page(answered, text=describe, run=execute(answered)))
 
 
 @router.post("/pilot/save")
@@ -217,7 +267,11 @@ def pilot_plan(request: Request, plan_id: str):
             status_code=404)
 
     reading = reopen(stored)
-    context = page(reading, text=stored.get("text", ""))
+    # Executed from the persisted artifact, not from a fresh reading. The
+    # figure a user sees on reopening is the figure their confirmed plan
+    # produces, and nothing on this path can consult a model to get there.
+    context = page(reading, text=stored.get("text", ""),
+                   run=execute(reading, plan_id=plan_id))
     context["plan_id"] = plan_id
     context["reopened"] = True
     return TEMPLATES.TemplateResponse(request, "pilot.html", context)
