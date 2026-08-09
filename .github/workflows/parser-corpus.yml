@@ -43,23 +43,30 @@ jobs:
           pip install pytest
           pip install -r requirements-core.txt
 
-      - name: Tier 1 and the corpus invariants
+      - name: Tier 1, tier 2 and the corpus invariants
         run: |
           python -m pytest -q \
             tests/test_parser_corpus.py \
-            tests/test_syntax_normalisation.py
+            tests/test_syntax_normalisation.py \
+            tests/test_syntax_attachment.py \
+            tests/test_real_phrasings.py
 
-      - name: The generator and the file agree
-        # `cases.json` is the artifact and `build_cases.py` is how it is made.
-        # A hand-edited fixture is how a corpus stops describing its own rules.
+      - name: The generators and the files agree
+        # The JSON is the artifact and the builder is how it is made. A
+        # hand-edited fixture is how a corpus stops describing its own rules —
+        # and for the attested pack it is also how an invented sentence
+        # acquires a source link it never had.
         run: |
-          cp corpus/parser/cases.json /tmp/committed.json
-          python corpus/parser/build_cases.py
-          diff -u /tmp/committed.json corpus/parser/cases.json || {
-            echo "::error::cases.json does not match build_cases.py — "\
-                 "regenerate it rather than editing it by hand"
-            exit 1
-          }
+          for pair in "cases:build_cases" "real_phrasings:real_phrasings"; do
+            name="${pair%%:*}"; builder="${pair##*:}"
+            cp "corpus/parser/${name}.json" "/tmp/${name}.committed.json"
+            python "corpus/parser/${builder}.py"
+            diff -u "/tmp/${name}.committed.json" "corpus/parser/${name}.json" || {
+              echo "::error::${name}.json does not match ${builder}.py —"\
+                   "regenerate it rather than editing it by hand"
+              exit 1
+            }
+          done
 
   parser:
     name: parser (live Stanza)

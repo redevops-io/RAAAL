@@ -1,0 +1,291 @@
+{
+  "schema": "quantify-real-phrasings@1",
+  "count": 30,
+  "by_group": {
+    "allocation": 8,
+    "rebalancing": 9,
+    "cadence": 3,
+    "funding": 3,
+    "trigger": 2,
+    "window": 2,
+    "timing": 3
+  },
+  "by_provenance": {
+    "user_reported": 11,
+    "variant": 11,
+    "search_summary": 8
+  },
+  "collection_note": "Not scraped. Bogleheads returns HTTP 402 to this environment's fetcher; reddit.com and the Stack Exchange sites are blocked to it. Attested entries were quoted by the user from cited threads or read in search-result summaries; `variant` entries are mine.",
+  "entries": [
+    {
+      "id": "real-allocation-001",
+      "group": "allocation",
+      "text": "60/40",
+      "stresses": "ratio with no head noun at all",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=447768",
+      "note": ""
+    },
+    {
+      "id": "real-allocation-002",
+      "group": "allocation",
+      "text": "maintain the asset allocation of 60/40",
+      "stresses": "ratio as the complement of a nominalisation",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=447768",
+      "note": ""
+    },
+    {
+      "id": "real-allocation-003",
+      "group": "allocation",
+      "text": "I'm 60/40",
+      "stresses": "ratio as a predicate of the speaker",
+      "provenance": "variant",
+      "source": "",
+      "note": "the compressed form the user named; a reader looking for a noun to attach the ratio to finds a pronoun"
+    },
+    {
+      "id": "real-allocation-004",
+      "group": "allocation",
+      "text": "move to 60/40",
+      "stresses": "ratio as a goal of a change verb",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-allocation-005",
+      "group": "allocation",
+      "text": "maintain 60/40",
+      "stresses": "ratio as the object of a hold verb",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-allocation-006",
+      "group": "allocation",
+      "text": "70/30 vs 60/40",
+      "stresses": "two ratios, neither one the target",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=446034",
+      "note": "thread title. A consumer taking the first ratio gets a comparison, not a portfolio"
+    },
+    {
+      "id": "real-allocation-007",
+      "group": "allocation",
+      "text": "my 60/40 is acting like 70/30",
+      "stresses": "target ratio and observed ratio in one sentence",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=457074",
+      "note": "paraphrased from the thread title 'Asset Allocation - 70/30 acting like 60/40'; the ratios here are deliberately in the order that makes taking-the-first wrong"
+    },
+    {
+      "id": "real-allocation-008",
+      "group": "allocation",
+      "text": "401k (50/50), Roth IRA (85/15), taxable brokerage (70/30)",
+      "stresses": "three ratios, each bound to a different account",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/wiki/How_to_build_a_lazy_portfolio",
+      "note": "the case a scalar cannot hold. Which ratio belongs to which account is the whole content"
+    },
+    {
+      "id": "real-rebalancing-001",
+      "group": "rebalancing",
+      "text": "rebalance at year end",
+      "stresses": "worded period, no digits",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=447768",
+      "note": ""
+    },
+    {
+      "id": "real-rebalancing-002",
+      "group": "rebalancing",
+      "text": "buy-hold-and rebalance",
+      "stresses": "hyphenated verb compound",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/wiki/How_to_build_a_lazy_portfolio",
+      "note": ""
+    },
+    {
+      "id": "real-rebalancing-003",
+      "group": "rebalancing",
+      "text": "maintain 60/40 by contributions and rebalance at year end",
+      "stresses": "allocation, funding method and rebalancing cadence in one clause chain",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=447768",
+      "note": "the sentence the whole layer is for"
+    },
+    {
+      "id": "real-rebalancing-004",
+      "group": "rebalancing",
+      "text": "rebalance with new contributions",
+      "stresses": "rebalancing whose mechanism is the contribution",
+      "provenance": "search_summary",
+      "source": "",
+      "note": "'rebalance with dividends and new contributions' appeared in a search summary of Bogleheads material"
+    },
+    {
+      "id": "real-rebalancing-005",
+      "group": "rebalancing",
+      "text": "I rebalance in my birthday month",
+      "stresses": "cadence expressed as a named recurring point",
+      "provenance": "search_summary",
+      "source": "",
+      "note": "'rebalance ... during their review period, such as their birthday month' appeared in a search summary"
+    },
+    {
+      "id": "real-rebalancing-006",
+      "group": "rebalancing",
+      "text": "rebalance when it drifts 5% from target",
+      "stresses": "threshold band expressed as a percentage",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-rebalancing-007",
+      "group": "rebalancing",
+      "text": "I use a 5/25 band",
+      "stresses": "ratio-shaped notation that is not a split",
+      "provenance": "search_summary",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=459742",
+      "note": "the 5%/25% rebalancing band. Shaped exactly like an allocation and meaning something else entirely"
+    },
+    {
+      "id": "real-rebalancing-008",
+      "group": "rebalancing",
+      "text": "rebalance annually or when a band is breached",
+      "stresses": "calendar cadence and threshold as alternatives",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-rebalancing-009",
+      "group": "rebalancing",
+      "text": "don't know how to rebalance/reallocate",
+      "stresses": "the two senses the user cannot separate either",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=459742",
+      "note": "thread title. Evidence that the ambiguity is in the language, not only in the reader — the case for asking rather than scoring"
+    },
+    {
+      "id": "real-cadence-001",
+      "group": "cadence",
+      "text": "I contribute monthly and rebalance at year end",
+      "stresses": "two cadences, compressed, no amounts",
+      "provenance": "variant",
+      "source": "",
+      "note": "the minimal form of the attested sentence above"
+    },
+    {
+      "id": "real-cadence-002",
+      "group": "cadence",
+      "text": "invest as soon as it is available",
+      "stresses": "cadence expressed as a condition, not a period",
+      "provenance": "search_summary",
+      "source": "",
+      "note": "'the best time to invest money is as soon as it is available' appeared in a search summary"
+    },
+    {
+      "id": "real-cadence-003",
+      "group": "cadence",
+      "text": "max the 401k every year and the Roth in January",
+      "stresses": "one cadence per account in one sentence",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-funding-001",
+      "group": "funding",
+      "text": "$500 a month",
+      "stresses": "amount and cadence as one noun phrase",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-funding-002",
+      "group": "funding",
+      "text": "I put in whatever is left at month end",
+      "stresses": "residual amount with a timing phrase",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-funding-003",
+      "group": "funding",
+      "text": "rebalance with dividends and new contributions",
+      "stresses": "two funding sources coordinated",
+      "provenance": "search_summary",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-trigger-001",
+      "group": "trigger",
+      "text": "when the allocation exceeds a predefined band",
+      "stresses": "trigger on a derived quantity, not a price",
+      "provenance": "search_summary",
+      "source": "",
+      "note": "'rebalancing when asset allocation exceeds a predefined band' appeared in a search summary"
+    },
+    {
+      "id": "real-trigger-002",
+      "group": "trigger",
+      "text": "buy when it falls below its 200-day",
+      "stresses": "elided head noun after the window",
+      "provenance": "variant",
+      "source": "",
+      "note": "real writing drops 'moving average' constantly"
+    },
+    {
+      "id": "real-window-001",
+      "group": "window",
+      "text": "over the last 10 years",
+      "stresses": "evaluation period, worded",
+      "provenance": "variant",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-window-002",
+      "group": "window",
+      "text": "for retirement in 10 years",
+      "stresses": "horizon that is not a backtest window",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=343589",
+      "note": "from the thread title. A reader that treats every duration as an evaluation period reads a retirement date as a backtest length"
+    },
+    {
+      "id": "real-timing-001",
+      "group": "timing",
+      "text": "at year end",
+      "stresses": "period boundary with no digits",
+      "provenance": "user_reported",
+      "source": "https://www.bogleheads.org/forum/viewtopic.php?t=447768",
+      "note": ""
+    },
+    {
+      "id": "real-timing-002",
+      "group": "timing",
+      "text": "on my birthday",
+      "stresses": "recurring point that is not a calendar period",
+      "provenance": "search_summary",
+      "source": "",
+      "note": ""
+    },
+    {
+      "id": "real-timing-003",
+      "group": "timing",
+      "text": "as soon as it is available",
+      "stresses": "timing as a condition",
+      "provenance": "search_summary",
+      "source": "",
+      "note": ""
+    }
+  ]
+}

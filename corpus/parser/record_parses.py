@@ -29,6 +29,15 @@ OUT = Path(__file__).resolve().parent / "parses.json"
 
 def main(languages: list) -> int:
     cases = load()
+
+    # The real-phrasing pack records alongside the corpus. Keeping them in one
+    # recording means one provenance block and one drift check; keeping them in
+    # two would let the attested half rot while the invented half stayed fresh.
+    import json as _json
+    pack = _json.loads((Path(__file__).resolve().parent
+                        / "real_phrasings.json").read_text())
+    extra = [(e["text"], "en") for e in pack["entries"]]
+
     wanted = sorted({c.language for c in cases}
                     if not languages else set(languages))
 
@@ -41,7 +50,8 @@ def main(languages: list) -> int:
     recorded_with = {}
     entries = dict(existing)
     for language in wanted:
-        texts = sorted({c.text for c in cases if c.language == language})
+        texts = sorted({c.text for c in cases if c.language == language}
+                       | {t for t, lang in extra if lang == language})
         try:
             reader = StanzaReader(language)
             reader._load()

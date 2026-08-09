@@ -6,8 +6,61 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 177,
+  "count": 207,
   "parses": [
+    {
+      "text": "$500 a month",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "nummod",
+              "start_char": 1,
+              "end_char": 4
+            },
+            {
+              "index": 3,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 4,
+              "relation": "det",
+              "start_char": 5,
+              "end_char": 6
+            },
+            {
+              "index": 4,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "nmod:unmarked",
+              "start_char": 7,
+              "end_char": 12
+            }
+          ]
+        }
+      ]
+    },
     {
       "text": "3/4 of the way",
       "language": "en",
@@ -56,6 +109,219 @@
               "relation": "nmod",
               "start_char": 11,
               "end_char": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "401k (50/50), Roth IRA (85/15), taxable brokerage (70/30)",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "401",
+              "lemma": "401",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "k",
+              "lemma": "thousand",
+              "upos": "NUM",
+              "head": 0,
+              "relation": "root",
+              "start_char": 3,
+              "end_char": 4
+            },
+            {
+              "index": 3,
+              "text": "(",
+              "lemma": "(",
+              "upos": "PUNCT",
+              "head": 4,
+              "relation": "punct",
+              "start_char": 5,
+              "end_char": 6
+            },
+            {
+              "index": 4,
+              "text": "50/50",
+              "lemma": "50/50",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "appos",
+              "start_char": 6,
+              "end_char": 11
+            },
+            {
+              "index": 5,
+              "text": ")",
+              "lemma": ")",
+              "upos": "PUNCT",
+              "head": 4,
+              "relation": "punct",
+              "start_char": 11,
+              "end_char": 12
+            },
+            {
+              "index": 6,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 8,
+              "relation": "punct",
+              "start_char": 12,
+              "end_char": 13
+            },
+            {
+              "index": 7,
+              "text": "Roth",
+              "lemma": "roth",
+              "upos": "PROPN",
+              "head": 8,
+              "relation": "compound",
+              "start_char": 14,
+              "end_char": 18
+            },
+            {
+              "index": 8,
+              "text": "IRA",
+              "lemma": "ira",
+              "upos": "PROPN",
+              "head": 2,
+              "relation": "conj",
+              "start_char": 19,
+              "end_char": 22
+            },
+            {
+              "index": 9,
+              "text": "(",
+              "lemma": "(",
+              "upos": "PUNCT",
+              "head": 10,
+              "relation": "punct",
+              "start_char": 23,
+              "end_char": 24
+            },
+            {
+              "index": 10,
+              "text": "85",
+              "lemma": "85",
+              "upos": "NUM",
+              "head": 8,
+              "relation": "appos",
+              "start_char": 24,
+              "end_char": 26
+            },
+            {
+              "index": 11,
+              "text": "/",
+              "lemma": "/",
+              "upos": "PUNCT",
+              "head": 12,
+              "relation": "case",
+              "start_char": 26,
+              "end_char": 27
+            },
+            {
+              "index": 12,
+              "text": "15",
+              "lemma": "15",
+              "upos": "NUM",
+              "head": 10,
+              "relation": "nmod",
+              "start_char": 27,
+              "end_char": 29
+            },
+            {
+              "index": 13,
+              "text": ")",
+              "lemma": ")",
+              "upos": "PUNCT",
+              "head": 10,
+              "relation": "punct",
+              "start_char": 29,
+              "end_char": 30
+            },
+            {
+              "index": 14,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 16,
+              "relation": "punct",
+              "start_char": 30,
+              "end_char": 31
+            },
+            {
+              "index": 15,
+              "text": "taxable",
+              "lemma": "taxable",
+              "upos": "NOUN",
+              "head": 16,
+              "relation": "compound",
+              "start_char": 32,
+              "end_char": 39
+            },
+            {
+              "index": 16,
+              "text": "brokerage",
+              "lemma": "brokerage",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "conj",
+              "start_char": 40,
+              "end_char": 49
+            },
+            {
+              "index": 17,
+              "text": "(",
+              "lemma": "(",
+              "upos": "PUNCT",
+              "head": 19,
+              "relation": "punct",
+              "start_char": 50,
+              "end_char": 51
+            },
+            {
+              "index": 18,
+              "text": "70/",
+              "lemma": "70/",
+              "upos": "NUM",
+              "head": 19,
+              "relation": "nummod",
+              "start_char": 51,
+              "end_char": 54
+            },
+            {
+              "index": 19,
+              "text": "30",
+              "lemma": "30",
+              "upos": "NUM",
+              "head": 16,
+              "relation": "appos",
+              "start_char": 54,
+              "end_char": 56
+            },
+            {
+              "index": 20,
+              "text": ")",
+              "lemma": ")",
+              "upos": "PUNCT",
+              "head": 19,
+              "relation": "punct",
+              "start_char": 56,
+              "end_char": 57
             }
           ]
         }
@@ -159,6 +425,447 @@
               "relation": "nmod",
               "start_char": 22,
               "end_char": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "60/40",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "60/40",
+              "lemma": "60/40",
+              "upos": "NUM",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "70/30 vs 60/40",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "70/30",
+              "lemma": "70/30",
+              "upos": "NUM",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 5
+            },
+            {
+              "index": 2,
+              "text": "vs",
+              "lemma": "versus",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "case",
+              "start_char": 6,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "60/40",
+              "lemma": "60/40",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "nmod",
+              "start_char": 9,
+              "end_char": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I contribute monthly and rebalance at year end",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "contribute",
+              "lemma": "contribute",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "monthly",
+              "lemma": "monthly",
+              "upos": "ADJ",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 13,
+              "end_char": 20
+            },
+            {
+              "index": 4,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 5,
+              "relation": "cc",
+              "start_char": 21,
+              "end_char": 24
+            },
+            {
+              "index": 5,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 25,
+              "end_char": 34
+            },
+            {
+              "index": 6,
+              "text": "at",
+              "lemma": "at",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 35,
+              "end_char": 37
+            },
+            {
+              "index": 7,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "compound",
+              "start_char": 38,
+              "end_char": 42
+            },
+            {
+              "index": 8,
+              "text": "end",
+              "lemma": "end",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 43,
+              "end_char": 46
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I put in whatever is left at month end",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "put",
+              "lemma": "put",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 2,
+              "relation": "compound:prt",
+              "start_char": 6,
+              "end_char": 8
+            },
+            {
+              "index": 4,
+              "text": "whatever",
+              "lemma": "whatever",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 17
+            },
+            {
+              "index": 5,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 6,
+              "relation": "aux:pass",
+              "start_char": 18,
+              "end_char": 20
+            },
+            {
+              "index": 6,
+              "text": "left",
+              "lemma": "leave",
+              "upos": "VERB",
+              "head": 4,
+              "relation": "acl:relcl",
+              "start_char": 21,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "at",
+              "lemma": "at",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 26,
+              "end_char": 28
+            },
+            {
+              "index": 8,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "compound",
+              "start_char": 29,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "end",
+              "lemma": "end",
+              "upos": "NOUN",
+              "head": 6,
+              "relation": "obl",
+              "start_char": 35,
+              "end_char": 38
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I rebalance in my birthday month",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 11
+            },
+            {
+              "index": 3,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 12,
+              "end_char": 14
+            },
+            {
+              "index": 4,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 6,
+              "relation": "nmod:poss",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 5,
+              "text": "birthday",
+              "lemma": "birthday",
+              "upos": "NOUN",
+              "head": 6,
+              "relation": "compound",
+              "start_char": 18,
+              "end_char": 26
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 27,
+              "end_char": 32
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I use a 5/25 band",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "use",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 6,
+              "end_char": 7
+            },
+            {
+              "index": 4,
+              "text": "5/25",
+              "lemma": "5/25",
+              "upos": "NUM",
+              "head": 5,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 12
+            },
+            {
+              "index": 5,
+              "text": "band",
+              "lemma": "band",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 13,
+              "end_char": 17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I'm 60/40",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 3,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "'m",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 3,
+              "relation": "cop",
+              "start_char": 1,
+              "end_char": 3
+            },
+            {
+              "index": 3,
+              "text": "60/40",
+              "lemma": "60/40",
+              "upos": "NUM",
+              "head": 0,
+              "relation": "root",
+              "start_char": 4,
+              "end_char": 9
             }
           ]
         }
@@ -1776,6 +2483,122 @@
       ]
     },
     {
+      "text": "as soon as it is available",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "as",
+              "lemma": "as",
+              "upos": "ADV",
+              "head": 2,
+              "relation": "advmod",
+              "start_char": 0,
+              "end_char": 2
+            },
+            {
+              "index": 2,
+              "text": "soon",
+              "lemma": "soon",
+              "upos": "ADV",
+              "head": 0,
+              "relation": "root",
+              "start_char": 3,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "as",
+              "lemma": "as",
+              "upos": "SCONJ",
+              "head": 6,
+              "relation": "mark",
+              "start_char": 8,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 6,
+              "relation": "nsubj",
+              "start_char": 11,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 6,
+              "relation": "cop",
+              "start_char": 14,
+              "end_char": 16
+            },
+            {
+              "index": 6,
+              "text": "available",
+              "lemma": "available",
+              "upos": "ADJ",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 17,
+              "end_char": 26
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "at year end",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "at",
+              "lemma": "at",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "case",
+              "start_char": 0,
+              "end_char": 2
+            },
+            {
+              "index": 2,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "compound",
+              "start_char": 3,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "end",
+              "lemma": "end",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 8,
+              "end_char": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "below the 200-day moving average",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -2613,6 +3436,109 @@
               "relation": "nmod",
               "start_char": 31,
               "end_char": 36
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "buy when it falls below its 200-day",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "buy",
+              "lemma": "buy",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "when",
+              "lemma": "when",
+              "upos": "ADV",
+              "head": 4,
+              "relation": "advmod",
+              "start_char": 4,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 4,
+              "relation": "nsubj",
+              "start_char": 9,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "falls",
+              "lemma": "fall",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "advcl",
+              "start_char": 12,
+              "end_char": 17
+            },
+            {
+              "index": 5,
+              "text": "below",
+              "lemma": "below",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 18,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "its",
+              "lemma": "its",
+              "upos": "PRON",
+              "head": 9,
+              "relation": "nmod:poss",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "200",
+              "lemma": "200",
+              "upos": "NUM",
+              "head": 9,
+              "relation": "nummod",
+              "start_char": 28,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 7,
+              "relation": "punct",
+              "start_char": 31,
+              "end_char": 32
+            },
+            {
+              "index": 9,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "obl",
+              "start_char": 32,
+              "end_char": 35
             }
           ]
         }
@@ -3773,6 +4699,79 @@
               "relation": "obl",
               "start_char": 42,
               "end_char": 49
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "buy-hold-and rebalance",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "buy",
+              "lemma": "buy",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 3,
+              "relation": "punct",
+              "start_char": 3,
+              "end_char": 4
+            },
+            {
+              "index": 3,
+              "text": "hold",
+              "lemma": "hold",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 4,
+              "end_char": 8
+            },
+            {
+              "index": 4,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 6,
+              "relation": "punct",
+              "start_char": 8,
+              "end_char": 9
+            },
+            {
+              "index": 5,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 6,
+              "relation": "cc",
+              "start_char": 9,
+              "end_char": 12
+            },
+            {
+              "index": 6,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "conj",
+              "start_char": 13,
+              "end_char": 22
             }
           ]
         }
@@ -6167,6 +7166,99 @@
       ]
     },
     {
+      "text": "don't know how to rebalance/reallocate",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "do",
+              "lemma": "do",
+              "upos": "AUX",
+              "head": 3,
+              "relation": "aux",
+              "start_char": 0,
+              "end_char": 2
+            },
+            {
+              "index": 2,
+              "text": "n't",
+              "lemma": "not",
+              "upos": "PART",
+              "head": 3,
+              "relation": "advmod",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "know",
+              "lemma": "know",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 6,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "how",
+              "lemma": "how",
+              "upos": "ADV",
+              "head": 3,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 14
+            },
+            {
+              "index": 5,
+              "text": "to",
+              "lemma": "to",
+              "upos": "PART",
+              "head": 6,
+              "relation": "mark",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 4,
+              "relation": "acl",
+              "start_char": 18,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "/",
+              "lemma": "/",
+              "upos": "SYM",
+              "head": 8,
+              "relation": "cc",
+              "start_char": 27,
+              "end_char": 28
+            },
+            {
+              "index": 8,
+              "text": "reallocate",
+              "lemma": "reallocate",
+              "upos": "VERB",
+              "head": 6,
+              "relation": "conj",
+              "start_char": 28,
+              "end_char": 38
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "due 12/25",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -6665,6 +7757,69 @@
               "relation": "obj",
               "start_char": 19,
               "end_char": 22
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "for retirement in 10 years",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "for",
+              "lemma": "for",
+              "upos": "ADP",
+              "head": 2,
+              "relation": "case",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "retirement",
+              "lemma": "retirement",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 4,
+              "end_char": 14
+            },
+            {
+              "index": 3,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 4,
+              "text": "10",
+              "lemma": "10",
+              "upos": "NUM",
+              "head": 5,
+              "relation": "nummod",
+              "start_char": 18,
+              "end_char": 20
+            },
+            {
+              "index": 5,
+              "text": "years",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod",
+              "start_char": 21,
+              "end_char": 26
             }
           ]
         }
@@ -9326,6 +10481,89 @@
       ]
     },
     {
+      "text": "invest as soon as it is available",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "as",
+              "lemma": "as",
+              "upos": "ADV",
+              "head": 3,
+              "relation": "advmod",
+              "start_char": 7,
+              "end_char": 9
+            },
+            {
+              "index": 3,
+              "text": "soon",
+              "lemma": "soon",
+              "upos": "ADV",
+              "head": 1,
+              "relation": "advmod",
+              "start_char": 10,
+              "end_char": 14
+            },
+            {
+              "index": 4,
+              "text": "as",
+              "lemma": "as",
+              "upos": "SCONJ",
+              "head": 7,
+              "relation": "mark",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 5,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 7,
+              "relation": "nsubj",
+              "start_char": 18,
+              "end_char": 20
+            },
+            {
+              "index": 6,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 7,
+              "relation": "cop",
+              "start_char": 21,
+              "end_char": 23
+            },
+            {
+              "index": 7,
+              "text": "available",
+              "lemma": "available",
+              "upos": "ADJ",
+              "head": 3,
+              "relation": "advcl",
+              "start_char": 24,
+              "end_char": 33
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "invest in the S&P 500 tracker",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -9983,6 +11221,245 @@
       ]
     },
     {
+      "text": "maintain 60/40",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "maintain",
+              "lemma": "maintain",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 8
+            },
+            {
+              "index": 2,
+              "text": "60/40",
+              "lemma": "60/40",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "maintain 60/40 by contributions and rebalance at year end",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "maintain",
+              "lemma": "maintain",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 8
+            },
+            {
+              "index": 2,
+              "text": "60",
+              "lemma": "60",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "compound",
+              "start_char": 9,
+              "end_char": 11
+            },
+            {
+              "index": 3,
+              "text": "/",
+              "lemma": "/",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 11,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "40",
+              "lemma": "40",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 12,
+              "end_char": 14
+            },
+            {
+              "index": 5,
+              "text": "by",
+              "lemma": "by",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": "contributions",
+              "lemma": "contribution",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 18,
+              "end_char": 31
+            },
+            {
+              "index": 7,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 8,
+              "relation": "cc",
+              "start_char": 32,
+              "end_char": 35
+            },
+            {
+              "index": 8,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "conj",
+              "start_char": 36,
+              "end_char": 45
+            },
+            {
+              "index": 9,
+              "text": "at",
+              "lemma": "at",
+              "upos": "ADP",
+              "head": 11,
+              "relation": "case",
+              "start_char": 46,
+              "end_char": 48
+            },
+            {
+              "index": 10,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 49,
+              "end_char": 53
+            },
+            {
+              "index": 11,
+              "text": "end",
+              "lemma": "end",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "nmod",
+              "start_char": 54,
+              "end_char": 57
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "maintain the asset allocation of 60/40",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "maintain",
+              "lemma": "maintain",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 8
+            },
+            {
+              "index": 2,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 4,
+              "relation": "det",
+              "start_char": 9,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "asset",
+              "lemma": "asset",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "compound",
+              "start_char": 13,
+              "end_char": 18
+            },
+            {
+              "index": 4,
+              "text": "allocation",
+              "lemma": "allocation",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 19,
+              "end_char": 29
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 30,
+              "end_char": 32
+            },
+            {
+              "index": 6,
+              "text": "60/",
+              "lemma": "60/",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 33,
+              "end_char": 36
+            },
+            {
+              "index": 7,
+              "text": "40",
+              "lemma": "40",
+              "upos": "NUM",
+              "head": 6,
+              "relation": "nummod",
+              "start_char": 36,
+              "end_char": 38
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "market-cap weighted",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -10030,6 +11507,119 @@
               "relation": "root",
               "start_char": 11,
               "end_char": 19
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "max the 401k every year and the Roth in January",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "max",
+              "lemma": "max",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 3,
+              "relation": "det",
+              "start_char": 4,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "401k",
+              "lemma": "401k",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 8,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 13,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl:unmarked",
+              "start_char": 19,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 8,
+              "relation": "cc",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 8,
+              "relation": "det",
+              "start_char": 28,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "Roth",
+              "lemma": "roth",
+              "upos": "PROPN",
+              "head": 1,
+              "relation": "conj",
+              "start_char": 32,
+              "end_char": 36
+            },
+            {
+              "index": 9,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 37,
+              "end_char": 39
+            },
+            {
+              "index": 10,
+              "text": "January",
+              "lemma": "january",
+              "upos": "PROPN",
+              "head": 8,
+              "relation": "nmod",
+              "start_char": 40,
+              "end_char": 47
             }
           ]
         }
@@ -10268,6 +11858,132 @@
       ]
     },
     {
+      "text": "move to 60/40",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "move",
+              "lemma": "move",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "case",
+              "start_char": 5,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "60",
+              "lemma": "60",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 8,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "/40",
+              "lemma": "/40",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "my 60/40 is acting like 70/30",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nmod:poss",
+              "start_char": 0,
+              "end_char": 2
+            },
+            {
+              "index": 2,
+              "text": "60/40",
+              "lemma": "60/40",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nsubj",
+              "start_char": 3,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 4,
+              "relation": "aux",
+              "start_char": 9,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "acting",
+              "lemma": "act",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 12,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "like",
+              "lemma": "like",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 19,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "70/30",
+              "lemma": "70/30",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "obl",
+              "start_char": 24,
+              "end_char": 29
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "not through a mutual fund",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -10325,6 +12041,49 @@
               "relation": "root",
               "start_char": 21,
               "end_char": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "on my birthday",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "on",
+              "lemma": "on",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "case",
+              "start_char": 0,
+              "end_char": 2
+            },
+            {
+              "index": 2,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 3,
+              "relation": "nmod:poss",
+              "start_char": 3,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "birthday",
+              "lemma": "birthday",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 6,
+              "end_char": 14
             }
           ]
         }
@@ -10501,6 +12260,69 @@
               "relation": "nmod",
               "start_char": 28,
               "end_char": 35
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "over the last 10 years",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "over",
+              "lemma": "over",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 5,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "last",
+              "lemma": "last",
+              "upos": "ADJ",
+              "head": 5,
+              "relation": "amod",
+              "start_char": 9,
+              "end_char": 13
+            },
+            {
+              "index": 4,
+              "text": "10",
+              "lemma": "10",
+              "upos": "NUM",
+              "head": 5,
+              "relation": "nummod",
+              "start_char": 14,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "years",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 17,
+              "end_char": 22
             }
           ]
         }
@@ -11181,6 +13003,152 @@
       ]
     },
     {
+      "text": "rebalance annually or when a band is breached",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "annually",
+              "lemma": "annually",
+              "upos": "ADV",
+              "head": 1,
+              "relation": "advmod",
+              "start_char": 10,
+              "end_char": 18
+            },
+            {
+              "index": 3,
+              "text": "or",
+              "lemma": "or",
+              "upos": "CCONJ",
+              "head": 8,
+              "relation": "cc",
+              "start_char": 19,
+              "end_char": 21
+            },
+            {
+              "index": 4,
+              "text": "when",
+              "lemma": "when",
+              "upos": "ADV",
+              "head": 8,
+              "relation": "advmod",
+              "start_char": 22,
+              "end_char": 26
+            },
+            {
+              "index": 5,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 27,
+              "end_char": 28
+            },
+            {
+              "index": 6,
+              "text": "band",
+              "lemma": "band",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "nsubj:pass",
+              "start_char": 29,
+              "end_char": 33
+            },
+            {
+              "index": 7,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 8,
+              "relation": "aux:pass",
+              "start_char": 34,
+              "end_char": 36
+            },
+            {
+              "index": 8,
+              "text": "breached",
+              "lemma": "breach",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "advcl",
+              "start_char": 37,
+              "end_char": 45
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "rebalance at year end",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "at",
+              "lemma": "at",
+              "upos": "ADP",
+              "head": 4,
+              "relation": "case",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "compound",
+              "start_char": 13,
+              "end_char": 17
+            },
+            {
+              "index": 4,
+              "text": "end",
+              "lemma": "end",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 18,
+              "end_char": 21
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "rebalance the portfolio annually",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -11227,6 +13195,225 @@
               "head": 1,
               "relation": "advmod",
               "start_char": 24,
+              "end_char": 32
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "rebalance when it drifts 5% from target",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "when",
+              "lemma": "when",
+              "upos": "ADV",
+              "head": 4,
+              "relation": "advmod",
+              "start_char": 10,
+              "end_char": 14
+            },
+            {
+              "index": 3,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 4,
+              "relation": "nsubj",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 4,
+              "text": "drifts",
+              "lemma": "drift",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "advcl",
+              "start_char": 18,
+              "end_char": 24
+            },
+            {
+              "index": 5,
+              "text": "5",
+              "lemma": "5",
+              "upos": "NUM",
+              "head": 6,
+              "relation": "nummod",
+              "start_char": 25,
+              "end_char": 26
+            },
+            {
+              "index": 6,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 4,
+              "relation": "obl:unmarked",
+              "start_char": 26,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "from",
+              "lemma": "from",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 28,
+              "end_char": 32
+            },
+            {
+              "index": 8,
+              "text": "target",
+              "lemma": "target",
+              "upos": "NOUN",
+              "head": 6,
+              "relation": "nmod",
+              "start_char": 33,
+              "end_char": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "rebalance with dividends and new contributions",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "with",
+              "lemma": "with",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "case",
+              "start_char": 10,
+              "end_char": 14
+            },
+            {
+              "index": 3,
+              "text": "dividends",
+              "lemma": "dividend",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 15,
+              "end_char": 24
+            },
+            {
+              "index": 4,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 6,
+              "relation": "cc",
+              "start_char": 25,
+              "end_char": 28
+            },
+            {
+              "index": 5,
+              "text": "new",
+              "lemma": "new",
+              "upos": "ADJ",
+              "head": 6,
+              "relation": "amod",
+              "start_char": 29,
+              "end_char": 32
+            },
+            {
+              "index": 6,
+              "text": "contributions",
+              "lemma": "contribution",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 33,
+              "end_char": 46
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "rebalance with new contributions",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "with",
+              "lemma": "with",
+              "upos": "ADP",
+              "head": 4,
+              "relation": "case",
+              "start_char": 10,
+              "end_char": 14
+            },
+            {
+              "index": 3,
+              "text": "new",
+              "lemma": "new",
+              "upos": "ADJ",
+              "head": 4,
+              "relation": "amod",
+              "start_char": 15,
+              "end_char": 18
+            },
+            {
+              "index": 4,
+              "text": "contributions",
+              "lemma": "contribution",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 19,
               "end_char": 32
             }
           ]
@@ -12342,6 +14529,89 @@
               "relation": "obl",
               "start_char": 35,
               "end_char": 42
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "when the allocation exceeds a predefined band",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "when",
+              "lemma": "when",
+              "upos": "ADV",
+              "head": 4,
+              "relation": "advmod",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 3,
+              "relation": "det",
+              "start_char": 5,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "allocation",
+              "lemma": "allocation",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nsubj",
+              "start_char": 9,
+              "end_char": 19
+            },
+            {
+              "index": 4,
+              "text": "exceeds",
+              "lemma": "exceed",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 20,
+              "end_char": 27
+            },
+            {
+              "index": 5,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 28,
+              "end_char": 29
+            },
+            {
+              "index": 6,
+              "text": "predefined",
+              "lemma": "predefine",
+              "upos": "VERB",
+              "head": 7,
+              "relation": "amod",
+              "start_char": 30,
+              "end_char": 40
+            },
+            {
+              "index": 7,
+              "text": "band",
+              "lemma": "band",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "obj",
+              "start_char": 41,
+              "end_char": 45
             }
           ]
         }
