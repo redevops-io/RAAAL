@@ -1,7 +1,7 @@
 {
   "schema": "quantify-parser-closure@2",
-  "cases": 53,
-  "pending": 10,
+  "cases": 56,
+  "pending": 6,
   "excluded_from_pending": {
     "state": "INTERMEDIATE_SEMANTIC",
     "count": 6,
@@ -19,15 +19,14 @@
   },
   "by_state": {
     "AGREE": 12,
-    "MODEL_ONLY_ACCEPTED": 23,
-    "NO_FIELD_MAPPING": 4,
-    "MODEL_ONLY_UNRESOLVED": 1,
+    "MODEL_ONLY_ACCEPTED": 30,
+    "SYNTAX_ONLY_UNRESOLVED": 1,
     "DISAGREE": 1,
     "INTERMEDIATE_SEMANTIC": 6,
     "SCHEMA_GAP": 2,
     "NO_PARSE_RECORDED": 4
   },
-  "agreed_and_correct": 35,
+  "agreed_and_correct": 42,
   "agreed_but_wrong_value": [],
   "by_property": {
     "assets.stay_as_written": {
@@ -62,20 +61,25 @@
     "timing.execution": {
       "MODEL_ONLY_ACCEPTED": 4
     },
-    "trigger.asset_roles": {
-      "NO_FIELD_MAPPING": 3
+    "trigger.asset_held": {
+      "MODEL_ONLY_ACCEPTED": 3
+    },
+    "trigger.asset_observed": {
+      "MODEL_ONLY_ACCEPTED": 3
     },
     "trigger.semantics": {
       "AGREE": 2,
-      "MODEL_ONLY_UNRESOLVED": 1,
+      "SYNTAX_ONLY_UNRESOLVED": 1,
       "MODEL_ONLY_ACCEPTED": 2
     },
     "weighting.method": {
-      "NO_FIELD_MAPPING": 1,
       "MODEL_ONLY_ACCEPTED": 3
     },
     "weighting.method_not_in_the_vocabulary": {
       "SCHEMA_GAP": 1
+    },
+    "weighting.stated_weights": {
+      "MODEL_ONLY_ACCEPTED": 1
     },
     "window.evaluation_period": {
       "MODEL_ONLY_ACCEPTED": 3
@@ -94,6 +98,7 @@
     "MODEL_ONLY_ACCEPTED": "— (one witness; a deterministic producer would make it two)",
     "DISAGREE": "adjudication",
     "MODEL_ONLY_UNRESOLVED": "adjudication",
+    "SYNTAX_ONLY_UNRESOLVED": "— (the asymmetry witness: syntax alone never carries a field)",
     "AMBIGUOUS_BY_LANGUAGE": "the user, via clarification",
     "INSUFFICIENT_RELATION": "binder or corpus",
     "INTERMEDIATE_SEMANTIC": "nobody — asserted against mapper output, outside the contract boundary",
@@ -259,19 +264,23 @@
       "matches_expected": true
     },
     {
-      "id": "sema-weighting-method-001",
-      "property": "weighting.method",
+      "id": "sema-weighting-stated_weights-001",
+      "property": "weighting.stated_weights",
       "text": "a 60/40 portfolio",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "readings were produced for ['stated_weights'] and none for 'allocation_method', which is what this case asserts",
-      "proposed": [
-        "stated_weights"
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "stated_weights",
+      "witnesses": [
+        "model"
       ],
-      "intermediate": []
+      "value": "60/40",
+      "expected": "60/40",
+      "compared_as": "SET",
+      "matches_expected": true
     },
     {
-      "id": "sema-weighting-method-002",
+      "id": "sema-weighting-method-001",
       "property": "weighting.method",
       "text": "split it 70/30 between stocks and bonds",
       "language": "en",
@@ -287,7 +296,7 @@
       "matches_expected": true
     },
     {
-      "id": "sema-weighting-method-003",
+      "id": "sema-weighting-method-002",
       "property": "weighting.method",
       "text": "equal weight across the four",
       "language": "en",
@@ -303,7 +312,7 @@
       "matches_expected": true
     },
     {
-      "id": "sema-weighting-method-004",
+      "id": "sema-weighting-method-003",
       "property": "weighting.method",
       "text": "weight by inverse volatility",
       "language": "en",
@@ -340,7 +349,7 @@
       "property": "trigger.semantics",
       "text": "whenever SPY drops under the 200-day",
       "language": "en",
-      "state": "MODEL_ONLY_UNRESOLVED",
+      "state": "SYNTAX_ONLY_UNRESOLVED",
       "reason": "only syntax proposed a value, and syntax is evidence rather than authority",
       "field": "trigger_semantics",
       "witnesses": [
@@ -401,47 +410,100 @@
       "matches_expected": true
     },
     {
-      "id": "sema-trigger-asset_roles-001",
-      "property": "trigger.asset_roles",
+      "id": "sema-trigger-asset_held-001",
+      "property": "trigger.asset_held",
       "text": "buy VOO when SPY crosses below its average",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "this case asserts a role pair rather than a single field; no mapping produces role pairs yet",
-      "proposed": [
-        "assets",
-        "objective",
-        "observed_assets",
-        "trigger_semantics"
-      ]
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "VOO",
+      "expected": "VOO",
+      "compared_as": "SET",
+      "matches_expected": true
     },
     {
-      "id": "sema-trigger-asset_roles-002",
-      "property": "trigger.asset_roles",
+      "id": "sema-trigger-asset_observed-001",
+      "property": "trigger.asset_observed",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "observed_assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "SPY",
+      "expected": "SPY",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_held-002",
+      "property": "trigger.asset_held",
       "text": "purchase VTI whenever QQQ drops 10%",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "this case asserts a role pair rather than a single field; no mapping produces role pairs yet",
-      "proposed": [
-        "assets",
-        "objective",
-        "observed_assets",
-        "trigger_semantics"
-      ]
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "VTI",
+      "expected": "VTI",
+      "compared_as": "SET",
+      "matches_expected": true
     },
     {
-      "id": "sema-trigger-asset_roles-003",
-      "property": "trigger.asset_roles",
+      "id": "sema-trigger-asset_observed-002",
+      "property": "trigger.asset_observed",
+      "text": "purchase VTI whenever QQQ drops 10%",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "observed_assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "QQQ",
+      "expected": "QQQ",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_held-003",
+      "property": "trigger.asset_held",
       "text": "add to BND while TLT is under its 200-day",
       "language": "en",
-      "state": "NO_FIELD_MAPPING",
-      "reason": "this case asserts a role pair rather than a single field; no mapping produces role pairs yet",
-      "proposed": [
-        "assets",
-        "moving_average_window",
-        "objective",
-        "observed_assets",
-        "trigger_semantics"
-      ]
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "BND",
+      "expected": "BND",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_observed-003",
+      "property": "trigger.asset_observed",
+      "text": "add to BND while TLT is under its 200-day",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "observed_assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "TLT",
+      "expected": "TLT",
+      "compared_as": "TEXT",
+      "matches_expected": true
     },
     {
       "id": "sema-window-moving_average-011",

@@ -382,8 +382,13 @@ for text, value in [
 ]:
     sem("funding.amount", text, {"field": "amount", "value": value})
 
+sem("weighting.stated_weights", "a 60/40 portfolio",
+    {"field": "stated_weights", "value": "60/40"}, origin="observed",
+    note="a bare noun phrase states the weights and names no method. Asserting "
+         "`allocation_method` here asked for an inference neither witness "
+         "made, and the model was right not to make it")
+
 for text, value in [
-    ("a 60/40 portfolio", "stated_weights"),
     ("split it 70/30 between stocks and bonds", "stated_weights"),
     ("equal weight across the four", "equal_weight_at_purchase"),
     ("weight by inverse volatility", "inverse_volatility"),
@@ -403,14 +408,27 @@ for text, value in [
         note="crosses-below is an event; stays-below is a state. Collapsing "
              "them changes how often the strategy fires")
 
+# The role pair, in the contract's own words.
+#
+# These asserted `{held, observed}` — a private vocabulary for a distinction the
+# schema already carries as two dimensions: `assets` is what is bought and
+# `observed_assets` is what the condition watches, and the schema's own
+# description of the second is this exact sentence. Asserting a shape nobody
+# else uses is why the report could only ever say "no mapping produces role
+# pairs"; both witnesses were reading the roles all along, under their names.
 for text, held, observed in [
     ("buy VOO when SPY crosses below its average", "VOO", "SPY"),
     ("purchase VTI whenever QQQ drops 10%", "VTI", "QQQ"),
     ("add to BND while TLT is under its 200-day", "BND", "TLT"),
 ]:
-    sem("trigger.asset_roles", text,
-        {"held": held, "observed": observed}, origin="falsification",
-        note="swapping held and observed must fail")
+    sem("trigger.asset_held", text, {"field": "assets", "value": held},
+        origin="falsification",
+        note="held and observed are different roles; swapping them buys the "
+             "thing that was only being watched")
+    sem("trigger.asset_observed", text,
+        {"field": "observed_assets", "value": observed},
+        origin="falsification",
+        note="the condition watches this and the plan does not hold it")
 
 for text, value in [
     ("buy when it falls below the 200-day moving average", "200"),

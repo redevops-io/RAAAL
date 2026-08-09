@@ -60,6 +60,11 @@ AMBIGUOUS_BY_LANGUAGE = "AMBIGUOUS_BY_LANGUAGE"
 MODEL_ONLY_ACCEPTED = "MODEL_ONLY_ACCEPTED"
 MODEL_ONLY_UNRESOLVED = "MODEL_ONLY_UNRESOLVED"
 
+#: Syntax spoke and the model did not. Named separately because it was being
+#: reported as MODEL_ONLY — the count was right and the label named the wrong
+#: witness, which is worse than either being wrong on its own.
+SYNTAX_ONLY_UNRESOLVED = "SYNTAX_ONLY_UNRESOLVED"
+
 INSUFFICIENT_RELATION = "INSUFFICIENT_RELATION"
 INTERMEDIATE_SEMANTIC = "INTERMEDIATE_SEMANTIC"
 NO_LITERAL = "NO_LITERAL"
@@ -69,6 +74,7 @@ NO_MODEL_RECORDING = "NO_MODEL_RECORDING"
 SCHEMA_GAP = "SCHEMA_GAP"
 
 STATES = (AGREE, MODEL_ONLY_ACCEPTED, DISAGREE, MODEL_ONLY_UNRESOLVED,
+          SYNTAX_ONLY_UNRESOLVED,
           AMBIGUOUS_BY_LANGUAGE, INSUFFICIENT_RELATION, INTERMEDIATE_SEMANTIC,
           NO_FIELD_MAPPING, NO_LITERAL, NO_PARSE, NO_MODEL_RECORDING,
           SCHEMA_GAP)
@@ -91,6 +97,8 @@ OWNER = {AGREE: "—",
                               "make it two)",
          DISAGREE: "adjudication",
          MODEL_ONLY_UNRESOLVED: "adjudication",
+         SYNTAX_ONLY_UNRESOLVED: "— (the asymmetry witness: syntax alone never "
+                                 "carries a field)",
          AMBIGUOUS_BY_LANGUAGE: "the user, via clarification",
          INSUFFICIENT_RELATION: "binder or corpus",
          INTERMEDIATE_SEMANTIC: "nobody — asserted against mapper output, "
@@ -194,7 +202,12 @@ def classify(case, recorded: RecordedReader,
     if decision.proceeds:
         state = AGREE if len(witnesses) > 1 else MODEL_ONLY_ACCEPTED
         return {"state": state, "reason": decision.detail, **common}
-    state = DISAGREE if len(witnesses) > 1 else MODEL_ONLY_UNRESOLVED
+    if len(witnesses) > 1:
+        state = DISAGREE
+    elif witnesses == ["model"]:
+        state = MODEL_ONLY_UNRESOLVED
+    else:
+        state = SYNTAX_ONLY_UNRESOLVED
     return {"state": state, "reason": decision.detail, **common}
 
 

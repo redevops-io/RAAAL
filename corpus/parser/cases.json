@@ -1,10 +1,10 @@
 {
   "schema": "quantify-parser-corpus@1",
-  "count": 223,
+  "count": 226,
   "by_tier": {
     "normalization": 114,
     "dependency": 60,
-    "semantics": 49
+    "semantics": 52
   },
   "cases": [
     {
@@ -2023,20 +2023,20 @@
       "note": ""
     },
     {
-      "id": "sema-weighting-method-001",
+      "id": "sema-weighting-stated_weights-001",
       "tier": "semantics",
-      "property": "weighting.method",
+      "property": "weighting.stated_weights",
       "text": "a 60/40 portfolio",
       "language": "en",
       "asserts": {
-        "field": "allocation_method",
-        "value": "stated_weights"
+        "field": "stated_weights",
+        "value": "60/40"
       },
-      "origin": "constructed",
-      "note": ""
+      "origin": "observed",
+      "note": "a bare noun phrase states the weights and names no method. Asserting `allocation_method` here asked for an inference neither witness made, and the model was right not to make it"
     },
     {
-      "id": "sema-weighting-method-002",
+      "id": "sema-weighting-method-001",
       "tier": "semantics",
       "property": "weighting.method",
       "text": "split it 70/30 between stocks and bonds",
@@ -2049,7 +2049,7 @@
       "note": ""
     },
     {
-      "id": "sema-weighting-method-003",
+      "id": "sema-weighting-method-002",
       "tier": "semantics",
       "property": "weighting.method",
       "text": "equal weight across the four",
@@ -2062,7 +2062,7 @@
       "note": ""
     },
     {
-      "id": "sema-weighting-method-004",
+      "id": "sema-weighting-method-003",
       "tier": "semantics",
       "property": "weighting.method",
       "text": "weight by inverse volatility",
@@ -2140,43 +2140,82 @@
       "note": "crosses-below is an event; stays-below is a state. Collapsing them changes how often the strategy fires"
     },
     {
-      "id": "sema-trigger-asset_roles-001",
+      "id": "sema-trigger-asset_held-001",
       "tier": "semantics",
-      "property": "trigger.asset_roles",
+      "property": "trigger.asset_held",
       "text": "buy VOO when SPY crosses below its average",
       "language": "en",
       "asserts": {
-        "held": "VOO",
-        "observed": "SPY"
+        "field": "assets",
+        "value": "VOO"
       },
       "origin": "falsification",
-      "note": "swapping held and observed must fail"
+      "note": "held and observed are different roles; swapping them buys the thing that was only being watched"
     },
     {
-      "id": "sema-trigger-asset_roles-002",
+      "id": "sema-trigger-asset_observed-001",
       "tier": "semantics",
-      "property": "trigger.asset_roles",
+      "property": "trigger.asset_observed",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "asserts": {
+        "field": "observed_assets",
+        "value": "SPY"
+      },
+      "origin": "falsification",
+      "note": "the condition watches this and the plan does not hold it"
+    },
+    {
+      "id": "sema-trigger-asset_held-002",
+      "tier": "semantics",
+      "property": "trigger.asset_held",
       "text": "purchase VTI whenever QQQ drops 10%",
       "language": "en",
       "asserts": {
-        "held": "VTI",
-        "observed": "QQQ"
+        "field": "assets",
+        "value": "VTI"
       },
       "origin": "falsification",
-      "note": "swapping held and observed must fail"
+      "note": "held and observed are different roles; swapping them buys the thing that was only being watched"
     },
     {
-      "id": "sema-trigger-asset_roles-003",
+      "id": "sema-trigger-asset_observed-002",
       "tier": "semantics",
-      "property": "trigger.asset_roles",
+      "property": "trigger.asset_observed",
+      "text": "purchase VTI whenever QQQ drops 10%",
+      "language": "en",
+      "asserts": {
+        "field": "observed_assets",
+        "value": "QQQ"
+      },
+      "origin": "falsification",
+      "note": "the condition watches this and the plan does not hold it"
+    },
+    {
+      "id": "sema-trigger-asset_held-003",
+      "tier": "semantics",
+      "property": "trigger.asset_held",
       "text": "add to BND while TLT is under its 200-day",
       "language": "en",
       "asserts": {
-        "held": "BND",
-        "observed": "TLT"
+        "field": "assets",
+        "value": "BND"
       },
       "origin": "falsification",
-      "note": "swapping held and observed must fail"
+      "note": "held and observed are different roles; swapping them buys the thing that was only being watched"
+    },
+    {
+      "id": "sema-trigger-asset_observed-003",
+      "tier": "semantics",
+      "property": "trigger.asset_observed",
+      "text": "add to BND while TLT is under its 200-day",
+      "language": "en",
+      "asserts": {
+        "field": "observed_assets",
+        "value": "TLT"
+      },
+      "origin": "falsification",
+      "note": "the condition watches this and the plan does not hold it"
     },
     {
       "id": "sema-window-moving_average-011",

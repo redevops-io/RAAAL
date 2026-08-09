@@ -36,12 +36,13 @@ RECORDED = RecordedReader()
 #: 47, rewriting six fragment fixtures to 45, and the derivation families to 38.
 #: The schema-alignment pass took it back to 40 — two cases had been "answered"
 #: under mapper-only field names. Wiring the hosted reader into the report then
-#: took it to 10: the model reads twenty-three fields nothing normalises, and
-#: six intermediate and two schema-gap cases are pending on nothing at all.
+#: took it to 10, and rewriting four cases into contract vocabulary took it to
+#: 6. What remains: four missing language models, one units disagreement, and
+#: one syntax-only case kept deliberately as the asymmetry witness.
 #: Fourteen semantics cases are run end to end by `tests/test_semantics.py`,
 #: and `corpus/parser/closure.json` says who owns each of the rest rather
 #: than leaving them a single number.
-AWAITING_A_PARSER = 10
+AWAITING_A_PARSER = 6
 
 #: Semantics cases the deterministic path answers, asserted elsewhere. Read
 #: from the closure report because that is where the classification lives; the

@@ -98,6 +98,69 @@ class TestAgreementIsNotAssumed:
                 assert "none for" in row["reason"] or "role pair" in row["reason"]
 
 
+class TestBothDirectionsOfTheAsymmetry:
+    """Fusion handles two witnesses, not one filling the other's gaps.
+
+    Both directions are live in the corpus, which is what makes the policy
+    evidence rather than a design note.
+    """
+
+    def test_the_model_alone_can_settle_a_field(self):
+        """The common direction: the model reads dimensions nothing
+        normalises, and syntax being silent is not an argument against it."""
+        accepted = [r for r in ROWS if r["state"] == "MODEL_ONLY_ACCEPTED"]
+        assert accepted, "no model-only witness"
+        for row in accepted:
+            assert row["witnesses"] == ["model"]
+
+    def test_syntax_alone_cannot(self):
+        """The reciprocal, and the one that was being mislabelled. It was
+        reported as MODEL_ONLY_UNRESOLVED — the count was right and the label
+        named the wrong witness, which is worse than either alone."""
+        alone = [r for r in ROWS if r["state"] == "SYNTAX_ONLY_UNRESOLVED"]
+        assert alone, (
+            "no syntax-only witness in the corpus. The policy is then only "
+            "exercised synthetically, and that should be said out loud")
+        for row in alone:
+            assert row["witnesses"] == ["syntax"]
+            assert row["value"] is None, "an unresolved field carries no value"
+
+
+class TestTheCorpusCannotBecomeASecondSchema:
+    def test_expectations_are_validated_against_the_contract(self):
+        """The preflight, and the class it closes: wrong field names, wrong
+        value vocabularies, wrong unit coercion — caught three times in three
+        passes, each time only because a second witness disagreed."""
+        import json as _json
+        import tempfile
+        from pathlib import Path as _Path
+
+        import pytest as _pytest
+
+        from corpus.parser.loader import CorruptCorpus, load as _load
+
+        for broken in ({"field": "not_a_dimension", "value": "x"},
+                       {"field": "dividend_policy", "value": "cash"}):
+            document = {"schema": "quantify-parser-corpus@1", "count": 1,
+                        "cases": [{"id": "t-001", "tier": "semantics",
+                                   "property": "t", "text": "x", "language": "en",
+                                   "asserts": broken, "origin": "constructed",
+                                   "note": ""}]}
+            with tempfile.TemporaryDirectory() as folder:
+                path = _Path(folder) / "cases.json"
+                path.write_text(_json.dumps(document))
+                with _pytest.raises(CorruptCorpus):
+                    _load(path)
+
+    def test_a_schema_gap_is_allowed_through(self):
+        """The escape that means something: the reading is right and the
+        contract has no value for it. That is the finding, not an error."""
+        gaps = [r for r in ROWS if r["state"] == "SCHEMA_GAP"]
+        assert gaps
+        for row in gaps:
+            assert "no such value" in row["reason"]
+
+
 class TestTheStatesMeanDifferentThings:
     def test_no_literal_and_no_field_mapping_are_kept_apart(self):
         """They were one state until the counts made the difference matter, and

@@ -570,6 +570,69 @@ And the syntax-alone policy does have a live instance —
 `trigger_semantics` and the model is silent. The earlier claim that none existed
 was drawn from three sentences.
 
+## The preflight, and the queue that is left
+
+**Corpus expectations are validated against the contract before they may judge
+parser output.** `corpus/parser/loader.py` refuses to load a fixture whose
+expected field or expected value the contract cannot represent.
+
+The rule earned itself. The same class was caught at three layers in three
+passes — wrong field names, wrong field *value* vocabularies, wrong numeric and
+unit coercion — and every time it was invisible until a second witness answered
+the same question and disagreed. Without a preflight the corpus quietly becomes
+a second schema, and a second schema always wins arguments it should lose.
+
+Two escapes, both explicit and both meaning something:
+
+    schema_gap            the reading is right and the contract has no value
+                          for it — the finding, not an error
+    INTERMEDIATE_FIELDS   semantics this pipeline computes outside the
+                          contract boundary
+
+### `NO_FIELD_MAPPING` went to zero without a mapping
+
+All four were corpus vocabulary. Three asserted `{held, observed}` — a private
+shape for a distinction the schema already carries as two dimensions, `assets`
+and `observed_assets`, where the second's own description is that exact
+sentence. Both witnesses had been reading the roles all along, under the
+contract's names, and the report could only say "no mapping produces role
+pairs" because nothing else used that shape.
+
+The fourth, *"a 60/40 portfolio"*, asserted `allocation_method` for a bare noun
+phrase that states weights and names no method. Neither witness made that
+inference and the model was right not to.
+
+### Both directions of the asymmetry are live
+
+    model speaks, syntax silent    30 cases, accepted
+    syntax speaks, model silent     1 case, unresolved
+
+The second was being reported as `MODEL_ONLY_UNRESOLVED` — the count was right
+and the label named the wrong witness, which is worse than either being wrong
+alone. It is `SYNTAX_ONLY_UNRESOLVED` now and kept deliberately: it is the only
+live proof that fusion handles both directions rather than the model filling
+deterministic gaps.
+
+### What remains
+
+    AGREE                   12   both witnesses, all with the expected value
+    MODEL_ONLY_ACCEPTED     30   the model alone, all with the expected value
+    DISAGREE                 1   units adjudication
+    SYNTAX_ONLY_UNRESOLVED   1   kept as the asymmetry witness
+    INTERMEDIATE_SEMANTIC    6   pending on nothing
+    SCHEMA_GAP               2   pending on nothing
+    NO_PARSE_RECORDED        4   stanza.download
+
+`AWAITING_A_PARSER`: **6**. 42 of 56 answered, every one with the value the
+corpus expects.
+
+The single `DISAGREE` stays unresolved: *"beneath the 12-month moving
+average"*, where the schema says `moving_average_window` is measured in
+sessions and the phrase says months. Normalising it away needs a declared
+trading-calendar convention, and until one exists neither side should win — a
+units mismatch resolved by whichever reader is louder is the failure this whole
+layer was built to prevent.
+
 ## Order of work
 
     real phrasings  ->  tier 1 regressions  ->  tier 2 fixtures  ->  fusion
