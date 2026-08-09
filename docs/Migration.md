@@ -1075,6 +1075,19 @@ comparisons.** These are what the runtime actually promises:
 | authorization gates | a side-effecting capability running without its approval |
 | evidence and provenance preservation | a figure that cannot name the run, program, intent and author behind it |
 | cross-implementation replay | the same `MissionProgram` reaching different states under two runtimes |
+| the vendored contract is gone | `src/contracts/` surviving alongside a real dependency on `runtime-contracts` |
+
+**Exit criterion, not a TODO.** RAAAL imports only the tagged
+`runtime-contracts` package, and `src/contracts/`, the vendoring note and
+`scripts/check_vendored_contracts.py` are deleted **in the same change** as the
+dependency is added. Two authoritative copies kept "just in case" is how a
+contract acquires a second version nobody declared, and the one that drifts is
+always the one nobody is reading.
+
+Enforced by `tests/test_vendored_copy_is_temporary.py`, which is unfailable
+today and unavoidable later: it skips while the copy is the expected state, and
+fails the moment anything declares or installs the real package while the copy
+survives. The deletion therefore happens in that change or the suite stays red.
 
 **Gate:** every one of the six holds, and the migration's central invariant
 holds on every corpus prompt — **nothing Mission executed was less than what
