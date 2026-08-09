@@ -1974,7 +1974,7 @@
       "id": "sema-funding-cadence-006",
       "tier": "semantics",
       "property": "funding.cadence",
-      "text": "a one-off $10,000 investment",
+      "text": "make a one-off $10,000 investment",
       "language": "en",
       "asserts": {
         "field": "cadence",
@@ -2143,7 +2143,7 @@
       "id": "sema-trigger-semantics-005",
       "tier": "semantics",
       "property": "trigger.semantics",
-      "text": "any time SPY is below the 200-day",
+      "text": "buy any time SPY is below the 200-day average",
       "language": "en",
       "asserts": {
         "field": "trigger_semantics",
@@ -2195,7 +2195,7 @@
       "id": "sema-window-moving_average-011",
       "tier": "semantics",
       "property": "window.moving_average",
-      "text": "below the 200-day moving average",
+      "text": "buy when it falls below the 200-day moving average",
       "language": "en",
       "asserts": {
         "field": "moving_average_window",
@@ -2208,7 +2208,7 @@
       "id": "sema-window-moving_average-012",
       "tier": "semantics",
       "property": "window.moving_average",
-      "text": "under its 50-day average",
+      "text": "sell when it drops under its 50-day average",
       "language": "en",
       "asserts": {
         "field": "moving_average_window",
@@ -2221,7 +2221,7 @@
       "id": "sema-window-moving_average-013",
       "tier": "semantics",
       "property": "window.moving_average",
-      "text": "beneath the 12-month moving average",
+      "text": "add when it trades beneath the 12-month moving average",
       "language": "en",
       "asserts": {
         "field": "moving_average_window",
@@ -2693,7 +2693,7 @@
       "id": "sema-timing-day_rule-002",
       "tier": "semantics",
       "property": "timing.day_rule",
-      "text": "on the last session of each quarter",
+      "text": "rebalance on the last session of each quarter",
       "language": "en",
       "asserts": {
         "field": "day_rule",

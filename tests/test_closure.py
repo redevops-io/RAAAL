@@ -86,27 +86,40 @@ class TestAgreementIsNotAssumed:
                     f"asserts {case.asserts.get('field')!r}")
 
     def test_cases_answered_for_another_field_say_so(self):
-        """They are `STILL_UNSUPPORTED` and they name what *was* proposed, so
+        """They are `NO_FIELD_MAPPING` and they name what *was* proposed, so
         the next person can see how close the pipeline got rather than only
         that it stopped."""
         for row in ROWS:
-            if row["state"] == "STILL_UNSUPPORTED" and "proposed" in row:
+            if row["state"] == "NO_FIELD_MAPPING" and "proposed" in row:
                 assert row["proposed"], row["id"]
                 assert "none for" in row["reason"] or "role pair" in row["reason"]
 
 
 class TestTheStatesMeanDifferentThings:
-    def test_still_unsupported_is_not_a_defect_bucket(self):
-        """It names cases with no literal to normalise. Those belong to the
-        semantic reader, and blurring them into the deterministic layers'
-        failures is how a layer grows a rule to claim work that was never
-        its own."""
-        assert "not a defect" in REPORT["note"]
+    def test_no_literal_and_no_field_mapping_are_kept_apart(self):
+        """They were one state until the counts made the difference matter, and
+        they want opposite work: "weight by inverse volatility" has nothing to
+        normalise, while "contribute a fixed $500" has a literal and a binding
+        and is missing only a rule saying what the value means. One needs a
+        reader; the other needs field derivation."""
+        states = {row["state"] for row in ROWS}
+        assert "STILL_UNSUPPORTED" not in states, (
+            "the merged state is back; a pile is not a queue")
+        assert {"NO_LITERAL", "NO_FIELD_MAPPING"} & states
+
+    def test_every_state_names_who_owns_the_remaining_work(self):
+        """"36 unsupported" is a pile. "25 waiting on the semantic reader, 15
+        on field derivation" is a queue with owners."""
+        for state in {row["state"] for row in ROWS}:
+            assert REPORT["owner"][state].strip()
+
+    def test_the_note_says_neither_is_a_defect_of_these_layers(self):
+        assert "not defects" in REPORT["note"] or "not a defect" in REPORT["note"]
 
     def test_the_counts_add_up(self):
         assert sum(REPORT["by_state"].values()) == REPORT["pending"] == len(ROWS)
 
-    def test_no_parse_recorded_is_kept_separate_from_unsupported(self):
+    def test_no_parse_recorded_is_kept_separate(self):
         """"The Spanish model was never fetched" and "this sentence has nothing
         to normalise" are different facts with different repairs."""
         no_parse = [r for r in ROWS if r["state"] == "NO_PARSE_RECORDED"]

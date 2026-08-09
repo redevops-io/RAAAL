@@ -165,6 +165,14 @@ phrase("trigger", "buy when it falls below its 200-day",
        "elided head noun after the window",
        provenance="variant",
        note="real writing drops 'moving average' constantly")
+phrase("trigger", "sell when it drops under its 50-day average",
+       "window written as `N-day average`, without `moving`",
+       provenance="variant",
+       note="OBSERVED GAP: `_WINDOW` requires `moving average|ma|sma|ema`, so "
+            "this reads as a 50-day *duration* and fills holding_period_days. "
+            "Recorded rather than patched — `X-day average` is a window in this "
+            "domain and not in others, and widening tier 1 on one case is how a "
+            "normaliser starts guessing")
 
 # ── window ───────────────────────────────────────────────────────────────────
 

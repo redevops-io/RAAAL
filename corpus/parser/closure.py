@@ -14,12 +14,19 @@ Every pending case lands in exactly one state:
     MAPPED_BUT_DISAGREED  a candidate was proposed and fusion refused it
     INSUFFICIENT_RELATION the value exists; nothing binds it
     AMBIGUOUS_BY_LANGUAGE the words carry both readings
-    STILL_UNSUPPORTED     no normalised value, so no binding and no candidate
+    NO_LITERAL            nothing to normalise; this is the semantic reader's
+    NO_FIELD_MAPPING      a literal and a binding exist, and no rule says what
+                          that value *means* in the contract
 
-`STILL_UNSUPPORTED` is not a failure of this pipeline and must not be read as
-one. "weight by inverse volatility" has no literal in it at all; there is
-nothing for a normaliser to find and nothing for a binder to attach. Those
-cases belong to the semantic reader, and naming them keeps the deterministic
+The last two were one state until the counts made the difference matter. They
+want opposite work. `weight by inverse volatility` has no literal at all —
+there is nothing for a normaliser to find and nothing for a binder to attach,
+and no rule written here would change that. `contribute a fixed $500` has both:
+`amount=500` is recognised and bound, and what is missing is a rule saying that
+"fixed" makes `amount_kind` FIXED. One needs a reader; the other needs field
+derivation from structure already in hand.
+
+Neither is a failure of the deterministic layers, and naming them keeps those
 layers from being blamed for work that was never theirs — or, worse, from
 growing a rule to claim it.
 """
@@ -45,11 +52,23 @@ MAPPED_AND_AGREED = "MAPPED_AND_AGREED"
 MAPPED_BUT_DISAGREED = "MAPPED_BUT_DISAGREED"
 INSUFFICIENT_RELATION = "INSUFFICIENT_RELATION"
 AMBIGUOUS_BY_LANGUAGE = "AMBIGUOUS_BY_LANGUAGE"
-STILL_UNSUPPORTED = "STILL_UNSUPPORTED"
+NO_LITERAL = "NO_LITERAL"
+NO_FIELD_MAPPING = "NO_FIELD_MAPPING"
 NO_PARSE = "NO_PARSE_RECORDED"
 
 STATES = (MAPPED_AND_AGREED, MAPPED_BUT_DISAGREED, INSUFFICIENT_RELATION,
-          AMBIGUOUS_BY_LANGUAGE, STILL_UNSUPPORTED, NO_PARSE)
+          AMBIGUOUS_BY_LANGUAGE, NO_FIELD_MAPPING, NO_LITERAL, NO_PARSE)
+
+#: Which layer owns each state's remaining work. Printed with the counts,
+#: because "36 unsupported" is a pile and "36 waiting on the semantic reader"
+#: is a queue with an owner.
+OWNER = {MAPPED_AND_AGREED: "—",
+         MAPPED_BUT_DISAGREED: "adjudication",
+         INSUFFICIENT_RELATION: "binder or corpus",
+         AMBIGUOUS_BY_LANGUAGE: "the user, via clarification",
+         NO_FIELD_MAPPING: "semantics.py — field derivation",
+         NO_LITERAL: "the semantic reader",
+         NO_PARSE: "stanza.download"}
 
 
 def classify(case, recorded: RecordedReader) -> dict:
@@ -60,7 +79,7 @@ def classify(case, recorded: RecordedReader) -> dict:
 
     values = normalize(case.text, case.language)
     if not values:
-        return {"state": STILL_UNSUPPORTED,
+        return {"state": NO_LITERAL,
                 "reason": "no normalised value in the sentence; this needs the "
                           "semantic reader, not a deterministic rule"}
 
@@ -77,9 +96,9 @@ def classify(case, recorded: RecordedReader) -> dict:
         if unbound:
             return {"state": INSUFFICIENT_RELATION,
                     "reason": "a value was normalised and nothing binds it"}
-        return {"state": STILL_UNSUPPORTED,
-                "reason": "values normalised but no declared mapping consumes "
-                          "this relation for this field"}
+        return {"state": NO_FIELD_MAPPING,
+                "reason": "values normalised and bound, and no declared "
+                          "mapping consumes this relation for this field"}
 
     # A candidate exists — but for *which* field?
     #
@@ -92,14 +111,14 @@ def classify(case, recorded: RecordedReader) -> dict:
     # report built to measure it.
     wanted = case.asserts.get("field")
     if wanted is None:
-        return {"state": STILL_UNSUPPORTED,
+        return {"state": NO_FIELD_MAPPING,
                 "reason": "this case asserts a role pair rather than a single "
                           "field; no mapping produces role pairs yet",
                 "proposed": sorted({c.field for c in candidates})}
 
     match = next((c for c in candidates if c.field == wanted), None)
     if match is None:
-        return {"state": STILL_UNSUPPORTED,
+        return {"state": NO_FIELD_MAPPING,
                 "reason": f"candidates were proposed for "
                           f"{sorted({c.field for c in candidates})} and none "
                           f"for {wanted!r}, which is what this case asserts",
@@ -161,10 +180,12 @@ def main() -> int:
          "agreed_and_correct": len(agreed) - len(wrong),
          "agreed_but_wrong_value": wrong,
          "by_property": {k: dict(v) for k, v in sorted(by_property.items())},
-         "note": ("STILL_UNSUPPORTED is not a defect of the deterministic "
-                  "layers. It names cases with no literal to normalise, which "
-                  "belong to the semantic reader — recorded so they are not "
-                  "confused with cases a rule could close."),
+         "owner": {state: OWNER[state] for state in STATES},
+         "note": ("NO_LITERAL and NO_FIELD_MAPPING are not defects of the "
+                  "deterministic layers, and they want opposite work: one "
+                  "needs the semantic reader, the other needs field derivation "
+                  "from structure already in hand. They were one state until "
+                  "the counts made the difference matter."),
          "rows": rows}, indent=2, ensure_ascii=False) + "\n")
 
     print(f"{len(rows)} pending cases -> {OUT}")
@@ -173,7 +194,8 @@ def main() -> int:
             suffix = ""
             if state == MAPPED_AND_AGREED:
                 suffix = f"  ({len(agreed) - len(wrong)} with the expected value)"
-            print(f"  {state:24} {counts[state]}{suffix}")
+            print(f"  {state:22} {counts[state]:3}{suffix}"
+                  f"{'' if suffix else '   ' + OWNER[state]}")
     if wrong:
         print(f"  !! agreed with a value the case does not expect: {wrong}")
     print()

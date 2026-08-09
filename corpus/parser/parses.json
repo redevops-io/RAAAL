@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 231,
+  "count": 236,
   "parses": [
     {
       "text": "$500 a month",
@@ -4304,6 +4304,129 @@
       ]
     },
     {
+      "text": "add when it trades beneath the 12-month moving average",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "add",
+              "lemma": "add",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "when",
+              "lemma": "when",
+              "upos": "ADV",
+              "head": 4,
+              "relation": "advmod",
+              "start_char": 4,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 4,
+              "relation": "nsubj",
+              "start_char": 9,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "trades",
+              "lemma": "trade",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "advcl",
+              "start_char": 12,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "beneath",
+              "lemma": "beneath",
+              "upos": "ADP",
+              "head": 11,
+              "relation": "case",
+              "start_char": 19,
+              "end_char": 26
+            },
+            {
+              "index": 6,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 27,
+              "end_char": 30
+            },
+            {
+              "index": 7,
+              "text": "12",
+              "lemma": "12",
+              "upos": "NUM",
+              "head": 9,
+              "relation": "nummod",
+              "start_char": 31,
+              "end_char": 33
+            },
+            {
+              "index": 8,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 7,
+              "relation": "punct",
+              "start_char": 33,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 39
+            },
+            {
+              "index": 10,
+              "text": "moving",
+              "lemma": "moving",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 40,
+              "end_char": 46
+            },
+            {
+              "index": 11,
+              "text": "average",
+              "lemma": "average",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "obl",
+              "start_char": 47,
+              "end_char": 54
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "adjust the weights quarterly",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -5824,6 +5947,129 @@
               "relation": "obj",
               "start_char": 22,
               "end_char": 29
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "buy any time SPY is below the 200-day average",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "buy",
+              "lemma": "buy",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "any",
+              "lemma": "any",
+              "upos": "DET",
+              "head": 3,
+              "relation": "det",
+              "start_char": 4,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "time",
+              "lemma": "time",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 8,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "SPY",
+              "lemma": "spy",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "nsubj",
+              "start_char": 13,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 11,
+              "relation": "cop",
+              "start_char": 17,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "below",
+              "lemma": "below",
+              "upos": "ADP",
+              "head": 11,
+              "relation": "case",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 26,
+              "end_char": 29
+            },
+            {
+              "index": 8,
+              "text": "200",
+              "lemma": "200",
+              "upos": "NUM",
+              "head": 10,
+              "relation": "nummod",
+              "start_char": 30,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 8,
+              "relation": "punct",
+              "start_char": 33,
+              "end_char": 34
+            },
+            {
+              "index": 10,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 37
+            },
+            {
+              "index": 11,
+              "text": "average",
+              "lemma": "average",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "acl:relcl",
+              "start_char": 38,
+              "end_char": 45
             }
           ]
         }
@@ -14220,6 +14466,99 @@
       ]
     },
     {
+      "text": "make a one-off $10,000 investment",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "make",
+              "lemma": "make",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 8,
+              "relation": "det",
+              "start_char": 5,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "one",
+              "lemma": "one",
+              "upos": "NUM",
+              "head": 6,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 5,
+              "relation": "punct",
+              "start_char": 10,
+              "end_char": 11
+            },
+            {
+              "index": 5,
+              "text": "off",
+              "lemma": "off",
+              "upos": "ADP",
+              "head": 3,
+              "relation": "compound:prt",
+              "start_char": 11,
+              "end_char": 14
+            },
+            {
+              "index": 6,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 8,
+              "relation": "compound",
+              "start_char": 15,
+              "end_char": 16
+            },
+            {
+              "index": 7,
+              "text": "10,000",
+              "lemma": "10000",
+              "upos": "NUM",
+              "head": 6,
+              "relation": "nummod",
+              "start_char": 16,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "investment",
+              "lemma": "investment",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 23,
+              "end_char": 33
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "market-cap weighted",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -16055,6 +16394,99 @@
       ]
     },
     {
+      "text": "rebalance on the last session of each quarter",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 9
+            },
+            {
+              "index": 2,
+              "text": "on",
+              "lemma": "on",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 13,
+              "end_char": 16
+            },
+            {
+              "index": 4,
+              "text": "last",
+              "lemma": "last",
+              "upos": "ADJ",
+              "head": 5,
+              "relation": "amod",
+              "start_char": 17,
+              "end_char": 21
+            },
+            {
+              "index": 5,
+              "text": "session",
+              "lemma": "session",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 22,
+              "end_char": 29
+            },
+            {
+              "index": 6,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 30,
+              "end_char": 32
+            },
+            {
+              "index": 7,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 8,
+              "relation": "det",
+              "start_char": 33,
+              "end_char": 37
+            },
+            {
+              "index": 8,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 5,
+              "relation": "nmod",
+              "start_char": 38,
+              "end_char": 45
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "rebalance the portfolio annually",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -16702,6 +17134,119 @@
               "relation": "obl",
               "start_char": 30,
               "end_char": 37
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "sell when it drops under its 50-day average",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "sell",
+              "lemma": "sell",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 4
+            },
+            {
+              "index": 2,
+              "text": "when",
+              "lemma": "when",
+              "upos": "ADV",
+              "head": 4,
+              "relation": "advmod",
+              "start_char": 5,
+              "end_char": 9
+            },
+            {
+              "index": 3,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 4,
+              "relation": "nsubj",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "drops",
+              "lemma": "drop",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "advcl",
+              "start_char": 13,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "under",
+              "lemma": "under",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 19,
+              "end_char": 24
+            },
+            {
+              "index": 6,
+              "text": "its",
+              "lemma": "its",
+              "upos": "PRON",
+              "head": 10,
+              "relation": "nmod:poss",
+              "start_char": 25,
+              "end_char": 28
+            },
+            {
+              "index": 7,
+              "text": "50",
+              "lemma": "50",
+              "upos": "NUM",
+              "head": 9,
+              "relation": "nummod",
+              "start_char": 29,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 7,
+              "relation": "punct",
+              "start_char": 31,
+              "end_char": 32
+            },
+            {
+              "index": 9,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 10,
+              "relation": "compound",
+              "start_char": 32,
+              "end_char": 35
+            },
+            {
+              "index": 10,
+              "text": "average",
+              "lemma": "average",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "obl",
+              "start_char": 36,
+              "end_char": 43
             }
           ]
         }

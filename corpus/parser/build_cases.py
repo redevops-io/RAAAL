@@ -344,6 +344,25 @@ dep("negation.absent_when_absent", "through an ETF", {"negated": None},
          "signal would carry no information")
 
 # ── Tier 3: semantics ────────────────────────────────────────────────────────
+#
+# **Six of these were fragments, and were rewritten.** `below the 200-day
+# moving average` has no verb at all — Stanza roots it on `average` — so the
+# binder found no governor and the case landed in INSUFFICIENT_RELATION. That
+# was a property of how the case was written, not of the language: nobody types
+# a bare prepositional phrase at a runtime, they type "buy when it falls below
+# the 200-day moving average".
+#
+# Teaching the binder to invent a governor for a fragment would have let the
+# corpus's shape drive the grammar, which is the wrong direction. The semantic
+# assertion is unchanged in every case; only the sentence around it grew the
+# context a real utterance carries. The originals were:
+#
+#     a one-off $10,000 investment
+#     any time SPY is below the 200-day
+#     below the 200-day moving average
+#     under its 50-day average
+#     beneath the 12-month moving average
+#     on the last session of each quarter
 # Which field a value fills, once syntax and the model have both spoken.
 
 for text, field, value in [
@@ -352,7 +371,7 @@ for text, field, value in [
     ("add $250 every two weeks", "cadence", "biweekly"),
     ("put in $1,000 each quarter", "cadence", "quarterly"),
     ("deposit $100 a week", "cadence", "weekly"),
-    ("a one-off $10,000 investment", "cadence", "once"),
+    ("make a one-off $10,000 investment", "cadence", "once"),
 ]:
     sem("funding.cadence", text, {"field": field, "value": value})
 
@@ -377,7 +396,7 @@ for text, value in [
     ("whenever SPY drops under the 200-day", "crossing_event"),
     ("while SPY stays below its average", "persistent_condition"),
     ("as long as SPY is under trend", "persistent_condition"),
-    ("any time SPY is below the 200-day", "persistent_condition"),
+    ("buy any time SPY is below the 200-day average", "persistent_condition"),
 ]:
     sem("trigger.semantics", text,
         {"field": "trigger_semantics", "value": value},
@@ -395,9 +414,9 @@ for text, held, observed in [
         note="swapping held and observed must fail")
 
 for text, value in [
-    ("below the 200-day moving average", "200"),
-    ("under its 50-day average", "50"),
-    ("beneath the 12-month moving average", "12"),
+    ("buy when it falls below the 200-day moving average", "200"),
+    ("sell when it drops under its 50-day average", "50"),
+    ("add when it trades beneath the 12-month moving average", "12"),
 ]:
     sem("window.moving_average", text,
         {"field": "moving_average_window", "value": value})
@@ -509,7 +528,7 @@ for text, value in [
 
 for text, value in [
     ("on the first trading day of the month", "first_session_of_period"),
-    ("on the last session of each quarter", "last_session_of_period"),
+    ("rebalance on the last session of each quarter", "last_session_of_period"),
     ("mid-month", "mid_period"),
 ]:
     sem("timing.day_rule", text, {"field": "day_rule", "value": value})

@@ -1,18 +1,18 @@
 {
   "schema": "quantify-real-phrasings@1",
-  "count": 43,
+  "count": 44,
   "by_group": {
     "allocation": 13,
     "rebalancing": 12,
     "cadence": 3,
     "funding": 7,
-    "trigger": 2,
+    "trigger": 3,
     "window": 3,
     "timing": 3
   },
   "by_provenance": {
     "user_reported": 11,
-    "variant": 11,
+    "variant": 12,
     "search_summary": 8,
     "stackexchange": 13
   },
@@ -243,6 +243,15 @@
       "provenance": "variant",
       "source": "",
       "note": "real writing drops 'moving average' constantly"
+    },
+    {
+      "id": "real-trigger-003",
+      "group": "trigger",
+      "text": "sell when it drops under its 50-day average",
+      "stresses": "window written as `N-day average`, without `moving`",
+      "provenance": "variant",
+      "source": "",
+      "note": "OBSERVED GAP: `_WINDOW` requires `moving average|ma|sma|ema`, so this reads as a 50-day *duration* and fills holding_period_days. Recorded rather than patched — `X-day average` is a window in this domain and not in others, and widening tier 1 on one case is how a normaliser starts guessing"
     },
     {
       "id": "real-window-001",

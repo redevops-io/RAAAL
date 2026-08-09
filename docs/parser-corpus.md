@@ -307,22 +307,43 @@ Two cadences, two fields, decided by which verb each one attaches to.
 `tests/test_closure.py`. Not "how many cases left `AWAITING_A_PARSER`" — a
 number rules can move — but why each one is still there:
 
-| state | count | what it means |
+| state | count | owner |
 |---|---|---|
-| `MAPPED_AND_AGREED` | 7 | a candidate was proposed and fusion let it through |
-| `INSUFFICIENT_RELATION` | 6 | the value exists; nothing binds it |
-| `AMBIGUOUS_BY_LANGUAGE` | 1 | the words carry both readings |
-| `STILL_UNSUPPORTED` | 36 | no literal to normalise, or no mapping for the field asserted |
-| `NO_PARSE_RECORDED` | 4 | the non-English models have not been fetched |
+| `MAPPED_AND_AGREED` | 9 | — |
+| `AMBIGUOUS_BY_LANGUAGE` | 1 | the user, via clarification |
+| `NO_FIELD_MAPPING` | 15 | `semantics.py` — field derivation |
+| `NO_LITERAL` | 25 | the semantic reader |
+| `NO_PARSE_RECORDED` | 4 | `stanza.download` |
 
-`AWAITING_A_PARSER` went 108 → 54 → **47**, and the seven that left are run end
-to end by `tests/test_semantics.py` rather than merely counted as handled.
+`AWAITING_A_PARSER` went 108 → 54 → 47 → **45**, and the nine that left are run
+end to end by `tests/test_semantics.py` rather than counted as handled. The
+goal is not zero. It is that every remaining case names a specific owner and a
+specific reason instead of sitting in a bucket.
 
-`STILL_UNSUPPORTED` is the largest bucket and is not a defect of these layers.
-*"weight by inverse volatility"* has no literal in it; there is nothing to
-normalise and nothing to bind. Those belong to the semantic reader, and naming
-them stops the deterministic layers being blamed for work that was never theirs
-— or, worse, growing a rule to claim it.
+**`STILL_UNSUPPORTED` was split, and the split is the useful part.** It held
+two failure modes wanting opposite work. *"weight by inverse volatility"* has
+no literal at all — nothing to normalise, nothing to bind, and no rule written
+here would change that; it belongs to the semantic reader. *"contribute a fixed
+$500"* has both: `amount=500` is recognised and bound, and what is missing is a
+rule saying that "fixed" makes `amount_kind` FIXED. One needs a reader, the
+other needs field derivation from structure already in hand, and a single state
+name made 36 cases look like one queue.
+
+**`INSUFFICIENT_RELATION` went to zero without a binder rule.** All six were
+corpus fragments: *"below the 200-day moving average"* has no verb, Stanza
+roots it on `average`, and the binder correctly found no governor. Nobody types
+a bare prepositional phrase at a runtime. The six were rewritten as complete
+utterances with their semantic assertions unchanged and the originals recorded
+in the builder — teaching the binder to invent a governor would have let the
+corpus's shape drive the grammar. Two of the six then answered correctly; the
+other four moved to `NO_FIELD_MAPPING` with a specific reason each.
+
+One of them found a real gap on the way: *"sell when it drops under its 50-day
+average"* reads as a 50-day **duration**, because `_WINDOW` requires the words
+`moving average` and real writing drops them. It is recorded in the phrasings
+pack rather than patched — `X-day average` is a window in this domain and not
+in others, and widening tier 1 on the strength of one case is how a normaliser
+starts guessing.
 
 ### The report shipped with the defect it was built to catch
 
