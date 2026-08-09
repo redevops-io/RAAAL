@@ -53,7 +53,8 @@ jobs:
             tests/test_fusion.py \
             tests/test_binding.py \
             tests/test_semantics.py \
-            tests/test_closure.py
+            tests/test_closure.py \
+            tests/test_pipeline.py
 
       - name: The generators and the files agree
         # The JSON is the artifact and the builder is how it is made. A
@@ -116,3 +117,44 @@ jobs:
           echo "A recorded parse no longer matches the live parser."
           echo "Re-record with: python corpus/parser/record_parses.py"
           echo "Then read the diff — a changed attachment is a changed reading."
+
+  model-drift:
+    name: model drift (live hosted reader, small subset)
+    runs-on: ubuntu-latest
+    # Never a required check, and never on push. The corpus replays recordings;
+    # this lane exists only to notice that the provider's answer has moved. A
+    # red here is information, not a broken build.
+    continue-on-error: true
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install anthropic
+          pip install -r requirements-core.txt
+
+      - name: Re-ask a deterministic subset and diff against the recordings
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::no key configured; the drift lane cannot run"
+            exit 0
+          fi
+          cp corpus/parser/hosted.json /tmp/hosted.recorded.json
+          python corpus/parser/record_hosted.py --subset 8 --refresh
+          if diff -q /tmp/hosted.recorded.json corpus/parser/hosted.json; then
+            echo "the model still answers as recorded"
+          else
+            echo "::warning::the hosted reader's answers have moved."\
+                 "Read the diff before re-recording — a changed reading is a"\
+                 "changed meaning, not a formatting change."
+            diff -u /tmp/hosted.recorded.json corpus/parser/hosted.json | head -120
+            exit 1
+          fi

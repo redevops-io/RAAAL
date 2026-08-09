@@ -41,7 +41,9 @@ runtime ends up confidently answering a question the user did not ask.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any, Mapping, Optional, Sequence
 
@@ -154,6 +156,10 @@ class Requirement:
 
     material: bool = True
     binds: Optional[str] = None
+    compare_as: str = "TEXT"
+    """How two readers' values for this dimension are the same value. Mirrors
+    `Dimension.compare_as` in the schema, and is declared rather than guessed
+    for the same reason it is there."""
 
 
 #: Declared per dimension rather than inferred. A dimension absent here is
@@ -161,10 +167,11 @@ class Requirement:
 #: dimension as immaterial would let anything new proceed unexamined.
 REQUIREMENTS: Mapping[str, Requirement] = {
     "cadence": Requirement(material=True),
-    "amount": Requirement(material=True),
-    "assets": Requirement(material=True),
+    "amount": Requirement(material=True, compare_as="NUMBER"),
+    "assets": Requirement(material=True, compare_as="SET"),
     "allocation_method": Requirement(material=True),
-    "moving_average_window": Requirement(material=True),
+    "moving_average_window": Requirement(material=True,
+                                        compare_as="NUMBER"),
     "trigger_semantics": Requirement(material=True),
     "execution_timing": Requirement(material=True),
     "day_rule": Requirement(material=False),
@@ -173,7 +180,41 @@ REQUIREMENTS: Mapping[str, Requirement] = {
 }
 
 
-def contradicts(evidence: SyntaxEvidence, proposal: Proposal) -> bool:
+def same_value(one: Any, other: Any, compare_as: str = "TEXT") -> bool:
+    """Whether two readers said the same thing, by the schema's own rule.
+
+    `Dimension.compare_as` has existed since the first shadow run, for exactly
+    this: the model reads an amount as `$500` and the deterministic path
+    normalises it to `500`, and a string comparison calls that a disagreement.
+    It is a formatting difference, and reporting it as conflict buries the real
+    ones — the finding the schema already carries a field to prevent.
+
+    Nothing here can make two different amounts equal. NUMBER strips currency
+    and separators, SET compares tokens unordered, and TEXT — the default — is
+    still exact, because assuming two spellings mean the same thing is the
+    failure this project is about.
+    """
+    left, right = str(one).strip(), str(other).strip()
+    if left.lower() == right.lower():
+        return True
+    if compare_as == "NUMBER":
+        def number(raw: str):
+            cleaned = re.sub(r"[^\d.\-]", "", raw)
+            try:
+                return Decimal(cleaned) if cleaned else None
+            except InvalidOperation:
+                return None
+        a, b = number(left), number(right)
+        return a is not None and a == b
+    if compare_as == "SET":
+        split = re.compile(r"[,;]|\band\b")
+        return ({p.strip().lower() for p in split.split(left) if p.strip()}
+                == {p.strip().lower() for p in split.split(right) if p.strip()})
+    return False
+
+
+def contradicts(evidence: SyntaxEvidence, proposal: Proposal,
+                compare_as: str = "TEXT") -> bool:
     """Whether this evidence argues against the model's value.
 
     Two ways, and both are about the *sign* of the score rather than its size.
@@ -182,8 +223,8 @@ def contradicts(evidence: SyntaxEvidence, proposal: Proposal) -> bool:
     Magnitude is deliberately unused — the `year end` case scored confidently
     and wrongly, so size is not a signal about correctness.
     """
-    same_value = str(evidence.proposed_value) == str(proposal.value)
-    return (evidence.score < 0) if same_value else (evidence.score > 0)
+    agrees = same_value(evidence.proposed_value, proposal.value, compare_as)
+    return (evidence.score < 0) if agrees else (evidence.score > 0)
 
 
 def fuse(dimension: str, *, model: Optional[Proposal] = None,
@@ -231,7 +272,8 @@ def fuse(dimension: str, *, model: Optional[Proposal] = None,
                    "three ratios and three accounts are not an allocation "
                    "until something says which belongs to which")
 
-    against = [e for e in syntax if contradicts(e, model)]
+    against = [e for e in syntax
+               if contradicts(e, model, requirement.compare_as)]
     if against:
         named = "; ".join(f"{e.proposed_value!r} scored {e.score:+d}"
                           for e in against)
@@ -276,9 +318,13 @@ def fuse_with_bindings(dimension: str, value, *, bindings: Sequence[Any],
 def _ambiguity(dimension: str, model: Optional[Proposal],
                syntax: Sequence[SyntaxEvidence]) -> Optional[str]:
     """Whether an attested-ambiguous term is what this decision rests on."""
+    # The *user's words*, never the dimension name and never the reader's
+    # paraphrase of them. Ambiguity is a property of the language someone
+    # wrote, not of how a reader labelled it — and with the dimension name in
+    # here, `periodic_rebalancing` matched "rebalance" on every reading it ever
+    # produced, which is a check that fires on its own subject.
     haystack = " ".join(filter(None, [
-        dimension,
-        "" if model is None else f"{model.value} {model.source_span}",
+        "" if model is None else model.source_span,
         " ".join(e.source_span for e in syntax)])).lower()
     for term in AMBIGUOUS_TERMS:
         if term in haystack:
