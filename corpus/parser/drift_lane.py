@@ -1,0 +1,259 @@
+"""Whether nondeterminism can change what gets executed.
+
+    python corpus/parser/drift_lane.py                 # 3 draws, escalate to 5
+    python corpus/parser/drift_lane.py --longitudinal  # 1 draw, for schedule
+    python corpus/parser/drift_lane.py --draws 5       # override
+
+**Not in the ordinary suite.** Every commit runs recorded readers: deterministic
+and free. This lane calls the provider live, in the exact serving profile —
+hosted model *and* Stanza, `WitnessProfile.BOTH` — because the question it
+answers cannot be answered from a recording. A recording replays one stored
+answer however many times you ask, so measuring stability against it would
+report perfect stability for a reader that has none.
+
+**The property is not determinism.** Lean does not need Discovery to give the
+same answer twice. It needs Discovery to stop a stochastic reader from silently
+changing *executable meaning* between runs. So the classification is over the
+final fused artifact, never over raw model output:
+
+    STABLE_EXECUTABLE      every draw produced the same executable plan,
+                           compared by intent hash rather than by outcome class
+    STABLE_REFUSAL         every draw refused, by the same capabilities
+    STABLE_CLARIFICATION   every draw asked, and asked the same things
+    UNSTABLE_SAFE          draws disagreed, and none of them executed
+    UNSTABLE_EXECUTABLE    draws disagreed and at least one executed
+
+The last two are split because they are different problems. A prompt that
+refuses on one draw and asks a question on the next is annoying. A prompt that
+executes on one draw and refuses on the next — or executes *a different plan* —
+is a correctness blocker, and it is the only kind that can put a wrong number
+in front of somebody.
+
+Two executable draws with different intent hashes are `UNSTABLE_EXECUTABLE`
+even though both "worked". That is the case a naive outcome-class comparison
+misses entirely, and it is the worst one: two people typing the same sentence
+get different strategies, both confidently.
+
+**Escalation.** Three draws by default. Any prompt whose draws disagree is
+re-run to five, because a 2-1 split is weak evidence about which behaviour is
+the outlier and the cases that disagree are exactly the ones worth spending on.
+Stable prompts cost three calls and nothing more.
+
+**The artifact is self-describing** and the gate rejects it when the versions it
+was produced against no longer match, or when it is older than a week. A drift
+run from three months ago proves nothing about today's schema and would
+otherwise become a guarantee nobody re-earned.
+"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+CASES = HERE / "strategy_families.json"
+OUT = HERE / "drift.json"
+
+STABLE_EXECUTABLE = "STABLE_EXECUTABLE"
+STABLE_REFUSAL = "STABLE_REFUSAL"
+STABLE_CLARIFICATION = "STABLE_CLARIFICATION"
+UNSTABLE_SAFE = "UNSTABLE_SAFE"
+UNSTABLE_EXECUTABLE = "UNSTABLE_EXECUTABLE"
+
+#: How long a drift artifact may be cited for. Not a technical limit — the
+#: provider can change under a fixed model id, so evidence about stochastic
+#: behaviour has a shelf life whether or not anything in this repository moved.
+VALID_FOR_DAYS = 7
+
+
+def _plan_digest(reading) -> str:
+    """What identifies the plan that would actually run.
+
+    The canonical form of the compiled `ScenarioSpecification`, not the intent
+    hash. The first version used `intent_hash` and reported the flagship
+    sentence — *invest $500 monthly into VTI* — as execution-unsafe across
+    three draws whose settled fields were identical. The hash covers more than
+    the executed semantics, so it moves when nothing about the simulation does.
+
+    That is the third time in this work a convenient proxy stood in for the
+    property being measured, and each time it manufactured findings: carrier
+    presence instead of refusal, field names instead of settled values, and now
+    intent identity instead of plan identity. A measurement that reports
+    working behaviour as broken cannot be trusted about the broken kind either.
+
+    Falls back to the intent hash only when there is no compiled scenario,
+    which cannot happen for an executable reading and is here so a future change
+    that makes it possible does not silently digest `None`.
+    """
+    from hashlib import sha256
+
+    compiled = reading.compiled
+    scenario = getattr(compiled, "scenario", None)
+    if scenario is None:
+        intent = reading.intent
+        return "no-plan:" + (intent.intent_hash[:16] if intent else "?")
+    canonical = json.dumps(scenario.canonical_form(), sort_keys=True,
+                           default=str)
+    return sha256(canonical.encode()).hexdigest()[:16]
+
+
+def _outcome(reading) -> dict:
+    """One draw, reduced to what actually differs for a user.
+
+    `identity` is what makes two draws the same draw. For an executable plan it
+    is the intent hash, so two plans that both execute but execute *different
+    strategies* compare unequal — the failure a comparison over outcome classes
+    alone cannot see.
+    """
+    refusals = tuple(sorted(getattr(r, "dimension", "") for r in reading.refusals))
+    questions = tuple(sorted(reading.questions))
+
+    if refusals:
+        return {"class": "REFUSAL", "identity": "refused:" + ",".join(refusals),
+                "refusals": list(refusals)}
+    if reading.executable:
+        return {"class": "EXECUTABLE", "identity": "plan:" + _plan_digest(reading),
+                "refusals": []}
+    return {"class": "CLARIFICATION",
+            "identity": "asks:" + ",".join(questions),
+            "questions": list(questions), "refusals": []}
+
+
+def classify(draws: list) -> str:
+    identities = {d["identity"] for d in draws}
+    if len(identities) == 1:
+        one = draws[0]["class"]
+        return {"EXECUTABLE": STABLE_EXECUTABLE,
+                "REFUSAL": STABLE_REFUSAL,
+                "CLARIFICATION": STABLE_CLARIFICATION}[one]
+    # Disagreed. The only question left is whether any draw could have put a
+    # figure in front of somebody.
+    if any(d["class"] == "EXECUTABLE" for d in draws):
+        return UNSTABLE_EXECUTABLE
+    return UNSTABLE_SAFE
+
+
+def _provenance(model_reader, syntax_reader, texts: list, draws: int) -> dict:
+    """Everything needed to say whether this artifact still applies.
+
+    Version fields are read from the objects that produced the run rather than
+    restated here, for the reason `derived_from` exists in the manifest: a
+    constant that has to be remembered is a constant that goes stale silently.
+    """
+    from datetime import datetime, timezone
+    from hashlib import sha256
+
+    sys.path.insert(0, str(HERE.parent))
+    from shadow_run import schema_fingerprint                   # noqa: E402
+
+    from src.discovery.hosted_recording import PROMPT_VERSION
+    from src.discovery.pipeline import PIPELINE_VERSION
+    from src.discovery.schema import QUANTIFY_SCHEMA
+    from src.discovery.witnesses import BOTH
+
+    return {
+        "schema_fingerprint": schema_fingerprint(QUANTIFY_SCHEMA),
+        "prompt_set_digest": sha256(
+            "\n".join(sorted(texts)).encode()).hexdigest()[:16],
+        "prompt_count": len(texts),
+        "hosted_model_id": model_reader.id,
+        "hosted_model": getattr(model_reader, "model", ""),
+        "prompt_version": PROMPT_VERSION,
+        "syntax_witness_version": getattr(syntax_reader, "id", "")
+                                  or f"stanza@{getattr(syntax_reader, '_version', '?')}",
+        "pipeline_version": PIPELINE_VERSION,
+        "fusion_version": "quantify-fusion@1",
+        "witness_profile": sorted(w.value if hasattr(w, "value") else str(w)
+                                  for w in BOTH.available),
+        "draws_per_prompt": draws,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
+    sys.path.insert(0, str(HERE.parent.parent))
+
+    from src.discovery.readers_quantify import HostedReader
+    from src.discovery.schema import QUANTIFY_SCHEMA
+    from src.discovery.syntax_stanza import StanzaReader
+    from src.discovery.witnesses import BOTH
+    from src.workspace.pilot import read
+
+    texts = texts or [c["text"] for c in json.loads(CASES.read_text())["cases"]]
+    model = HostedReader()
+    if not model.available():
+        raise SystemExit(f"{model.api_key_env} is not set; this lane calls the "
+                         "provider by design and cannot run without it")
+    syntax = StanzaReader("en")
+
+    def draw(text: str) -> dict:
+        reading = read(text, model, schema=QUANTIFY_SCHEMA, profile=BOTH,
+                       syntax_reader=syntax)
+        return _outcome(reading)
+
+    results, by_class = [], {}
+    for index, text in enumerate(texts, start=1):
+        got = []
+        for _ in range(draws):
+            try:
+                got.append(draw(text))
+            except Exception as failure:                        # noqa: BLE001
+                # Recorded, never dropped. A draw that vanished would make an
+                # unstable prompt look stable by having fewer opinions.
+                got.append({"class": "ERROR", "identity": f"error:{failure!r}"[:80],
+                            "refusals": []})
+
+        verdict = classify(got)
+        if verdict in (UNSTABLE_SAFE, UNSTABLE_EXECUTABLE) and escalate_to > draws:
+            for _ in range(escalate_to - draws):
+                try:
+                    got.append(draw(text))
+                except Exception as failure:                    # noqa: BLE001
+                    got.append({"class": "ERROR",
+                                "identity": f"error:{failure!r}"[:80],
+                                "refusals": []})
+            verdict = classify(got)
+
+        results.append({"text": text, "classification": verdict,
+                        "draws": got,
+                        "distinct_outcomes": sorted({d["identity"] for d in got})})
+        by_class[verdict] = by_class.get(verdict, 0) + 1
+        print(f"  [{index:2}/{len(texts)}] {verdict:22} {text[:48]}")
+
+    return {
+        "schema": "quantify-drift-lane@1",
+        "provenance": _provenance(model, syntax, texts, draws),
+        "by_classification": by_class,
+        "execution_unsafe": [r["text"] for r in results
+                             if r["classification"] == UNSTABLE_EXECUTABLE],
+        "gate_note": (
+            "The pre-Lean gate requires zero UNSTABLE_EXECUTABLE here and zero "
+            "SILENTLY_REDUCED in strategy_closure.json. Discovery need not be "
+            "deterministic; it must stop nondeterminism from changing what "
+            "executes without anybody noticing."),
+        "results": results,
+    }
+
+
+def main(argv: list) -> int:
+    draws = 1 if "--longitudinal" in argv else 3
+    if "--draws" in argv:
+        draws = int(argv[argv.index("--draws") + 1])
+    escalate = draws if draws == 1 else 5
+
+    report = run(draws=draws, escalate_to=escalate)
+    out = OUT if draws > 1 else OUT.with_name("drift_longitudinal.json")
+    out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
+
+    print(f"\n{out.name}")
+    for name, total in sorted(report["by_classification"].items()):
+        print(f"  {name:22} {total}")
+    unsafe = report["execution_unsafe"]
+    print(f"\nexecution-unsafe instability: {len(unsafe)}")
+    for text in unsafe:
+        print(f"    {text[:70]}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
