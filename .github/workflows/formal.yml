@@ -26,6 +26,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        # `pytest` only. The conformance test reads numbers out of the Lean
+        # source and imports nothing from `src`, so pulling the project's
+        # dependencies here would buy a slower job and no more checking.
+        #
+        # The first version of this workflow had no Python setup at all and
+        # went straight to `python -m pytest`, which failed three runs with
+        # "No module named pytest" — after a green Lean build, so the lane
+        # was red for a reason that had nothing to do with the proofs.
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
       - name: Install the toolchain the repository pins
         run: |
           curl -sSfL https://elan.lean-lang.org/elan-init.sh -o elan-init.sh

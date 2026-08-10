@@ -83,6 +83,20 @@ class TestTheTwoSidesAgree:
                              sold=[3 * SHARE]) == -2 * SHARE
 
 
+@pytest.fixture(scope="module")
+def guards():
+    """Every `#guard` in the Lean fixtures, as (fixture, field, asset, value).
+
+    Module-scoped and free-standing. A class-scoped fixture written as an
+    instance method is deprecated — pytest builds a new instance per test while
+    running the fixture once, so anything it set on `self` would be invisible.
+    """
+    if not LEAN.exists():
+        pytest.skip("formal/Quantify/Fixtures.lean is absent")
+    return re.findall(r"#guard\s+(\S+)\.(\w+)(?:\s+\"(\w+)\")?\s*==\s*"
+                      r"(-?\d+)", LEAN.read_text())
+
+
 class TestThePythonSideMatchesTheLeanFile:
     """Read from the Lean source, so the two cannot drift apart silently.
 
@@ -90,13 +104,6 @@ class TestThePythonSideMatchesTheLeanFile:
     still pass, and the conformance claim quietly becomes two unrelated sets of
     numbers that happen to be green.
     """
-
-    @pytest.fixture(scope="class")
-    def guards(self):
-        if not LEAN.exists():
-            pytest.skip("formal/Quantify/Fixtures.lean is absent")
-        return re.findall(r"#guard\s+(\S+)\.(\w+)(?:\s+\"(\w+)\")?\s*==\s*"
-                          r"(-?\d+)", LEAN.read_text())
 
     def test_the_lean_file_states_the_same_numbers(self, guards):
         expected = {
