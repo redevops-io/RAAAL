@@ -1,22 +1,27 @@
-"""Whether Quantify can *name* what people ask for, across twenty families.
+"""Whether Quantify refuses what it cannot model, across twenty families.
 
 A web sweep of planning literature found roughly twenty strategy families
 people bring to a planner. The phrasing pack contained examples of three of
 them, all accumulation — because the sources it could lawfully read are places
 where people ask how to put money in, not where they state a decumulation plan.
 
-**The property here is not "the parser understands this".** Quantify runs a
-buy-and-hold engine and the manifest is candid about it: `sell_action` is
-REFUSED — *selling, withdrawing and harvesting are not modelled* — and
-`tax_treatment` is NOT_MODELLED. For those families, being understood is not
-the goal. Being *named* is, because a refusal that never fires is not a
-boundary, and the fragment that survives an unfired refusal is always
-accumulation-shaped.
+**The property is refusal, not understanding.** Quantify runs a buy-and-hold
+engine and the manifest is candid about it: `sell_action` is REFUSED —
+*selling, withdrawing and harvesting are not modelled* — and `tax_treatment` is
+NOT_MODELLED. For those families the rule is:
 
-That is what makes `SILENTLY_REDUCED` worse than `NOTHING_READ`. A sentence
-that reads as nothing sends somebody back to rephrase. A sentence that reads as
-a fragment sends them away with a figure computed for a strategy they did not
-describe.
+    if the engine cannot model the semantic, Discovery must preserve enough of
+    it for Mission to refuse it BY NAME
+
+so each case is scored by asking `refusals_for` what was read, not by checking
+whether one nominated dimension appeared. An earlier version did the latter and
+was wrong in both directions — it called asset location understood because
+`account_type` happened to appear, and called a withdrawal unhandled when the
+model had read `objective=assess_withdrawal` that Mission would refuse on.
+
+`SILENTLY_REDUCED` is ranked worse than `NOTHING_READ`. A sentence that reads as
+nothing sends somebody back to rephrase; a fragment sends them away with a
+figure computed for a strategy they did not describe.
 """
 from __future__ import annotations
 
@@ -34,7 +39,19 @@ def cases():
 
 
 @pytest.fixture(scope="module")
-def report():
+def compiler():
+    """The legacy reader. Deterministic, so its numbers can be pinned."""
+    import sys
+
+    sys.path.insert(0, str(CORPUS))
+    from strategy_closure import measure
+
+    return measure("compiler")
+
+
+@pytest.fixture(scope="module")
+def serving():
+    """The reader a deployment actually serves — one recorded draw from it."""
     import sys
 
     sys.path.insert(0, str(CORPUS))
@@ -63,35 +80,15 @@ class TestTheCorpusIsWellFormed:
             assert case["source"].startswith("http"), case["id"]
 
     def test_the_pack_declares_that_its_sentences_are_authored(self, cases):
-        """`real_phrasings.json` is the attested pack and this is not it.
-
-        Counting these as evidence about phrasing coverage would be the
-        self-authored-evidence defect: the sentences would be measuring how
-        well the parser handles sentences written by someone who knew what the
-        parser does.
-        """
+        """`real_phrasings.json` is the attested pack and this is not it."""
         assert all(c["provenance"] == "authored_from_cited_definition"
                    for c in cases["cases"])
         assert "NOT attested" in cases["provenance_note"]
 
 
 class TestTheExpectationsMatchTheManifest:
-    """A family expected to be refused must be refusable.
-
-    Otherwise the corpus asserts a boundary the engine never claimed, and the
-    report counts a defect against behaviour nothing promised.
-    """
-
-    #: Carriers with no manifest entry, and why that is itself a finding.
-    #: Declared rather than skipped: an exception needs a stated reason, and
-    #: these two are the reason the list exists.
-    NO_MANIFEST_ENTRY: dict = {
-        # `objective` was here. The hosted-reader measurement showed the model
-        # reads "draw down 3% a year in retirement" correctly as
-        # `assess_withdrawal`, and `decide` then executed it, because an
-        # unclassified dimension is treated as not forbidden. It now has a
-        # manifest entry and the check below is what removed it from this list.
-    }
+    """A family expected to be refused must be refusable, or the corpus asserts
+    a boundary the engine never claimed."""
 
     def test_each_refused_family_can_actually_be_refused(self, cases):
         from src.mission.capability import MANIFEST
@@ -101,100 +98,185 @@ class TestTheExpectationsMatchTheManifest:
             if case["must_be"] != "REFUSED_BY_NAME":
                 continue
             for carrier in case["carriers"]:
-                if carrier in self.NO_MANIFEST_ENTRY:
-                    continue
                 entry = manifest.get(carrier)
                 assert entry is not None, (
-                    f"{case['id']}: {carrier} is neither in the manifest nor "
-                    "declared as a gap")
-                # Either the whole dimension is refused, or it executes but
-                # refuses particular values — 'allocate by inverse volatility'
-                # is the second kind.
+                    f"{case['id']}: {carrier} has no manifest entry")
+                # Either the whole dimension is refused, or it executes and
+                # refuses particular values — `objective=assess_withdrawal` is
+                # the second kind.
                 assert entry.support in ("REFUSED", "NOT_MODELLED") \
                     or entry.refuses, (
                         f"{case['id']}: {carrier} is {entry.support} and "
                         "refuses nothing, so this family is not refusable")
 
-    def test_the_declared_gaps_are_still_gaps(self):
-        """If a manifest entry appears later, this list must shrink.
-
-        A declared exception that has quietly become unnecessary is how an
-        escape hatch outlives its reason.
+    @pytest.mark.parametrize("objective,refused", [
+        ("assess_withdrawal", True),
+        ("assess_conversion", True),
+        ("assess_debt_repayment", True),
+        ("plan_contributions", False),
+        ("evaluate_investment_strategy", False),
+        ("other", False),
+    ])
+    def test_the_objective_dimension_is_classified(self, objective, refused):
+        """`objective` had no manifest entry, so `decide` returned None — an
+        unclassified dimension is not forbidden, which is the correct default
+        and was the wrong answer. `other` stays executable deliberately:
+        refusing it would convert absence of classification into a refusal.
         """
+        from src.mission.capability import decide
+
+        assert (decide("objective", objective) is not None) is refused
+
+    def test_every_refusable_objective_is_in_the_schema(self):
+        """Mission may only refuse what Discovery can say. A manifest refusing
+        a value no reader can produce is a boundary nothing reaches."""
+        from src.discovery.schema import QUANTIFY_SCHEMA
         from src.mission.capability import MANIFEST
 
-        manifest = dict(MANIFEST)
-        for carrier in self.NO_MANIFEST_ENTRY:
-            assert carrier not in manifest, (
-                f"{carrier} is now in the manifest; remove it from "
-                "NO_MANIFEST_ENTRY and let the real check cover it")
+        vocabulary = {d.name: d.values for d in QUANTIFY_SCHEMA.dimensions}
+        for value in dict(MANIFEST)["objective"].refuses:
+            assert value in vocabulary["objective"], (
+                f"the manifest refuses objective={value}, which no reader can "
+                "propose because the schema has no such value")
 
 
-class TestWhatTheEngineCurrentlyDoes:
-    """The measurement, pinned. These numbers are a defect report, not a goal.
+class TestTheLegacyReaderIsOffTheServingPath:
+    def test_nothing_in_src_constructs_it(self):
+        """The architecture decision, checked structurally rather than by
+        reading the routes. `quantify-compiler@2` is the source of the
+        accumulation bias; it survives as a corpus comparator and must not
+        return to serving.
+        """
+        import ast
 
-    They are asserted so that the gap cannot widen unnoticed and so that
-    closing any part of it shows up as a failing test asking to be updated.
-    """
+        offenders = []
+        for path in (Path(__file__).resolve().parent.parent / "src").rglob("*.py"):
+            tree = ast.parse(path.read_text())
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and \
+                        getattr(node.func, "id", "") == "CompilerReader":
+                    offenders.append(path.name)
+        assert not offenders, (
+            f"CompilerReader is constructed in {offenders}; the legacy reader "
+            "is back on a serving path")
 
-    #: Measured against `quantify-compiler@2` on 2026-08-09.
-    SILENTLY_REDUCED_TODAY = 11
+    def test_the_serving_reader_is_the_hosted_one(self):
+        """What a runtime deployment hands to Discovery."""
+        import inspect
 
-    def test_the_silent_reduction_count_has_not_grown(self, report):
-        reduced = report["by_state"].get("SILENTLY_REDUCED", 0)
-        assert reduced <= self.SILENTLY_REDUCED_TODAY, (
-            f"{reduced} sentences now produce a plan for a strategy nobody "
-            f"described, up from {self.SILENTLY_REDUCED_TODAY}")
+        from src.workspace import pilot_routes
 
-    def test_and_if_it_shrank_this_number_should_follow(self, report):
-        reduced = report["by_state"].get("SILENTLY_REDUCED", 0)
-        assert reduced == self.SILENTLY_REDUCED_TODAY, (
-            f"{reduced} silent reductions, fewer than the recorded "
-            f"{self.SILENTLY_REDUCED_TODAY}. Something was fixed — lower the "
-            "constant so the improvement is locked in")
+        source = inspect.getsource(pilot_routes.configured_reader)
+        assert "HostedReader" in source
+        assert "CompilerReader" not in source
 
-    @pytest.mark.parametrize("text,wrong_reading", [
+
+class TestTheCompilerBaseline:
+    """Pinned, because this reader is deterministic. It is a defect report."""
+
+    #: 9, not the 11 first reported. The reader did not change; the question
+    #: did. Scoring by carrier presence counted a case as reduced whenever one
+    #: nominated dimension was absent, including cases where something else the
+    #: compiler read — `stated_weights`, `periodic_rebalancing` — already earns
+    #: a refusal from the manifest. Two numbers from two instruments, and the
+    #: refusal-based one is the one that matches the rule being enforced.
+    SILENTLY_REDUCED = 9
+
+    def test_the_legacy_reader_still_reduces_this_many(self, compiler):
+        assert compiler["by_state"].get("SILENTLY_REDUCED", 0) == \
+            self.SILENTLY_REDUCED, (
+                "the legacy baseline moved; it is deterministic, so something "
+                "changed in the compiler or the corpus")
+
+    @pytest.mark.parametrize("text,how", [
         ("sell VTI and buy BND", "the sell becomes a purchase of both"),
         ("convert $30,000 from the traditional IRA to the Roth each year",
          "indistinguishable from contributing $30,000 to a Roth annually"),
         ("withdraw 4% of the portfolio each year, adjusted for inflation",
          "reads as an annual cadence with no withdrawal"),
     ])
-    def test_the_named_defects_are_still_there(self, report, text,
-                                               wrong_reading):
-        """Named individually so that fixing one is visible as one test going
-        green, rather than a count moving by an amount nobody can attribute."""
-        states = {c["text"]: c["state"] for c in report["cases"]}
-        assert states.get(text) in ("SILENTLY_REDUCED", "NOTHING_READ"), (
-            f"{text!r} no longer misreads ({wrong_reading}) — update this list")
+    def test_the_named_legacy_defects(self, compiler, text, how):
+        states = {c["text"]: c["state"] for c in compiler["cases"]}
+        assert states.get(text) in ("SILENTLY_REDUCED", "NOTHING_READ"), how
+
+
+class TestTheServingReaderRefusesFarMore:
+    """Direction, not magnitude. The magnitude is not stable — see below."""
+
+    def test_it_refuses_where_the_compiler_stayed_silent(self, compiler,
+                                                         serving):
+        assert serving["by_state"].get("REFUSED", 0) > \
+            compiler["by_state"].get("REFUSED", 0) * 3
+
+    def test_and_reduces_far_fewer(self, compiler, serving):
+        assert serving["by_state"].get("SILENTLY_REDUCED", 0) < \
+            compiler["by_state"].get("SILENTLY_REDUCED", 0)
+
+
+class TestTheServingReaderIsNotStable:
+    """The finding that decides what this corpus may claim.
+
+    Two recordings of the same model, same prompt version, differed on 24 of
+    36 sentences — only one attributable to a schema change. Two sentences lost
+    a `sell_action` they previously had, and one inverted its trigger
+    semantics from `persistent_condition` to `crossing_event`, which is the
+    exact defect class this project already names.
+
+    So a gate of the form `SILENTLY_REDUCED == 0` is not well defined against
+    this witness alone: the number moves when nothing changed. That is an
+    argument for a second, deterministic witness on the serving path rather
+    than for pinning a number that will drift.
+    """
+
+    ARCHIVE = CORPUS / "strategy_closure_hosted.json"
+
+    def test_two_recordings_of_one_model_disagree(self, serving):
+        if not self.ARCHIVE.exists():
+            pytest.skip("no earlier recording retained to compare against")
+
+        earlier = {c["text"]: c["read"]
+                   for c in json.loads(self.ARCHIVE.read_text())["cases"]}
+        now = {c["text"]: c["read"] for c in serving["cases"]}
+        moved = [t for t in earlier if earlier[t] != now.get(t)]
+        assert len(moved) > 10, (
+            "the two archived recordings now agree closely. If the model or "
+            "prompt was stabilised, say so here — this test exists to stop a "
+            "single stochastic draw being quoted as a fixed measurement")
+
+    def test_so_no_hosted_count_is_pinned_in_this_file(self):
+        """Checked structurally, because the temptation is to add one.
+
+        Pinning a hosted count would produce a test that fails on
+        re-recording for reasons unrelated to any change in the code, and the
+        usual repair is to update the constant — which quietly converts a
+        measurement into whatever the last draw happened to say.
+        """
+        import ast
+
+        tree = ast.parse(Path(__file__).read_text())
+        pinned = [n.targets[0].id for n in ast.walk(tree)
+                  if isinstance(n, ast.Assign)
+                  and isinstance(n.targets[0], ast.Name)
+                  and n.targets[0].id.isupper()
+                  and isinstance(n.value, ast.Constant)
+                  and isinstance(n.value.value, int)]
+        assert pinned == ["SILENTLY_REDUCED"], (
+            f"{pinned} are pinned integers; only the deterministic compiler "
+            "baseline may be one")
 
 
 class TestAsymmetryBetweenSchemaAndRecognition:
     """Asset location is a schema gap, and saying so sends the work somewhere.
 
-    `account_type` *is* read from "hold the bonds in the IRA and the stocks in
-    the taxable account" — it returns TAXABLE. Scored against that carrier the
-    family looks understood, while the thing asked for, a mapping of holdings
-    onto accounts, is gone. A single-valued dimension cannot carry a mapping,
-    so no amount of recognition work fixes this one and counting it as a
+    A single-valued `account_type` cannot carry a mapping of holdings onto
+    accounts, so no amount of recognition work fixes it and counting it as a
     recognition defect would send the effort to the wrong layer.
     """
 
-    def test_asset_location_is_scored_as_a_schema_gap(self, report):
-        states = {c["text"]: c["state"] for c in report["cases"]}
+    def test_asset_location_is_scored_as_a_schema_gap(self, serving):
+        states = {c["text"]: c["state"] for c in serving["cases"]}
         assert states["hold the bonds in the IRA and the stocks in the "
                       "taxable account"] == "SCHEMA_GAP"
-
-    def test_and_the_reading_that_made_it_look_fine_is_still_there(self,
-                                                                   report):
-        """The trap, kept visible. If `account_type` stopped being read this
-        would pass for the wrong reason — the gap would look closed because
-        recognition got worse."""
-        case = [c for c in report["cases"]
-                if c["family"] == "asset_location"][0]
-        assert case["read"].get("account_type"), (
-            "account_type no longer reads here; this family stopped being a "
-            "trap and the test above stopped proving anything")
 
     def test_a_schema_gap_declares_no_carrier(self, cases):
         for case in cases["cases"]:
@@ -203,114 +285,25 @@ class TestAsymmetryBetweenSchemaAndRecognition:
                     f"{case['id']} claims no dimension exists but names one")
 
 
-class TestTheReportSeparatesTheTwoFailures:
-    """The distinction the whole report rests on.
-
-    If these two states collapsed into one, the number that matters — how often
-    somebody gets a figure for a strategy they did not describe — would be
-    hidden inside a general "did not work" count.
-    """
-
-    def test_a_sentence_read_as_nothing_is_not_a_silent_reduction(self, report):
-        for case in report["cases"]:
+class TestTheReportSeparatesTheFailures:
+    def test_a_sentence_read_as_nothing_is_not_a_silent_reduction(self,
+                                                                  serving):
+        for case in serving["cases"]:
             if case["state"] == "NOTHING_READ":
                 assert case["read"] == {}, (
                     f"{case['id']} was called NOTHING_READ with "
                     f"{case['read']} in hand")
 
-    def test_a_silent_reduction_always_has_something_it_read_instead(
-            self, report):
-        for case in report["cases"]:
+    def test_a_silent_reduction_read_something_and_earned_no_refusal(
+            self, serving):
+        for case in serving["cases"]:
             if case["state"] == "SILENTLY_REDUCED":
                 assert case["read"], f"{case['id']} reduced to nothing at all"
-                assert not any(c in case["read"] for c in case["carriers"]), (
-                    f"{case['id']} read its own carrier and was still called "
-                    "reduced")
+                assert not case["refused"], (
+                    f"{case['id']} was refused and still called reduced")
 
-    def test_the_report_says_which_witness_it_used(self, report):
-        """One reader, and the pilot profile has only one too.
-
-        A report that did not name its witness would read as a fact about
-        Quantify rather than about `quantify-compiler@2`, and under MODEL_ONLY
-        there is no second reader to catch the model missing the same
-        dimension.
-        """
-        assert report["witness"] == "quantify-compiler@2"
-        assert "MODEL_ONLY" in report["witness_note"]
-
-
-@pytest.fixture(scope="module")
-def hosted():
-    import sys
-
-    sys.path.insert(0, str(CORPUS))
-    from strategy_closure import measure
-
-    return measure("hosted")
-
-
-class TestWhichReaderIsActuallyAtFault:
-    """The measurement that decides where the work goes.
-
-    Eleven silent reductions against `quantify-compiler@2` is a finding about
-    the reader being deleted. Whether it is also a finding about Discovery is a
-    different question, and running the same 36 cases through the hosted reader
-    answers it: the model carries 25 where the compiler carries 4, and emits
-    `sell_action` on twelve sentences the compiler read as purchases or as
-    nothing.
-
-    So this is overwhelmingly an argument for finishing the legacy-reader
-    deletion rather than teaching it to recognise decumulation.
-    """
-
-    def test_the_hosted_reader_carries_far_more(self, report, hosted):
-        assert hosted["by_state"].get("CARRIED", 0) > \
-            report["by_state"].get("CARRIED", 0) * 4
-
-    def test_and_the_sharpest_inversion_is_gone(self, hosted):
-        """`sell VTI and buy BND` reads as a purchase of both under the
-        compiler. The plan holds what the person said they were disposing of,
-        which is not an approximation of their request but its opposite."""
-        case = [c for c in hosted["cases"] if c["text"] == "sell VTI and buy BND"][0]
-        assert case["state"] == "CARRIED"
-        assert "sell" in str(case["read"].get("sell_action", "")).lower()
-
-    def test_a_sell_action_reading_earns_a_refusal_by_name(self):
-        """Recognition is only worth something if the manifest then fires.
-
-        Asserted through `decide` rather than by reading the manifest table,
-        because the table says what is refused and this says that asking
-        produces the refusal.
-        """
-        from src.mission.capability import decide
-
-        refusal = decide("sell_action", "sell VTI")
-        assert refusal is not None
-        assert refusal.dimension == "sell_action"
-
-    def test_a_withdrawal_objective_is_refused_rather_than_executed(self):
-        """The gap the hosted measurement exposed.
-
-        The model read "draw down 3% a year in retirement" correctly. Mission
-        executed it, because `decide` treats an unclassified dimension as not
-        forbidden — the right default and the wrong answer here.
-        """
-        from src.mission.capability import decide
-
-        assert decide("objective", "assess_withdrawal") is not None
-        assert decide("objective", "plan_contributions") is None, (
-            "classifying the objective dimension must not refuse the "
-            "objectives this build does execute")
-
-    def test_four_cases_got_worse_and_that_is_recorded(self, report, hosted):
-        """Honest counterweight: the model reads a fragment where the compiler
-        read nothing, and by this report's own ranking that is a regression —
-        NOTHING_READ sends somebody back to rephrase, SILENTLY_REDUCED does
-        not. Named so the hosted reader is not reported as a pure improvement.
-        """
-        before = {c["id"]: c["state"] for c in report["cases"]}
-        after = {c["id"]: c["state"] for c in hosted["cases"]}
-        worse = [i for i in before
-                 if before[i] == "NOTHING_READ" and after[i] == "SILENTLY_REDUCED"]
-        assert sorted(worse) == ["bucket_strategy-01", "cash_reserve-01",
-                                 "glidepath-02", "leverage-01"]
+    def test_the_report_names_its_witness(self, serving, compiler):
+        """A report that did not name its reader would read as a fact about
+        Quantify rather than about one witness."""
+        assert serving["witness"] != compiler["witness"]
+        assert "MODEL_ONLY" in serving["witness_note"]

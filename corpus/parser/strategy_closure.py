@@ -3,18 +3,34 @@
     python corpus/parser/strategy_closure.py          # writes strategy_closure.json
     python corpus/parser/strategy_closure.py --print  # and shows the table
 
-One state per case, and the middle one is the whole reason this exists:
+**What is measured is the refusal, not a dimension.** The first version scored
+a case CARRIED when one nominated dimension appeared in the reading. That is a
+proxy for the thing that matters and it was wrong in both directions: it called
+asset location understood because `account_type` happened to appear, and it
+called a withdrawal unhandled when the model had read
+`objective=assess_withdrawal` and Mission would refuse on it. The rule this
+tier exists to enforce is:
 
-    CARRIED             the dimension that should carry the request was read.
-                        For a REFUSED_BY_NAME family that is success — Mission
-                        can now refuse the thing the person asked for.
+    if the engine cannot model the semantic, Discovery must preserve enough of
+    it for Mission to refuse it BY NAME
 
-    SILENTLY_REDUCED    the carrying dimension was NOT read, but something else
-                        was. The sentence produces a plan built from whatever
-                        fragment survived, and every surviving fragment in this
-                        build is accumulation-shaped. This is the dangerous
-                        state: no refusal, no approximation flagged as one, and
-                        a figure at the end of it.
+so the question asked of each case is now `refusals_for(reading)` — does asking
+Mission about what was read produce a refusal. One state per case:
+
+    REFUSED             Mission refuses this, by name. Success for an
+                        unsupported family regardless of which dimension
+                        carried it.
+
+    EXECUTABLE          the family is supported and Mission raises no
+                        objection. Success for a supported family.
+
+    SILENTLY_REDUCED    something was read, the family is unsupported, and
+                        Mission refuses nothing. The sentence produces a plan
+                        built from whatever fragment survived, and every
+                        surviving fragment in this build is
+                        accumulation-shaped. This is the dangerous state: no
+                        refusal, no approximation flagged as one, and a figure
+                        at the end of it.
 
     NOTHING_READ        nothing at all was recognised. Honest failure. The
                         person is told the sentence could not be read, which is
@@ -41,7 +57,8 @@ HERE = Path(__file__).resolve().parent
 CASES = HERE / "strategy_families.json"
 OUT = HERE / "strategy_closure.json"
 
-CARRIED = "CARRIED"
+REFUSED = "REFUSED"
+EXECUTABLE = "EXECUTABLE"
 SILENTLY_REDUCED = "SILENTLY_REDUCED"
 NOTHING_READ = "NOTHING_READ"
 
@@ -56,6 +73,12 @@ def _read(reader, schema, text: str) -> dict:
     if getattr(result, "failed", ""):
         return {}
     return {r.dimension: r.value for r in result.readings}
+
+
+#: The reader a deployment actually serves. `compiler` is retained only as a
+#: historical comparator: nothing in `src/` constructs `CompilerReader`, and
+#: `test_strategy_families` asserts that structurally.
+SERVING = "hosted"
 
 
 def _witness(name: str):
@@ -76,10 +99,11 @@ def _witness(name: str):
     return CompilerReader()
 
 
-def measure(witness: str = "compiler") -> dict:
+def measure(witness: str = SERVING) -> dict:
     sys.path.insert(0, str(HERE.parent.parent))
 
     from src.discovery.schema import QUANTIFY_SCHEMA
+    from src.mission.capability import refusals_for
 
     document = json.loads(CASES.read_text())
     reader = _witness(witness)
@@ -87,16 +111,23 @@ def measure(witness: str = "compiler") -> dict:
     results, by_state, by_family = [], {}, {}
     for case in document["cases"]:
         got = _read(reader, QUANTIFY_SCHEMA, case["text"])
-        if not case["carriers"]:
+        refusals = refusals_for(got)
+        supported = case["must_be"] == "RECOGNISED"
+
+        if not case["carriers"] and not supported:
             state = SCHEMA_GAP
-        elif any(c in got for c in case["carriers"]):
-            state = CARRIED
+        elif refusals:
+            state = REFUSED
+        elif supported:
+            state = EXECUTABLE
         elif got:
             state = SILENTLY_REDUCED
         else:
             state = NOTHING_READ
 
-        results.append({**case, "state": state, "read": got})
+        results.append({**case, "state": state, "read": got,
+                        "refused": [f"{r.dimension}={r.stated_value!r}"
+                                    for r in refusals]})
         by_state[state] = by_state.get(state, 0) + 1
         family = by_family.setdefault(case["family"], {})
         family[state] = family.get(state, 0) + 1
@@ -121,12 +152,13 @@ def measure(witness: str = "compiler") -> dict:
 
 def main(show: bool = False, witness: str = "compiler") -> int:
     report = measure(witness)
-    out = OUT if witness == "compiler" else OUT.with_name(
-        "strategy_closure_hosted.json")
+    out = OUT if witness == SERVING else OUT.with_name(
+        "strategy_closure_compiler.json")
     out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
 
     print(f"{report['count']} cases, witness {report['witness']}")
-    for state in (CARRIED, SILENTLY_REDUCED, NOTHING_READ, SCHEMA_GAP):
+    for state in (REFUSED, EXECUTABLE, SILENTLY_REDUCED, NOTHING_READ,
+                  SCHEMA_GAP):
         print(f"  {state:18} {report['by_state'].get(state, 0)}")
 
     if show:
@@ -141,4 +173,4 @@ def main(show: bool = False, witness: str = "compiler") -> int:
 if __name__ == "__main__":
     raise SystemExit(main(
         show="--print" in sys.argv,
-        witness="hosted" if "--hosted" in sys.argv else "compiler"))
+        witness="compiler" if "--compiler" in sys.argv else SERVING))

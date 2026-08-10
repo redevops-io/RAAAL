@@ -140,10 +140,19 @@ MANIFEST: Mapping[str, Dimension] = {
         "objective", EXECUTED,
         values=("evaluate_investment_strategy", "compare_strategies",
                 "plan_contributions", "other"),
-        refuses={"assess_withdrawal":
-                 "this build only buys, so it cannot assess what taking money "
-                 "out would do; the contributions and the holdings can be "
-                 "modelled but the withdrawal itself cannot"}),
+        refuses={
+            "assess_withdrawal":
+                "this build only buys, so it cannot assess what taking money "
+                "out would do; the contributions and the holdings can be "
+                "modelled but the withdrawal itself cannot",
+            "assess_conversion":
+                "moving money between account types is not modelled: no tax "
+                "is computed, and a conversion whose whole effect is a tax "
+                "one would be simulated as an ordinary contribution",
+            "assess_debt_repayment":
+                "the engine values market holdings; a debt has no price "
+                "series, so paying one down cannot be compared against "
+                "investing without inventing the return it avoids"}),
 
     # ---- when money arrives ------------------------------------------
     "cadence": _d(

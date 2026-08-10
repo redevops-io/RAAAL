@@ -65,6 +65,59 @@ def configured_reader():
     return HostedReader(model=model.model or "claude-sonnet-5")
 
 
+def _declared_profile():
+    """The witness profile this deployment declared, onto every artifact.
+
+    Read from the resolved context rather than inferred from whether a syntax
+    reader was constructed: `MODEL_ONLY` and `BOTH` are claims a plan carries
+    for its whole life, and inferring one from a local variable is how an
+    artifact comes to say it had two witnesses because an import succeeded.
+    """
+    from ..deploy.context import current
+
+    return current().model.witnesses
+
+
+def configured_syntax_reader():
+    """The deterministic witness, if this deployment declared one.
+
+    `None` when it did not, so the caller can tell "no syntax reader" from "a
+    syntax reader that found nothing" — the same distinction `unread` makes for
+    dimensions, and for the same reason: a silent witness and an absent one
+    look identical in a fused decision unless something records which it was.
+
+    Mirrors the hosted/recorded split. A `RECORDED` deployment replays parses
+    from `parses.json`; a `HOSTED` one loads the real parser, which is a ~500MB
+    model and seconds to start, so it is constructed once per process rather
+    than per request.
+    """
+    from ..deploy.context import PilotReader, current
+
+    model = current().model
+    if not model.syntax_witness:
+        return None
+
+    if model.pilot_reader is PilotReader.RECORDED:
+        from ..discovery.syntax_stanza import RecordedReader
+
+        return RecordedReader()
+
+    return _live_parser()
+
+
+_PARSER: Dict[str, Any] = {}
+
+
+def _live_parser():
+    """One Stanza instance per process. Loading it per request would put a
+    neural model load in front of every sentence somebody types."""
+    if "reader" not in _PARSER:
+        from ..discovery.syntax_stanza import StanzaReader
+
+        _PARSER["reader"] = StanzaReader("en")
+    return _PARSER["reader"]
+
+
 def _observe_attempt(request, describe: str, reading: PilotReading,
                      answers: Optional[Dict[str, str]] = None,
                      run: Optional[Dict[str, Any]] = None) -> str:
@@ -219,7 +272,9 @@ def draft(request: Request, describe: str = ""):
         attach(empty, participant_in(request) or new_participant())
         return empty
     try:
-        reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA)
+        reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA,
+                       profile=_declared_profile(),
+                       syntax_reader=configured_syntax_reader())
     except InterpreterUnavailable as down:
         return TEMPLATES.TemplateResponse(
             request, "pilot.html",
@@ -264,7 +319,9 @@ async def pilot_answer(request: Request, describe: str = Form(...)):
                if k.startswith("answer_") and str(v).strip()}
 
     try:
-        reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA)
+        reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA,
+                       profile=_declared_profile(),
+                       syntax_reader=configured_syntax_reader())
     except InterpreterUnavailable as down:
         return TEMPLATES.TemplateResponse(
             request, "pilot.html",
@@ -301,7 +358,9 @@ async def pilot_save(request: Request, describe: str = Form(...)):
                for k, v in form.items()
                if k.startswith("answer_") and str(v).strip()}
 
-    reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA)
+    reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA,
+                   profile=_declared_profile(),
+                   syntax_reader=configured_syntax_reader())
     if answers:
         reading = answer(reading, answers)
 

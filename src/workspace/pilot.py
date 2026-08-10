@@ -130,6 +130,7 @@ class PilotReading:
 
 def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
          profile: WitnessProfile = MODEL_ONLY,
+         syntax_reader=None,
          objective: str = "evaluate_investment_strategy",
          utterance_ref: str = "") -> PilotReading:
     """One submission, through the runtime.
@@ -137,19 +138,39 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
     `reader` is injected rather than constructed so the route can pass the
     deployment's configured reader and a test can pass a recorded one — the
     same reason `pipeline.read` takes its witnesses instead of fetching them.
+
+    **`syntax_reader` does not decide meaning.** When present, the utterance
+    goes through `pipeline.read`, where syntax enters `fuse` as *evidence*
+    beside the model's proposal. Fusion still only proceeds on `AGREE`, and
+    "syntax proposed a value the model never mentioned" is `DISAGREE` — so a
+    structural witness can withhold a reading but can never mint one. Without
+    that rule this would be a second semantic compiler, which is the thing the
+    architecture exists to avoid.
+
+    Why it is here at all: two recordings of one model, same prompt version,
+    differed on 24 of 36 corpus sentences. One inverted `persistent_condition`
+    to `crossing_event`. A single stochastic witness cannot hold an executable
+    meaning still between runs, and syntax is what stops it moving unnoticed.
     """
     reading: ReadingSet = reader.read(text, schema)
     if not reading.ok:
         raise InterpreterUnavailable(
             f"{reading.reader_id} did not answer: {reading.failed}")
 
-    proposals = [Proposal(dimension=r.dimension, value=r.value,
-                          reader_id=reading.reader_id, source_span=r.source_span)
-                 for r in reading.readings]
-    fields = sorted({p.dimension for p in proposals})
+    if syntax_reader is not None:
+        from ..discovery.pipeline import read as fuse_both
 
-    decisions = [fuse(p.dimension, model=p, available=fields)
-                 for p in proposals]
+        decisions = list(fuse_both(text, syntax_reader.parse(text), reading,
+                                   schema).decisions)
+    else:
+        proposals = [Proposal(dimension=r.dimension, value=r.value,
+                              reader_id=reading.reader_id,
+                              source_span=r.source_span)
+                     for r in reading.readings]
+        fields = sorted({p.dimension for p in proposals})
+        decisions = [fuse(p.dimension, model=p, available=fields)
+                     for p in proposals]
+
     settled = record(decisions, profile)
 
     # Open and absent are different facts and only one of them is a question.

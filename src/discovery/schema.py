@@ -22,14 +22,33 @@ from __future__ import annotations
 
 from .reader import Dimension, RelationSpec, Schema
 
-QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@2", dimensions=(
+# @3: `objective` gained `assess_conversion` and `assess_debt_repayment`.
+# Bumped because the *content* changed — a fingerprint that moves under an
+# unchanged version makes two runs look comparable when they are not, which is
+# the same rule `READER_VERSION` and `quantify-compiler@2` already follow.
+# The shadow matrices were built under @2 and are stale; `corpus/shadow/STALE.md`
+# says so and `test_phase3_exit_gate` checks that the declaration is current.
+QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@3", dimensions=(
 
     Dimension(
         name="objective",
         describes="What the person wants to find out or do.",
         values=("evaluate_investment_strategy", "compare_strategies",
-                "plan_contributions", "assess_withdrawal", "other"),
-        examples=("evaluate this strategy", "should I convert to a Roth")),
+                "plan_contributions", "assess_withdrawal",
+                # Added after the strategy-family sweep. The examples below
+                # already promised "should I convert to a Roth" while the
+                # vocabulary had no value for it, so the model answered `other`
+                # — correctly, and uselessly, because `other` is what a reader
+                # says when a sentence names no objective at all. Mission then
+                # executed it as an ordinary contribution plan.
+                #
+                # Neither is executable and both are here anyway, which is the
+                # rule this whole file follows: the schema states what can be
+                # meant and the manifest decides what can be run.
+                "assess_conversion", "assess_debt_repayment",
+                "other"),
+        examples=("evaluate this strategy", "should I convert to a Roth",
+                  "pay off the mortgage instead of investing")),
 
     # ---- when money arrives -----------------------------------------
     Dimension(

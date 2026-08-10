@@ -50,6 +50,12 @@ TRACE_PATH_VAR = "QUANTIFY_TRACE_PATH"
 TRACE_RETENTION_VAR = "QUANTIFY_TRACE_RETENTION_DAYS"
 
 
+#: Whether the deterministic syntax witness runs beside the model on the
+#: serving path. Declared, never inferred from whether Stanza imports: an
+#: image that happens to have the package is not a deployment that decided to
+#: use it, and `WitnessProfile` is carried onto every artifact.
+SYNTAX_WITNESS_VAR = "QUANTIFY_SYNTAX_WITNESS"
+
 #: Whether pilot participants' own sentences are retained, and for how long.
 TRANSCRIPTS_VAR = "QUANTIFY_PILOT_TRANSCRIPTS"
 TRANSCRIPT_RETENTION_VAR = "QUANTIFY_PILOT_TRANSCRIPT_DAYS"
@@ -121,6 +127,7 @@ def _model_target(source: Mapping[str, str]) -> "ModelTarget":
         model=source.get("QUANTIFY_PARSER_MODEL"),
         mode=mode, fallback=fallback, declared=bool(raw_mode),
         pilot_reader=reader,
+        syntax_witness=_affirmative(source.get(SYNTAX_WITNESS_VAR)),
         prompt_version=source.get(PARSER_PROMPT_VERSION_VAR) or PARSER_VERSION)
 
 
@@ -250,6 +257,18 @@ class ModelTarget:
     mode: "ParserMode" = ParserMode.DETERMINISTIC
     fallback: "ParserFallback" = ParserFallback.REFUSE
     pilot_reader: "PilotReader" = PilotReader.HOSTED
+    syntax_witness: bool = False
+    """Whether a second, deterministic reader constrains the model's semantics.
+
+    Off by default because the parser is a ~500MB model that not every image
+    carries. Turned on for a serving deployment because a single stochastic
+    witness cannot support a safety gate: two recordings of one model, same
+    prompt version, differed on 24 of 36 corpus sentences — two losing a
+    `sell_action` they previously had, and one inverting `persistent_condition`
+    to `crossing_event`. Syntax does not decide meaning; it stops an unstable
+    reader from changing meaning between runs unnoticed.
+    """
+
     prompt_version: str = ""
 
     declared: bool = False
@@ -274,6 +293,13 @@ class ModelTarget:
     @property
     def model_assisted(self) -> bool:
         return self.mode is ParserMode.MODEL_ASSISTED
+
+    @property
+    def witnesses(self):
+        """The declared witness profile, for the artifact to carry."""
+        from ..discovery.witnesses import BOTH, MODEL_ONLY
+
+        return BOTH if self.syntax_witness else MODEL_ONLY
 
     @property
     def uses_the_runtime(self) -> bool:
@@ -331,6 +357,8 @@ class ModelTarget:
     def to_json(self) -> dict:
         return {"model": self.model, "available": self.available,
                 "mode": self.mode.value, "fallback": self.fallback.value,
+                "pilot_reader": self.pilot_reader.value,
+                "syntax_witness": self.syntax_witness,
                 "prompt_version": self.prompt_version,
                 "declared": self.declared}
 

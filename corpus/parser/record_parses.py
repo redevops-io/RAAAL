@@ -38,6 +38,15 @@ def main(languages: list) -> int:
                         / "real_phrasings.json").read_text())
     extra = [(e["text"], "en") for e in pack["entries"]]
 
+    # The strategy-family tier too, now that syntax is a serving witness. A
+    # sentence the fused path is measured on needs a parse recorded for it, or
+    # the measurement silently falls back to one witness and reports a
+    # single-reader result as if it were fused.
+    families = Path(__file__).resolve().parent / "strategy_families.json"
+    if families.exists():
+        extra += [(c["text"], "en")
+                  for c in _json.loads(families.read_text())["cases"]]
+
     wanted = sorted({c.language for c in cases}
                     if not languages else set(languages))
 
