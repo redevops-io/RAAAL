@@ -85,11 +85,12 @@ class TestTheExpectationsMatchTheManifest:
     #: Carriers with no manifest entry, and why that is itself a finding.
     #: Declared rather than skipped: an exception needs a stated reason, and
     #: these two are the reason the list exists.
-    NO_MANIFEST_ENTRY = {
-        "objective": (
-            "no manifest entry at all — 'pay off the mortgage instead of "
-            "investing' names a non-market alternative the engine has no way "
-            "to refuse by name"),
+    NO_MANIFEST_ENTRY: dict = {
+        # `objective` was here. The hosted-reader measurement showed the model
+        # reads "draw down 3% a year in retirement" correctly as
+        # `assess_withdrawal`, and `decide` then executed it, because an
+        # unclassified dimension is treated as not forbidden. It now has a
+        # manifest entry and the check below is what removed it from this list.
     }
 
     def test_each_refused_family_can_actually_be_refused(self, cases):
@@ -236,3 +237,80 @@ class TestTheReportSeparatesTheTwoFailures:
         """
         assert report["witness"] == "quantify-compiler@2"
         assert "MODEL_ONLY" in report["witness_note"]
+
+
+@pytest.fixture(scope="module")
+def hosted():
+    import sys
+
+    sys.path.insert(0, str(CORPUS))
+    from strategy_closure import measure
+
+    return measure("hosted")
+
+
+class TestWhichReaderIsActuallyAtFault:
+    """The measurement that decides where the work goes.
+
+    Eleven silent reductions against `quantify-compiler@2` is a finding about
+    the reader being deleted. Whether it is also a finding about Discovery is a
+    different question, and running the same 36 cases through the hosted reader
+    answers it: the model carries 25 where the compiler carries 4, and emits
+    `sell_action` on twelve sentences the compiler read as purchases or as
+    nothing.
+
+    So this is overwhelmingly an argument for finishing the legacy-reader
+    deletion rather than teaching it to recognise decumulation.
+    """
+
+    def test_the_hosted_reader_carries_far_more(self, report, hosted):
+        assert hosted["by_state"].get("CARRIED", 0) > \
+            report["by_state"].get("CARRIED", 0) * 4
+
+    def test_and_the_sharpest_inversion_is_gone(self, hosted):
+        """`sell VTI and buy BND` reads as a purchase of both under the
+        compiler. The plan holds what the person said they were disposing of,
+        which is not an approximation of their request but its opposite."""
+        case = [c for c in hosted["cases"] if c["text"] == "sell VTI and buy BND"][0]
+        assert case["state"] == "CARRIED"
+        assert "sell" in str(case["read"].get("sell_action", "")).lower()
+
+    def test_a_sell_action_reading_earns_a_refusal_by_name(self):
+        """Recognition is only worth something if the manifest then fires.
+
+        Asserted through `decide` rather than by reading the manifest table,
+        because the table says what is refused and this says that asking
+        produces the refusal.
+        """
+        from src.mission.capability import decide
+
+        refusal = decide("sell_action", "sell VTI")
+        assert refusal is not None
+        assert refusal.dimension == "sell_action"
+
+    def test_a_withdrawal_objective_is_refused_rather_than_executed(self):
+        """The gap the hosted measurement exposed.
+
+        The model read "draw down 3% a year in retirement" correctly. Mission
+        executed it, because `decide` treats an unclassified dimension as not
+        forbidden — the right default and the wrong answer here.
+        """
+        from src.mission.capability import decide
+
+        assert decide("objective", "assess_withdrawal") is not None
+        assert decide("objective", "plan_contributions") is None, (
+            "classifying the objective dimension must not refuse the "
+            "objectives this build does execute")
+
+    def test_four_cases_got_worse_and_that_is_recorded(self, report, hosted):
+        """Honest counterweight: the model reads a fragment where the compiler
+        read nothing, and by this report's own ranking that is a regression —
+        NOTHING_READ sends somebody back to rephrase, SILENTLY_REDUCED does
+        not. Named so the hosted reader is not reported as a pure improvement.
+        """
+        before = {c["id"]: c["state"] for c in report["cases"]}
+        after = {c["id"]: c["state"] for c in hosted["cases"]}
+        worse = [i for i in before
+                 if before[i] == "NOTHING_READ" and after[i] == "SILENTLY_REDUCED"]
+        assert sorted(worse) == ["bucket_strategy-01", "cash_reserve-01",
+                                 "glidepath-02", "leverage-01"]

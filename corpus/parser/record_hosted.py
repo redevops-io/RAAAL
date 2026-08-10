@@ -51,9 +51,24 @@ ACCEPTANCE = (
 )
 
 
+def strategy_family_sentences() -> list:
+    """The twenty-family tier, recorded alongside the rest.
+
+    Kept here rather than in a separate recorder so there is one recording
+    store and one drift lane. The question these sentences answer is whether
+    the *hosted* reader preserves meanings the deterministic one drops — and
+    that question is worthless without recordings, because the answer would
+    change under us between runs with nothing saying it had.
+    """
+    path = Path(__file__).resolve().parent / "strategy_families.json"
+    if not path.exists():
+        return []
+    return [c["text"] for c in json.loads(path.read_text())["cases"]]
+
+
 def wanted() -> list:
     texts = [c.text for c in load() if c.tier == "semantics" and c.language == "en"]
-    return sorted(set(texts) | set(ACCEPTANCE))
+    return sorted(set(texts) | set(ACCEPTANCE) | set(strategy_family_sentences()))
 
 
 def main(argv: list) -> int:

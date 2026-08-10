@@ -122,6 +122,29 @@ def _d(name, support, **kw) -> Dimension:
 #: Ordered as a reader would ask about them: when money arrives, what it buys,
 #: what happens to holdings, over what period.
 MANIFEST: Mapping[str, Dimension] = {
+    # ---- what the person is trying to find out -----------------------
+    #
+    # Added after a twenty-family sweep showed the hosted reader gets this
+    # right and the manifest then waved it through. "draw down 3% a year in
+    # retirement" was read correctly as `assess_withdrawal` and executed,
+    # because `decide` treats an unclassified dimension as not forbidden —
+    # which is the correct default and was the wrong answer here.
+    #
+    # Only `assess_withdrawal` is refused. The engine buys and holds, so
+    # `sell_action` is already REFUSED, and an objective that requires selling
+    # cannot be satisfied by a build whose every mechanism adds to a position.
+    # The rest stay executable: refusing `other` would refuse on absence of
+    # information rather than on a stated request, and `other` is what a reader
+    # says when the sentence does not name an objective at all.
+    "objective": _d(
+        "objective", EXECUTED,
+        values=("evaluate_investment_strategy", "compare_strategies",
+                "plan_contributions", "other"),
+        refuses={"assess_withdrawal":
+                 "this build only buys, so it cannot assess what taking money "
+                 "out would do; the contributions and the holdings can be "
+                 "modelled but the withdrawal itself cannot"}),
+
     # ---- when money arrives ------------------------------------------
     "cadence": _d(
         "cadence", EXECUTED,

@@ -58,14 +58,31 @@ def _read(reader, schema, text: str) -> dict:
     return {r.dimension: r.value for r in result.readings}
 
 
-def measure() -> dict:
-    sys.path.insert(0, str(HERE.parent.parent))
+def _witness(name: str):
+    """Either reader, so the same measurement can be run against both.
+
+    The whole point of running it twice: 11 silent reductions against the
+    deterministic reader is a finding about `quantify-compiler@2`, which is the
+    reader being deleted. Whether it is also a finding about Discovery is a
+    different question with a different answer and a different fix.
+    """
+    if name == "hosted":
+        from src.discovery.hosted_recording import RecordedHostedReader
+
+        return RecordedHostedReader()
 
     from src.discovery.readers_quantify import CompilerReader
+
+    return CompilerReader()
+
+
+def measure(witness: str = "compiler") -> dict:
+    sys.path.insert(0, str(HERE.parent.parent))
+
     from src.discovery.schema import QUANTIFY_SCHEMA
 
     document = json.loads(CASES.read_text())
-    reader = CompilerReader()
+    reader = _witness(witness)
 
     results, by_state, by_family = [], {}, {}
     for case in document["cases"]:
@@ -89,10 +106,9 @@ def measure() -> dict:
         "schema": "quantify-strategy-closure@1",
         "witness": reader.id,
         "witness_note": (
-            "The deterministic reader only. Says nothing about what the model "
-            "reader sees — and under MODEL_ONLY, the pilot profile, the model "
-            "is the only witness, so nothing would catch it missing the same "
-            "dimension."),
+            "One reader. Under MODEL_ONLY, the pilot profile, the model is "
+            "also the only witness, so nothing would catch it missing a "
+            "dimension either."),
         "count": len(results),
         "by_state": by_state,
         "by_family": by_family,
@@ -103,9 +119,11 @@ def measure() -> dict:
         "cases": results}
 
 
-def main(show: bool = False) -> int:
-    report = measure()
-    OUT.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
+def main(show: bool = False, witness: str = "compiler") -> int:
+    report = measure(witness)
+    out = OUT if witness == "compiler" else OUT.with_name(
+        "strategy_closure_hosted.json")
+    out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
 
     print(f"{report['count']} cases, witness {report['witness']}")
     for state in (CARRIED, SILENTLY_REDUCED, NOTHING_READ, SCHEMA_GAP):
@@ -121,4 +139,6 @@ def main(show: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(show="--print" in sys.argv))
+    raise SystemExit(main(
+        show="--print" in sys.argv,
+        witness="hosted" if "--hosted" in sys.argv else "compiler"))
