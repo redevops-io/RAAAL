@@ -20,6 +20,7 @@
 -/
 
 import Quantify.Ledger
+import Quantify.Cadence
 
 namespace Quantify
 namespace Fixtures
@@ -106,6 +107,35 @@ def oversold : LedgerState :=
     feesNonneg    := by decide }
 
 #guard oversold.endingShares "VTI" == -2000000
+
+/-! ## Cadence
+
+The historical case, as a fixture rather than only as a theorem. The theorem
+says `N × A` for every schedule; this says which `N` five calendar years of
+month-ends actually produce, and it is the number the shipped build got wrong.
+-/
+
+open Cadence
+
+/-- Sixty month-ends, five calendar years. -/
+def fiveYearsOfMonths : List Date :=
+  (List.range 5).flatMap fun (y : Nat) =>
+    (List.range 12).map fun (m : Nat) =>
+      (⟨2020 + (y : Int), (m : Int) + 1, 28⟩ : Date)
+
+#guard fiveYearsOfMonths.length == 60
+
+-- Annual: five contributions, not one. The defect was one.
+#guard contributionCount Cadence.annual fiveYearsOfMonths == 5
+#guard totalContributed Cadence.annual fiveYearsOfMonths 100000 == 500000
+
+-- Monthly control: the same sessions, sixty contributions.
+#guard contributionCount Cadence.monthly fiveYearsOfMonths == 60
+#guard totalContributed Cadence.monthly fiveYearsOfMonths 100000 == 6000000
+
+-- Once: one contribution over the same span.
+#guard contributionCount Cadence.once fiveYearsOfMonths == 1
+#guard totalContributed Cadence.once fiveYearsOfMonths 100000 == 100000
 
 end Fixtures
 end Quantify

@@ -108,6 +108,11 @@ class TestThePythonSideMatchesTheLeanFile:
             ("roundTrip", "endingCash", None): 54_400,
             ("roundTrip", "endingShares", "VTI"): 2 * SHARE,
             ("oversold", "endingShares", "VTI"): -2 * SHARE,
+            # The cadence fixture's own shape. Included rather than filtered
+            # out: a scan narrowed to the ledger names would stop noticing
+            # anything added beside them, which is the drift this test exists
+            # to catch.
+            ("fiveYearsOfMonths", "length", None): 60,
         }
         found = {(fixture, field, asset or None): int(value)
                  for fixture, field, asset, value in guards}
@@ -119,7 +124,7 @@ class TestThePythonSideMatchesTheLeanFile:
     def test_every_lean_guard_is_covered_here(self, guards):
         """A guard added on the Lean side and not here would be proved and
         never conformance-checked."""
-        assert len(guards) == 8
+        assert len(guards) == 9
 
 
 class TestTheScaleIsShared:
@@ -132,3 +137,65 @@ class TestTheScaleIsShared:
         assert int(found.group(1)) == SHARE, (
             "the scales differ, so every quantity in this comparison means a "
             "different number on each side")
+
+
+class TestCadenceAgrees:
+    """The historical defect, computed on both sides.
+
+    The shipped build reported "$1,000 every year over five years" as $1,000
+    contributed. The Lean side proves `N x A` for every schedule and guards
+    that five calendar years of month-ends give N = 5; this computes the same
+    N from the same sessions, independently, and asserts the same total.
+
+    Independent means independent: the buckets are recomputed here rather than
+    imported, so a change to Quantify's own bucketing does not move both sides
+    together.
+    """
+
+    SESSIONS = [(2020 + y, m + 1, 28) for y in range(5) for m in range(12)]
+
+    @staticmethod
+    def _count(sessions, key):
+        seen, kept = set(), 0
+        for session in sessions:
+            k = key(session)
+            if k not in seen:
+                seen.add(k)
+                kept += 1
+        return kept
+
+    def test_there_are_sixty_sessions(self):
+        assert len(self.SESSIONS) == 60
+
+    def test_annual_is_five_contributions_not_one(self):
+        """The defect exactly. One contribution here was the shipped
+        behaviour, and no test covered the path that produced it."""
+        count = self._count(self.SESSIONS, lambda s: s[0])
+        assert count == 5
+        assert count * 100_000 == 500_000
+
+    def test_monthly_is_sixty(self):
+        count = self._count(self.SESSIONS, lambda s: s[0] * 12 + s[1])
+        assert count == 60
+        assert count * 100_000 == 6_000_000
+
+    def test_once_is_one(self):
+        count = self._count(self.SESSIONS, lambda _: 0)
+        assert count == 1
+        assert count * 100_000 == 100_000
+
+    def test_the_lean_file_states_the_same_cadence_numbers(self):
+        import re as _re
+
+        if not LEAN.exists():
+            pytest.skip("formal/Quantify/Fixtures.lean is absent")
+        text = LEAN.read_text()
+        for cadence, count, total in (("annual", 5, 500_000),
+                                      ("monthly", 60, 6_000_000),
+                                      ("once", 1, 100_000)):
+            assert _re.search(
+                rf"#guard contributionCount Cadence\.{cadence} "
+                rf"fiveYearsOfMonths == {count}\b", text), cadence
+            assert _re.search(
+                rf"#guard totalContributed Cadence\.{cadence} "
+                rf"fiveYearsOfMonths 100000 == {total}\b", text), cadence
