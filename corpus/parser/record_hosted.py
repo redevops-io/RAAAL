@@ -48,6 +48,14 @@ ACCEPTANCE = (
     "maintain 60/40 by contributions and rebalance at year end",
     "contribute $500 monthly, rebalanced annually",
     "rebalance to 70/30",
+
+    # Negative controls for `asset_location`. Naming an account you own is not
+    # placing anything in it, and a relation that fires on any sentence
+    # mentioning a Roth would refuse ordinary contribution plans by name — a
+    # boundary that triggers on the wrong sentences is worse than none, because
+    # the refusals read as authoritative.
+    "I have a Roth",
+    "contribute $500 monthly to my Roth IRA",
 )
 
 

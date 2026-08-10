@@ -124,7 +124,7 @@ FAMILIES = [
      ]),
     ("asset_location",
      "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/",
-     (), NO_DIMENSION, [
+     ("asset_location",), REFUSED_BY_NAME, [
          "hold the bonds in the IRA and the stocks in the taxable account",
          "keep the REITs in the Roth",
      ]),

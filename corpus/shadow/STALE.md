@@ -1,9 +1,13 @@
 # The shadow matrices are stale
 
     built under   quantify-discovery-schema@2/103c025ac629946f
-    current       quantify-discovery-schema@4/9e01dbe0ee3c282a
+    current       quantify-discovery-schema@5/ca8f3b7785ff5d70
 
 ## What changed
+
+@5 added the `asset_location` relation — the last schema gap the strategy sweep
+left standing, where `account_type` returned TAXABLE for a sentence whose whole
+request was a mapping.
 
 @4 added `reserve_policy` and `bucket_policy` relations and a
 `leverage_multiplier` qualifier on `portfolio_sleeves`, because the live drift

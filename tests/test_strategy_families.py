@@ -61,13 +61,19 @@ def serving():
 
 
 class TestTheCorpusIsWellFormed:
-    def test_every_carrier_is_a_real_schema_dimension(self, cases):
-        """A carrier naming a dimension that does not exist can never be read,
-        so every case using it would score as a defect forever — a measurement
-        that manufactures its own findings."""
+    def test_every_carrier_is_something_the_schema_can_say(self, cases):
+        """A carrier the schema cannot express can never be read, so every case
+        using it would score as a defect forever — a measurement that
+        manufactures its own findings.
+
+        Dimensions *or* relation kinds. `asset_location` is a relation, because
+        the mapping is the meaning, and requiring carriers to be dimensions
+        would have made the relation unusable as evidence that the request was
+        read at all."""
         from src.discovery.schema import QUANTIFY_SCHEMA
 
-        names = set(QUANTIFY_SCHEMA.names)
+        names = (set(QUANTIFY_SCHEMA.names)
+                 | {r.kind for r in QUANTIFY_SCHEMA.relations})
         for case in cases["cases"]:
             unknown = [c for c in case["carriers"] if c not in names]
             assert not unknown, f"{case['id']} names {unknown}, not in the schema"
@@ -174,13 +180,13 @@ class TestTheLegacyReaderIsOffTheServingPath:
 class TestTheCompilerBaseline:
     """Pinned, because this reader is deterministic. It is a defect report."""
 
-    #: 9, not the 11 first reported. The reader did not change; the question
-    #: did. Scoring by carrier presence counted a case as reduced whenever one
-    #: nominated dimension was absent, including cases where something else the
-    #: compiler read — `stated_weights`, `periodic_rebalancing` — already earns
-    #: a refusal from the manifest. Two numbers from two instruments, and the
-    #: refusal-based one is the one that matches the rule being enforced.
-    SILENTLY_REDUCED = 9
+    #: Back to 11, and neither 11 nor the intermediate 9 was a change in the
+    #: compiler. The instrument moved twice: scoring by carrier presence gave
+    #: 11, scoring by refusal gave 9, and folding relations into what Mission
+    #: is asked about gave 11 again — because the relation-shaped families the
+    #: compiler cannot read at all now count as reductions rather than as
+    #: schema gaps. The reader has been constant throughout.
+    SILENTLY_REDUCED = 11
 
     def test_the_legacy_reader_still_reduces_this_many(self, compiler):
         assert compiler["by_state"].get("SILENTLY_REDUCED", 0) == \
@@ -265,24 +271,38 @@ class TestTheServingReaderIsNotStable:
             "baseline may be one")
 
 
-class TestAsymmetryBetweenSchemaAndRecognition:
-    """Asset location is a schema gap, and saying so sends the work somewhere.
+class TestTheAssetLocationGapIsClosed:
+    """It was the one schema gap left standing, and it is now a relation.
 
-    A single-valued `account_type` cannot carry a mapping of holdings onto
-    accounts, so no amount of recognition work fixes it and counting it as a
-    recognition defect would send the effort to the wrong layer.
+    `account_type` *was* read from "hold the bonds in the IRA and the stocks in
+    the taxable account" — it returned TAXABLE — so the family scored as
+    understood while the mapping, which is the entire request, was gone. A
+    single-valued dimension cannot carry a mapping.
     """
 
-    def test_asset_location_is_scored_as_a_schema_gap(self, serving):
+    def test_it_is_refused_by_name_rather_than_scored_as_a_gap(self, serving):
         states = {c["text"]: c["state"] for c in serving["cases"]}
+        assert states["keep the REITs in the Roth"] == "REFUSED"
         assert states["hold the bonds in the IRA and the stocks in the "
-                      "taxable account"] == "SCHEMA_GAP"
+                      "taxable account"] == "REFUSED"
 
-    def test_a_schema_gap_declares_no_carrier(self, cases):
-        for case in cases["cases"]:
-            if case["must_be"] == "NO_DIMENSION":
-                assert case["carriers"] == [], (
-                    f"{case['id']} claims no dimension exists but names one")
+    def test_the_reader_returns_the_mapping_not_two_lists(self):
+        """What makes the refusal honest. A relation naming one account and
+        two holdings would be refused too, and would have lost the pairing on
+        the way."""
+        from src.discovery.hosted_recording import RecordedHostedReader
+        from src.discovery.schema import QUANTIFY_SCHEMA
+
+        reading = RecordedHostedReader().read(
+            "hold the bonds in the IRA and the stocks in the taxable account",
+            QUANTIFY_SCHEMA)
+        pairs = [dict((role, subject) for role, subject, *_ in r.members)
+                 for r in reading.relations if r.kind == "asset_location"]
+        assert len(pairs) == 2, f"expected two placements, got {pairs}"
+        assert {p["holding"] for p in pairs} == {"bonds", "stocks"}
+
+    def test_no_case_is_a_schema_gap_any_more(self, serving):
+        assert serving["by_state"].get("SCHEMA_GAP", 0) == 0
 
 
 class TestTheReportSeparatesTheFailures:

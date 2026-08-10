@@ -243,6 +243,12 @@ MANIFEST: Mapping[str, Dimension] = {
     # than folded into one "unsupported structure" entry because a person told
     # "buckets are not modelled" learns something, and a person told "your
     # sentence contains an unsupported structure" does not.
+    "asset_location": _d(
+        "asset_location", NOT_MODELLED,
+        why="placing particular holdings in particular accounts is not "
+            "modelled: this build simulates one pool of holdings and computes "
+            "no tax, so where each one sits changes nothing it can calculate"),
+
     "reserve_policy": _d(
         "reserve_policy", NOT_MODELLED,
         why="money held back from investment is not modelled: the engine "

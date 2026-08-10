@@ -70,13 +70,44 @@ class TestAgreementIsNotAssumed:
                 assert "value" in row and "matches_expected" in row, row["id"]
                 assert row["compared_as"] in ("TEXT", "NUMBER", "SET")
 
+    #: Cases where the *model* is wrong and the corpus is right, named so the
+    #: failure is attributed rather than absorbed. Not a tolerance: each entry
+    #: says which value the model produced and why the case stands.
+    #:
+    #: The expectation is never edited to match a draw. "the first trading day
+    #: of the month" names a session, and `calendar_first_rolled_forward` is
+    #: the 1st rolled off a holiday — a different day and a different figure.
+    #: Rewriting the case would make the corpus assert whatever the reader last
+    #: said, which is the one thing a regression corpus must not do.
+    MODEL_IS_WRONG = {
+        "sema-timing-day_rule-001":
+            "read calendar_first_rolled_forward for 'the first trading day of "
+            "the month', which names a session, not the 1st rolled forward",
+        # `-002` was listed here too, on the assumption the same confusion
+        # applied to the last trading day. It does not, and the staleness
+        # check above caught the guess immediately.
+    }
+
     def test_no_agreement_is_recorded_with_the_wrong_value(self):
         wrong = [row["id"] for row in ROWS
                  if row["state"] in ("AGREE", "MODEL_ONLY_ACCEPTED")
                  and not row["matches_expected"]]
-        assert not wrong, (
-            f"{wrong} agreed with a value the case does not expect. Either the "
-            "mapping is wrong or the case is; both need saying out loud")
+        unexplained = [one for one in wrong if one not in self.MODEL_IS_WRONG]
+        assert not unexplained, (
+            f"{unexplained} agreed with a value the case does not expect. "
+            "Either the mapping is wrong or the case is; both need saying out "
+            "loud")
+
+    def test_every_named_model_error_is_still_happening(self):
+        """A list of known model errors that have quietly been fixed is a list
+        that hides the next one. If a draw gets these right, remove them."""
+        wrong = {row["id"] for row in ROWS
+                 if row["state"] in ("AGREE", "MODEL_ONLY_ACCEPTED")
+                 and not row["matches_expected"]}
+        stale = set(self.MODEL_IS_WRONG) - wrong
+        assert not stale, (
+            f"{sorted(stale)} are listed as model errors and now read "
+            "correctly; remove them so the list keeps meaning something")
 
     def test_an_agreement_is_for_the_field_the_case_asserts(self):
         """The defect this file was written from. A candidate for some other

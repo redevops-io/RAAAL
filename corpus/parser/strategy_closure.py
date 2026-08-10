@@ -69,10 +69,23 @@ SCHEMA_GAP = "SCHEMA_GAP"
 
 
 def _read(reader, schema, text: str) -> dict:
+    """What Mission would be asked about, dimensions and relations together.
+
+    Relation kinds are folded in through the serving path's own helper rather
+    than a copy here. The first version read only `result.readings`, so a model
+    that returned `asset_location(holding=REITs, account=Roth)` — exactly right
+    — was scored as having silently reduced the sentence. The measurement was
+    blind to the half of the reading that carried the answer, which is the same
+    defect as the code it was measuring.
+    """
     result = reader.read(text, schema)
     if getattr(result, "failed", ""):
         return {}
-    return {r.dimension: r.value for r in result.readings}
+
+    from src.workspace.pilot import _relation_fields
+
+    return {**{r.dimension: r.value for r in result.readings},
+            **_relation_fields(result)}
 
 
 #: The reader a deployment actually serves. `compiler` is retained only as a

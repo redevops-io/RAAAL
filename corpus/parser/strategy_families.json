@@ -26,8 +26,7 @@
   },
   "by_outcome": {
     "RECOGNISED": 5,
-    "REFUSED_BY_NAME": 29,
-    "NO_DIMENSION": 2
+    "REFUSED_BY_NAME": 31
   },
   "provenance_note": "The sentences are authored and marked as such. They are NOT attested phrasings and must never be counted as any — real_phrasings.json is the attested pack. The family list and the definitions behind it come from the sources cited on each case. An authored sentence is admissible here because the property under test is whether a named capability is recognised at all, which does not depend on anybody having really typed it.",
   "property_note": "REFUSED_BY_NAME does not mean the sentence should fail to parse. It means the dimension that carries the request must be READ, so that Mission can refuse the thing the person actually asked for rather than silently running the accumulation-shaped fragment that survived recognition.",
@@ -214,8 +213,10 @@
       "id": "asset_location-01",
       "family": "asset_location",
       "text": "hold the bonds in the IRA and the stocks in the taxable account",
-      "carriers": [],
-      "must_be": "NO_DIMENSION",
+      "carriers": [
+        "asset_location"
+      ],
+      "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/"
     },
@@ -223,8 +224,10 @@
       "id": "asset_location-02",
       "family": "asset_location",
       "text": "keep the REITs in the Roth",
-      "carriers": [],
-      "must_be": "NO_DIMENSION",
+      "carriers": [
+        "asset_location"
+      ],
+      "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/"
     },

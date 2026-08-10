@@ -4,58 +4,38 @@
     "reader_id": "claude-sonnet-5@1",
     "model": "claude-sonnet-5",
     "prompt_version": "quantify-hosted-prompt@1",
-    "schema_version": "quantify-discovery-schema@4",
+    "schema_version": "quantify-discovery-schema@5",
     "max_tokens": 8000
   },
-  "count": 88,
+  "count": 90,
   "note": "Replayed by the corpus. A recording is not an answer — fusion decides whether the model's proposal proceeds, exactly as it would for a live reply.",
   "readings": [
     {
       "text": "70% stocks, 20% bonds, 10% cash",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "assets",
-          "value": "stocks",
-          "confidence": "0.9",
-          "source_span": "70% stocks",
-          "note": "asset class named as written, not a specific instrument"
-        },
-        {
-          "dimension": "assets",
-          "value": "bonds",
-          "confidence": "0.9",
-          "source_span": "20% bonds",
-          "note": "asset class named as written"
-        },
-        {
-          "dimension": "assets",
-          "value": "cash",
-          "confidence": "0.9",
-          "source_span": "10% cash",
-          "note": "asset class named as written"
-        },
-        {
-          "dimension": "allocation_method",
-          "value": "stated_weights",
-          "confidence": "0.9",
+          "value": "stocks, bonds, cash",
+          "confidence": "0.7",
           "source_span": "70% stocks, 20% bonds, 10% cash",
-          "note": "explicit percentages given per holding"
+          "note": "Three holdings named as written, not resolved to tickers."
         },
         {
           "dimension": "stated_weights",
           "value": "70/20/10",
-          "confidence": "0.95",
+          "confidence": "0.9",
           "source_span": "70% stocks, 20% bonds, 10% cash",
-          "note": "order follows the order named: stocks, bonds, cash"
+          "note": "Explicit per-holding weights in the order named: stocks, bonds, cash."
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
+        "allocation_method",
         "amount",
         "cadence",
         "conditional_amount",
@@ -74,23 +54,23 @@
     {
       "text": "I contribute monthly and rebalance at year end",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "cadence",
           "value": "monthly",
-          "confidence": "0.9",
+          "confidence": "0.95",
           "source_span": "contribute monthly",
-          "note": "Explicit monthly contribution cadence."
+          "note": "explicit monthly contribution cadence"
         },
         {
           "dimension": "periodic_rebalancing",
-          "value": "rebalance annually at year end",
-          "confidence": "0.85",
+          "value": "rebalance at year end",
+          "confidence": "0.9",
           "source_span": "rebalance at year end",
-          "note": "Rebalancing frequency stated as once per year, timed to year end; no drift threshold given."
+          "note": "annual rebalancing timing stated as year end"
         }
       ],
       "relations": [],
@@ -104,6 +84,7 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
+        "moving_average_window",
         "objective",
         "observed_assets",
         "sell_action",
@@ -112,25 +93,60 @@
       ]
     },
     {
-      "text": "a 60/40 portfolio",
+      "text": "I have a Roth",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
-          "dimension": "stated_weights",
-          "value": "60/40",
-          "confidence": "0.95",
-          "source_span": "60/40 portfolio",
-          "note": "explicit split named, order of holdings not specified"
-        },
+          "dimension": "account_type",
+          "value": "ROTH",
+          "confidence": "0.9",
+          "source_span": "I have a Roth",
+          "note": "States possession of a Roth account; no action or objective specified."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "a 60/40 portfolio",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
         {
           "dimension": "allocation_method",
           "value": "stated_weights",
-          "confidence": "0.6",
+          "confidence": "0.7",
           "source_span": "60/40",
-          "note": "inferred only because explicit numeric split was given; no method verb used"
+          "note": "explicit split implies stated weighting method"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.9",
+          "source_span": "60/40",
+          "note": "explicit weight split given, though holdings not named"
         }
       ],
       "relations": [],
@@ -155,7 +171,7 @@
     {
       "text": "add $2.5k quarterly",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -178,7 +194,7 @@
           "value": "$2.5k",
           "confidence": "0.95",
           "source_span": "$2.5k",
-          "note": "per-contribution amount as written"
+          "note": "amount per contribution as written"
         }
       ],
       "relations": [],
@@ -186,46 +202,36 @@
         "account_type",
         "allocation_method",
         "assets",
-        "conditional_amount",
-        "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
+        "day_rule"
       ]
     },
     {
       "text": "add $250 every two weeks",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.7",
+          "confidence": "0.6",
           "source_span": "add $250 every two weeks",
           "note": "describes a recurring contribution plan"
         },
         {
           "dimension": "cadence",
           "value": "biweekly",
-          "confidence": "0.95",
+          "confidence": "0.9",
           "source_span": "every two weeks",
-          "note": "explicit two-week interval maps to biweekly"
+          "note": "explicit two-week interval"
         },
         {
           "dimension": "amount",
           "value": "250",
           "confidence": "0.95",
           "source_span": "$250",
-          "note": "stated per-contribution amount"
+          "note": "amount per contribution"
         }
       ],
       "relations": [],
@@ -233,32 +239,23 @@
         "account_type",
         "allocation_method",
         "assets",
-        "conditional_amount",
         "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
+        "evaluation_period"
       ]
     },
     {
       "text": "add to BND while TLT is under its 200-day",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "evaluate_investment_strategy",
-          "confidence": "0.4",
+          "confidence": "0.5",
           "source_span": "add to BND while TLT is under its 200-day",
-          "note": "describes a contribution rule as part of a strategy; no explicit question posed"
+          "note": "describes a conditional buying rule, treated as a strategy to evaluate"
         },
         {
           "dimension": "assets",
@@ -272,21 +269,21 @@
           "value": "TLT",
           "confidence": "0.9",
           "source_span": "TLT is under its 200-day",
-          "note": "the condition watches TLT, distinct from the asset bought (BND)"
+          "note": "the condition is watched on TLT, distinct from the purchased asset BND"
         },
         {
           "dimension": "trigger_semantics",
           "value": "persistent_condition",
-          "confidence": "0.75",
+          "confidence": "0.8",
           "source_span": "while TLT is under its 200-day",
-          "note": "'while' indicates the condition holding continuously, not a one-time crossing"
+          "note": "'while' indicates the condition holding true on every qualifying day, not a single crossing"
         },
         {
           "dimension": "moving_average_window",
           "value": "200",
-          "confidence": "0.85",
+          "confidence": "0.8",
           "source_span": "200-day",
-          "note": "length of the moving average in sessions"
+          "note": "the moving average length named, assumed in sessions/days"
         }
       ],
       "relations": [],
@@ -308,30 +305,16 @@
     {
       "text": "add when it trades beneath the 12-month moving average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
-          "dimension": "objective",
-          "value": "plan_contributions",
-          "confidence": "0.4",
-          "source_span": "add when it trades beneath the 12-month moving average",
-          "note": "Sentence describes a conditional contribution action, though the broader plan context is unclear."
-        },
-        {
-          "dimension": "trigger_semantics",
-          "value": "crossing_event",
-          "confidence": "0.55",
-          "source_span": "when it trades beneath",
-          "note": "Phrase mirrors 'when it crosses below' pattern, suggesting the day the condition first becomes true rather than a persistent state."
-        },
-        {
           "dimension": "moving_average_window",
-          "value": "12-month",
-          "confidence": "0.5",
+          "value": "12",
+          "confidence": "0.7",
           "source_span": "12-month moving average",
-          "note": "Stated in months, not sessions; no conversion is made since the sentence does not specify trading days."
+          "note": "Length given in months, not sessions; no conversion basis provided in the sentence."
         }
       ],
       "relations": [],
@@ -346,25 +329,27 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
+        "objective",
         "observed_assets",
         "periodic_rebalancing",
         "sell_action",
-        "stated_weights"
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
       "text": "allocate by inverse volatility",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "allocation_method",
           "value": "inverse_volatility",
-          "confidence": "0.95",
+          "confidence": "1",
           "source_span": "allocate by inverse volatility",
-          "note": "explicitly named allocation method"
+          "note": "explicit method named"
         }
       ],
       "relations": [],
@@ -390,23 +375,23 @@
     {
       "text": "annuitize a third of the portfolio at 70",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
-          "value": "assess_withdrawal",
-          "confidence": "0.55",
+          "value": "other",
+          "confidence": "0.4",
           "source_span": "annuitize a third of the portfolio at 70",
-          "note": "Annuitization is treated as a withdrawal/decumulation decision, though the sentence does not explicitly frame it as an evaluation request."
+          "note": "Annuitizing is a distinct action not matching assess_withdrawal or assess_conversion cleanly; classified as other."
         },
         {
           "dimension": "sell_action",
           "value": "annuitize a third of the portfolio",
-          "confidence": "0.9",
+          "confidence": "0.85",
           "source_span": "annuitize a third of the portfolio",
-          "note": "Describes converting a portion of holdings into an annuity; 'a third' is the fraction annuitized, not a stated dollar amount."
+          "note": "Describes converting a portion of holdings into an annuity, a form of sell/convert action."
         }
       ],
       "relations": [],
@@ -416,33 +401,38 @@
         "amount",
         "assets",
         "cadence",
+        "conditional_amount",
+        "day_rule",
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
+        "moving_average_window",
+        "observed_assets",
         "periodic_rebalancing",
+        "stated_weights",
         "trigger_semantics"
       ]
     },
     {
       "text": "as long as SPY is under trend",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "trigger_semantics",
           "value": "persistent_condition",
-          "confidence": "0.85",
+          "confidence": "0.8",
           "source_span": "as long as SPY is under trend",
-          "note": "'as long as' expresses a condition that holds every day it stays true, not a one-time crossing"
+          "note": "\"as long as\" indicates a condition holding continuously, not a one-time crossing"
         },
         {
           "dimension": "observed_assets",
           "value": "SPY",
-          "confidence": "0.6",
+          "confidence": "0.9",
           "source_span": "SPY",
-          "note": "SPY is the asset whose position relative to trend is being watched; it is unclear whether SPY is also the asset being bought or something else entirely, since no purchase target is named"
+          "note": "the condition watches SPY relative to its trend"
         }
       ],
       "relations": [],
@@ -467,7 +457,7 @@
     {
       "text": "buy VOO when SPY crosses below its average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -476,28 +466,28 @@
           "value": "evaluate_investment_strategy",
           "confidence": "0.5",
           "source_span": "buy VOO when SPY crosses below its average",
-          "note": "Sentence describes a rule-based strategy without stating the purpose explicitly; inferred as the default framing of a strategy description."
+          "note": "no explicit question stated; inferred as describing a strategy to evaluate"
         },
         {
           "dimension": "assets",
           "value": "VOO",
-          "confidence": "0.9",
+          "confidence": "1",
           "source_span": "buy VOO",
-          "note": "Instrument to be purchased, as written."
+          "note": "the instrument purchased"
         },
         {
           "dimension": "observed_assets",
           "value": "SPY",
-          "confidence": "0.9",
-          "source_span": "SPY crosses below its average",
-          "note": "Condition is watched on SPY, distinct from the purchased asset VOO."
+          "confidence": "1",
+          "source_span": "SPY crosses below",
+          "note": "the condition watches SPY while VOO is what's bought"
         },
         {
           "dimension": "trigger_semantics",
           "value": "crossing_event",
-          "confidence": "0.85",
+          "confidence": "0.9",
           "source_span": "crosses below",
-          "note": "Explicit crossing language indicates the event on first becoming true, not a persistent state."
+          "note": "explicit crossing language, first time condition becomes true"
         }
       ],
       "relations": [],
@@ -520,37 +510,44 @@
     {
       "text": "buy VOO when SPY falls below its 200-day moving average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "buy VOO when SPY falls below its 200-day moving average",
+          "note": "describes a conditional buying rule, implying evaluation of a strategy"
+        },
+        {
           "dimension": "assets",
           "value": "VOO",
-          "confidence": "0.95",
+          "confidence": "1",
           "source_span": "buy VOO",
-          "note": "The asset purchased."
+          "note": ""
         },
         {
           "dimension": "observed_assets",
           "value": "SPY",
-          "confidence": "0.9",
-          "source_span": "SPY falls below",
-          "note": "The condition is based on SPY, distinct from the purchased asset VOO."
+          "confidence": "1",
+          "source_span": "SPY falls below its 200-day moving average",
+          "note": ""
         },
         {
           "dimension": "trigger_semantics",
           "value": "crossing_event",
-          "confidence": "0.6",
-          "source_span": "falls below",
-          "note": "'falls below' describes the moment the condition first becomes true, not an ongoing state."
+          "confidence": "0.7",
+          "source_span": "when SPY falls below",
+          "note": "'when' plus 'falls below' indicates the moment the condition first becomes true"
         },
         {
           "dimension": "moving_average_window",
           "value": "200",
-          "confidence": "0.9",
+          "confidence": "1",
           "source_span": "200-day moving average",
-          "note": "Length of the moving average in sessions."
+          "note": ""
         }
       ],
       "relations": [],
@@ -564,7 +561,6 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
-        "objective",
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
@@ -573,7 +569,7 @@
     {
       "text": "buy a core index fund monthly",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -582,21 +578,21 @@
           "value": "plan_contributions",
           "confidence": "0.6",
           "source_span": "buy a core index fund monthly",
-          "note": "describes a recurring purchase pattern"
+          "note": "describes a recurring purchase plan rather than an evaluation question"
+        },
+        {
+          "dimension": "assets",
+          "value": "a core index fund",
+          "confidence": "0.9",
+          "source_span": "a core index fund",
+          "note": "described as written, not resolved to a ticker"
         },
         {
           "dimension": "cadence",
           "value": "monthly",
           "confidence": "0.95",
           "source_span": "monthly",
-          "note": ""
-        },
-        {
-          "dimension": "assets",
-          "value": "core index fund",
-          "confidence": "0.9",
-          "source_span": "core index fund",
-          "note": "reported as written, not resolved to a ticker"
+          "note": "recurring contribution frequency"
         }
       ],
       "relations": [],
@@ -620,30 +616,37 @@
     {
       "text": "buy any time SPY is below the 200-day average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "buy any time SPY is below the 200-day average",
+          "note": "Sentence describes a buying rule, consistent with describing an investment strategy to evaluate."
+        },
+        {
+          "dimension": "assets",
+          "value": "SPY",
+          "confidence": "0.6",
+          "source_span": "SPY",
+          "note": "Only asset named; assumed to be both the traded and observed instrument since no distinct purchase asset is given."
+        },
+        {
           "dimension": "trigger_semantics",
           "value": "persistent_condition",
-          "confidence": "0.8",
-          "source_span": "any time SPY is below the 200-day average",
-          "note": "Phrase 'any time ... is below' describes a persistent condition true on every day it holds, not a single crossing event."
+          "confidence": "0.7",
+          "source_span": "any time SPY is below",
+          "note": "'any time' and 'is below' describe an ongoing state rather than a single crossing moment."
         },
         {
           "dimension": "moving_average_window",
           "value": "200",
           "confidence": "0.9",
           "source_span": "200-day average",
-          "note": "Explicit 200-day moving average window."
-        },
-        {
-          "dimension": "observed_assets",
-          "value": "SPY",
-          "confidence": "0.8",
-          "source_span": "SPY is below the 200-day average",
-          "note": "SPY is the instrument whose price relative to its moving average is watched."
+          "note": "Explicit length of the moving average in sessions/days."
         }
       ],
       "relations": [],
@@ -651,14 +654,12 @@
         "account_type",
         "allocation_method",
         "amount",
-        "assets",
         "cadence",
         "conditional_amount",
         "day_rule",
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
-        "objective",
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
@@ -667,7 +668,7 @@
     {
       "text": "buy at the next open",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -675,8 +676,8 @@
           "dimension": "execution_timing",
           "value": "next_session_open",
           "confidence": "0.9",
-          "source_span": "at the next open",
-          "note": "Order fills the session after the signal, at its open."
+          "source_span": "buy at the next open",
+          "note": "Indicates order fills at the next session's open rather than same-session close."
         }
       ],
       "relations": [],
@@ -702,16 +703,16 @@
     {
       "text": "buy the index rather than through an ETF",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "assets",
           "value": "the index",
-          "confidence": "0.7",
+          "confidence": "0.6",
           "source_span": "buy the index rather than through an ETF",
-          "note": "Person wants direct index exposure, explicitly rejecting an ETF wrapper as the vehicle; instrument not resolved to any specific fund or ticker."
+          "note": "Person wants to buy 'the index' directly, explicitly rejecting an ETF as the vehicle; exact instrument or fund not specified."
         }
       ],
       "relations": [],
@@ -737,7 +738,7 @@
     {
       "text": "buy through an ETF",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -746,7 +747,7 @@
           "value": "an ETF",
           "confidence": "0.6",
           "source_span": "an ETF",
-          "note": "generic instrument description, not a specific ticker or fund name"
+          "note": "Generic instrument description, not resolved to any specific ticker or fund."
         }
       ],
       "relations": [],
@@ -772,23 +773,30 @@
     {
       "text": "buy when it falls below the 200-day moving average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.3",
+          "source_span": "buy when it falls below the 200-day moving average",
+          "note": "Sentence describes a strategy rule rather than a stated goal; inferred loosely."
+        },
         {
           "dimension": "trigger_semantics",
           "value": "crossing_event",
           "confidence": "0.7",
           "source_span": "when it falls below",
-          "note": "\"when\" plus \"falls below\" signals the day the condition first becomes true, not an ongoing state."
+          "note": "'falls below' describes the moment the condition first becomes true."
         },
         {
           "dimension": "moving_average_window",
           "value": "200",
           "confidence": "0.9",
           "source_span": "200-day moving average",
-          "note": "explicit window length in sessions/days."
+          "note": "Explicit window length in days/sessions."
         }
       ],
       "relations": [],
@@ -803,7 +811,6 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
-        "objective",
         "observed_assets",
         "periodic_rebalancing",
         "sell_action",
@@ -813,30 +820,30 @@
     {
       "text": "contribute $1,000 a quarter",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.8",
+          "confidence": "0.7",
           "source_span": "contribute $1,000 a quarter",
-          "note": "Describes a recurring contribution plan."
+          "note": "describes a recurring contribution plan"
         },
         {
           "dimension": "cadence",
           "value": "quarterly",
           "confidence": "0.95",
           "source_span": "a quarter",
-          "note": "Contribution recurs every quarter."
+          "note": "contribution recurs every quarter"
         },
         {
           "dimension": "amount",
-          "value": "1000",
+          "value": "$1,000",
           "confidence": "0.95",
           "source_span": "$1,000",
-          "note": "Amount per contribution."
+          "note": "explicit per-contribution amount"
         }
       ],
       "relations": [],
@@ -844,14 +851,68 @@
         "account_type",
         "allocation_method",
         "assets",
+        "conditional_amount",
         "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "contribute $500 monthly to my Roth IRA",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.9",
+          "source_span": "contribute $500 monthly to my Roth IRA",
+          "note": "Describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "monthly",
+          "note": "Explicit monthly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": "Explicit per-contribution amount"
+        },
+        {
+          "dimension": "account_type",
+          "value": "ROTH",
+          "confidence": "0.95",
+          "source_span": "Roth IRA",
+          "note": "Explicit account named"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "day_rule",
+        "dividend_policy",
         "evaluation_period"
       ]
     },
     {
       "text": "contribute $500 monthly, rebalanced annually",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -860,28 +921,28 @@
           "value": "plan_contributions",
           "confidence": "0.7",
           "source_span": "contribute $500 monthly",
-          "note": "Sentence describes a recurring contribution plan."
+          "note": "describes a recurring contribution plan"
         },
         {
           "dimension": "cadence",
           "value": "monthly",
-          "confidence": "1",
+          "confidence": "0.9",
           "source_span": "monthly",
-          "note": "Explicit contribution frequency."
+          "note": "explicit monthly cadence"
         },
         {
           "dimension": "amount",
           "value": "$500",
-          "confidence": "1",
+          "confidence": "0.9",
           "source_span": "$500",
-          "note": "Explicit per-contribution amount."
+          "note": "fixed contribution amount"
         },
         {
           "dimension": "periodic_rebalancing",
           "value": "rebalanced annually",
-          "confidence": "1",
+          "confidence": "0.85",
           "source_span": "rebalanced annually",
-          "note": "States rebalancing occurs on an annual cadence."
+          "note": "rebalancing frequency stated, no drift threshold given"
         }
       ],
       "relations": [],
@@ -904,7 +965,7 @@
     {
       "text": "contribute a fixed $500",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -913,7 +974,7 @@
           "value": "plan_contributions",
           "confidence": "0.7",
           "source_span": "contribute a fixed $500",
-          "note": "describes a contribution action"
+          "note": "describes a contribution plan"
         },
         {
           "dimension": "amount",
@@ -930,36 +991,38 @@
         "assets",
         "cadence",
         "day_rule",
-        "evaluation_period"
+        "evaluation_period",
+        "execution_timing",
+        "trigger_semantics"
       ]
     },
     {
       "text": "contribute £1k a month",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.8",
+          "confidence": "0.9",
           "source_span": "contribute £1k a month",
-          "note": "describes a recurring contribution plan"
+          "note": "Describes a recurring contribution plan"
         },
         {
           "dimension": "cadence",
           "value": "monthly",
-          "confidence": "0.9",
+          "confidence": "0.95",
           "source_span": "a month",
-          "note": "contribution recurs each month"
+          "note": "Contribution occurs once per month"
         },
         {
           "dimension": "amount",
           "value": "£1k",
           "confidence": "0.95",
           "source_span": "£1k",
-          "note": "stated per-contribution amount"
+          "note": "Stated per-contribution amount"
         }
       ],
       "relations": [],
@@ -968,16 +1031,13 @@
         "allocation_method",
         "assets",
         "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "trigger_semantics"
+        "evaluation_period"
       ]
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth each year",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -985,8 +1045,8 @@
           "dimension": "objective",
           "value": "assess_conversion",
           "confidence": "0.9",
-          "source_span": "convert $30,000 from the traditional IRA to the Roth",
-          "note": "Sentence describes a conversion between account types."
+          "source_span": "convert $30,000 from the traditional IRA to the Roth each year",
+          "note": "Sentence describes a recurring conversion between account types."
         },
         {
           "dimension": "amount",
@@ -1000,7 +1060,7 @@
           "value": "annual",
           "confidence": "0.9",
           "source_span": "each year",
-          "note": "Conversion recurs yearly."
+          "note": "Recurs once per year."
         }
       ],
       "relations": [
@@ -1019,60 +1079,70 @@
             }
           ],
           "attributes": {
-            "action": "convert",
-            "amount": "$30,000",
-            "cadence": "each year"
+            "action": "convert"
           },
           "source_span": "convert $30,000 from the traditional IRA to the Roth each year"
         }
       ],
-      "unread": []
+      "unread": [
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
     },
     {
       "text": "convert up to the top of the 22% bracket each year",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "assess_conversion",
-          "confidence": "0.9",
+          "confidence": "0.85",
           "source_span": "convert up to the top of the 22% bracket each year",
-          "note": "Describes a Roth-conversion-style strategy of converting income up to a tax bracket ceiling."
+          "note": "describes a recurring conversion strategy tied to a tax bracket limit"
         },
         {
           "dimension": "cadence",
           "value": "annual",
           "confidence": "0.9",
           "source_span": "each year",
-          "note": "Conversion recurs once per year."
+          "note": "conversion recurs yearly"
         },
         {
           "dimension": "sell_action",
           "value": "convert up to the top of the 22% bracket",
-          "confidence": "0.85",
+          "confidence": "0.9",
           "source_span": "convert up to the top of the 22% bracket",
-          "note": "The conversion amount is defined by a tax-bracket ceiling rather than a fixed sum."
+          "note": "conversion amount is defined by a tax-bracket ceiling, not a fixed sum"
         }
       ],
       "relations": [],
-      "unread": [
-        "evaluation_period"
-      ]
+      "unread": []
     },
     {
       "text": "deposit $100 a week",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.7",
+          "confidence": "0.6",
           "source_span": "deposit $100 a week",
           "note": "describes a recurring contribution plan"
         },
@@ -1081,14 +1151,14 @@
           "value": "weekly",
           "confidence": "0.9",
           "source_span": "a week",
-          "note": "money is contributed on a weekly basis"
+          "note": "explicit weekly recurrence"
         },
         {
           "dimension": "amount",
-          "value": "100",
+          "value": "$100",
           "confidence": "0.95",
           "source_span": "$100",
-          "note": "per-contribution amount"
+          "note": "explicit per-contribution amount"
         }
       ],
       "relations": [],
@@ -1097,7 +1167,6 @@
         "allocation_method",
         "assets",
         "day_rule",
-        "dividend_policy",
         "evaluation_period"
       ]
     },
@@ -1132,7 +1201,7 @@
     {
       "text": "do not reinvest",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1141,7 +1210,7 @@
           "value": "held_as_cash",
           "confidence": "0.9",
           "source_span": "do not reinvest",
-          "note": "Explicit instruction against reinvesting implies dividends (or other distributions) are taken as cash rather than reinvested."
+          "note": "dividends explicitly not reinvested"
         }
       ],
       "relations": [],
@@ -1167,14 +1236,14 @@
     {
       "text": "do not reinvest the dividends",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "dividend_policy",
           "value": "held_as_cash",
-          "confidence": "0.95",
+          "confidence": "0.9",
           "source_span": "do not reinvest the dividends",
           "note": "Explicit instruction not to reinvest implies dividends are taken as cash."
         }
@@ -1202,7 +1271,7 @@
     {
       "text": "draw down 3% a year in retirement",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1211,38 +1280,42 @@
           "value": "assess_withdrawal",
           "confidence": "0.9",
           "source_span": "draw down 3% a year in retirement",
-          "note": "Sentence describes a withdrawal plan for retirement."
+          "note": "sentence describes a withdrawal plan for retirement"
         },
         {
           "dimension": "cadence",
           "value": "annual",
-          "confidence": "0.7",
+          "confidence": "0.8",
           "source_span": "a year",
-          "note": "Withdrawal occurs once per year."
+          "note": "withdrawal occurs once per year"
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
+        "allocation_method",
         "amount",
         "assets",
+        "day_rule",
+        "dividend_policy",
         "evaluation_period",
+        "execution_timing",
         "trigger_semantics"
       ]
     },
     {
       "text": "equal weight across the four",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "allocation_method",
           "value": "equal_weight_at_purchase",
-          "confidence": "0.7",
+          "confidence": "0.8",
           "source_span": "equal weight across the four",
-          "note": "Describes how money is divided among four unspecified holdings; no indication of rebalancing frequency or which four assets."
+          "note": "Sentence states an equal-weight allocation but does not identify what 'the four' refers to."
         }
       ],
       "relations": [],
@@ -1251,32 +1324,40 @@
         "amount",
         "assets",
         "cadence",
+        "conditional_amount",
         "day_rule",
+        "dividend_policy",
         "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
         "objective",
-        "periodic_rebalancing"
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
       "text": "evaluate over the past five years",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "evaluate_investment_strategy",
-          "confidence": "0.6",
+          "confidence": "0.4",
           "source_span": "evaluate",
-          "note": "No object of evaluation is named; strategy assumed as default objective type."
+          "note": "verb suggests evaluating something, but no strategy or subject is named"
         },
         {
           "dimension": "evaluation_period",
           "value": "trailing:5y",
           "confidence": "0.9",
           "source_span": "over the past five years",
-          "note": "Canonical form of a backward-looking window from now."
+          "note": "canonical trailing window from present"
         }
       ],
       "relations": [],
@@ -1301,7 +1382,7 @@
     {
       "text": "execute at the close",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1310,7 +1391,7 @@
           "value": "same_session_close",
           "confidence": "0.9",
           "source_span": "execute at the close",
-          "note": "Order fills at the close of the signal session."
+          "note": "Order fills at the same session's close rather than the next open."
         }
       ],
       "relations": [],
@@ -1336,7 +1417,7 @@
     {
       "text": "fill on the signal bar",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1345,7 +1426,7 @@
           "value": "same_session_close",
           "confidence": "0.6",
           "source_span": "fill on the signal bar",
-          "note": "Fill occurs on the same bar where the signal appears, implying same-session execution rather than the next session's open."
+          "note": "Filling 'on' the signal bar suggests the same session as the signal, rather than waiting for the next session's open, though the sentence does not explicitly say 'close'."
         }
       ],
       "relations": [],
@@ -1371,7 +1452,7 @@
     {
       "text": "harvest losses whenever a position falls 10% below its cost basis",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1380,7 +1461,7 @@
           "value": "harvest losses whenever a position falls 10% below its cost basis",
           "confidence": "0.9",
           "source_span": "harvest losses whenever a position falls 10% below its cost basis",
-          "note": "Describes a loss-harvesting rule tied to a 10% decline from cost basis; the specific asset and account are unspecified."
+          "note": "Tax-loss harvesting triggered by a price decline relative to cost basis."
         }
       ],
       "relations": [],
@@ -1397,6 +1478,7 @@
         "execution_timing",
         "moving_average_window",
         "objective",
+        "observed_assets",
         "periodic_rebalancing",
         "stated_weights",
         "trigger_semantics"
@@ -1405,7 +1487,7 @@
     {
       "text": "hold 2x leverage on the equity sleeve",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [],
@@ -1425,30 +1507,12 @@
           "source_span": "hold 2x leverage on the equity sleeve"
         }
       ],
-      "unread": [
-        "account_type",
-        "allocation_method",
-        "amount",
-        "assets",
-        "cadence",
-        "conditional_amount",
-        "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "objective",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
-      ]
+      "unread": []
     },
     {
       "text": "hold my age in bonds",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1457,14 +1521,14 @@
           "value": "bonds",
           "confidence": "0.7",
           "source_span": "bonds",
-          "note": "the asset class named as the target of the allocation rule"
+          "note": "The only asset class named; no complementary holding is stated."
         },
         {
           "dimension": "allocation_method",
           "value": "my age in bonds",
           "confidence": "0.6",
           "source_span": "hold my age in bonds",
-          "note": "a dynamic percentage-in-bonds rule tied to age, not one of the listed allocation methods; reported as written per rule 6"
+          "note": "This is an age-based weighting rule, not one of the listed allocation methods, so the person's own words are reported instead of forcing a listed value."
         }
       ],
       "relations": [],
@@ -1489,16 +1553,57 @@
     {
       "text": "hold the bonds in the IRA and the stocks in the taxable account",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
-      "readings": [],
-      "relations": [],
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "other",
+          "confidence": "0.3",
+          "source_span": "hold the bonds in the IRA and the stocks in the taxable account",
+          "note": "sentence describes an asset placement arrangement, not clearly matching a listed objective"
+        }
+      ],
+      "relations": [
+        {
+          "kind": "asset_location",
+          "members": [
+            {
+              "role": "holding",
+              "subject": "bonds",
+              "qualifiers": {}
+            },
+            {
+              "role": "account",
+              "subject": "IRA",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {},
+          "source_span": "hold the bonds in the IRA"
+        },
+        {
+          "kind": "asset_location",
+          "members": [
+            {
+              "role": "holding",
+              "subject": "stocks",
+              "qualifiers": {}
+            },
+            {
+              "role": "account",
+              "subject": "taxable account",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {},
+          "source_span": "the stocks in the taxable account"
+        }
+      ],
       "unread": [
-        "account_type",
         "allocation_method",
         "amount",
-        "assets",
         "cadence",
         "conditional_amount",
         "day_rule",
@@ -1506,8 +1611,6 @@
         "evaluation_period",
         "execution_timing",
         "moving_average_window",
-        "objective",
-        "observed_assets",
         "periodic_rebalancing",
         "sell_action",
         "stated_weights",
@@ -1517,23 +1620,33 @@
     {
       "text": "hold the bonus for 90 days",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
-      "readings": [
+      "readings": [],
+      "relations": [
         {
-          "dimension": "assets",
-          "value": "the bonus",
-          "confidence": "0.5",
-          "source_span": "the bonus",
-          "note": "the sentence refers to a specific sum, 'the bonus', as the thing being held; it is not resolved to a ticker or account and no amount is given"
+          "kind": "reserve_policy",
+          "members": [
+            {
+              "role": "reserve",
+              "subject": "the bonus",
+              "qualifiers": {
+                "amount_basis": "bonus",
+                "duration": "90 days",
+                "precedence": "unstated"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "hold the bonus for 90 days"
         }
       ],
-      "relations": [],
       "unread": [
         "account_type",
         "allocation_method",
         "amount",
+        "assets",
         "cadence",
         "conditional_amount",
         "day_rule",
@@ -1552,7 +1665,7 @@
     {
       "text": "invest $500 monthly",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1561,21 +1674,21 @@
           "value": "plan_contributions",
           "confidence": "0.7",
           "source_span": "invest $500 monthly",
-          "note": "describes a recurring contribution plan"
-        },
-        {
-          "dimension": "cadence",
-          "value": "monthly",
-          "confidence": "0.95",
-          "source_span": "monthly",
-          "note": "explicit monthly cadence"
+          "note": "Describes a recurring contribution plan."
         },
         {
           "dimension": "amount",
           "value": "500",
-          "confidence": "0.95",
+          "confidence": "1",
           "source_span": "$500",
-          "note": "explicit per-contribution amount"
+          "note": "Explicit dollar amount per contribution."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "monthly",
+          "note": "Contribution frequency stated directly."
         }
       ],
       "relations": [],
@@ -1585,91 +1698,81 @@
         "assets",
         "day_rule",
         "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "trigger_semantics"
+        "evaluation_period"
       ]
     },
     {
       "text": "invest $500 monthly into VTI",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
-      "prompt_version": "quantify-hosted-prompt@1",
-      "failed": null,
-      "readings": [
-        {
-          "dimension": "objective",
-          "value": "evaluate_investment_strategy",
-          "confidence": "0.5",
-          "source_span": "invest $500 monthly into VTI",
-          "note": "Sentence describes a contribution plan; no explicit question stated, inferred as strategy description"
-        },
-        {
-          "dimension": "cadence",
-          "value": "monthly",
-          "confidence": "0.95",
-          "source_span": "monthly",
-          "note": "Explicit monthly cadence"
-        },
-        {
-          "dimension": "amount",
-          "value": "500",
-          "confidence": "0.95",
-          "source_span": "$500",
-          "note": "Explicit dollar amount per contribution"
-        },
-        {
-          "dimension": "assets",
-          "value": "VTI",
-          "confidence": "0.95",
-          "source_span": "VTI",
-          "note": "Asset as written, not resolved further"
-        }
-      ],
-      "relations": [],
-      "unread": [
-        "account_type",
-        "allocation_method",
-        "conditional_amount",
-        "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
-      ]
-    },
-    {
-      "text": "invest 10% of my salary monthly",
-      "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.9",
-          "source_span": "invest 10% of my salary monthly",
-          "note": "describes a recurring contribution plan"
+          "confidence": "0.8",
+          "source_span": "invest $500 monthly into VTI",
+          "note": "Describes a recurring contribution plan, not a strategy evaluation."
         },
         {
           "dimension": "cadence",
           "value": "monthly",
           "confidence": "0.95",
           "source_span": "monthly",
-          "note": "explicit calendar cadence"
+          "note": "Explicit recurring frequency."
         },
         {
           "dimension": "amount",
-          "value": "10% of my salary",
+          "value": "500",
+          "confidence": "0.95",
+          "source_span": "$500",
+          "note": "Per-contribution amount stated directly."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "Ticker as written, not resolved or substituted."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "invest 10% of my salary monthly",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "invest 10% of my salary monthly",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
           "confidence": "0.9",
+          "source_span": "monthly",
+          "note": "explicit monthly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "10% of salary",
+          "confidence": "0.85",
           "source_span": "10% of my salary",
-          "note": "amount is expressed as a percentage of salary, not a fixed number; reported as written"
+          "note": "amount expressed as a percentage of salary, not a fixed number"
         }
       ],
       "relations": [],
@@ -1679,31 +1782,29 @@
         "assets",
         "day_rule",
         "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "trigger_semantics"
+        "evaluation_period"
       ]
     },
     {
       "text": "invest in the S&P 500 tracker",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
-          "value": "other",
+          "value": "evaluate_investment_strategy",
           "confidence": "0.4",
           "source_span": "invest in the S&P 500 tracker",
-          "note": "States an intent to invest but does not specify a clear question type like evaluation, comparison, or contribution planning."
+          "note": "sentence only states an investment action, no explicit question or comparison stated"
         },
         {
           "dimension": "assets",
           "value": "S&P 500 tracker",
           "confidence": "0.9",
           "source_span": "S&P 500 tracker",
-          "note": "Asset described as written, not resolved to a specific ticker like SPY or VOO."
+          "note": "reported as written, not resolved to a ticker"
         }
       ],
       "relations": [],
@@ -1728,30 +1829,30 @@
     {
       "text": "invest whatever is left over each month",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.8",
+          "confidence": "0.7",
           "source_span": "invest whatever is left over each month",
-          "note": "Describes a recurring contribution plan, not a specific strategy evaluation."
+          "note": "describes a recurring contribution rule based on leftover funds"
         },
         {
           "dimension": "cadence",
           "value": "monthly",
           "confidence": "0.9",
           "source_span": "each month",
-          "note": "Explicit monthly cadence."
+          "note": "explicit monthly cadence"
         },
         {
           "dimension": "amount",
           "value": "whatever is left over",
-          "confidence": "0.6",
+          "confidence": "0.8",
           "source_span": "whatever is left over",
-          "note": "Amount is defined as a residual, not a fixed number; reported as written since no numeric value was given."
+          "note": "amount defined as residual funds rather than a fixed number"
         }
       ],
       "relations": [],
@@ -1759,23 +1860,14 @@
         "account_type",
         "allocation_method",
         "assets",
-        "conditional_amount",
         "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
+        "dividend_policy"
       ]
     },
     {
       "text": "keep it for six months",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [],
@@ -1803,10 +1895,18 @@
     {
       "text": "keep six months of expenses in cash before investing anything",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
-      "readings": [],
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "other",
+          "confidence": "0.4",
+          "source_span": "keep six months of expenses in cash before investing anything",
+          "note": "describes a reserve policy prior to investing, not a specific listed objective"
+        }
+      ],
       "relations": [
         {
           "kind": "reserve_policy",
@@ -1828,57 +1928,50 @@
       ],
       "unread": [
         "account_type",
-        "allocation_method",
         "amount",
         "assets",
-        "cadence",
-        "conditional_amount",
-        "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "objective",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
+        "cadence"
       ]
     },
     {
       "text": "keep the REITs in the Roth",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
-          "dimension": "assets",
-          "value": "REITs",
-          "confidence": "0.9",
-          "source_span": "the REITs",
-          "note": "Asset described as written, not resolved to a ticker."
-        },
-        {
-          "dimension": "account_type",
-          "value": "ROTH",
-          "confidence": "0.85",
-          "source_span": "in the Roth",
-          "note": "Names the account where the asset is held."
-        },
-        {
           "dimension": "objective",
           "value": "other",
-          "confidence": "0.4",
+          "confidence": "0.3",
           "source_span": "keep the REITs in the Roth",
-          "note": "Sentence gives a placement instruction rather than a clear evaluate/compare/plan objective."
+          "note": "no explicit evaluation/planning goal stated; sentence only describes an account placement rule"
         }
       ],
-      "relations": [],
+      "relations": [
+        {
+          "kind": "asset_location",
+          "members": [
+            {
+              "role": "holding",
+              "subject": "REITs",
+              "qualifiers": {}
+            },
+            {
+              "role": "account",
+              "subject": "Roth",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {},
+          "source_span": "keep the REITs in the Roth"
+        }
+      ],
       "unread": [
+        "account_type",
         "allocation_method",
         "amount",
+        "assets",
         "cadence",
         "conditional_amount",
         "day_rule",
@@ -1896,7 +1989,7 @@
     {
       "text": "keep three years of expenses in cash and the rest in stocks",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [],
@@ -1948,7 +2041,7 @@
     {
       "text": "live off the dividends and never touch the principal",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1956,37 +2049,39 @@
           "dimension": "objective",
           "value": "assess_withdrawal",
           "confidence": "0.7",
-          "source_span": "live off the dividends",
-          "note": "describes drawing income from dividends as a withdrawal approach"
+          "source_span": "live off the dividends and never touch the principal",
+          "note": "describes a withdrawal/spending approach centered on dividend income"
         },
         {
           "dimension": "dividend_policy",
           "value": "held_as_cash",
-          "confidence": "0.8",
+          "confidence": "0.85",
           "source_span": "live off the dividends",
-          "note": "dividends are taken as spendable income, not reinvested"
+          "note": "dividends are used for living expenses, not reinvested"
         },
         {
           "dimension": "sell_action",
-          "value": "never touch the principal",
-          "confidence": "0.7",
+          "value": "never sell principal",
+          "confidence": "0.8",
           "source_span": "never touch the principal",
-          "note": "explicit refusal to sell or draw down principal"
+          "note": "explicit prohibition on selling/withdrawing principal"
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
+        "allocation_method",
         "amount",
         "assets",
         "cadence",
+        "day_rule",
         "evaluation_period"
       ]
     },
     {
       "text": "maintain 60/40 by contributions and rebalance at year end",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -1995,21 +2090,21 @@
           "value": "60/40",
           "confidence": "0.9",
           "source_span": "60/40",
-          "note": "Explicit ratio given, order and holdings unspecified beyond the numbers."
+          "note": "Explicit two-way weight given for the holdings, order not otherwise specified."
         },
         {
           "dimension": "allocation_method",
-          "value": "stated_weights",
-          "confidence": "0.7",
-          "source_span": "60/40",
-          "note": "Explicit percentage split implies a stated-weights method rather than a computed one."
+          "value": "by contributions",
+          "confidence": "0.6",
+          "source_span": "maintain 60/40 by contributions",
+          "note": "Person describes using new contributions to keep the 60/40 split, which doesn't match a listed allocation_method value."
         },
         {
           "dimension": "periodic_rebalancing",
-          "value": "rebalance annually, timed to year end, achieved via directing new contributions rather than selling",
-          "confidence": "0.6",
-          "source_span": "maintain 60/40 by contributions and rebalance at year end",
-          "note": "'by contributions' indicates the maintenance mechanism; 'rebalance at year end' gives the annual timing — both bear on the same rebalancing behavior."
+          "value": "annually, at year end",
+          "confidence": "0.8",
+          "source_span": "rebalance at year end",
+          "note": "Explicit annual rebalancing cadence tied to calendar year-end."
         }
       ],
       "relations": [],
@@ -2033,30 +2128,30 @@
     {
       "text": "make a one-off $10,000 investment",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.5",
+          "confidence": "0.6",
           "source_span": "make a one-off $10,000 investment",
-          "note": "Describes a single planned contribution; no strategy evaluation criteria given."
+          "note": "describes a single contribution action, closest fit among listed objectives"
         },
         {
           "dimension": "cadence",
           "value": "once",
-          "confidence": "0.9",
+          "confidence": "0.95",
           "source_span": "one-off",
-          "note": "Indicates a single, non-recurring contribution."
+          "note": "explicitly a single, non-recurring event"
         },
         {
           "dimension": "amount",
           "value": "$10,000",
           "confidence": "0.95",
           "source_span": "$10,000",
-          "note": "Explicit contribution amount."
+          "note": "explicit lump sum amount"
         }
       ],
       "relations": [],
@@ -2065,27 +2160,22 @@
         "allocation_method",
         "assets",
         "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "periodic_rebalancing",
-        "sell_action",
-        "trigger_semantics"
+        "evaluation_period"
       ]
     },
     {
       "text": "market-cap weighted",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "allocation_method",
           "value": "market-cap weighted",
-          "confidence": "0.9",
+          "confidence": "0.6",
           "source_span": "market-cap weighted",
-          "note": "Not one of the listed allocation_method values; reported as written per rule 6."
+          "note": "Not one of the listed allocation_method values, so reporting the words as written per rule 6."
         }
       ],
       "relations": [],
@@ -2111,7 +2201,7 @@
     {
       "text": "measured across ten years",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2120,7 +2210,7 @@
           "value": "trailing:10y",
           "confidence": "0.7",
           "source_span": "measured across ten years",
-          "note": "Duration back from now, canonicalized from 'ten years'."
+          "note": "duration back from now, treated as trailing window"
         }
       ],
       "relations": [],
@@ -2146,7 +2236,7 @@
     {
       "text": "mid-month",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2155,7 +2245,7 @@
           "value": "mid-month",
           "confidence": "0.5",
           "source_span": "mid-month",
-          "note": "Does not match any listed day_rule value (first_session_of_period, last_session_of_period, calendar_first_rolled_forward); reporting as written per rule 6."
+          "note": "Names a timing within the period but does not match any listed day_rule value (no specific session named); reported as written per rule 6."
         }
       ],
       "relations": [],
@@ -2181,7 +2271,7 @@
     {
       "text": "on the first trading day of the month",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2189,40 +2279,29 @@
           "dimension": "cadence",
           "value": "monthly",
           "confidence": "0.7",
-          "source_span": "on the first trading day of the month",
-          "note": "Implies a monthly recurrence, though no explicit contribution frequency word is used."
+          "source_span": "of the month",
+          "note": "Implied monthly recurrence from 'of the month', though no explicit contribution verb is present."
         },
         {
           "dimension": "day_rule",
-          "value": "first_session_of_period",
+          "value": "calendar_first_rolled_forward",
           "confidence": "0.9",
-          "source_span": "first trading day of the month",
-          "note": "Names the specific session within the period as the first trading day."
+          "source_span": "on the first trading day of the month",
+          "note": "First trading day rolls forward from the calendar start of the month."
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
-        "allocation_method",
         "amount",
         "assets",
-        "conditional_amount",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "objective",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
+        "objective"
       ]
     },
     {
       "text": "pay off the mortgage instead of investing",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2231,7 +2310,7 @@
           "value": "assess_debt_repayment",
           "confidence": "0.9",
           "source_span": "pay off the mortgage instead of investing",
-          "note": "Person is weighing paying off mortgage debt against investing the money instead."
+          "note": "Sentence directly proposes paying off debt as an alternative to investing, matching the assess_debt_repayment objective."
         }
       ],
       "relations": [],
@@ -2257,7 +2336,7 @@
     {
       "text": "purchase VTI whenever QQQ drops 10%",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2266,28 +2345,28 @@
           "value": "evaluate_investment_strategy",
           "confidence": "0.4",
           "source_span": "purchase VTI whenever QQQ drops 10%",
-          "note": "Sentence describes a rule-based purchase plan; no explicit question stated, so objective is inferred loosely from framing."
+          "note": "Describes a strategy rule without an explicit stated goal; inferred from the whole sentence being a plan description."
         },
         {
           "dimension": "assets",
           "value": "VTI",
           "confidence": "0.9",
           "source_span": "purchase VTI",
-          "note": ""
+          "note": "The instrument to be bought, as written."
         },
         {
           "dimension": "observed_assets",
           "value": "QQQ",
           "confidence": "0.9",
           "source_span": "QQQ drops 10%",
-          "note": ""
+          "note": "The watched instrument differs from the purchased one."
         },
         {
           "dimension": "trigger_semantics",
           "value": "persistent_condition",
-          "confidence": "0.5",
-          "source_span": "whenever",
-          "note": "'whenever' matches the persistent_condition pattern per the given examples, though the underlying event ('drops 10%') has crossing-like phrasing; the sentence does not clearly distinguish first-occurrence from ongoing state."
+          "confidence": "0.4",
+          "source_span": "whenever QQQ drops 10%",
+          "note": "'whenever' signals a recurring/persistent condition per the stated convention, though 'drops 10%' could also read as a one-time crossing event."
         }
       ],
       "relations": [],
@@ -2310,14 +2389,14 @@
     {
       "text": "put $250 into the index fund every two weeks",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "plan_contributions",
-          "confidence": "0.8",
+          "confidence": "0.7",
           "source_span": "put $250 into the index fund every two weeks",
           "note": "describes a recurring contribution plan"
         },
@@ -2338,45 +2417,42 @@
         {
           "dimension": "assets",
           "value": "the index fund",
-          "confidence": "1",
+          "confidence": "0.9",
           "source_span": "the index fund",
-          "note": "as written, not resolved to a specific fund/ticker"
+          "note": "asset as described, not resolved to a ticker"
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
+        "allocation_method",
         "day_rule",
-        "evaluation_period"
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "trigger_semantics"
       ]
     },
     {
       "text": "put in $1,000 each quarter",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
-          "dimension": "objective",
-          "value": "plan_contributions",
-          "confidence": "0.7",
-          "source_span": "put in $1,000 each quarter",
-          "note": "describes a recurring contribution plan"
-        },
-        {
           "dimension": "cadence",
           "value": "quarterly",
-          "confidence": "0.9",
+          "confidence": "0.95",
           "source_span": "each quarter",
-          "note": "explicit quarterly cadence"
+          "note": "contribution recurs every quarter"
         },
         {
           "dimension": "amount",
-          "value": "$1,000",
+          "value": "1000",
           "confidence": "0.95",
           "source_span": "$1,000",
-          "note": "explicit per-contribution amount"
+          "note": "per-contribution amount"
         }
       ],
       "relations": [],
@@ -2384,20 +2460,15 @@
         "account_type",
         "allocation_method",
         "assets",
-        "conditional_amount",
         "day_rule",
-        "dividend_policy",
         "evaluation_period",
-        "execution_timing",
-        "periodic_rebalancing",
-        "sell_action",
-        "trigger_semantics"
+        "objective"
       ]
     },
     {
       "text": "put in half of any bonus",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2406,14 +2477,14 @@
           "value": "plan_contributions",
           "confidence": "0.7",
           "source_span": "put in half of any bonus",
-          "note": "Describes a contribution rule tied to bonus income."
+          "note": "Describes a plan to contribute a portion of income (bonus) to investing."
         },
         {
           "dimension": "amount",
           "value": "half of any bonus",
           "confidence": "0.8",
           "source_span": "half of any bonus",
-          "note": "Amount is expressed as a fraction of a variable bonus, not a fixed number."
+          "note": "Amount is expressed as a fraction of an irregular, unspecified sum rather than a fixed number."
         }
       ],
       "relations": [],
@@ -2424,28 +2495,24 @@
         "cadence",
         "conditional_amount",
         "day_rule",
-        "dividend_policy",
         "evaluation_period",
         "execution_timing",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
         "trigger_semantics"
       ]
     },
     {
       "text": "put it into an SPX ETF",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "assets",
           "value": "SPX ETF",
-          "confidence": "1",
-          "source_span": "an SPX ETF",
-          "note": "Reported exactly as written; not resolved to a specific ticker like SPY."
+          "confidence": "0.95",
+          "source_span": "SPX ETF",
+          "note": "Asset named exactly as written; not normalised to a ticker."
         }
       ],
       "relations": [],
@@ -2499,23 +2566,23 @@
     {
       "text": "rebalance back to 60/40 every year",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "periodic_rebalancing",
           "value": "annual",
-          "confidence": "0.8",
-          "source_span": "rebalance back to 60/40 every year",
-          "note": "Rebalancing frequency stated as yearly, target 60/40."
+          "confidence": "0.9",
+          "source_span": "every year",
+          "note": "Rebalancing frequency explicitly stated as yearly."
         },
         {
           "dimension": "stated_weights",
           "value": "60/40",
-          "confidence": "0.9",
+          "confidence": "0.95",
           "source_span": "60/40",
-          "note": "Explicit target weights for rebalancing, order of holdings not specified."
+          "note": "Explicit target weights given for two unspecified holdings."
         }
       ],
       "relations": [],
@@ -2540,70 +2607,16 @@
     {
       "text": "rebalance on the last session of each quarter",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
-          "dimension": "cadence",
-          "value": "quarterly",
-          "confidence": "0.9",
-          "source_span": "each quarter",
-          "note": "rebalancing occurs once per quarter"
-        },
-        {
-          "dimension": "day_rule",
-          "value": "last_session_of_period",
-          "confidence": "0.95",
-          "source_span": "last session of each quarter",
-          "note": "specifies the final trading session of the period"
-        },
-        {
           "dimension": "periodic_rebalancing",
-          "value": "rebalance on the last session of each quarter",
+          "value": "quarterly, on the last session of each quarter",
           "confidence": "0.9",
           "source_span": "rebalance on the last session of each quarter",
-          "note": "explicit rebalancing schedule tied to quarter-end"
-        }
-      ],
-      "relations": [],
-      "unread": [
-        "account_type",
-        "allocation_method",
-        "amount",
-        "assets",
-        "conditional_amount",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "objective",
-        "observed_assets",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
-      ]
-    },
-    {
-      "text": "rebalance to 70/30",
-      "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
-      "prompt_version": "quantify-hosted-prompt@1",
-      "failed": null,
-      "readings": [
-        {
-          "dimension": "periodic_rebalancing",
-          "value": "rebalance to 70/30",
-          "confidence": "0.6",
-          "source_span": "rebalance to 70/30",
-          "note": "Rebalancing action stated with target weights; no frequency or drift trigger given."
-        },
-        {
-          "dimension": "stated_weights",
-          "value": "70/30",
-          "confidence": "0.7",
-          "source_span": "70/30",
-          "note": "Target weights given, but no holdings named to attach them to."
+          "note": "Describes rebalancing frequency (quarterly) and timing (last session of the quarter); not a contribution schedule."
         }
       ],
       "relations": [],
@@ -2622,13 +2635,54 @@
         "objective",
         "observed_assets",
         "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "rebalance to 70/30",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "rebalance to target weights 70/30",
+          "confidence": "0.7",
+          "source_span": "rebalance to 70/30",
+          "note": "Indicates rebalancing occurs but no frequency or drift trigger is stated."
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "70/30",
+          "confidence": "0.85",
+          "source_span": "70/30",
+          "note": "Explicit weights given, but the holdings they apply to are not named in the sentence."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
         "trigger_semantics"
       ]
     },
     {
       "text": "rebalance whenever an allocation drifts more than 5 points",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2637,14 +2691,14 @@
           "value": "rebalance when an allocation drifts more than 5 points",
           "confidence": "0.9",
           "source_span": "rebalance whenever an allocation drifts more than 5 points",
-          "note": "Drift-based rebalancing rule, threshold of 5 points on an allocation."
+          "note": "drift-based rebalancing rule, threshold stated as 5 points"
         },
         {
           "dimension": "trigger_semantics",
           "value": "persistent_condition",
-          "confidence": "0.6",
+          "confidence": "0.55",
           "source_span": "whenever an allocation drifts more than 5 points",
-          "note": "'whenever' suggests the condition is checked repeatedly / holds true, matching persistent_condition rather than a one-time crossing."
+          "note": "'whenever' pattern matches persistent_condition per convention, though drift-triggered rebalancing could plausibly reset after firing; sentence does not clearly distinguish"
         }
       ],
       "relations": [],
@@ -2669,10 +2723,18 @@
     {
       "text": "refill the cash bucket from stocks after a good year",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
-      "readings": [],
+      "readings": [
+        {
+          "dimension": "sell_action",
+          "value": "refill the cash bucket from stocks",
+          "confidence": "0.6",
+          "source_span": "refill the cash bucket from stocks",
+          "note": "selling/moving stock holdings to replenish the cash bucket"
+        }
+      ],
       "relations": [
         {
           "kind": "bucket_policy",
@@ -2687,7 +2749,7 @@
             }
           ],
           "attributes": {
-            "condition": "after a good year"
+            "refill_condition": "after a good year"
           },
           "source_span": "refill the cash bucket from stocks after a good year"
         }
@@ -2696,26 +2758,14 @@
         "account_type",
         "allocation_method",
         "amount",
-        "assets",
         "cadence",
-        "conditional_amount",
-        "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "objective",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "stated_weights",
-        "trigger_semantics"
+        "evaluation_period"
       ]
     },
     {
       "text": "reinvest the dividends",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2724,7 +2774,7 @@
           "value": "reinvested",
           "confidence": "1",
           "source_span": "reinvest the dividends",
-          "note": "Explicit instruction to reinvest dividends rather than take them as cash."
+          "note": "Explicit instruction to reinvest dividends rather than take as cash."
         }
       ],
       "relations": [],
@@ -2750,7 +2800,7 @@
     {
       "text": "run it at a 10% volatility target",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -2759,7 +2809,7 @@
           "value": "volatility_target",
           "confidence": "0.9",
           "source_span": "run it at a 10% volatility target",
-          "note": "10% is the target level; no dimension exists to record the numeric target itself"
+          "note": "10% is the stated target level for the volatility-targeting method"
         }
       ],
       "relations": [],
@@ -2785,23 +2835,23 @@
     {
       "text": "sell VTI and buy BND",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
-          "dimension": "objective",
-          "value": "other",
-          "confidence": "0.4",
-          "source_span": "sell VTI and buy BND",
-          "note": "Describes a portfolio swap, not clearly framed as strategy evaluation, contribution planning, withdrawal, or conversion."
+          "dimension": "sell_action",
+          "value": "sell VTI",
+          "confidence": "0.9",
+          "source_span": "sell VTI",
+          "note": "explicit sell instruction for VTI"
         },
         {
           "dimension": "assets",
           "value": "BND",
           "confidence": "0.9",
           "source_span": "buy BND",
-          "note": "Asset to be purchased, as written."
+          "note": "explicit buy instruction for BND"
         }
       ],
       "relations": [],
@@ -2816,6 +2866,7 @@
         "evaluation_period",
         "execution_timing",
         "moving_average_window",
+        "objective",
         "observed_assets",
         "periodic_rebalancing",
         "stated_weights",
@@ -2825,23 +2876,23 @@
     {
       "text": "sell covered calls one strike out of the money each month",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
-        {
-          "dimension": "cadence",
-          "value": "monthly",
-          "confidence": "0.9",
-          "source_span": "each month",
-          "note": "recurring action described monthly"
-        },
         {
           "dimension": "sell_action",
           "value": "sell covered calls one strike out of the money",
           "confidence": "0.9",
           "source_span": "sell covered calls one strike out of the money",
-          "note": "selling/writing covered calls at a strike one increment out of the money"
+          "note": "describes writing covered calls at a strike one increment out of the money"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.85",
+          "source_span": "each month",
+          "note": "recurring monthly action"
         }
       ],
       "relations": [],
@@ -2850,13 +2901,53 @@
         "allocation_method",
         "amount",
         "assets",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "objective"
+      ]
+    },
+    {
+      "text": "sell the loser and buy a similar fund to avoid a wash sale",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "other",
+          "confidence": "0.5",
+          "source_span": "sell the loser and buy a similar fund to avoid a wash sale",
+          "note": "describes a tax-loss harvesting action rather than any listed objective type"
+        },
+        {
+          "dimension": "sell_action",
+          "value": "sell the loser",
+          "confidence": "0.9",
+          "source_span": "sell the loser",
+          "note": "selling the losing holding"
+        },
+        {
+          "dimension": "assets",
+          "value": "a similar fund",
+          "confidence": "0.9",
+          "source_span": "buy a similar fund",
+          "note": "replacement purchase, not specified further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
         "conditional_amount",
         "day_rule",
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
         "moving_average_window",
-        "objective",
         "observed_assets",
         "periodic_rebalancing",
         "stated_weights",
@@ -2864,67 +2955,32 @@
       ]
     },
     {
-      "text": "sell the loser and buy a similar fund to avoid a wash sale",
-      "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
-      "prompt_version": "quantify-hosted-prompt@1",
-      "failed": null,
-      "readings": [
-        {
-          "dimension": "objective",
-          "value": "other",
-          "confidence": "0.4",
-          "source_span": "sell the loser and buy a similar fund to avoid a wash sale",
-          "note": "describes a tax-loss-harvesting action rather than a standard objective category"
-        },
-        {
-          "dimension": "assets",
-          "value": "a similar fund",
-          "confidence": "0.8",
-          "source_span": "buy a similar fund",
-          "note": "the replacement holding, described generically rather than named"
-        }
-      ],
-      "relations": [],
-      "unread": [
-        "account_type",
-        "allocation_method",
-        "amount",
-        "cadence",
-        "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "trigger_semantics"
-      ]
-    },
-    {
       "text": "sell when it drops under its 50-day average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "sell_action",
           "value": "sell when it drops under its 50-day average",
-          "confidence": "0.85",
+          "confidence": "0.9",
           "source_span": "sell when it drops under its 50-day average",
-          "note": "Describes a sell triggered by the asset falling below its 50-day moving average."
+          "note": "explicit sell instruction tied to a moving-average condition"
         },
         {
           "dimension": "trigger_semantics",
           "value": "crossing_event",
           "confidence": "0.6",
-          "source_span": "when it drops under",
-          "note": "\"drops under\" describes the moment the condition first becomes true, matching a crossing_event rather than a sustained state."
+          "source_span": "drops under",
+          "note": "'drops under' describes the moment the condition first becomes true, not a sustained state"
         },
         {
           "dimension": "moving_average_window",
           "value": "50",
           "confidence": "0.9",
           "source_span": "50-day average",
-          "note": "Explicit length of the moving average in days/sessions."
+          "note": "moving average length given in days, treated as sessions"
         }
       ],
       "relations": [],
@@ -2941,50 +2997,64 @@
         "execution_timing",
         "objective",
         "observed_assets",
-        "periodic_rebalancing"
+        "periodic_rebalancing",
+        "stated_weights"
       ]
     },
     {
       "text": "shift 1% from stocks to bonds every year as I get older",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
-        {
-          "dimension": "objective",
-          "value": "evaluate_investment_strategy",
-          "confidence": "0.4",
-          "source_span": "shift 1% from stocks to bonds every year as I get older",
-          "note": "describes an ongoing allocation-shift strategy; no explicit ask to evaluate, compare, or plan, so this is the closest fit"
-        },
         {
           "dimension": "cadence",
           "value": "annual",
           "confidence": "0.9",
           "source_span": "every year",
-          "note": ""
+          "note": "explicit yearly cadence for the reallocation"
         },
         {
           "dimension": "sell_action",
           "value": "shift 1% from stocks to bonds",
-          "confidence": "0.8",
+          "confidence": "0.85",
           "source_span": "shift 1% from stocks to bonds",
-          "note": ""
+          "note": "a recurring partial reallocation, not a withdrawal or conversion"
+        },
+        {
+          "dimension": "amount",
+          "value": "1%",
+          "confidence": "0.8",
+          "source_span": "shift 1%",
+          "note": "expressed as a percentage of the portfolio, not a fixed sum"
         },
         {
           "dimension": "assets",
-          "value": "stocks, bonds",
+          "value": "stocks",
           "confidence": "0.7",
-          "source_span": "stocks to bonds",
-          "note": "written generically, not as specific tickers or funds"
+          "source_span": "stocks",
+          "note": "source of the shifted amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "bonds",
+          "confidence": "0.7",
+          "source_span": "bonds",
+          "note": "destination of the shifted amount"
+        },
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "shift 1% from stocks to bonds every year as I get older",
+          "note": "describes an age-based glide-path strategy rather than a single contribution or withdrawal plan"
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
         "allocation_method",
-        "amount",
         "conditional_amount",
         "day_rule",
         "dividend_policy",
@@ -3000,7 +3070,7 @@
     {
       "text": "since January 2020",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3035,36 +3105,65 @@
     {
       "text": "spend the taxable account first, then the IRA, then the Roth",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "assess_withdrawal",
-          "confidence": "0.7",
+          "confidence": "0.8",
           "source_span": "spend the taxable account first, then the IRA, then the Roth",
-          "note": "Describes an order in which accounts are drawn down, i.e. a withdrawal/spend-down plan."
+          "note": "describes an order of withdrawal across account types"
         },
         {
           "dimension": "sell_action",
           "value": "spend the taxable account first, then the IRA, then the Roth",
-          "confidence": "0.6",
+          "confidence": "0.9",
           "source_span": "spend the taxable account first, then the IRA, then the Roth",
-          "note": "General withdrawal/spending action across accounts; the ordering itself is captured separately as a relation."
+          "note": "explicit spending/withdrawal sequence"
+        },
+        {
+          "dimension": "account_type",
+          "value": "TAXABLE",
+          "confidence": "0.9",
+          "source_span": "the taxable account",
+          "note": "first account to be spent from"
+        },
+        {
+          "dimension": "account_type",
+          "value": "TRADITIONAL_IRA",
+          "confidence": "0.7",
+          "source_span": "the IRA",
+          "note": "second account to be spent from; type of IRA (traditional vs Roth-specific) not stated explicitly but implied by contrast with 'the Roth'"
+        },
+        {
+          "dimension": "account_type",
+          "value": "ROTH",
+          "confidence": "0.9",
+          "source_span": "the Roth",
+          "note": "third account to be spent from"
         }
       ],
       "relations": [],
       "unread": [
+        "allocation_method",
         "amount",
+        "assets",
         "cadence",
-        "evaluation_period"
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "trigger_semantics"
       ]
     },
     {
       "text": "split it 70/30 between stocks and bonds",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3073,14 +3172,14 @@
           "value": "stocks and bonds",
           "confidence": "0.9",
           "source_span": "stocks and bonds",
-          "note": "Two asset classes named as written, not resolved to specific tickers or funds."
+          "note": "Two asset classes named as written, not resolved to specific instruments."
         },
         {
           "dimension": "allocation_method",
           "value": "stated_weights",
           "confidence": "0.9",
-          "source_span": "70/30",
-          "note": "Explicit numeric split given rather than a rule like equal-weight or inverse volatility."
+          "source_span": "split it 70/30",
+          "note": "Explicit percentage split given rather than a computed method."
         },
         {
           "dimension": "stated_weights",
@@ -3111,37 +3210,30 @@
     {
       "text": "take $40,000 a year out of the portfolio",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "assess_withdrawal",
-          "confidence": "0.7",
+          "confidence": "0.9",
           "source_span": "take $40,000 a year out of the portfolio",
-          "note": "describes a withdrawal amount from a portfolio"
-        },
-        {
-          "dimension": "cadence",
-          "value": "annual",
-          "confidence": "0.8",
-          "source_span": "a year",
-          "note": "recurring yearly withdrawal"
+          "note": "describes a withdrawal from an investment portfolio"
         },
         {
           "dimension": "amount",
           "value": "$40,000",
-          "confidence": "0.9",
+          "confidence": "0.95",
           "source_span": "$40,000",
-          "note": "stated withdrawal amount"
+          "note": "explicit dollar amount"
         },
         {
-          "dimension": "sell_action",
-          "value": "withdraw $40,000 a year from the portfolio",
-          "confidence": "0.85",
-          "source_span": "take $40,000 a year out of the portfolio",
-          "note": "explicit withdrawal action"
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "a year",
+          "note": "recurring yearly withdrawal"
         }
       ],
       "relations": [],
@@ -3149,21 +3241,14 @@
         "account_type",
         "allocation_method",
         "assets",
-        "conditional_amount",
-        "day_rule",
         "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "periodic_rebalancing",
-        "stated_weights",
-        "trigger_semantics"
+        "evaluation_period"
       ]
     },
     {
       "text": "take from bonds in a down year and from stocks otherwise",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3171,22 +3256,29 @@
           "dimension": "objective",
           "value": "assess_withdrawal",
           "confidence": "0.55",
-          "source_span": "take from bonds in a down year and from stocks otherwise",
-          "note": "Describes a rule for which asset class to withdraw from, implying a withdrawal/decumulation strategy."
+          "source_span": "take from bonds ... take from stocks",
+          "note": "describes a rule for withdrawing/taking money from holdings depending on market condition"
         },
         {
           "dimension": "sell_action",
           "value": "take from bonds in a down year and from stocks otherwise",
-          "confidence": "0.8",
+          "confidence": "0.7",
           "source_span": "take from bonds in a down year and from stocks otherwise",
-          "note": "Conditional withdrawal source depending on whether the year is 'down' or not."
+          "note": "conditional withdrawal source depending on whether the year is 'down'"
         },
         {
-          "dimension": "trigger_semantics",
-          "value": "persistent_condition",
-          "confidence": "0.4",
-          "source_span": "in a down year",
-          "note": "A 'down year' describes a condition holding across the whole year rather than a single crossing moment, but the sentence doesn't explicitly distinguish crossing vs persistent."
+          "dimension": "assets",
+          "value": "bonds",
+          "confidence": "0.6",
+          "source_span": "bonds",
+          "note": "one of the holdings named as a withdrawal source"
+        },
+        {
+          "dimension": "assets",
+          "value": "stocks",
+          "confidence": "0.6",
+          "source_span": "stocks",
+          "note": "the other holding named as a withdrawal source"
         }
       ],
       "relations": [],
@@ -3194,23 +3286,19 @@
         "account_type",
         "allocation_method",
         "amount",
-        "assets",
         "cadence",
-        "conditional_amount",
         "day_rule",
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
-        "moving_average_window",
-        "observed_assets",
         "periodic_rebalancing",
-        "stated_weights"
+        "trigger_semantics"
       ]
     },
     {
       "text": "take the dividends as cash",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3219,7 +3307,7 @@
           "value": "held_as_cash",
           "confidence": "0.95",
           "source_span": "take the dividends as cash",
-          "note": "Explicit statement that dividends are not reinvested but taken as cash."
+          "note": "Dividends are explicitly taken as cash rather than reinvested."
         }
       ],
       "relations": [],
@@ -3245,25 +3333,30 @@
     {
       "text": "take the required minimum distribution starting at 73",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "objective",
           "value": "assess_withdrawal",
+          "confidence": "0.8",
+          "source_span": "take the required minimum distribution starting at 73",
+          "note": "describes a mandated withdrawal beginning at a specified age"
+        },
+        {
+          "dimension": "sell_action",
+          "value": "take the required minimum distribution starting at 73",
           "confidence": "0.9",
           "source_span": "take the required minimum distribution starting at 73",
-          "note": "Sentence concerns withdrawing RMD funds, an assess_withdrawal objective."
+          "note": "explicit withdrawal action tied to RMD rules"
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
         "amount",
-        "cadence",
-        "day_rule",
-        "evaluation_period"
+        "cadence"
       ]
     },
     {
@@ -3304,7 +3397,7 @@
     {
       "text": "tilt 20% toward small cap value",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [],
@@ -3324,28 +3417,12 @@
           "source_span": "tilt 20% toward small cap value"
         }
       ],
-      "unread": [
-        "account_type",
-        "allocation_method",
-        "amount",
-        "cadence",
-        "conditional_amount",
-        "day_rule",
-        "dividend_policy",
-        "evaluation_period",
-        "execution_timing",
-        "moving_average_window",
-        "objective",
-        "observed_assets",
-        "periodic_rebalancing",
-        "sell_action",
-        "trigger_semantics"
-      ]
+      "unread": []
     },
     {
       "text": "trade at the following day's open",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3354,7 +3431,7 @@
           "value": "next_session_open",
           "confidence": "0.9",
           "source_span": "trade at the following day's open",
-          "note": "Order fills the session after the signal, at that day's open."
+          "note": "explicit reference to executing on the next day's open rather than the signal day's close"
         }
       ],
       "relations": [],
@@ -3380,16 +3457,16 @@
     {
       "text": "weight by inverse volatility",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "allocation_method",
           "value": "inverse_volatility",
-          "confidence": "0.95",
+          "confidence": "0.9",
           "source_span": "weight by inverse volatility",
-          "note": "States the method for dividing money between holdings; no holdings, amounts, or other dimensions are specified."
+          "note": "Explicit allocation method stated."
         }
       ],
       "relations": [],
@@ -3415,30 +3492,30 @@
     {
       "text": "when SPY crosses below its 200-day average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
         {
           "dimension": "trigger_semantics",
           "value": "crossing_event",
-          "confidence": "0.95",
+          "confidence": "0.9",
           "source_span": "crosses below",
-          "note": "The wording 'crosses below' names the moment the condition first becomes true, not a state that persists."
+          "note": "the sentence describes the moment SPY first falls below the average, not a persistent state"
         },
         {
           "dimension": "observed_assets",
           "value": "SPY",
-          "confidence": "0.8",
+          "confidence": "0.9",
           "source_span": "SPY",
-          "note": "SPY is what the condition watches; the sentence never states what is bought, so this cannot be confirmed as the purchased asset."
+          "note": "SPY is the asset whose price is being watched relative to its moving average"
         },
         {
           "dimension": "moving_average_window",
           "value": "200",
           "confidence": "0.9",
           "source_span": "200-day average",
-          "note": "Length of the moving average named in the crossing condition."
+          "note": "the moving average length is explicitly 200 sessions"
         }
       ],
       "relations": [],
@@ -3462,7 +3539,7 @@
     {
       "text": "whenever SPY drops under the 200-day",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3471,31 +3548,45 @@
           "value": "SPY",
           "confidence": "0.9",
           "source_span": "SPY",
-          "note": "SPY is named as the thing being watched; what is bought is not stated."
+          "note": "Named as the thing whose position relative to its moving average is watched; no separate purchase asset is given."
         },
         {
           "dimension": "moving_average_window",
           "value": "200",
-          "confidence": "0.6",
+          "confidence": "0.9",
           "source_span": "200-day",
-          "note": "Assumes '200-day' refers to a 200-day moving average, though the words 'moving average' are not present."
+          "note": "Length of the moving average named, in sessions (days)."
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "persistent_condition",
+          "confidence": "0.4",
+          "source_span": "whenever SPY drops under the 200-day",
+          "note": "'whenever' matches the persistent_condition pattern ('whenever it is under'), but 'drops under' carries crossing-verb phrasing, so this is uncertain rather than clean."
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
+        "allocation_method",
         "amount",
         "assets",
         "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
         "execution_timing",
         "objective",
-        "trigger_semantics"
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
       ]
     },
     {
       "text": "while SPY stays below its average",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3504,14 +3595,14 @@
           "value": "persistent_condition",
           "confidence": "0.9",
           "source_span": "while SPY stays below its average",
-          "note": "'while' + 'stays' indicates an ongoing condition true every day it holds, not a one-time crossing."
+          "note": "'while' + 'stays' indicates an ongoing condition, not a one-time crossing"
         },
         {
           "dimension": "observed_assets",
           "value": "SPY",
           "confidence": "0.9",
           "source_span": "SPY",
-          "note": "The condition watches SPY; no separate asset to be purchased is named."
+          "note": "the condition watches SPY's price relative to its average"
         }
       ],
       "relations": [],
@@ -3536,7 +3627,7 @@
     {
       "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
       "reader_id": "claude-sonnet-5@1",
-      "schema_version": "quantify-discovery-schema@4",
+      "schema_version": "quantify-discovery-schema@5",
       "prompt_version": "quantify-hosted-prompt@1",
       "failed": null,
       "readings": [
@@ -3544,30 +3635,39 @@
           "dimension": "objective",
           "value": "assess_withdrawal",
           "confidence": "0.9",
-          "source_span": "withdraw 4% of the portfolio each year",
-          "note": "Sentence describes a withdrawal rule from a portfolio."
+          "source_span": "withdraw 4% of the portfolio each year, adjusted for inflation",
+          "note": "Sentence describes a withdrawal rule from an existing portfolio, not a contribution or strategy build."
         },
         {
           "dimension": "cadence",
           "value": "annual",
           "confidence": "0.9",
           "source_span": "each year",
-          "note": "Withdrawal occurs on a yearly basis."
+          "note": "Withdrawal recurs once per year."
         },
         {
           "dimension": "sell_action",
           "value": "withdraw 4% of the portfolio each year, adjusted for inflation",
           "confidence": "0.9",
           "source_span": "withdraw 4% of the portfolio each year, adjusted for inflation",
-          "note": "Describes a percentage withdrawal with an inflation adjustment; no further mechanism specified."
+          "note": "Classic percentage-of-portfolio withdrawal with an inflation adjustment to the amount over time; the sentence does not say how the inflation adjustment is calculated (e.g. CPI, fixed rate)."
         }
       ],
       "relations": [],
       "unread": [
         "account_type",
-        "amount",
+        "allocation_method",
         "assets",
-        "evaluation_period"
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
       ]
     }
   ]

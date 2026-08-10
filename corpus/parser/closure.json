@@ -20,13 +20,15 @@
   "by_state": {
     "AGREE": 12,
     "MODEL_ONLY_ACCEPTED": 30,
-    "SYNTAX_ONLY_UNRESOLVED": 1,
     "DISAGREE": 1,
     "INTERMEDIATE_SEMANTIC": 6,
+    "SYNTAX_ONLY_UNRESOLVED": 1,
     "SCHEMA_GAP": 2
   },
-  "agreed_and_correct": 42,
-  "agreed_but_wrong_value": [],
+  "agreed_and_correct": 41,
+  "agreed_but_wrong_value": [
+    "sema-timing-day_rule-001"
+  ],
   "by_property": {
     "assets.stay_as_written": {
       "MODEL_ONLY_ACCEPTED": 3
@@ -49,7 +51,7 @@
     },
     "timing.day_rule": {
       "MODEL_ONLY_ACCEPTED": 1,
-      "AGREE": 1
+      "SYNTAX_ONLY_UNRESOLVED": 1
     },
     "timing.day_rule_not_in_the_vocabulary": {
       "SCHEMA_GAP": 1
@@ -65,7 +67,7 @@
     },
     "trigger.semantics": {
       "AGREE": 2,
-      "SYNTAX_ONLY_UNRESOLVED": 1,
+      "DISAGREE": 1,
       "MODEL_ONLY_ACCEPTED": 2
     },
     "weighting.method": {
@@ -84,9 +86,8 @@
       "INTERMEDIATE_SEMANTIC": 2
     },
     "window.moving_average": {
-      "AGREE": 1,
-      "MODEL_ONLY_ACCEPTED": 1,
-      "DISAGREE": 1
+      "AGREE": 2,
+      "MODEL_ONLY_ACCEPTED": 1
     }
   },
   "owner": {
@@ -221,7 +222,7 @@
         "model",
         "syntax"
       ],
-      "value": "$500",
+      "value": "500",
       "expected": "500",
       "compared_as": "NUMBER",
       "matches_expected": true
@@ -346,10 +347,11 @@
       "property": "trigger.semantics",
       "text": "whenever SPY drops under the 200-day",
       "language": "en",
-      "state": "SYNTAX_ONLY_UNRESOLVED",
-      "reason": "only syntax proposed a value, and syntax is evidence rather than authority",
+      "state": "DISAGREE",
+      "reason": "the model read 'persistent_condition'; syntax argues otherwise ('crossing_event' scored +1). Not resolved by score: a parser can be confident and wrong",
       "field": "trigger_semantics",
       "witnesses": [
+        "model",
         "syntax"
       ],
       "value": null,
@@ -540,17 +542,17 @@
       "property": "window.moving_average",
       "text": "add when it trades beneath the 12-month moving average",
       "language": "en",
-      "state": "DISAGREE",
-      "reason": "the model read '12-month'; syntax argues otherwise (12 scored +1). Not resolved by score: a parser can be confident and wrong",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
       "field": "moving_average_window",
       "witnesses": [
         "model",
         "syntax"
       ],
-      "value": null,
+      "value": "12",
       "expected": "12",
       "compared_as": "NUMBER",
-      "matches_expected": false
+      "matches_expected": true
     },
     {
       "id": "sema-window-holding_period-001",
@@ -737,27 +739,26 @@
       "witnesses": [
         "model"
       ],
-      "value": "first_session_of_period",
+      "value": "calendar_first_rolled_forward",
       "expected": "first_session_of_period",
       "compared_as": "TEXT",
-      "matches_expected": true
+      "matches_expected": false
     },
     {
       "id": "sema-timing-day_rule-002",
       "property": "timing.day_rule",
       "text": "rebalance on the last session of each quarter",
       "language": "en",
-      "state": "AGREE",
-      "reason": "syntax supports the reading",
+      "state": "SYNTAX_ONLY_UNRESOLVED",
+      "reason": "only syntax proposed a value, and syntax is evidence rather than authority",
       "field": "day_rule",
       "witnesses": [
-        "model",
         "syntax"
       ],
-      "value": "last_session_of_period",
+      "value": null,
       "expected": "last_session_of_period",
       "compared_as": "TEXT",
-      "matches_expected": true
+      "matches_expected": false
     },
     {
       "id": "sema-window-evaluation_period-001",
@@ -850,7 +851,7 @@
       "witnesses": [
         "model"
       ],
-      "value": "an SPX ETF",
+      "value": "SPX ETF",
       "expected": "an SPX ETF",
       "compared_as": "SET",
       "matches_expected": true

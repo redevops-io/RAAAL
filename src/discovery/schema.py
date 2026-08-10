@@ -22,6 +22,12 @@ from __future__ import annotations
 
 from .reader import Dimension, RelationSpec, Schema
 
+# @5: `asset_location`. The last schema gap the strategy sweep left standing.
+# `account_type` *was* read from "hold the bonds in the IRA and the stocks in
+# the taxable account" — it returned TAXABLE — so the family scored as
+# understood while the mapping, which is the whole request, was gone. A
+# single-valued dimension cannot carry a mapping.
+#
 # @4: `reserve_policy` and `bucket_policy` relations, and a
 # `leverage_multiplier` qualifier on `portfolio_sleeves`. The live drift lane
 # found the same three families both silently reduced *and* execution-unstable,
@@ -36,7 +42,7 @@ from .reader import Dimension, RelationSpec, Schema
 # the same rule `READER_VERSION` and `quantify-compiler@2` already follow.
 # The shadow matrices were built under @2 and are stale; `corpus/shadow/STALE.md`
 # says so and `test_phase3_exit_gate` checks that the declaration is current.
-QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@4", dimensions=(
+QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@5", dimensions=(
 
     Dimension(
         name="objective",
@@ -241,6 +247,25 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@4", dimensions=(
     # None of these is executable. They are here so Discovery can state them
     # faithfully enough for Mission to refuse them by name, which is the whole
     # rule this file follows.
+
+    RelationSpec(
+        kind="asset_location",
+        describes=(
+            "Which holding sits in which account. The mapping is the meaning: "
+            "'bonds in the IRA and stocks in the taxable account' is not a "
+            "list of two holdings beside a list of two accounts, and reading "
+            "it that way loses the only thing the sentence was about. "
+            "Requires both roles — naming an account you own is not placing "
+            "anything in it."),
+        roles=("holding", "account"),
+        required_roles=("holding", "account"),
+        repeatable_roles=("holding", "account"),
+        ordered=False,
+        examples=("'keep the REITs in the Roth' -> holding='REITs', "
+                  "account='roth'",
+                  "'hold the bonds in the IRA and the stocks in the taxable "
+                  "account' -> two pairs, bonds->traditional_ira and "
+                  "stocks->taxable")),
 
     RelationSpec(
         kind="reserve_policy",
