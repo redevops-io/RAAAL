@@ -199,3 +199,71 @@ class TestCadenceAgrees:
             assert _re.search(
                 rf"#guard totalContributed Cadence\.{cadence} "
                 rf"fiveYearsOfMonths 100000 == {total}\b", text), cadence
+
+
+class TestTriggerSemanticsAgree:
+    """Crossing against persistent, computed independently on this side.
+
+    The second money-moving defect: a condition written as a crossing executed
+    as a persistent state, so a portfolio that should have bought once bought
+    on every session the condition held.
+
+    The point is not that the two predicates differ. It is the ratio — one
+    crossing under three persistent sessions is the factor by which the defect
+    overspent, and a test asserting only inequality would pass for a build that
+    was wrong by ten times.
+    """
+
+    @staticmethod
+    def _counts(series):
+        """(crossings, persistent) for a list of (value, threshold)."""
+        below = [v < t for v, t in series]
+        persistent = sum(below)
+        crossings = sum(1 for i in range(1, len(below))
+                        if below[i] and not below[i - 1])
+        return crossings, persistent
+
+    def test_one_dip_is_one_crossing_and_three_sessions(self):
+        series = [(110, 100), (95, 100), (90, 100), (92, 100), (105, 100)]
+        assert self._counts(series) == (1, 3)
+
+    def test_a_longer_dip_is_still_one_crossing(self):
+        """Duration does not multiply signals. The count belongs to the
+        transition, not to how long the state lasts."""
+        series = [(110, 100), (95, 100), (90, 100), (92, 100), (91, 100),
+                  (93, 100)]
+        assert self._counts(series) == (1, 5)
+
+    def test_re_entry_signals_again(self):
+        """The converse guard: a definition that only ever fired once would
+        satisfy every other case here."""
+        series = [(110, 100), (95, 100), (105, 100), (90, 100), (92, 100)]
+        assert self._counts(series) == (2, 3)
+
+    def test_opening_below_is_not_a_crossing(self):
+        """A crossing is a change, and the first session has nothing to have
+        changed from."""
+        series = [(90, 100), (92, 100)]
+        assert self._counts(series) == (0, 2)
+
+    def test_the_lean_file_states_the_same_series_and_counts(self):
+        import re as _re
+
+        path = LEAN.parent / "Triggers.lean"
+        if not path.exists():
+            pytest.skip("formal/Quantify/Triggers.lean is absent")
+        text = path.read_text()
+
+        for name, crossings, persistent in (("oneDip", 1, 3),
+                                            ("longDip", 1, 5),
+                                            ("twoDips", 2, 3),
+                                            ("opensBelow", 0, 2)):
+            assert _re.search(
+                rf"crossingCount {name} = {crossings}\b", text), name
+            assert _re.search(
+                rf"persistentCount {name} = {persistent}\b", text), name
+
+        # The series themselves, so the counts are not agreeing about
+        # different numbers.
+        assert "⟨110, 100⟩, ⟨95, 100⟩, ⟨90, 100⟩, ⟨92, 100⟩, ⟨105, 100⟩" in text
+        assert "⟨90, 100⟩, ⟨92, 100⟩" in text
