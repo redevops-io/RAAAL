@@ -135,3 +135,6 @@ data/snapshots/*.parquet
 
 # Drill evidence names a real endpoint and a real plan.
 evidence/restore-drill-*.md
+
+# Lean build output. The proofs are source; the oleans are not.
+formal/.lake/

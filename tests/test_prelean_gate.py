@@ -245,3 +245,69 @@ class TestTheLaneStaysOutOfTheOrdinarySuite:
                     if "run" in names or "main" in names:
                         offenders.append(path.name)
         assert not offenders, f"{offenders} import the live drift runner"
+
+
+class TestTheWatchSet:
+    """Six prompts whose draws disagree and where nothing ever executes.
+
+    They do not block. They are named because the transition that would matter
+    is invisible in a total: UNSTABLE_SAFE 6 -> 5 and UNSTABLE_EXECUTABLE 0 -> 1
+    reads as noise unless something says which six were being watched.
+    """
+
+    def _drift_with(self, tmp_path, versions, results):
+        import json as _json
+        from datetime import datetime, timezone
+
+        path = tmp_path / "drift.json"
+        path.write_text(_json.dumps({
+            "provenance": {**versions,
+                           "recorded_at": datetime.now(timezone.utc).isoformat(),
+                           "draws_per_prompt": 3},
+            "by_classification": {},
+            "execution_unsafe": [r["text"] for r in results
+                                 if r["classification"] == "UNSTABLE_EXECUTABLE"],
+            "silently_reduced_any_draw": [],
+            "results": results}))
+        return path
+
+    def test_a_watched_prompt_staying_safe_does_not_block(self, tmp_path,
+                                                          versions):
+        from src.mission.prelean_gate import WATCHED, verdict
+
+        drift = self._drift_with(tmp_path, versions, [
+            {"text": WATCHED[0], "classification": "UNSTABLE_SAFE"}])
+        gate = verdict(drift_path=drift, closure_path=_closure(tmp_path))
+        assert gate.open, gate.blockers
+
+    def test_but_crossing_into_executable_blocks_and_names_it(self, tmp_path,
+                                                              versions):
+        from src.mission.prelean_gate import WATCHED, verdict
+
+        drift = self._drift_with(tmp_path, versions, [
+            {"text": WATCHED[0], "classification": "UNSTABLE_EXECUTABLE"}])
+        gate = verdict(drift_path=drift, closure_path=_closure(tmp_path))
+        assert not gate.open
+        assert any("unstable-but-safe" in b for b in gate.blockers)
+        assert any(WATCHED[0][:30] in b for b in gate.blockers)
+
+    def test_the_watch_set_is_not_empty(self):
+        """An empty watch set would pass every check above while watching
+        nothing, which is how a guard quietly stops guarding."""
+        from src.mission.prelean_gate import WATCHED
+
+        assert len(WATCHED) >= 6
+
+    def test_every_watched_prompt_is_in_the_corpus(self):
+        """A watched sentence nobody runs is never classified, so it can never
+        cross anything."""
+        import json as _json
+        from pathlib import Path
+
+        from src.mission.prelean_gate import CORPUS, WATCHED
+
+        cases = _json.loads(
+            Path(CORPUS / "strategy_families.json").read_text())["cases"]
+        texts = {c["text"] for c in cases}
+        missing = [t for t in WATCHED if t not in texts]
+        assert not missing, f"{missing} are watched and not in the corpus"

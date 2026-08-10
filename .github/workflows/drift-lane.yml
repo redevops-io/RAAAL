@@ -1,0 +1,144 @@
+name: Discovery drift lane
+
+# Three cadences, three questions, three costs. The costs are the reason this
+# is its own workflow: every job here calls a paid provider, and a lane that
+# ran on push would bill the project for every commit message typo.
+#
+#   daily      1 draw  x 36 prompts  = 36 calls   provider drift over time
+#   weekly     3 draws x 36 prompts  = 108 calls  same-version stochasticity,
+#                                                 escalating to 5 on any
+#                                                 disagreement
+#   manual     whatever is asked for              pre-release confidence
+#
+# **The spend policy is here rather than in a document.** A budget written in
+# prose is a budget nobody enforces; `QUANTIFY_DRIFT_DRAWS` and
+# `QUANTIFY_PARSER_MAX_TOKENS` below are what actually bound the bill, and
+# changing them is a reviewed diff.
+#
+# **A skipped or failed run is not fresh evidence.** The artifact is written
+# only by a job that completed, and `prelean_gate` refuses one older than seven
+# days — so a week of red builds closes the gate rather than leaving the last
+# green result standing as a guarantee nobody re-earned.
+
+on:
+  schedule:
+    # Daily longitudinal: catches the provider changing under a fixed model id.
+    - cron: '0 4 * * *'
+    # Weekly stochastic: the run the pre-Lean gate actually consumes. Earlier
+    # in the day than the daily so a Monday failure still leaves six days to
+    # notice before the gate expires.
+    - cron: '0 2 * * 1'
+
+  workflow_dispatch:
+    inputs:
+      draws:
+        description: 'Draws per prompt (1 = longitudinal, 3+ = stochastic)'
+        required: false
+        default: '3'
+
+concurrency:
+  group: drift-lane
+  cancel-in-progress: false
+
+env:
+  # Pinned, all three. An unpinned model turns "the answer changed" into an
+  # unanswerable question: the reader moved, or the provider did, and nothing
+  # in the artifact says which.
+  QUANTIFY_PARSER_MODE: RUNTIME
+  QUANTIFY_PILOT_READER: HOSTED
+  QUANTIFY_PARSER_MODEL: claude-sonnet-5
+  QUANTIFY_SYNTAX_WITNESS: 'yes'
+  QUANTIFY_PARSER_MAX_TOKENS: '2048'
+  PILOT_DATA_POLICY: SYNTHETIC_ONLY
+
+jobs:
+  longitudinal:
+    # One draw, daily. Cannot prove stability and does not try: the gate
+    # refuses an artifact produced with fewer than three draws, and this writes
+    # to its own file so it cannot be mistaken for the weekly one.
+    if: github.event_name == 'schedule' && github.event.schedule == '0 4 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -r requirements.txt
+          python -c "import stanza; stanza.download('en')"
+
+      - name: One draw per prompt
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python corpus/parser/drift_lane.py --longitudinal
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drift-longitudinal
+          path: corpus/parser/drift_longitudinal.json
+          retention-days: 90
+
+  stochastic:
+    # The run the gate consumes. Three draws, escalating to five on any prompt
+    # whose draws disagree — cheap where behaviour is stable, thorough where it
+    # is not.
+    if: github.event_name != 'schedule' || github.event.schedule == '0 2 * * 1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -r requirements.txt
+          python -c "import stanza; stanza.download('en')"
+
+      - name: Repeated draws in the serving profile
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python corpus/parser/drift_lane.py \
+            --draws "${{ github.event.inputs.draws || '3' }}"
+
+      - name: Record what this run cost and what it was run against
+        # Written from the artifact rather than restated, so the summary cannot
+        # claim a schema or a draw count the run did not use.
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          d = json.load(open("corpus/parser/drift.json"))
+          p = d["provenance"]
+          draws = p["draws_per_prompt"]
+          prompts = p["prompt_count"]
+          print("## Drift lane\n")
+          print(f"- schema `{p['schema_fingerprint']}`")
+          print(f"- prompt set `{p['prompt_set_digest']}` ({prompts} prompts)")
+          print(f"- model `{p['hosted_model']}` prompt `{p['prompt_version']}`")
+          print(f"- witnesses {', '.join(p['witness_profile'])}")
+          print(f"- **spend class** {draws} draws x {prompts} prompts "
+                f">= {draws * prompts} provider calls, plus escalations\n")
+          for name, total in sorted(d["by_classification"].items()):
+              print(f"- {name}: {total}")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drift-stochastic
+          path: corpus/parser/drift.json
+          retention-days: 90
+
+      - name: The gate, against this run
+        # Fails the job when the gate is closed, so a regression in Discovery's
+        # honesty is a red build rather than a number somebody has to go and
+        # look at.
+        run: python -m src.mission.prelean_gate
