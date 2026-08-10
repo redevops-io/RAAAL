@@ -52,6 +52,38 @@ SEARCHES = [
     ("quant", "rebalancing frequency portfolio weights"),
     ("quant", "moving average crossover strategy"),
     ("quant", "backtest monthly contribution"),
+
+    # Wealth management beyond accumulation. The pack was built almost entirely
+    # from "how do I put money in" phrasings, which is one corner of what
+    # people actually ask a planner. These searches cover the families that
+    # corner was hiding: taking money out, moving it between account types,
+    # and changing the shape of the portfolio over time.
+    #
+    # Most of what comes back will name capabilities Quantify does not have.
+    # That is the point of collecting it: a refusal by name is only possible
+    # for a dimension the reader can *recognise*, and an unrecognised strategy
+    # is refused as an unparseable sentence instead — which tells the person
+    # nothing about why.
+    ("money", "safe withdrawal rate retirement 4% rule"),
+    ("money", "retirement withdrawal strategy which account first"),
+    ("money", "bucket strategy retirement cash years expenses"),
+    ("money", "glide path equity allocation age bonds"),
+    ("money", "target date fund allocation age"),
+    ("money", "tax loss harvesting wash sale"),
+    ("money", "Roth conversion ladder traditional IRA"),
+    ("money", "asset location taxable account bonds IRA"),
+    ("money", "required minimum distribution RMD withdraw"),
+    ("money", "dividend income living off dividends"),
+    ("money", "annuity guaranteed income retirement"),
+    ("money", "529 plan HSA contribution strategy"),
+    ("money", "emergency fund months expenses cash"),
+    ("money", "pay off mortgage or invest"),
+    ("quant", "risk parity leverage volatility target"),
+    ("quant", "small cap value factor tilt portfolio"),
+    ("quant", "momentum strategy monthly ranking"),
+    ("quant", "covered call income strategy"),
+    ("quant", "value averaging versus dollar cost averaging"),
+    ("quant", "sequence of returns risk withdrawal"),
 ]
 
 #: Which parser property a sentence stresses, by the shape of the sentence and
@@ -67,13 +99,44 @@ PATTERNS = [
     ("window", re.compile(r"\b\d+[\s-]?(day|week|month|year)s?\b", re.I)),
     ("timing", re.compile(r"\b(year[- ]end|open|close|first|last)\b.{0,20}"
                           r"\b(day|session|month|quarter|year)\b", re.I)),
+
+    # The families the pack was missing. Still shallow — these match the shape
+    # of a sentence, never its meaning. A group here is a claim about which
+    # parser property the sentence stresses, not about what it asks for.
+    ("withdrawal", re.compile(r"\bwithdraw\w*|\bdraw(ing)?\s+down\b|"
+                              r"\bdecumulat\w*|\bspend(ing)?\s+rate\b|"
+                              r"\bsafe\s+withdrawal\b|\bSWR\b", re.I)),
+    ("tax", re.compile(r"\btax[- ]loss\b|\bharvest\w*|\bwash\s+sale\b|"
+                       r"\bcapital\s+gains?\b|\btax[- ]?(deferred|free|able)\b",
+                       re.I)),
+    ("conversion", re.compile(r"\bRoth\s+conver\w*|\bconvert\w*\s+"
+                              r"(to|into)\s+(a\s+)?Roth\b|\bbackdoor\b", re.I)),
+    ("account", re.compile(r"\b401\(?k\)?|\b403\(?b\)?|\bIRA\b|\bHSA\b|"
+                           r"\b529\b|\bbrokerage\b|\btaxable\s+account\b|"
+                           r"\bISA\b|\bSIPP\b", re.I)),
+    ("glidepath", re.compile(r"\bglide\s?path\b|\btarget[- ]date\b|"
+                             r"\bde[- ]?risk\w*|\bage\s+in\s+bonds\b|"
+                             r"\bas\s+I\s+(get|grow)\s+older\b", re.I)),
+    ("factor", re.compile(r"\bsmall[- ]cap\b|\bvalue\s+tilt\b|\bfactor\b|"
+                          r"\bmomentum\b|\bquality\b|\btilt\w*", re.I)),
+    ("income", re.compile(r"\bdividend\w*|\byield\b|\bcovered\s+call\b|"
+                          r"\bannuit\w*|\bincome\s+(from|stream)\b", re.I)),
+    ("leverage", re.compile(r"\bleverag\w*|\bmargin\b|\brisk\s+parity\b|"
+                            r"\b[23]x\b|\bvol(atility)?\s+target\w*", re.I)),
+    ("reserve", re.compile(r"\bemergency\s+fund\b|\bcash\s+(buffer|reserve)\b|"
+                           r"\b(months?|years?)\s+of\s+expenses\b", re.I)),
 ]
 
 #: A candidate must look like somebody describing an action, not asking an
 #: open question about the world.
 ACTIONISH = re.compile(
     r"\b(I|we|my|our)\b.{0,60}\b(invest|contribut|rebalanc|hold|buy|sell|"
-    r"allocat|put|add|keep|move|maintain|target)\w*", re.I)
+    r"allocat|put|add|keep|move|maintain|target|"
+    # Decumulation and tax verbs. Without these the filter admitted only
+    # sentences about putting money in, which is how a corpus of 45 authentic
+    # phrasings ended up describing one third of what people actually do.
+    r"withdraw|draw|convert|harvest|tilt|glide|spend|shift|ladder|"
+    r"defer|delay|annuitiz|reinvest|liquidat)\w*", re.I)
 
 SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
 

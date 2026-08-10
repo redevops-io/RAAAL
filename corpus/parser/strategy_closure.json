@@ -1,0 +1,687 @@
+{
+  "schema": "quantify-strategy-closure@1",
+  "witness": "quantify-compiler@2",
+  "witness_note": "The deterministic reader only. Says nothing about what the model reader sees — and under MODEL_ONLY, the pilot profile, the model is the only witness, so nothing would catch it missing the same dimension.",
+  "count": 36,
+  "by_state": {
+    "CARRIED": 4,
+    "SILENTLY_REDUCED": 11,
+    "NOTHING_READ": 19,
+    "SCHEMA_GAP": 2
+  },
+  "by_family": {
+    "scheduled_funding": {
+      "CARRIED": 2,
+      "SILENTLY_REDUCED": 1
+    },
+    "event_triggered_funding": {
+      "CARRIED": 1,
+      "SILENTLY_REDUCED": 1
+    },
+    "safe_withdrawal_rate": {
+      "SILENTLY_REDUCED": 3
+    },
+    "withdrawal_ordering": {
+      "SILENTLY_REDUCED": 1,
+      "NOTHING_READ": 1
+    },
+    "required_minimum_distribution": {
+      "NOTHING_READ": 1
+    },
+    "tax_loss_harvesting": {
+      "NOTHING_READ": 2,
+      "SILENTLY_REDUCED": 1
+    },
+    "roth_conversion": {
+      "SILENTLY_REDUCED": 2
+    },
+    "asset_location": {
+      "SCHEMA_GAP": 2
+    },
+    "rebalancing": {
+      "NOTHING_READ": 2
+    },
+    "stated_weights": {
+      "NOTHING_READ": 2
+    },
+    "glidepath": {
+      "SILENTLY_REDUCED": 1,
+      "NOTHING_READ": 1
+    },
+    "bucket_strategy": {
+      "NOTHING_READ": 2
+    },
+    "risk_based_allocation": {
+      "NOTHING_READ": 2
+    },
+    "factor_tilt": {
+      "NOTHING_READ": 1
+    },
+    "option_income": {
+      "SILENTLY_REDUCED": 1
+    },
+    "annuitisation": {
+      "NOTHING_READ": 1
+    },
+    "dividend_income": {
+      "NOTHING_READ": 1,
+      "CARRIED": 1
+    },
+    "leverage": {
+      "NOTHING_READ": 1
+    },
+    "cash_reserve": {
+      "NOTHING_READ": 1
+    },
+    "non_market_alternative": {
+      "NOTHING_READ": 1
+    }
+  },
+  "silently_reduced": [
+    {
+      "id": "scheduled_funding-03",
+      "text": "contribute $1,000 a quarter",
+      "should_carry": "cadence",
+      "read_instead": {
+        "amount": "1000"
+      }
+    },
+    {
+      "id": "event_triggered_funding-02",
+      "text": "add to BND while TLT is under its 200-day",
+      "should_carry": "trigger_semantics/moving_average_window",
+      "read_instead": {
+        "assets": "BND, TLT"
+      }
+    },
+    {
+      "id": "safe_withdrawal_rate-01",
+      "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "cadence": "annual"
+      }
+    },
+    {
+      "id": "safe_withdrawal_rate-02",
+      "text": "draw down 3% a year in retirement",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "cadence": "annual"
+      }
+    },
+    {
+      "id": "safe_withdrawal_rate-03",
+      "text": "take $40,000 a year out of the portfolio",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "cadence": "annual",
+        "amount": "40000"
+      }
+    },
+    {
+      "id": "withdrawal_ordering-01",
+      "text": "spend the taxable account first, then the IRA, then the Roth",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "account_type": "ROTH"
+      }
+    },
+    {
+      "id": "tax_loss_harvesting-03",
+      "text": "sell VTI and buy BND",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "assets": "VTI, BND"
+      }
+    },
+    {
+      "id": "roth_conversion-01",
+      "text": "convert $30,000 from the traditional IRA to the Roth each year",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "account_type": "ROTH",
+        "cadence": "annual",
+        "amount": "30000",
+        "evaluation_period": "explicit_range:unresolved"
+      }
+    },
+    {
+      "id": "roth_conversion-02",
+      "text": "convert up to the top of the 22% bracket each year",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "cadence": "annual"
+      }
+    },
+    {
+      "id": "glidepath-01",
+      "text": "shift 1% from stocks to bonds every year as I get older",
+      "should_carry": "periodic_rebalancing",
+      "read_instead": {
+        "cadence": "annual",
+        "evaluation_period": "explicit_range:unresolved"
+      }
+    },
+    {
+      "id": "option_income-01",
+      "text": "sell covered calls one strike out of the money each month",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "cadence": "monthly"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "scheduled_funding-01",
+      "family": "scheduled_funding",
+      "text": "invest $500 monthly into VTI",
+      "carriers": [
+        "cadence"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging",
+      "state": "CARRIED",
+      "read": {
+        "cadence": "monthly",
+        "amount": "500",
+        "assets": "VTI"
+      }
+    },
+    {
+      "id": "scheduled_funding-02",
+      "family": "scheduled_funding",
+      "text": "put $250 into the index fund every two weeks",
+      "carriers": [
+        "cadence"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging",
+      "state": "CARRIED",
+      "read": {
+        "cadence": "biweekly",
+        "amount": "250"
+      }
+    },
+    {
+      "id": "scheduled_funding-03",
+      "family": "scheduled_funding",
+      "text": "contribute $1,000 a quarter",
+      "carriers": [
+        "cadence"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "amount": "1000"
+      }
+    },
+    {
+      "id": "event_triggered_funding-01",
+      "family": "event_triggered_funding",
+      "text": "buy VOO when SPY falls below its 200-day moving average",
+      "carriers": [
+        "trigger_semantics",
+        "moving_average_window"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/m/movingaverage.asp",
+      "state": "CARRIED",
+      "read": {
+        "assets": "VOO",
+        "observed_assets": "SPY",
+        "moving_average_window": "200"
+      }
+    },
+    {
+      "id": "event_triggered_funding-02",
+      "family": "event_triggered_funding",
+      "text": "add to BND while TLT is under its 200-day",
+      "carriers": [
+        "trigger_semantics",
+        "moving_average_window"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/m/movingaverage.asp",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "assets": "BND, TLT"
+      }
+    },
+    {
+      "id": "safe_withdrawal_rate-01",
+      "family": "safe_withdrawal_rate",
+      "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "cadence": "annual"
+      }
+    },
+    {
+      "id": "safe_withdrawal_rate-02",
+      "family": "safe_withdrawal_rate",
+      "text": "draw down 3% a year in retirement",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "cadence": "annual"
+      }
+    },
+    {
+      "id": "safe_withdrawal_rate-03",
+      "family": "safe_withdrawal_rate",
+      "text": "take $40,000 a year out of the portfolio",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "cadence": "annual",
+        "amount": "40000"
+      }
+    },
+    {
+      "id": "withdrawal_ordering-01",
+      "family": "withdrawal_ordering",
+      "text": "spend the taxable account first, then the IRA, then the Roth",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "account_type": "ROTH"
+      }
+    },
+    {
+      "id": "withdrawal_ordering-02",
+      "family": "withdrawal_ordering",
+      "text": "take from bonds in a down year and from stocks otherwise",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "required_minimum_distribution-01",
+      "family": "required_minimum_distribution",
+      "text": "take the required minimum distribution starting at 73",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.irs.gov/retirement-plans/retirement-plan-and-ira-required-minimum-distributions-faqs",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "tax_loss_harvesting-01",
+      "family": "tax_loss_harvesting",
+      "text": "harvest losses whenever a position falls 10% below its cost basis",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "tax_loss_harvesting-02",
+      "family": "tax_loss_harvesting",
+      "text": "sell the loser and buy a similar fund to avoid a wash sale",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "tax_loss_harvesting-03",
+      "family": "tax_loss_harvesting",
+      "text": "sell VTI and buy BND",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "assets": "VTI, BND"
+      }
+    },
+    {
+      "id": "roth_conversion-01",
+      "family": "roth_conversion",
+      "text": "convert $30,000 from the traditional IRA to the Roth each year",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.themoneypocket.com/articles/roth-conversion-ladder-strategy-retirement-tax-planning",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "account_type": "ROTH",
+        "cadence": "annual",
+        "amount": "30000",
+        "evaluation_period": "explicit_range:unresolved"
+      }
+    },
+    {
+      "id": "roth_conversion-02",
+      "family": "roth_conversion",
+      "text": "convert up to the top of the 22% bracket each year",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.themoneypocket.com/articles/roth-conversion-ladder-strategy-retirement-tax-planning",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "cadence": "annual"
+      }
+    },
+    {
+      "id": "asset_location-01",
+      "family": "asset_location",
+      "text": "hold the bonds in the IRA and the stocks in the taxable account",
+      "carriers": [],
+      "must_be": "NO_DIMENSION",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/",
+      "state": "SCHEMA_GAP",
+      "read": {
+        "account_type": "TAXABLE"
+      }
+    },
+    {
+      "id": "asset_location-02",
+      "family": "asset_location",
+      "text": "keep the REITs in the Roth",
+      "carriers": [],
+      "must_be": "NO_DIMENSION",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/",
+      "state": "SCHEMA_GAP",
+      "read": {
+        "account_type": "ROTH"
+      }
+    },
+    {
+      "id": "rebalancing-01",
+      "family": "rebalancing",
+      "text": "rebalance back to 60/40 every year",
+      "carriers": [
+        "periodic_rebalancing"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "rebalancing-02",
+      "family": "rebalancing",
+      "text": "rebalance whenever an allocation drifts more than 5 points",
+      "carriers": [
+        "periodic_rebalancing"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "stated_weights-01",
+      "family": "stated_weights",
+      "text": "a 60/40 portfolio",
+      "carriers": [
+        "stated_weights"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "stated_weights-02",
+      "family": "stated_weights",
+      "text": "70% stocks, 20% bonds, 10% cash",
+      "carriers": [
+        "stated_weights"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "glidepath-01",
+      "family": "glidepath",
+      "text": "shift 1% from stocks to bonds every year as I get older",
+      "carriers": [
+        "periodic_rebalancing"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "cadence": "annual",
+        "evaluation_period": "explicit_range:unresolved"
+      }
+    },
+    {
+      "id": "glidepath-02",
+      "family": "glidepath",
+      "text": "hold my age in bonds",
+      "carriers": [
+        "periodic_rebalancing"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "bucket_strategy-01",
+      "family": "bucket_strategy",
+      "text": "keep three years of expenses in cash and the rest in stocks",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://blincoe.uk/the-blincoe-blog/retirement-income-bucketing-strategy",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "bucket_strategy-02",
+      "family": "bucket_strategy",
+      "text": "refill the cash bucket from stocks after a good year",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://blincoe.uk/the-blincoe-blog/retirement-income-bucketing-strategy",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "risk_based_allocation-01",
+      "family": "risk_based_allocation",
+      "text": "allocate by inverse volatility",
+      "carriers": [
+        "allocation_method"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/r/risk-parity.asp",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "risk_based_allocation-02",
+      "family": "risk_based_allocation",
+      "text": "run it at a 10% volatility target",
+      "carriers": [
+        "allocation_method"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/r/risk-parity.asp",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "factor_tilt-01",
+      "family": "factor_tilt",
+      "text": "tilt 20% toward small cap value",
+      "carriers": [
+        "stated_weights"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/s/smallcap.asp",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "option_income-01",
+      "family": "option_income",
+      "text": "sell covered calls one strike out of the money each month",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/c/coveredcall.asp",
+      "state": "SILENTLY_REDUCED",
+      "read": {
+        "cadence": "monthly"
+      }
+    },
+    {
+      "id": "annuitisation-01",
+      "family": "annuitisation",
+      "text": "annuitize a third of the portfolio at 70",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://gainbridge.com/post/decumulation-strategy",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "dividend_income-01",
+      "family": "dividend_income",
+      "text": "live off the dividends and never touch the principal",
+      "carriers": [
+        "dividend_policy"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/d/dividend.asp",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "dividend_income-02",
+      "family": "dividend_income",
+      "text": "do not reinvest the dividends",
+      "carriers": [
+        "dividend_policy"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/d/dividend.asp",
+      "state": "CARRIED",
+      "read": {
+        "dividend_policy": "reinvested"
+      }
+    },
+    {
+      "id": "leverage-01",
+      "family": "leverage",
+      "text": "hold 2x leverage on the equity sleeve",
+      "carriers": [
+        "allocation_method"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/l/leverage.asp",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "cash_reserve-01",
+      "family": "cash_reserve",
+      "text": "keep six months of expenses in cash before investing anything",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/getting-started/emergency-fund",
+      "state": "NOTHING_READ",
+      "read": {}
+    },
+    {
+      "id": "non_market_alternative-01",
+      "family": "non_market_alternative",
+      "text": "pay off the mortgage instead of investing",
+      "carriers": [
+        "objective"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/articles/pf/07/mortgage_investment.asp",
+      "state": "NOTHING_READ",
+      "read": {}
+    }
+  ]
+}

@@ -1,12 +1,18 @@
 {
   "schema": "quantify-stackexchange-candidates@1",
-  "count": 29,
+  "count": 97,
   "by_group": {
     "rebalancing": 7,
-    "allocation": 11,
-    "cadence": 10,
-    "funding": 8,
-    "window": 3
+    "account": 32,
+    "allocation": 12,
+    "cadence": 37,
+    "funding": 22,
+    "reserve": 5,
+    "window": 8,
+    "income": 8,
+    "glidepath": 3,
+    "tax": 7,
+    "withdrawal": 4
   },
   "licence": "CC-BY-SA 4.0",
   "attribution": "Sentences are quoted verbatim from Stack Exchange posts under CC-BY-SA 4.0. Each carries the URL of the question it came from, which is the attribution the licence requires.",
@@ -19,6 +25,17 @@
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/2850/asset-allocation-software-application-or-tool-to-help-me-rebalance-my-investmen",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I put 100% of my 401k into an S&P index fund.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/39679/how-or-is-it-necessary-to-rebalance-a-401k-with-only-one-index-fund",
       "site": "money",
       "licence": "CC-BY-SA 4.0",
       "reviewed": false
@@ -104,7 +121,8 @@
     {
       "text": "I'm pretty sure that contributing pretax to 401k is a good idea because I won't be in the 28% tax bracket when I retire.",
       "stresses": [
-        "funding"
+        "funding",
+        "account"
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/12714/401k-with-paltry-match-or-spy-etf",
@@ -116,7 +134,9 @@
       "text": "I also have a 401k (contributing about $13k/year) and an emergency fund.",
       "stresses": [
         "cadence",
-        "funding"
+        "funding",
+        "account",
+        "reserve"
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/16057/what-else-besides-fees-should-i-consider-in-rebalancing-my-fund-portfolios-asse",
@@ -160,6 +180,17 @@
       "reviewed": false
     },
     {
+      "text": "I also plan to reinvest all of the dividends into the portfolio.",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/115042/how-do-i-properly-allocate-capital-into-the-different-stocks-i-own",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
       "text": "I'm not so comfortable if this is the right asset allocation strategy for this.",
       "stresses": [
         "allocation"
@@ -196,7 +227,8 @@
     {
       "text": "My employer will contribute $100 to the HSA, and will match another 400 of my contributions.",
       "stresses": [
-        "funding"
+        "funding",
+        "account"
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost",
@@ -207,7 +239,8 @@
     {
       "text": "I currently max out my HSA contributions.",
       "stresses": [
-        "funding"
+        "funding",
+        "account"
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost",
@@ -223,6 +256,28 @@
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/142774/what-is-the-best-place-to-park-the-money-while-waiting-for-a-sizable-future-mark",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Background: I recently turned 25 and became applicable to invest into my employer's 401K.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/48348/roth-ira-vanguard-vs-free-advisors-mutual-fund",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "It seems like I could open a Roth IRA with them and set a Target Retirement Fund and be done.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/48348/roth-ira-vanguard-vs-free-advisors-mutual-fund",
       "site": "money",
       "licence": "CC-BY-SA 4.0",
       "reviewed": false
@@ -262,9 +317,43 @@
       "reviewed": false
     },
     {
+      "text": "I'm interested in investing in the Vanguard Target Retirement Income Fund in my IRA.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/32194/pros-cons-of-replicating-a-fund-of-funds-with-its-component-funds-in-my-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My question is similar to this one ( Do I need to own all the funds my target-date funds owns to mimic it?",
+      "stresses": [
+        "glidepath"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/32194/pros-cons-of-replicating-a-fund-of-funds-with-its-component-funds-in-my-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
       "text": "After doing some research, I’ve grown concerned about the allocation strategy of this target date fund.",
       "stresses": [
-        "allocation"
+        "allocation",
+        "glidepath"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/163800/confused-about-the-use-of-bond-etfs-in-target-date-funds-instead-of-raw-bonds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Does anyone see any potential issues with my plan to allocate 100% of my 401(k) to the Russell 1000 Index Fund?",
+      "stresses": [
+        "account"
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/163800/confused-about-the-use-of-bond-etfs-in-target-date-funds-instead-of-raw-bonds",
@@ -330,6 +419,17 @@
       "reviewed": false
     },
     {
+      "text": "Our goal for the Roth IRAs is to have an additional cushion on top of the pension and 401K.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/76425/should-i-switch-to-a-new-ira-custodian",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
       "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
       "stresses": [
         "rebalancing",
@@ -338,6 +438,698 @@
       "provenance": "stackexchange",
       "source": "https://quant.stackexchange.com/questions/78187/portfolio-optimization-with-etfs-and-futures",
       "site": "quant",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm leaving the country soon and I will not be able to continue contributing to 401K here.",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/135378/401k-withdrawal-while-leaving-the-country",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "or will the bank create impediments or am I required by Law to keep the money at least X months/years in IRA?",
+      "stresses": [
+        "cadence",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/135378/401k-withdrawal-while-leaving-the-country",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Is there a generally recommended strategy for allocating my contributions across these accounts?",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/166184/which-retirement-accounts-should-i-prioritize-roth-ira-401k-or-traditional",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am choosing my 401(k) investment options from my company.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/85153/which-types-of-investments-should-be-choosen-for-401k-at-early-20s",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Right now I own shares of CMF and want to do some tax-harvesting on some of my short-term losses for 2016.",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/73236/how-to-know-if-two-etfs-are-substantially-identical-according-to-wash-sale-rul",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm thinking of turning on Wealthfront's tax loss harvesting, but want to avoid any \"wash sales\".",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/61614/wealthfront-tax-loss-harvesting-vanguard-target-date",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "The only securities I have outside Wealthfront are Vanguard target date funds in some companies' 401k plans.",
+      "stresses": [
+        "account",
+        "glidepath"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/61614/wealthfront-tax-loss-harvesting-vanguard-target-date",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Over a month ago, I wanted to do some tax-loss harvesting.",
+      "stresses": [
+        "cadence",
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/52028/why-does-my-brokerage-show-adjusted-due-to-previous-wash-sale-disallowed-loss",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Right before I sold, the fund paid out dividends which were automatically reinvested.",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/52028/why-does-my-brokerage-show-adjusted-due-to-previous-wash-sale-disallowed-loss",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I did some tax loss harvesting last week and am hoping I didn't incur a wash sale this week.",
+      "stresses": [
+        "cadence",
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/103662/can-buying-covered-calls-to-close-trigger-a-wash-sale",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Therefore, I need to ensure my dividends are not reinvested in a similar fund, because it tracks the same index.",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/154187/how-do-i-control-how-dividends-are-reinvested-in-my-401k",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "On the Ascensus website my options are 'Manage Investments' and 'Manage Contributions'.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/154187/how-do-i-control-how-dividends-are-reinvested-in-my-401k",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Do I just need to change my contributions to exclude the fund I am worried about a wash sale with?",
+      "stresses": [
+        "funding",
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/154187/how-do-i-control-how-dividends-are-reinvested-in-my-401k",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I was reading up on tax loss harvesting because I recently sold some stock at a loss.",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/154427/tax-loss-wash-sale-rule-and-mutual-funds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I’m planning to not buy anymore — just sell (Irrespective of remaining expiring on 11/1 turning profit or loss).",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/164339/tax-loss-harvesting-with-options-expiring-on-multiple-weeks",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I kept on buying these OXY calls up until this week — not going to repeat it.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/164339/tax-loss-harvesting-with-options-expiring-on-multiple-weeks",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I live in the United States and I have an annuity that hasn't been annuitized in a traditional IRA account (IRA A).",
+      "stresses": [
+        "account",
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/110338/rmd-after-annuitizing-an-annuity-in-a-traditional-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "If I annuitize IRA A this year, it will pay out $7K this year.",
+      "stresses": [
+        "cadence",
+        "account",
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/110338/rmd-after-annuitizing-an-annuity-in-a-traditional-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "How much do I still need to take out from IRA B if I annuitize IRA A this year?",
+      "stresses": [
+        "cadence",
+        "account",
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/110338/rmd-after-annuitizing-an-annuity-in-a-traditional-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm left with a good €650-€850 that I put in my savings on a monthly basis.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/43014/can-i-make-my-savings-keep-in-check-with-or-beat-inflation-over-a-long-time-peri",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I decided to give this a try; I invested a couple of thousand dollars over two years and monitored the results.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/30683/when-is-it-worth-it-to-buy-dividend-bearing-stocks",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have been reading quite a bit about dividend investing around the web.",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/77019/beginner-dividend-investor-first-steps",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "The eventual end goal being, that all of our investment funds end up in her account and I close my brokerage account.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/125491/can-my-wife-use-my-money-to-invest-and-report-the-gains-as-her-income",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "She says, \"I will be buying you a tax deferred annuity with an income rider.",
+      "stresses": [
+        "tax",
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/9911/how-to-evaluate-an-annuity",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Beyond that, I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually.",
+      "stresses": [
+        "cadence",
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I was looking at buying a $27000 used 2008 BMW 328i, financing at about 500/month for 60 months.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/8149/buying-my-first-car-out-of-college",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am in my mid 20s, I have a (quite) good job and I am able to put aside, each month, about $800.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/12468/invest-or-save-first",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "When I suddenly need cash, I just withdraw from the investments.",
+      "stresses": [
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/149994/financial-pros-and-cons-of-having-a-rainy-day-fund-in-a-savings-account-versus-i",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I don't like drawing down the fund, but I do have the fallback of taking a 401k loan if I need it.",
+      "stresses": [
+        "withdrawal",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/5464/best-way-to-fund-solo-401k-account-in-cash-crunch",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I could roll over, take the amount of the contribution out as a loan, and then redeposit it as a 2010 contrib.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/5464/best-way-to-fund-solo-401k-account-in-cash-crunch",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I would also have to liquidate a bunch of funds that I hold in the IRA.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/5464/best-way-to-fund-solo-401k-account-in-cash-crunch",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Dave says I should keep adding to this fund until I can support myself for 3-6 months.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/48291/what-do-i-do-with-my-extra-money-in-grad-school",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am also contributing $5500 to my Roth IRA each year.",
+      "stresses": [
+        "cadence",
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "At that point, I would continue to add money to my Roth IRA until I have 6 months worth of my salary.",
+      "stresses": [
+        "cadence",
+        "window",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Alternatively, should I buy I-Bonds up to the $10k/year limit and only put excess in TIPS?",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/45170/where-do-i-bonds-fit-into-personal-finance-plans",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Now, what I'm thinking of doing is putting a portion of my cash savings into I-Bonds every year.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/45170/where-do-i-bonds-fit-into-personal-finance-plans",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "However, I could take out $2700 in subsidized loans which would put me ahead by about $335 / month.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/15361/schooling-pay-in-cash-or-take-the-subsidized-loans",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have no emergency fund, I recently moved and so that went towards getting my apartment set up.",
+      "stresses": [
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/15361/schooling-pay-in-cash-or-take-the-subsidized-loans",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "So I know that in most cases, withdrawing cash from a retirement fund is never a good idea.",
+      "stresses": [
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/102957/withdraw-ira-funds-after-divorce",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My idea is to withdraw about 18K to pay off about 90% of that debt, therefore freeing up 400 a month.",
+      "stresses": [
+        "cadence",
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/102957/withdraw-ira-funds-after-divorce",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "We are also already putting away some money for retirement and have an emergency fund established.",
+      "stresses": [
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/104960/buy-2nd-house-vs-investing",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I just became eligible to contribute to my company's 401K plan which I will start contributing to this week ($0).",
+      "stresses": [
+        "cadence",
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/78636/what-shouldnt-i-do-with-my-existing-growth-fund",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
+      "stresses": [
+        "cadence",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/20835/investments-other-than-cds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "And of course, I'll always keep my emergency fund in a low-penalty CD.",
+      "stresses": [
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/137675/investing-recurring-aggregated-short-term-funds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My knowledge of mutual fund investments is 1 month old.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/27357/my-first-investment-15k",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have $15000 on top my emergency savings and I max out my Roth IRA in addition.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/27357/my-first-investment-15k",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "(c) If not my choice of my portfolio, where would you invest $15K under similar circumstances and similar goals.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/27357/my-first-investment-15k",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Our current repayments have us on target to have it paid off in around 15 more years.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/111799/high-income-sudden-windfall",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have no plans to sell my home in the American south, which got a new roof and HVAC system within the last five years.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/163708/should-i-pay-off-my-mortgage-if-the-cash-is-available",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
+      "stresses": [
+        "cadence",
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/111369/strategy-to-pay-off-revolving-debt-while-building-reserve-savings-fund",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My current employer doesn't pay any matching contributions.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/110792/should-i-increase-my-401k-contributions-or-increase-my-mortgage-payments",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "FWIW, I have other investments as well that total roughly $300k that are completely separate from my 401k funds.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/109062/is-it-wise-to-pay-off-mortgage-with-401k",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "The remainder of my money goes towards an emergency fund, and purchasing investments.",
+      "stresses": [
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/95838/use-equity-to-purchase-second-home-in-canada",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have $10,000 extra cash that I can either use to pay down my 5% mortgage, or contribute to my IRA.",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/7246/do-i-end-up-richer-paying-down-a-mortgage-or-contributing-to-an-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My employer does not match 401k contributions at all.",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/38827/any-compelling-reason-to-contribute-to-a-401k-if-my-employer-doesnt-match",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Currently, I do not make any contributions to a 401k or an IRA due to a need for liquidity.",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/38827/any-compelling-reason-to-contribute-to-a-401k-if-my-employer-doesnt-match",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have a bit more cash I can put down on a mortgage monthly (and no other debt at this point).",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/8526/making-higher-payments-on-primary-residence-mortgage-or-rental",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "In 1½-2 years from now, just saving the extra cash, we would definitely be able to start investing in real estate.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/95751/pay-off-car-debt-or-start-value-investing",
+      "site": "money",
       "licence": "CC-BY-SA 4.0",
       "reviewed": false
     }
