@@ -71,3 +71,36 @@ proves the reporting contract — that a rate may be published only when it is
 the unique admissible root — independently of how the root is found.
 
     financial definition   ≠   numerical algorithm
+
+## Known non-conformance
+
+`mission.accounting.money_weighted_return` does not implement the fourth
+outcome. It returns `Optional[float]`, so `NO_SOLUTION` and
+`INSUFFICIENT_CASH_FLOWS` both arrive as `None` and `NON_UNIQUE` has no
+representation at all.
+
+Found by running it, not by reading it:
+
+    flows      -100 at session 0, +450 at session 1
+    terminal   450 at session 2
+
+    f(g) = -100g² + 450g - 450     roots at g = 1.5 and g = 3.0
+    admissible rates               50% and 200%
+
+    solver returns                 0.4999999999
+    contract says                  NON_UNIQUE, report nothing
+
+The solver's docstring justifies uniqueness by Descartes' rule — one sign
+change in the coefficient sequence gives one positive root. That is true for a
+series of contributions plus a terminal value, and false for a series
+containing a withdrawal. Nothing checks that the series has the shape the
+argument assumes, so bisection returns whichever root its opening bracket
+happens to straddle and reports it with no qualification.
+
+`tests/test_mwr_conformance.py` asserts this is still the behaviour, so the
+record cannot go stale without a test failing.
+
+**Not fixed in the verification slice, deliberately.** Widening the return type
+is a product decision: every caller reads `Optional[float]` today and would
+have to learn a fourth outcome, and the lane that found a defect should not
+also choose the remedy.
