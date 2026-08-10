@@ -15,21 +15,16 @@
       "syntax"
     ],
     "draws_per_prompt": 3,
-    "recorded_at": "2026-08-10T15:47:36.421705+00:00"
+    "recorded_at": "2026-08-10T17:00:45.063766+00:00"
   },
   "by_classification": {
     "STABLE_EXECUTABLE": 4,
-    "STABLE_REFUSAL": 21,
-    "STABLE_CLARIFICATION": 4,
+    "STABLE_REFUSAL": 22,
     "UNSTABLE_SAFE": 6,
-    "UNSTABLE_EXECUTABLE": 1
+    "STABLE_CLARIFICATION": 4
   },
-  "execution_unsafe": [
-    "sell the loser and buy a similar fund to avoid a wash sale"
-  ],
-  "silently_reduced_any_draw": [
-    "sell the loser and buy a similar fund to avoid a wash sale"
-  ],
+  "execution_unsafe": [],
+  "silently_reduced_any_draw": [],
   "gate_note": "The pre-Lean gate requires zero UNSTABLE_EXECUTABLE here and zero SILENTLY_REDUCED in strategy_closure.json. Discovery need not be deterministic; it must stop nondeterminism from changing what executes without anybody noticing.",
   "results": [
     {
@@ -165,12 +160,13 @@
     },
     {
       "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
-      "classification": "STABLE_CLARIFICATION",
+      "classification": "UNSTABLE_SAFE",
       "draws": [
         {
           "class": "CLARIFICATION",
-          "identity": "asks:stated_weights",
+          "identity": "asks:sell_action,stated_weights",
           "questions": [
+            "sell_action",
             "stated_weights"
           ],
           "refusals": []
@@ -185,8 +181,26 @@
         },
         {
           "class": "CLARIFICATION",
+          "identity": "asks:sell_action,stated_weights",
+          "questions": [
+            "sell_action",
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
           "identity": "asks:stated_weights",
           "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action,stated_weights",
+          "questions": [
+            "sell_action",
             "stated_weights"
           ],
           "refusals": []
@@ -194,6 +208,7 @@
       ],
       "silently_reduced_on_draws": [],
       "distinct_outcomes": [
+        "asks:sell_action,stated_weights",
         "asks:stated_weights"
       ]
     },
@@ -233,16 +248,8 @@
     },
     {
       "text": "take $40,000 a year out of the portfolio",
-      "classification": "UNSTABLE_SAFE",
+      "classification": "STABLE_REFUSAL",
       "draws": [
-        {
-          "class": "REFUSAL",
-          "identity": "refused:assets,objective",
-          "refusals": [
-            "assets",
-            "objective"
-          ]
-        },
         {
           "class": "REFUSAL",
           "identity": "refused:assets,objective,sell_action",
@@ -254,18 +261,11 @@
         },
         {
           "class": "REFUSAL",
-          "identity": "refused:assets,objective",
+          "identity": "refused:assets,objective,sell_action",
           "refusals": [
             "assets",
-            "objective"
-          ]
-        },
-        {
-          "class": "REFUSAL",
-          "identity": "refused:assets,objective",
-          "refusals": [
-            "assets",
-            "objective"
+            "objective",
+            "sell_action"
           ]
         },
         {
@@ -280,7 +280,6 @@
       ],
       "silently_reduced_on_draws": [],
       "distinct_outcomes": [
-        "refused:assets,objective",
         "refused:assets,objective,sell_action"
       ]
     },
@@ -431,20 +430,8 @@
     },
     {
       "text": "sell the loser and buy a similar fund to avoid a wash sale",
-      "classification": "UNSTABLE_EXECUTABLE",
+      "classification": "STABLE_REFUSAL",
       "draws": [
-        {
-          "class": "REFUSAL",
-          "identity": "refused:sell_action",
-          "refusals": [
-            "sell_action"
-          ]
-        },
-        {
-          "class": "EXECUTABLE",
-          "identity": "plan:024c43ca4aeccd40",
-          "refusals": []
-        },
         {
           "class": "REFUSAL",
           "identity": "refused:sell_action",
@@ -467,11 +454,8 @@
           ]
         }
       ],
-      "silently_reduced_on_draws": [
-        2
-      ],
+      "silently_reduced_on_draws": [],
       "distinct_outcomes": [
-        "plan:024c43ca4aeccd40",
         "refused:sell_action"
       ]
     },
@@ -508,39 +492,36 @@
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth each year",
-      "classification": "STABLE_REFUSAL",
+      "classification": "STABLE_CLARIFICATION",
       "draws": [
         {
-          "class": "REFUSAL",
-          "identity": "refused:account_transition,assets,objective",
-          "refusals": [
-            "account_transition",
-            "assets",
-            "objective"
-          ]
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
         },
         {
-          "class": "REFUSAL",
-          "identity": "refused:account_transition,assets,objective",
-          "refusals": [
-            "account_transition",
-            "assets",
-            "objective"
-          ]
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
         },
         {
-          "class": "REFUSAL",
-          "identity": "refused:account_transition,assets,objective",
-          "refusals": [
-            "account_transition",
-            "assets",
-            "objective"
-          ]
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
         }
       ],
       "silently_reduced_on_draws": [],
       "distinct_outcomes": [
-        "refused:account_transition,assets,objective"
+        "asks:sell_action"
       ]
     },
     {
@@ -722,6 +703,14 @@
       "draws": [
         {
           "class": "REFUSAL",
+          "identity": "refused:assets,stated_weights",
+          "refusals": [
+            "assets",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
           "identity": "refused:allocation_method,assets,stated_weights",
           "refusals": [
             "allocation_method",
@@ -748,18 +737,8 @@
         },
         {
           "class": "REFUSAL",
-          "identity": "refused:allocation_method,assets,stated_weights",
+          "identity": "refused:assets,stated_weights",
           "refusals": [
-            "allocation_method",
-            "assets",
-            "stated_weights"
-          ]
-        },
-        {
-          "class": "REFUSAL",
-          "identity": "refused:allocation_method,assets,stated_weights",
-          "refusals": [
-            "allocation_method",
             "assets",
             "stated_weights"
           ]
@@ -777,9 +756,8 @@
       "draws": [
         {
           "class": "REFUSAL",
-          "identity": "refused:allocation_method,stated_weights",
+          "identity": "refused:stated_weights",
           "refusals": [
-            "allocation_method",
             "stated_weights"
           ]
         },
@@ -800,9 +778,8 @@
         },
         {
           "class": "REFUSAL",
-          "identity": "refused:allocation_method,stated_weights",
+          "identity": "refused:stated_weights",
           "refusals": [
-            "allocation_method",
             "stated_weights"
           ]
         },
@@ -868,13 +845,6 @@
         },
         {
           "class": "REFUSAL",
-          "identity": "refused:allocation_method",
-          "refusals": [
-            "allocation_method"
-          ]
-        },
-        {
-          "class": "REFUSAL",
           "identity": "refused:stated_weights",
           "refusals": [
             "stated_weights"
@@ -892,6 +862,13 @@
           "identity": "refused:allocation_method",
           "refusals": [
             "allocation_method"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:stated_weights",
+          "refusals": [
+            "stated_weights"
           ]
         }
       ],
@@ -937,8 +914,25 @@
     },
     {
       "text": "refill the cash bucket from stocks after a good year",
-      "classification": "STABLE_REFUSAL",
+      "classification": "UNSTABLE_SAFE",
       "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy,sell_action",
+          "refusals": [
+            "assets",
+            "bucket_policy",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        },
         {
           "class": "REFUSAL",
           "identity": "refused:assets,bucket_policy",
@@ -966,7 +960,8 @@
       ],
       "silently_reduced_on_draws": [],
       "distinct_outcomes": [
-        "refused:assets,bucket_policy"
+        "refused:assets,bucket_policy",
+        "refused:assets,bucket_policy,sell_action"
       ]
     },
     {
@@ -1039,60 +1034,60 @@
     },
     {
       "text": "tilt 20% toward small cap value",
-      "classification": "UNSTABLE_SAFE",
-      "draws": [
-        {
-          "class": "REFUSAL",
-          "identity": "refused:portfolio_sleeves",
-          "refusals": [
-            "portfolio_sleeves"
-          ]
-        },
-        {
-          "class": "REFUSAL",
-          "identity": "refused:assets,portfolio_sleeves",
-          "refusals": [
-            "assets",
-            "portfolio_sleeves"
-          ]
-        },
-        {
-          "class": "REFUSAL",
-          "identity": "refused:assets,portfolio_sleeves",
-          "refusals": [
-            "assets",
-            "portfolio_sleeves"
-          ]
-        },
-        {
-          "class": "REFUSAL",
-          "identity": "refused:assets,portfolio_sleeves",
-          "refusals": [
-            "assets",
-            "portfolio_sleeves"
-          ]
-        },
-        {
-          "class": "REFUSAL",
-          "identity": "refused:assets,portfolio_sleeves",
-          "refusals": [
-            "assets",
-            "portfolio_sleeves"
-          ]
-        }
-      ],
-      "silently_reduced_on_draws": [],
-      "distinct_outcomes": [
-        "refused:assets,portfolio_sleeves",
-        "refused:portfolio_sleeves"
-      ]
-    },
-    {
-      "text": "sell covered calls one strike out of the money each month",
       "classification": "STABLE_REFUSAL",
       "draws": [
         {
           "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,portfolio_sleeves"
+      ]
+    },
+    {
+      "text": "sell covered calls one strike out of the money each month",
+      "classification": "UNSTABLE_SAFE",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "REFUSAL",
           "identity": "refused:assets,sell_action",
           "refusals": [
             "assets",
@@ -1118,6 +1113,7 @@
       ],
       "silently_reduced_on_draws": [],
       "distinct_outcomes": [
+        "asks:sell_action",
         "refused:assets,sell_action"
       ]
     },
@@ -1231,24 +1227,10 @@
     },
     {
       "text": "hold 2x leverage on the equity sleeve",
-      "classification": "UNSTABLE_SAFE",
+      "classification": "STABLE_REFUSAL",
       "draws": [
         {
           "class": "REFUSAL",
-          "identity": "refused:portfolio_sleeves",
-          "refusals": [
-            "portfolio_sleeves"
-          ]
-        },
-        {
-          "class": "REFUSAL",
-          "identity": "refused:portfolio_sleeves",
-          "refusals": [
-            "portfolio_sleeves"
-          ]
-        },
-        {
-          "class": "REFUSAL",
           "identity": "refused:assets,portfolio_sleeves",
           "refusals": [
             "assets",
@@ -1265,16 +1247,16 @@
         },
         {
           "class": "REFUSAL",
-          "identity": "refused:portfolio_sleeves",
+          "identity": "refused:assets,portfolio_sleeves",
           "refusals": [
+            "assets",
             "portfolio_sleeves"
           ]
         }
       ],
       "silently_reduced_on_draws": [],
       "distinct_outcomes": [
-        "refused:assets,portfolio_sleeves",
-        "refused:portfolio_sleeves"
+        "refused:assets,portfolio_sleeves"
       ]
     },
     {

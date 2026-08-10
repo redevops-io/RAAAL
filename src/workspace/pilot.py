@@ -158,10 +158,18 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
             f"{reading.reader_id} did not answer: {reading.failed}")
 
     if syntax_reader is not None:
+        from ..discovery.guards import as_decisions
         from ..discovery.pipeline import read as fuse_both
 
-        decisions = list(fuse_both(text, syntax_reader.parse(text), reading,
-                                   schema).decisions)
+        parse = syntax_reader.parse(text)
+        decisions = list(fuse_both(text, parse, reading, schema).decisions)
+
+        # A material action the sentence states and the reader dropped. Four
+        # live draws of five read `sell the loser and buy a similar fund` and
+        # Mission refused it by name; the fifth read no sell at all and
+        # produced an executable plan. The dimension and the refusal both
+        # existed — nothing downstream simply had anything to refuse.
+        decisions.extend(as_decisions(parse, decisions))
     else:
         proposals = [Proposal(dimension=r.dimension, value=r.value,
                               reader_id=reading.reader_id,
