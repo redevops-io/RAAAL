@@ -17,7 +17,7 @@ changing *executable meaning* between runs. So the classification is over the
 final fused artifact, never over raw model output:
 
     STABLE_EXECUTABLE      every draw produced the same executable plan,
-                           compared by intent hash rather than by outcome class
+                           compared by compiled-plan digest, not outcome class
     STABLE_REFUSAL         every draw refused, by the same capabilities
     STABLE_CLARIFICATION   every draw asked, and asked the same things
     UNSTABLE_SAFE          draws disagreed, and none of them executed
@@ -29,7 +29,7 @@ executes on one draw and refuses on the next — or executes *a different plan* 
 is a correctness blocker, and it is the only kind that can put a wrong number
 in front of somebody.
 
-Two executable draws with different intent hashes are `UNSTABLE_EXECUTABLE`
+Two executable draws with different compiled plans are `UNSTABLE_EXECUTABLE`
 even though both "worked". That is the case a naive outcome-class comparison
 misses entirely, and it is the worst one: two people typing the same sentence
 get different strategies, both confidently.
@@ -101,9 +101,9 @@ def _outcome(reading) -> dict:
     """One draw, reduced to what actually differs for a user.
 
     `identity` is what makes two draws the same draw. For an executable plan it
-    is the intent hash, so two plans that both execute but execute *different
-    strategies* compare unequal — the failure a comparison over outcome classes
-    alone cannot see.
+    is the compiled plan's digest, so two draws that both execute but execute
+    *different strategies* compare unequal — the failure a comparison over
+    outcome classes alone cannot see.
     """
     refusals = tuple(sorted(getattr(r, "dimension", "") for r in reading.refusals))
     questions = tuple(sorted(reading.questions))
@@ -171,6 +171,14 @@ def _provenance(model_reader, syntax_reader, texts: list, draws: int) -> dict:
 
 
 def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
+    """Every prompt, several times, in the profile a deployment serves.
+
+    Also reports silent reductions *across draws*. Measuring them from a single
+    recording is the same sampling error this lane exists to expose: on one
+    draw `sell VTI and buy BND` carries `sell_action` and is refused, on the
+    next it does not and executes. A gate reading a one-draw number would open
+    or close on the luck of which recording was current.
+    """
     sys.path.insert(0, str(HERE.parent.parent))
 
     from src.discovery.readers_quantify import HostedReader
@@ -179,7 +187,9 @@ def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
     from src.discovery.witnesses import BOTH
     from src.workspace.pilot import read
 
-    texts = texts or [c["text"] for c in json.loads(CASES.read_text())["cases"]]
+    cases = json.loads(CASES.read_text())["cases"]
+    supported = {c["text"]: c["must_be"] == "RECOGNISED" for c in cases}
+    texts = texts or [c["text"] for c in cases]
     model = HostedReader()
     if not model.available():
         raise SystemExit(f"{model.api_key_env} is not set; this lane calls the "
@@ -214,8 +224,13 @@ def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
                                 "refusals": []})
             verdict = classify(got)
 
+        # A silent reduction on *any* draw: the family is unsupported and this
+        # draw produced an executable plan for it anyway.
+        reduced = [i for i, d in enumerate(got, start=1)
+                   if not supported.get(text, False) and d["class"] == "EXECUTABLE"]
         results.append({"text": text, "classification": verdict,
                         "draws": got,
+                        "silently_reduced_on_draws": reduced,
                         "distinct_outcomes": sorted({d["identity"] for d in got})})
         by_class[verdict] = by_class.get(verdict, 0) + 1
         print(f"  [{index:2}/{len(texts)}] {verdict:22} {text[:48]}")
@@ -226,6 +241,8 @@ def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
         "by_classification": by_class,
         "execution_unsafe": [r["text"] for r in results
                              if r["classification"] == UNSTABLE_EXECUTABLE],
+        "silently_reduced_any_draw": [r["text"] for r in results
+                                      if r["silently_reduced_on_draws"]],
         "gate_note": (
             "The pre-Lean gate requires zero UNSTABLE_EXECUTABLE here and zero "
             "SILENTLY_REDUCED in strategy_closure.json. Discovery need not be "

@@ -22,13 +22,21 @@ from __future__ import annotations
 
 from .reader import Dimension, RelationSpec, Schema
 
+# @4: `reserve_policy` and `bucket_policy` relations, and a
+# `leverage_multiplier` qualifier on `portfolio_sleeves`. The live drift lane
+# found the same three families both silently reduced *and* execution-unstable,
+# which is what a representational gap looks like: when the schema cannot state
+# the thing, which fragment survives is decided by the draw, and one sentence
+# yields several executable plans. None of the three is executable and all are
+# refused by name in the manifest.
+#
 # @3: `objective` gained `assess_conversion` and `assess_debt_repayment`.
 # Bumped because the *content* changed — a fingerprint that moves under an
 # unchanged version makes two runs look comparable when they are not, which is
 # the same rule `READER_VERSION` and `quantify-compiler@2` already follow.
 # The shadow matrices were built under @2 and are stale; `corpus/shadow/STALE.md`
 # says so and `test_phase3_exit_gate` checks that the declaration is current.
-QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@3", dimensions=(
+QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@4", dimensions=(
 
     Dimension(
         name="objective",
@@ -194,7 +202,18 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@3", dimensions=(
         roles=("core", "satellite"),
         required_roles=("core",),
         repeatable_roles=("satellite",),
-        qualifiers={"allocation": "this sleeve's share, as written — '30%'"},
+        qualifiers={
+            "allocation": "this sleeve's share, as written — '30%'",
+            # A multiplier belongs to one sleeve, which is the whole reason it
+            # is a qualifier and not a dimension. "hold 2x leverage on the
+            # equity sleeve" leveraged the equities and nothing else; a scalar
+            # `leverage` field would say the portfolio was levered and lose
+            # which part.
+            "leverage_multiplier": (
+                "gearing applied to this sleeve, as a number — '2' for 2x. "
+                "Absent means unlevered; it is never assumed to be 1 for a "
+                "sleeve the sentence did not describe that way"),
+        },
         ordered=False,
         examples=("'a core index fund and tilt 30% satellite into US value "
                   "ETF' -> core='core index fund', "
@@ -212,4 +231,59 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@3", dimensions=(
         ordered=True,
         examples=("'convert my traditional IRA to a Roth' -> "
                   "from='traditional_ira', to='roth_ira', action='convert'",)),
+
+    # The three families the live drift lane found were both silently reduced
+    # *and* execution-unstable. That pairing is the evidence they are
+    # representational rather than a tuning problem: when the schema cannot
+    # state the thing, which fragment survives is decided by the draw, and one
+    # sentence yields several executable plans.
+    #
+    # None of these is executable. They are here so Discovery can state them
+    # faithfully enough for Mission to refuse them by name, which is the whole
+    # rule this file follows.
+
+    RelationSpec(
+        kind="reserve_policy",
+        describes=(
+            "Money deliberately held back from investment, sized against "
+            "something other than a market value — months or years of "
+            "expenses, or a stated sum kept in cash. The meaning is in what "
+            "the reserve is measured against, so a bare 'keep some cash' is "
+            "not this relation."),
+        roles=("reserve",),
+        required_roles=("reserve",),
+        qualifiers={
+            "amount_basis": "what the size is measured in — 'expenses', "
+                            "'salary', or a currency amount",
+            "duration": "how much of that basis — 'three years', 'six months'",
+            "asset_role": "what the reserve is held in — 'cash'",
+            "precedence": "whether it is funded before investing — "
+                          "'before_investing' | 'alongside' | 'unstated'",
+        },
+        ordered=False,
+        examples=("'keep six months of expenses in cash before investing "
+                  "anything' -> reserve='cash', amount_basis='expenses', "
+                  "duration='six months', precedence='before_investing'",)),
+
+    RelationSpec(
+        kind="bucket_policy",
+        describes=(
+            "Money split into pots by time horizon, each holding different "
+            "assets, with rules about which pot is spent from and how it is "
+            "refilled. The meaning is the mapping between horizon and "
+            "holding, so this cannot be a list of assets and a list of "
+            "durations side by side."),
+        roles=("bucket",),
+        required_roles=("bucket",),
+        repeatable_roles=("bucket",),
+        qualifiers={
+            "horizon": "the period this bucket covers — 'three years'",
+            "holding": "what this bucket is held in — 'cash', 'stocks'",
+            "refilled_from": "which bucket tops this one up, if the sentence "
+                             "says",
+        },
+        ordered=True,
+        examples=("'keep three years of expenses in cash and the rest in "
+                  "stocks' -> bucket[0] horizon='three years' holding='cash', "
+                  "bucket[1] horizon='remainder' holding='stocks'",)),
 ))

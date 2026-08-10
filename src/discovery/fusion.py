@@ -240,8 +240,24 @@ def same_value(one: Any, other: Any, compare_as: str = "TEXT") -> bool:
         return a is not None and b is not None and a == b
     if compare_as == "SET":
         split = re.compile(r"[,;]|\band\b")
-        return ({p.strip().lower() for p in split.split(left) if p.strip()}
-                == {p.strip().lower() for p in split.split(right) if p.strip()})
+
+        # A leading article is dropped before comparing. "a core index fund"
+        # and "core index fund" are one holding, and two readers disagreeing
+        # about a determiner is a rendering difference of exactly the kind
+        # `compare_as` exists to absorb — the same reason NUMBER does not
+        # distinguish `$500` from `500`.
+        #
+        # This is not a loosening towards "close enough". It removes one
+        # closed, meaningless class of English function word. Nothing here can
+        # make two different holdings equal: `SPX ETF` and `SPY` still differ,
+        # which is the substitution the whole boundary prevents.
+        article = re.compile(r"^(?:a|an|the)\s+", re.I)
+
+        def members(raw: str) -> set:
+            return {article.sub("", p.strip()).lower()
+                    for p in split.split(raw) if p.strip()}
+
+        return members(left) == members(right)
     return False
 
 

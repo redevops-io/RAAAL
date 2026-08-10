@@ -238,6 +238,36 @@ MANIFEST: Mapping[str, Dimension] = {
              "paid nor reinvested; the choice is recorded and distinguishes "
              "two strategies from each other without changing a figure")),
 
+    # The three families the drift lane found execution-unstable. Discovery
+    # can now state them; this is where they stop. Named individually rather
+    # than folded into one "unsupported structure" entry because a person told
+    # "buckets are not modelled" learns something, and a person told "your
+    # sentence contains an unsupported structure" does not.
+    "reserve_policy": _d(
+        "reserve_policy", NOT_MODELLED,
+        why="money held back from investment is not modelled: the engine "
+            "simulates what is invested, and a reserve sized against expenses "
+            "has no price series to value it against"),
+
+    "bucket_policy": _d(
+        "bucket_policy", NOT_MODELLED,
+        why="time-segmented buckets are not modelled: this build holds one "
+            "portfolio, and spending from a near-term pot while a long-term "
+            "one grows is a withdrawal rule, which it also does not model"),
+
+    "portfolio_sleeves": _d(
+        "portfolio_sleeves", NOT_MODELLED,
+        why="sleeves with their own allocations or gearing are not modelled: "
+            "this build divides each purchase equally between the named "
+            "holdings, so a levered or separately-weighted sleeve cannot be "
+            "honoured"),
+
+    "account_transition": _d(
+        "account_transition", NOT_MODELLED,
+        why="moving money between account types is not modelled: no tax is "
+            "computed, so a conversion whose entire effect is a tax one would "
+            "be simulated as an ordinary contribution"),
+
     "tax_treatment": _d(
         "tax_treatment", NOT_MODELLED,
         why=("account type is recorded and compared, but no tax is computed: "

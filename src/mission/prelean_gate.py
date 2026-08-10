@@ -141,6 +141,19 @@ def verdict(*, drift_path: Optional[Path] = None,
                 f"{len(unsafe)} prompt(s) are UNSTABLE_EXECUTABLE: a draw can "
                 "change what executes. " + "; ".join(t[:60] for t in unsafe[:3]))
 
+        # Across draws, not from one recording. On one draw `sell VTI and buy
+        # BND` carries sell_action and is refused; on the next it does not and
+        # executes. A gate reading a single-draw number would open on the luck
+        # of which recording happened to be current.
+        reduced_any = drift.get("silently_reduced_any_draw")
+        if reduced_any is not None:
+            evidence["silently_reduced_any_draw"] = len(reduced_any)
+            if reduced_any:
+                blockers.append(
+                    f"{len(reduced_any)} unsupported intent(s) executed on at "
+                    "least one live draw: "
+                    + "; ".join(t[:60] for t in reduced_any[:3]))
+
     if not closure_path.exists():
         blockers.append("no serving closure report; run "
                         "corpus/parser/strategy_closure.py")

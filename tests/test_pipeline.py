@@ -76,13 +76,6 @@ class TestARecordingIsNotAuthority:
         for decision in result.decisions:
             assert decision.outcome in set(Fusion)
 
-    @pytest.mark.xfail(strict=False, reason=
-        "sensitive to which draw the hosted recording captured. Two "
-        "recordings of one model, same prompt version, differed on 24 of "
-        "36 corpus sentences; this assertion is over recorded model "
-        "output and moved with the draw. Not tuned to the new draw — "
-        "that would make the corpus assert whatever the model last said. "
-        "Belongs in the drift lane; see corpus/parser/strategy_closure.py.")
     def test_a_recorded_reading_can_still_be_refused(self):
         """The property that makes the previous test mean something: a stored
         proposal is not automatically settled."""
@@ -134,13 +127,6 @@ class TestNeitherWitnessIsPrivileged:
 class TestAmbiguityNeedsBothReadingsOnTheTable:
     """The narrowing, and the pair that shows it discriminates."""
 
-    @pytest.mark.xfail(strict=False, reason=
-        "sensitive to which draw the hosted recording captured. Two "
-        "recordings of one model, same prompt version, differed on 24 of "
-        "36 corpus sentences; this assertion is over recorded model "
-        "output and moved with the draw. Not tuned to the new draw — "
-        "that would make the corpus assert whatever the model last said. "
-        "Belongs in the drift lane; see corpus/parser/strategy_closure.py.")
     def test_a_sentence_carrying_both_readings_is_ambiguous(self):
         """`rebalance to 70/30` can mean restore an existing 70/30 target or
         change the target to 70/30. Both readings need a target, and this

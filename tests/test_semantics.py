@@ -76,7 +76,12 @@ def test_the_report_and_this_file_agree_on_what_is_answerable():
 #: returns "SPX ETF". The property the case exists for — that an asset is never
 #: resolved to a ticker on the user's behalf — still holds; the leading article
 #: is over-specification that only showed up once the model moved.
-DRIFTED = {"sema-assets-stay_as_written-003"}
+#: Emptied. Both entries were the same defect wearing two case ids: the model
+#: dropped a leading article and the SET comparison treated it as a different
+#: holding. Fixed where it belonged — `same_value` now ignores a leading
+#: article for SET dimensions — rather than by listing whichever cases the last
+#: draw happened to break.
+DRIFTED: set = set()
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.id)

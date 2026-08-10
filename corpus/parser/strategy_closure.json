@@ -5,10 +5,10 @@
   "count": 36,
   "by_state": {
     "EXECUTABLE": 5,
-    "REFUSED": 24,
+    "REFUSED": 22,
+    "SILENTLY_REDUCED": 2,
     "SCHEMA_GAP": 2,
-    "SILENTLY_REDUCED": 3,
-    "NOTHING_READ": 2
+    "NOTHING_READ": 5
   },
   "by_family": {
     "scheduled_funding": {
@@ -27,7 +27,8 @@
       "REFUSED": 1
     },
     "tax_loss_harvesting": {
-      "REFUSED": 3
+      "REFUSED": 1,
+      "SILENTLY_REDUCED": 2
     },
     "roth_conversion": {
       "REFUSED": 2
@@ -42,12 +43,10 @@
       "REFUSED": 2
     },
     "glidepath": {
-      "SILENTLY_REDUCED": 1,
-      "REFUSED": 1
+      "REFUSED": 2
     },
     "bucket_strategy": {
-      "NOTHING_READ": 1,
-      "REFUSED": 1
+      "NOTHING_READ": 2
     },
     "risk_based_allocation": {
       "REFUSED": 2
@@ -65,10 +64,10 @@
       "REFUSED": 2
     },
     "leverage": {
-      "SILENTLY_REDUCED": 1
+      "NOTHING_READ": 1
     },
     "cash_reserve": {
-      "SILENTLY_REDUCED": 1
+      "NOTHING_READ": 1
     },
     "non_market_alternative": {
       "REFUSED": 1
@@ -76,30 +75,21 @@
   },
   "silently_reduced": [
     {
-      "id": "glidepath-01",
-      "text": "shift 1% from stocks to bonds every year as I get older",
-      "should_carry": "periodic_rebalancing",
-      "read_instead": {
-        "objective": "other",
-        "cadence": "annual",
-        "amount": "1%",
-        "assets": "bonds"
-      }
-    },
-    {
-      "id": "leverage-01",
-      "text": "hold 2x leverage on the equity sleeve",
-      "should_carry": "allocation_method",
-      "read_instead": {
-        "assets": "equity sleeve"
-      }
-    },
-    {
-      "id": "cash_reserve-01",
-      "text": "keep six months of expenses in cash before investing anything",
+      "id": "tax_loss_harvesting-02",
+      "text": "sell the loser and buy a similar fund to avoid a wash sale",
       "should_carry": "sell_action",
       "read_instead": {
-        "objective": "other"
+        "objective": "other",
+        "assets": "a similar fund"
+      }
+    },
+    {
+      "id": "tax_loss_harvesting-03",
+      "text": "sell VTI and buy BND",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "objective": "other",
+        "assets": "BND"
       }
     }
   ],
@@ -136,8 +126,8 @@
       "state": "EXECUTABLE",
       "read": {
         "objective": "plan_contributions",
-        "cadence": "biweekly",
         "amount": "250",
+        "cadence": "biweekly",
         "assets": "the index fund"
       },
       "refused": []
@@ -173,11 +163,10 @@
       "source": "https://www.investopedia.com/terms/m/movingaverage.asp",
       "state": "EXECUTABLE",
       "read": {
-        "objective": "evaluate_investment_strategy",
         "assets": "VOO",
         "observed_assets": "SPY",
-        "moving_average_window": "200",
-        "trigger_semantics": "crossing_event"
+        "trigger_semantics": "crossing_event",
+        "moving_average_window": "200"
       },
       "refused": []
     },
@@ -194,7 +183,7 @@
       "source": "https://www.investopedia.com/terms/m/movingaverage.asp",
       "state": "EXECUTABLE",
       "read": {
-        "objective": "plan_contributions",
+        "objective": "evaluate_investment_strategy",
         "assets": "BND",
         "observed_assets": "TLT",
         "trigger_semantics": "persistent_condition",
@@ -216,14 +205,10 @@
       "read": {
         "objective": "assess_withdrawal",
         "cadence": "annual",
-        "amount": "4%",
-        "assets": "the portfolio",
-        "sell_action": "withdraw 4% of the portfolio each year, adjusted for inflation",
-        "conditional_amount": "adjusted for inflation"
+        "sell_action": "withdraw 4% of the portfolio each year, adjusted for inflation"
       },
       "refused": [
         "objective='assess_withdrawal'",
-        "conditional_amount='adjusted for inflation'",
         "sell_action='withdraw 4% of the portfolio each year, adjusted for inflation'"
       ]
     },
@@ -259,9 +244,9 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_withdrawal",
-        "sell_action": "withdraw $40,000 a year from the portfolio",
-        "amount": "40000",
-        "cadence": "annual"
+        "cadence": "annual",
+        "amount": "$40,000",
+        "sell_action": "withdraw $40,000 a year from the portfolio"
       },
       "refused": [
         "objective='assess_withdrawal'",
@@ -281,8 +266,7 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_withdrawal",
-        "sell_action": "spend the taxable account first, then the IRA, then the Roth",
-        "account_type": "ROTH"
+        "sell_action": "spend the taxable account first, then the IRA, then the Roth"
       },
       "refused": [
         "objective='assess_withdrawal'",
@@ -302,7 +286,8 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_withdrawal",
-        "sell_action": "take from bonds in a down year and from stocks otherwise"
+        "sell_action": "take from bonds in a down year and from stocks otherwise",
+        "trigger_semantics": "persistent_condition"
       },
       "refused": [
         "objective='assess_withdrawal'",
@@ -321,12 +306,10 @@
       "source": "https://www.irs.gov/retirement-plans/retirement-plan-and-ira-required-minimum-distributions-faqs",
       "state": "REFUSED",
       "read": {
-        "objective": "assess_withdrawal",
-        "sell_action": "take the required minimum distribution starting at age 73"
+        "objective": "assess_withdrawal"
       },
       "refused": [
-        "objective='assess_withdrawal'",
-        "sell_action='take the required minimum distribution starting at age 73'"
+        "objective='assess_withdrawal'"
       ]
     },
     {
@@ -341,11 +324,10 @@
       "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
       "state": "REFUSED",
       "read": {
-        "sell_action": "harvest losses",
-        "objective": "other"
+        "sell_action": "harvest losses whenever a position falls 10% below its cost basis"
       },
       "refused": [
-        "sell_action='harvest losses'"
+        "sell_action='harvest losses whenever a position falls 10% below its cost basis'"
       ]
     },
     {
@@ -358,15 +340,12 @@
       "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
-      "state": "REFUSED",
+      "state": "SILENTLY_REDUCED",
       "read": {
         "objective": "other",
-        "sell_action": "sell the loser",
         "assets": "a similar fund"
       },
-      "refused": [
-        "sell_action='sell the loser'"
-      ]
+      "refused": []
     },
     {
       "id": "tax_loss_harvesting-03",
@@ -378,14 +357,12 @@
       "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
-      "state": "REFUSED",
+      "state": "SILENTLY_REDUCED",
       "read": {
-        "sell_action": "sell VTI",
+        "objective": "other",
         "assets": "BND"
       },
-      "refused": [
-        "sell_action='sell VTI'"
-      ]
+      "refused": []
     },
     {
       "id": "roth_conversion-01",
@@ -451,7 +428,8 @@
       "state": "SCHEMA_GAP",
       "read": {
         "assets": "REITs",
-        "account_type": "ROTH"
+        "account_type": "ROTH",
+        "objective": "other"
       },
       "refused": []
     },
@@ -467,12 +445,12 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing",
       "state": "REFUSED",
       "read": {
-        "stated_weights": "60/40",
-        "periodic_rebalancing": "rebalance annually to stated weights"
+        "periodic_rebalancing": "annual",
+        "stated_weights": "60/40"
       },
       "refused": [
         "stated_weights='60/40'",
-        "periodic_rebalancing='rebalance annually to stated weights'"
+        "periodic_rebalancing='annual'"
       ]
     },
     {
@@ -487,11 +465,11 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing",
       "state": "REFUSED",
       "read": {
-        "periodic_rebalancing": "drift more than 5 points",
+        "periodic_rebalancing": "rebalance when an allocation drifts more than 5 points",
         "trigger_semantics": "persistent_condition"
       },
       "refused": [
-        "periodic_rebalancing='drift more than 5 points'"
+        "periodic_rebalancing='rebalance when an allocation drifts more than 5 points'"
       ]
     },
     {
@@ -506,8 +484,8 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation",
       "state": "REFUSED",
       "read": {
-        "allocation_method": "stated_weights",
-        "stated_weights": "60/40"
+        "stated_weights": "60/40",
+        "allocation_method": "stated_weights"
       },
       "refused": [
         "allocation_method='stated_weights'",
@@ -526,9 +504,9 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation",
       "state": "REFUSED",
       "read": {
-        "assets": "stocks, bonds, cash",
-        "stated_weights": "70/20/10",
-        "allocation_method": "stated_weights"
+        "assets": "cash",
+        "allocation_method": "stated_weights",
+        "stated_weights": "70/20/10"
       },
       "refused": [
         "allocation_method='stated_weights'",
@@ -545,14 +523,16 @@
       "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf",
-      "state": "SILENTLY_REDUCED",
+      "state": "REFUSED",
       "read": {
-        "objective": "other",
+        "objective": "evaluate_investment_strategy",
         "cadence": "annual",
-        "amount": "1%",
-        "assets": "bonds"
+        "sell_action": "shift 1% from stocks to bonds",
+        "assets": "stocks, bonds"
       },
-      "refused": []
+      "refused": [
+        "sell_action='shift 1% from stocks to bonds'"
+      ]
     },
     {
       "id": "glidepath-02",
@@ -567,10 +547,10 @@
       "state": "REFUSED",
       "read": {
         "assets": "bonds",
-        "allocation_method": "hold my age in bonds"
+        "allocation_method": "my age in bonds"
       },
       "refused": [
-        "allocation_method='hold my age in bonds'"
+        "allocation_method='my age in bonds'"
       ]
     },
     {
@@ -597,15 +577,9 @@
       "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://blincoe.uk/the-blincoe-blog/retirement-income-bucketing-strategy",
-      "state": "REFUSED",
-      "read": {
-        "objective": "other",
-        "sell_action": "refill the cash bucket from stocks",
-        "assets": "stocks"
-      },
-      "refused": [
-        "sell_action='refill the cash bucket from stocks'"
-      ]
+      "state": "NOTHING_READ",
+      "read": {},
+      "refused": []
     },
     {
       "id": "risk_based_allocation-01",
@@ -669,8 +643,8 @@
       "source": "https://www.investopedia.com/terms/c/coveredcall.asp",
       "state": "REFUSED",
       "read": {
-        "sell_action": "sell covered calls one strike out of the money",
-        "cadence": "monthly"
+        "cadence": "monthly",
+        "sell_action": "sell covered calls one strike out of the money"
       },
       "refused": [
         "sell_action='sell covered calls one strike out of the money'"
@@ -689,11 +663,11 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_withdrawal",
-        "sell_action": "annuitize a third of the portfolio at 70"
+        "sell_action": "annuitize a third of the portfolio"
       },
       "refused": [
         "objective='assess_withdrawal'",
-        "sell_action='annuitize a third of the portfolio at 70'"
+        "sell_action='annuitize a third of the portfolio'"
       ]
     },
     {
@@ -746,10 +720,8 @@
       "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://www.investopedia.com/terms/l/leverage.asp",
-      "state": "SILENTLY_REDUCED",
-      "read": {
-        "assets": "equity sleeve"
-      },
+      "state": "NOTHING_READ",
+      "read": {},
       "refused": []
     },
     {
@@ -762,10 +734,8 @@
       "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://www.investor.gov/introduction-investing/getting-started/emergency-fund",
-      "state": "SILENTLY_REDUCED",
-      "read": {
-        "objective": "other"
-      },
+      "state": "NOTHING_READ",
+      "read": {},
       "refused": []
     },
     {

@@ -207,6 +207,33 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         f for f in built.absent_fields if f not in set(built.questions)))
 
 
+def _relation_fields(reading: ReadingSet) -> dict:
+    """Relation kinds, as declared fields, so the manifest can refuse them.
+
+    `compile_intent` builds what it asks the manifest about from
+    `intent.fields`, which is a flat name -> value map of *dimensions*. A
+    relation is not a dimension, so `reserve_policy` and `bucket_policy` would
+    have been readable by Discovery and invisible to Mission — a refusal that
+    exists in the manifest and never fires, which is the same defect as no
+    refusal at all.
+
+    The relation itself stays structured on the reading; this adds only a
+    marker under the relation's own name, so the refusal names the thing the
+    person described rather than some dimension it was flattened into.
+    """
+    summary = {}
+    for relation in getattr(reading, "relations", ()) or ():
+        kind = getattr(relation, "kind", "")
+        if not kind:
+            continue
+        members = ", ".join(
+            f"{role}={subject}" for role, subject, *_ in
+            (m if isinstance(m, (tuple, list)) else (m, "", "")
+             for m in getattr(relation, "members", ())))
+        summary[kind] = members or kind
+    return summary
+
+
 def _intent(text: str, decisions, reading: ReadingSet, *, objective: str,
             utterance_ref: str) -> Optional[VerifiedIntent]:
     """The boundary artifact, sealed when its meaning is closed.
@@ -217,6 +244,7 @@ def _intent(text: str, decisions, reading: ReadingSet, *, objective: str,
     itself that the answer is good enough.
     """
     settled = {d.dimension: d.value for d in decisions if d.proceeds}
+    settled.update(_relation_fields(reading))
     unresolved = tuple(
         Unresolved(dimension=d.dimension,
                    reason=(OpenReason.UNRESOLVED_DISAGREEMENT

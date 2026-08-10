@@ -1,11 +1,16 @@
 # The shadow matrices are stale
 
     built under   quantify-discovery-schema@2/103c025ac629946f
-    current       quantify-discovery-schema@3/914317b950521829
+    current       quantify-discovery-schema@4/9e01dbe0ee3c282a
 
 ## What changed
 
-`objective` gained two values, `assess_conversion` and `assess_debt_repayment`.
+@4 added `reserve_policy` and `bucket_policy` relations and a
+`leverage_multiplier` qualifier on `portfolio_sleeves`, because the live drift
+lane found those three families both silently reduced and execution-unstable —
+what a representational gap looks like from the outside.
+
+@3, before that: `objective` gained two values, `assess_conversion` and `assess_debt_repayment`.
 The schema's own examples already promised *"should I convert to a Roth"* while
 the vocabulary had no value for it, so the reader answered `other` — correctly,
 and uselessly, because `other` is what a reader says when a sentence names no
