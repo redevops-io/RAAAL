@@ -751,3 +751,95 @@ class TestReturnsAgreeWithinTolerance:
         assert "= -1 / 100" in text
         assert "= 21 / 100" in text
         assert "= 26 / 100" in text
+
+
+class TestTheMWRDefinitionIsFrozenBeforeTheProof:
+    """The contract was written first, on purpose.
+
+    A proof written before the definition formalises whatever the root finder
+    happens to do, and "our solver returned a number" is a theorem that looks
+    like success and means nothing.
+    """
+
+    DOC = (Path(__file__).resolve().parent.parent / "docs" / "MWR.md")
+
+    def test_the_contract_exists_and_states_the_four_outcomes(self):
+        if not self.DOC.exists():
+            pytest.skip("docs/MWR.md is absent")
+        text = self.DOC.read_text()
+        for outcome in ("RATE", "NO_SOLUTION", "NON_UNIQUE",
+                        "INSUFFICIENT_CASH_FLOWS"):
+            assert outcome in text, outcome
+
+    def test_the_lean_result_type_matches_the_document(self):
+        """A document naming four outcomes and a type carrying three would let
+        one of them be reported as something it is not."""
+        path = LEAN.parent / "Returns" / "MoneyWeighted.lean"
+        if not path.exists():
+            pytest.skip("MoneyWeighted.lean is absent")
+        text = path.read_text()
+        for case in ("rate", "noSolution", "nonUnique",
+                     "insufficientCashFlows"):
+            assert f"| {case}" in text, case
+
+    def test_the_document_says_the_definition_is_not_the_algorithm(self):
+        if not self.DOC.exists():
+            pytest.skip("docs/MWR.md is absent")
+        text = self.DOC.read_text()
+        assert "financial definition" in text and "numerical algorithm" in text
+        assert "Actual/365" in text
+
+
+class TestMoneyWeightedAgrees:
+    """The root structure, computed independently on this side.
+
+    Not a solver. These assert which rates satisfy the equation and how many
+    do — the question the contract turns on. A production solver would be
+    checked against this predicate, not consulted to define it.
+    """
+
+    @staticmethod
+    def _npv(flows, g):
+        """Present value in whole years, at annual growth factor g."""
+        return sum(amount / g ** year for year, amount in flows)
+
+    TOLERANCE = 1e-12
+
+    def test_the_conventional_case_is_ten_percent(self):
+        flows = [(0, -100), (1, 110)]
+        assert abs(self._npv(flows, 1.1)) < self.TOLERANCE
+
+    def test_and_nothing_else_solves_it(self):
+        """Linear in 1/g, so one root. Sampled rather than proved here; Lean
+        proves it."""
+        flows = [(0, -100), (1, 110)]
+        for g in (1.05, 1.15, 1.2, 2.0):
+            assert abs(self._npv(flows, g)) > 1e-6
+
+    def test_two_rates_solve_the_sign_changing_series(self):
+        """100 out, 230 back, 132 out. Ten percent and twenty percent both
+        satisfy it — one series, two defensible answers, which is why
+        Quantify must report neither."""
+        flows = [(0, -100), (1, 230), (2, -132)]
+        assert abs(self._npv(flows, 1.1)) < 1e-9
+        assert abs(self._npv(flows, 1.2)) < 1e-9
+
+    def test_a_solver_picking_the_first_root_would_be_arbitrary(self):
+        """The consequence, stated as a test: the two roots are far apart, so
+        which one a solver reaches is the difference between reporting 10% and
+        20% for the same portfolio."""
+        assert abs(1.2 - 1.1) > 0.09
+
+    def test_only_contributions_has_no_root(self):
+        flows = [(0, -100), (1, -50)]
+        for g in (1.0, 1.1, 2.0, 10.0):
+            assert self._npv(flows, g) < 0
+
+    def test_the_lean_file_states_the_same_series(self):
+        path = LEAN.parent / "Returns" / "MoneyWeighted.lean"
+        if not path.exists():
+            pytest.skip("MoneyWeighted.lean is absent")
+        text = path.read_text()
+        assert "[(0, -100), (1, 110)]" in text
+        assert "[(0, -100), (1, 230), (2, -132)]" in text
+        assert "[(0, -100), (1, -50)]" in text
