@@ -619,3 +619,135 @@ class TestTheOperatorChainAgrees:
         assert "#guard reportableSignals == [8]" in text
         assert "def contribution : Event := ⟨1, 8, 8, 9⟩" in text
         assert "def reported : Window := ⟨5, 5, 10⟩" in text
+
+
+class TestMathlibStaysAtTheReturnsBoundary:
+    """The dependency is contained by module, and checked here rather than
+    trusted.
+
+    Return metrics are where the mathematics changes kind — a product of
+    ratios, not a count — so exact rationals are the right representation and
+    Mathlib is the way to get them. Everything before that is discrete and must
+    stay buildable from a bare toolchain: an `import Mathlib` that crept into
+    `Ledger.lean` would make every conservation proof inherit a dependency it
+    has no use for.
+    """
+
+    FORMAL = LEAN.parent
+
+    def test_no_core_module_imports_mathlib(self):
+        if not self.FORMAL.exists():
+            pytest.skip("formal/Quantify is absent")
+
+        offenders = []
+        for path in sorted(self.FORMAL.glob("*.lean")):
+            if re.search(r"^import Mathlib", path.read_text(), re.M):
+                offenders.append(path.name)
+        assert not offenders, (
+            f"{offenders} import Mathlib; the lightweight core must build "
+            "from a bare toolchain")
+
+    def test_the_returns_modules_do(self):
+        """The other half. A containment test that passed because nothing used
+        Mathlib at all would be checking an empty room."""
+        returns = self.FORMAL / "Returns"
+        if not returns.exists():
+            pytest.skip("formal/Quantify/Returns is absent")
+
+        using = [p.name for p in sorted(returns.glob("*.lean"))
+                 if re.search(r"^import Mathlib", p.read_text(), re.M)]
+        assert using, "no Returns module imports Mathlib"
+
+    def test_both_libraries_are_default_targets(self):
+        """The build-scope trap, one target later.
+
+        A second `lean_lib` without `@[default_target]` would leave a bare
+        `lake build` compiling the core and skipping every return proof — the
+        same green-badge-over-unbuilt-proofs defect this repository already hit
+        once, when the library had no default target at all and two mutations
+        passed.
+        """
+        lakefile = (self.FORMAL.parent / "lakefile.lean").read_text()
+        # Declarations only. The first version counted every occurrence in the
+        # file and matched the phrase `@[default_target]` inside a doc comment
+        # explaining why it is there — a scan that reads its own prose, which
+        # this project has now done often enough to have a name for.
+        libs = re.findall(r"^lean_lib (\w+)", lakefile, re.M)
+        defaults = len(re.findall(r"^@\[default_target\]", lakefile, re.M))
+        assert len(libs) >= 2
+        assert defaults == len(libs), (
+            f"{len(libs)} libraries and {defaults} default targets; a bare "
+            "`lake build` would skip one")
+
+    def test_every_declared_root_has_a_file(self):
+        """A root naming a file that does not exist fails the build rather
+        than silently shrinking the proof set — verified when
+        `Quantify.Returns.TimeWeighted` was declared before it was written and
+        the build refused."""
+        lakefile = (self.FORMAL.parent / "lakefile.lean").read_text()
+        # Read out of the `roots := #[...]` arrays, not from anywhere a
+        # backtick appears: the same scan matched `Quantify.Returns` inside the
+        # sentence saying Mathlib is required only for it.
+        declared = []
+        for block in re.findall(r"roots := #\[(.*?)\]", lakefile, re.S):
+            declared += re.findall(r"`([\w.]+)", block)
+        assert declared, "no roots found; the scan is looking in the wrong place"
+        for root in declared:
+            path = self.FORMAL.parent / (root.replace(".", "/") + ".lean")
+            assert path.exists(), f"{root} is a declared root with no file"
+
+
+class TestReturnsAgreeWithinTolerance:
+    """Lean states the exact rational; Python computes in floating point.
+
+    Kept explicitly separate. The engine's number is an approximation of the
+    specification, not the other way round, and comparing them needs a stated
+    tolerance rather than an equality that happens to hold for these inputs.
+
+    Formalising Python's `float` instead would mean verifying IEEE-754
+    rounding, which is a harder target than the finance and answers a different
+    question.
+    """
+
+    TOLERANCE = 1e-12
+
+    def test_simple_return(self):
+        assert abs((110 - 100) / 100 - 0.1) < self.TOLERANCE
+        assert abs((90 - 100) / 100 - -0.1) < self.TOLERANCE
+
+    def test_up_then_down_loses_one_percent(self):
+        """The compounding case a naive sum gets wrong: +10% then -10% is not
+        zero."""
+        twr = (110 / 100) * (99 / 110) - 1
+        assert abs(twr - -0.01) < self.TOLERANCE
+
+    def test_a_boundary_contribution_does_not_manufacture_performance(self):
+        """100 grows to 110, 50 arrives, 160 grows to 176.
+
+        True time-weighted return 21%. The naive figure counts the depositor's
+        money as performance and reports 26%.
+        """
+        twr = (110 / 100) * (176 / 160) - 1
+        assert abs(twr - 0.21) < self.TOLERANCE
+
+        naive = (176 - 100 - 50) / 100
+        assert abs(naive - 0.26) < self.TOLERANCE
+        assert naive > twr, "the naive figure must overstate, or the fixture "\
+                            "is not showing what TWR is for"
+
+    def test_the_flow_size_does_not_matter(self):
+        """The theorem's content, sampled. Any contribution at the boundary
+        leaves the reported return alone."""
+        for flow in (0, 50, 1_000, 10**6):
+            start_two = 110 + flow
+            twr = (110 / 100) * ((start_two * 1.1) / start_two) - 1
+            assert abs(twr - 0.21) < 1e-9
+
+    def test_the_lean_file_states_the_same_numbers(self):
+        path = LEAN.parent / "Returns" / "TimeWeighted.lean"
+        if not path.exists():
+            pytest.skip("TimeWeighted.lean is absent")
+        text = path.read_text()
+        assert "= -1 / 100" in text
+        assert "= 21 / 100" in text
+        assert "= 26 / 100" in text

@@ -50,9 +50,41 @@ jobs:
           sh elan-init.sh -y --default-toolchain "$(cat formal/lean-toolchain)"
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
+      - name: Mathlib cache
+        # Prebuilt oleans. Without this the job compiles Mathlib from source,
+        # which is hours rather than minutes and would make the lane something
+        # nobody waits for — and a verification lane nobody waits for gets
+        # skipped, which is how it stops verifying.
+        #
+        # Mathlib is required only by `Quantify/Returns`; the lightweight core
+        # still builds from a bare toolchain, and a test asserts that no core
+        # module imports it.
+        working-directory: formal
+        run: lake exe cache get
+
       - name: Build
+        # Both libraries. `lake build` with no target compiled nothing at all
+        # in an earlier version of this file, and two mutations passed against
+        # it — so the step after this one checks what was actually built.
         working-directory: formal
         run: lake build
+
+      - name: Every module was built, not just the core
+        working-directory: formal
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import pathlib, sys
+          built = {p.stem for p in
+                   pathlib.Path(".lake/build/lib/Quantify").rglob("*.olean")}
+          source = {p.stem for p in pathlib.Path("Quantify").rglob("*.lean")}
+          missing = sorted(source - built)
+          print("## Formal\n")
+          for name in sorted(built):
+              print(f"- built `{name}`")
+          if missing:
+              print(f"\n**not built: {missing}**")
+              sys.exit(1)
+          PY
 
       - name: The fixtures agree with the Python side
         run: python -m pytest tests/test_lean_ledger_conformance.py -q
