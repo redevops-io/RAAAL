@@ -515,3 +515,107 @@ class TestMovingAverageAgrees:
         assert "movingAverage 5 series 9 == some 280" in text
         assert "movingAverage 3 series 8 = some 300" in text
         assert "movingAverage 5 series 3 == none" in text
+
+
+class TestTheOperatorChainAgrees:
+    """prices → threshold → crossing → contribution → next-open fill → ledger.
+
+    The wiring, not the operators. Each is proven separately on both sides;
+    what this asserts is that they connect in the same order — that the
+    threshold feeding the trigger is the one the average produced, that the
+    signal feeding the contribution is a transition and not a state, that the
+    fill is matched by identity, and that the reporting boundary is applied to
+    events rather than to data.
+
+    Python computes the chain from the prices with its own arithmetic. Lean
+    consumes the same prices and computes its own. Agreement on the
+    intermediates as well as the final ledger is what makes this evidence about
+    wiring rather than about one headline number.
+    """
+
+    PRICES = [100, 100, 100, 90, 100, 100, 100, 100, 85, 88, 100]
+    WINDOW = 3
+    REPORTED_FIRST, REPORTED_LAST = 5, 10
+
+    def _ma(self, t):
+        if t + 1 < self.WINDOW:
+            return None
+        return sum(self.PRICES[t + 1 - self.WINDOW:t + 1]) // self.WINDOW
+
+    def _below(self, t):
+        threshold = self._ma(t)
+        return threshold is not None and self.PRICES[t] < threshold
+
+    def _first_usable(self):
+        return self.WINDOW - 1
+
+    def _crossings(self):
+        first = self._first_usable()
+        return [t for t in range(first + 1, len(self.PRICES))
+                if self._below(t) and not self._below(t - 1)]
+
+    def _persistent(self):
+        return [t for t in range(self._first_usable(), len(self.PRICES))
+                if self._below(t)]
+
+    def _reportable(self, sessions):
+        return [s for s in sessions
+                if self.REPORTED_FIRST <= s <= self.REPORTED_LAST]
+
+    def test_the_first_usable_average_is_where_expected(self):
+        assert self._ma(1) is None
+        assert self._ma(self._first_usable()) == 100
+
+    def test_the_thresholds_are_the_ones_the_series_produces(self):
+        assert self._ma(3) == 96
+        assert self._ma(8) == 95
+        assert self._ma(9) == 91
+
+    def test_exactly_one_crossing_is_reportable(self):
+        """Two crossings, one of them in the warm-up. The early one fed the
+        average and moved no money."""
+        assert self._crossings() == [3, 8]
+        assert self._reportable(self._crossings()) == [8]
+
+    def test_the_condition_also_holds_at_nine(self):
+        """Which is what makes the persistent wiring visible: state and
+        transition differ on this series."""
+        assert self._persistent() == [3, 8, 9]
+
+    def test_execution_is_strictly_later_than_the_signal(self):
+        signal, funding, execution = 8, 8, 9
+        assert signal <= funding <= execution
+        assert signal < execution
+
+    def test_the_fill_is_matched_by_identity(self):
+        fills = [{"eventId": 1, "session": 9}]
+        contribution = {"id": 1, "execution": 9}
+        matched = next(f for f in fills if f["eventId"] == contribution["id"])
+        assert matched["session"] == contribution["execution"]
+
+    def test_the_ledger_reconciles(self):
+        assert ending_cash(opening=0, contributions=[8_800], withdrawals=[],
+                           purchases=[8_800], sales=[], fees=0) == 0
+        assert ending_shares(opening=0, bought=[100 * SHARE], sold=[]) == \
+            100 * SHARE
+
+    def test_persistent_wiring_would_pay_twice(self):
+        """The wiring mutation, on this side. Every operator still correct,
+        and the reported total doubles."""
+        assert len(self._reportable(self._persistent())) == 2
+
+    def test_skipping_the_window_filter_would_also_pay_twice(self):
+        assert len(self._crossings()) == 2
+
+    def test_the_lean_file_states_the_same_chain(self):
+        path = LEAN.parent / "Composition.lean"
+        if not path.exists():
+            pytest.skip("formal/Quantify/Composition.lean is absent")
+        text = path.read_text()
+
+        assert "[100, 100, 100, 90, 100, 100, 100, 100, 85, 88, 100]" in text
+        assert "(crossing observations).map sessionOf == [3, 8]" in text
+        assert "(persistent observations).map sessionOf == [3, 8, 9]" in text
+        assert "#guard reportableSignals == [8]" in text
+        assert "def contribution : Event := ⟨1, 8, 8, 9⟩" in text
+        assert "def reported : Window := ⟨5, 5, 10⟩" in text

@@ -12,4 +12,4 @@ package quantify
     because the badge is green. -/
 @[default_target]
 lean_lib Quantify where
-  roots := #[`Quantify.Types, `Quantify.Ledger, `Quantify.Cadence, `Quantify.Triggers, `Quantify.Ordering, `Quantify.Window, `Quantify.MovingAverage, `Quantify.Fixtures]
+  roots := #[`Quantify.Types, `Quantify.Ledger, `Quantify.Cadence, `Quantify.Triggers, `Quantify.Ordering, `Quantify.Window, `Quantify.MovingAverage, `Quantify.Composition, `Quantify.Fixtures]
