@@ -274,3 +274,75 @@ class TestTriggerSemanticsAgree:
         # different numbers.
         assert "⟨110, 100⟩, ⟨95, 100⟩, ⟨90, 100⟩, ⟨92, 100⟩, ⟨105, 100⟩" in text
         assert "⟨90, 100⟩, ⟨92, 100⟩" in text
+
+
+class TestOrderingAndAssociationAgree:
+    """When an event may execute, and which fill belongs to it.
+
+    The third claim is the one a date inequality cannot make. A schedule can
+    satisfy every ordering rule and still hand A's fill to B — the dense-event
+    defect, where the totals reconcile because the same fills were used, once
+    each, in the wrong places.
+    """
+
+    # (id, signal, funding, execution)
+    ADJACENT = [(1, 1, 2, 3), (2, 2, 3, 4)]
+    DELAYED = [(1, 1, 2, 5), (2, 2, 3, 4)]
+
+    @staticmethod
+    def _causal(e):
+        _, signal, funding, execution = e
+        return signal <= funding <= execution
+
+    @staticmethod
+    def _no_look_ahead(e):
+        """Close-derived signal under next-open policy: strictly later.
+
+        Strict, not `<=`. A signal derived from a session's close is not
+        knowable until that close is established, so filling at the same close
+        needs a price the decision helped determine.
+        """
+        _, signal, _, execution = e
+        return signal < execution
+
+    def test_adjacent_events_are_sound(self):
+        assert all(self._causal(e) for e in self.ADJACENT)
+        assert all(self._no_look_ahead(e) for e in self.ADJACENT)
+
+    def test_delayed_events_are_also_sound(self):
+        """Both hold, which is why ordering alone settles nothing about
+        association."""
+        assert all(self._causal(e) for e in self.DELAYED)
+        assert all(self._no_look_ahead(e) for e in self.DELAYED)
+
+    def test_identity_pairing_is_right_on_the_delayed_case(self):
+        fills = {1: 5, 2: 4}            # event id -> fill session
+        for event_id, _, _, execution in self.DELAYED:
+            assert fills[event_id] == execution
+
+    def test_position_pairing_steals_the_other_events_fill(self):
+        """The defect, reproduced. Fills in session order, events in list
+        order, zipped — each event takes the other's fill."""
+        by_session = sorted([(1, 5), (2, 4)], key=lambda f: f[1])
+        paired = {e[0]: f for e, f in zip(self.DELAYED, by_session)}
+        assert paired[1] == (2, 4), "A should have been handed B's fill"
+        assert paired[2] == (1, 5), "B should have been handed A's fill"
+        assert paired[1][0] != 1 and paired[2][0] != 2
+
+    def test_the_lean_file_states_the_same_events_and_pairings(self):
+        import re as _re
+
+        path = LEAN.parent / "Ordering.lean"
+        if not path.exists():
+            pytest.skip("formal/Quantify/Ordering.lean is absent")
+        text = path.read_text()
+
+        assert "def delayedA : Event := ⟨1, 1, 2, 5⟩" in text
+        assert "def delayedB : Event := ⟨2, 2, 3, 4⟩" in text
+        assert "def adjacentA : Event := ⟨1, 1, 2, 3⟩" in text
+        assert "def adjacentB : Event := ⟨2, 2, 3, 4⟩" in text
+        # Identity right, position wrong, on the same schedule.
+        assert _re.search(r"fillFor delayedFills delayedA = some ⟨1, 5⟩", text)
+        assert _re.search(
+            r"fillByPosition delayedFills delayedEvents delayedA = some ⟨2, 4⟩",
+            text)
