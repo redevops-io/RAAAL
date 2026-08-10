@@ -207,7 +207,12 @@ def _payload(block: Block, scenario: Mapping[str, Any],
                 "final_value": result.get("final_value"),
                 "contributed": path.get("contributed"),
                 "time_weighted_annualized": result.get("time_weighted_annualized"),
-                "money_weighted": result.get("money_weighted"),
+                # `money_weighted` — a key nothing has ever produced. The
+                # serialised name is `money_weighted_annualized`, so this
+                # column has been blank since it was written and
+                # `both_bases_present` below has always been False.
+                "money_weighted": result.get("money_weighted_annualized"),
+                "money_weighted_status": result.get("money_weighted_status"),
                 "max_drawdown": result.get("max_drawdown"),
             }],
             "ran_at": (run or {}).get("ran_at"),
@@ -216,7 +221,7 @@ def _payload(block: Block, scenario: Mapping[str, Any],
             # actually did.
             "both_bases_present": (
                 result.get("time_weighted_annualized") is not None
-                and result.get("money_weighted") is not None),
+                and result.get("money_weighted_annualized") is not None),
         }
 
     if block is Block.MODELING_SCOPE:

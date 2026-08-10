@@ -72,7 +72,7 @@ the unique admissible root — independently of how the root is found.
 
     financial definition   ≠   numerical algorithm
 
-## Known non-conformance
+## Known non-conformance — Closed
 
 `mission.accounting.money_weighted_return` does not implement the fourth
 outcome. It returns `Optional[float]`, so `NO_SOLUTION` and
@@ -100,7 +100,17 @@ happens to straddle and reports it with no qualification.
 `tests/test_mwr_conformance.py` asserts this is still the behaviour, so the
 record cannot go stale without a test failing.
 
-**Not fixed in the verification slice, deliberately.** Widening the return type
-is a product decision: every caller reads `Optional[float]` today and would
-have to learn a fourth outcome, and the lane that found a defect should not
-also choose the remedy.
+**Closed.** `money_weighted_return` now returns `MWRResult`, and on this series
+reports `NON_UNIQUE` with no rate. The implementation is split the way the
+contract is — validate the cash flows, search for roots, classify what was
+found — and uniqueness is *established* rather than assumed: one sign change in
+the coefficient sequence means exactly one positive root by Descartes and a
+rate may be published; more than one means the rule permits several, so the
+search decides and refuses to publish when it cannot tell.
+
+The implementation carries one state the financial contract does not:
+`INDETERMINATE`, for when the search cannot establish which of the four
+applies. A bounded scan detects crossings, so a root that touches zero without
+crossing or sits beyond the searched range is invisible to it — and reporting
+`NO_SOLUTION` there would turn "could not establish" into "established". It is
+an implementation state and not a fifth outcome of the definition.

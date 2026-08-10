@@ -95,7 +95,10 @@
       <td class="num">{{ money(row.final_value) }}</td>
       <td class="num">{{ money(row.contributed) }}</td>
       <td class="num">{{ percent(row.time_weighted_annualized) }}</td>
-      <td class="num">{{ percent(row.money_weighted) }}</td>
+      {# A status rather than a blank cell when there is no reportable rate:
+         an empty column reads as "not computed" when the truthful answer is
+         "this series has no single defensible rate". #}
+      <td class="num">{% if row.money_weighted is not none %}{{ percent(row.money_weighted) }}{% elif row.money_weighted_status %}<span class="muted">{{ row.money_weighted_status }}</span>{% endif %}</td>
       <td class="num">{{ percent(row.max_drawdown) }}</td>
     </tr>
     {% endfor %}

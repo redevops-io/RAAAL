@@ -29,9 +29,10 @@ def _solver(amounts, terminal, periods_per_year=1):
 
     from src.mission.accounting import money_weighted_return
 
-    return money_weighted_return(pd.Series([float(a) for a in amounts]),
-                                 terminal_value=float(terminal),
-                                 periods_per_year=periods_per_year)
+    result = money_weighted_return(pd.Series([float(a) for a in amounts]),
+                                   terminal_value=float(terminal),
+                                   periods_per_year=periods_per_year)
+    return result.rate
 
 
 class TestTheCertificationNamesWhatItChecked:
@@ -153,23 +154,22 @@ class TestTheNonUniqueCase:
         assert not certification.reportable
         assert len(certification.roots_found) >= 2
 
-    def test_and_the_solver_returns_one_of_them_anyway(self):
-        """The non-conformance, asserted so it is a recorded fact rather than
-        a remark. The solver returns the root its bracket happens to contain
-        and says nothing about the other.
+    def test_and_the_solver_now_refuses_it(self):
+        """The non-conformance, closed.
 
-        Not fixed here. Changing the engine's return type is a product decision
-        — every caller of `money_weighted_return` currently reads `Optional
-        [float]` and would need to learn a fourth outcome — and doing it inside
-        a verification slice would mean the lane that found the defect also
-        chose the remedy.
+        The solver used to return 0.4999999999 here — the root its opening
+        bracket happened to straddle — and say nothing about the other. It now
+        reports `NON_UNIQUE` and publishes no number.
         """
-        returned = _solver(self.AMOUNTS, self.TERMINAL)
-        assert returned is not None
-        assert abs(returned - 0.5) < 1e-6, (
-            "the solver no longer returns the lower root; if it now refuses "
-            "this series, this test and the record in docs/MWR.md should say "
-            "so")
+        import pandas as pd
+
+        from src.mission.accounting import MWRStatus, money_weighted_return
+
+        result = money_weighted_return(
+            pd.Series([float(a) for a in self.AMOUNTS]),
+            terminal_value=self.TERMINAL, periods_per_year=1)
+        assert result.status is MWRStatus.NON_UNIQUE
+        assert result.rate is None
 
     def test_the_gap_is_recorded_where_somebody_will_look(self):
         """A defect known only to a test is a defect the next person
@@ -180,21 +180,28 @@ class TestTheNonUniqueCase:
         if not doc.exists():
             pytest.skip("docs/MWR.md is absent")
         text = doc.read_text()
-        assert "Known non-conformance" in text
         assert "money_weighted_return" in text
+        assert "Closed" in text, (
+            "docs/MWR.md still records this as an open non-conformance")
 
 
 class TestTheConformanceRecordIsFitToShow:
     def test_it_says_what_the_solver_returned_and_what_was_permitted(self):
         """Both halves. A record carrying only the verdict cannot be audited,
         and one carrying only the number is what the contract exists to
-        prevent."""
+        prevent.
+
+        `solver_returned` is `None` here now, and that is the conformance: the
+        contract found two roots and the solver published neither. This
+        assertion previously required a number, because when it was written the
+        solver returned one.
+        """
         from src.mission.mwr_contract import conformance_of
 
         record = conformance_of(*_flows([-100.0, 450.0, 0.0], 450.0),
                                 _solver([-100.0, 450.0, 0.0], 450.0))
         assert record["verdict"] == "NON_UNIQUE"
-        assert record["solver_returned"] is not None
+        assert record["solver_returned"] is None
         assert record["contract_version"]
         assert len(record["roots_found"]) >= 2
 
@@ -205,3 +212,86 @@ class TestTheConformanceRecordIsFitToShow:
                                 _solver([100.0, 0.0], 110.0))
         assert record["verdict"] == "RATE"
         assert len(record["roots_found"]) == 1
+
+
+class TestEveryOutcomeIsReachable:
+    """`None` let several meanings collapse into one. A result type that fixed
+    that and then carried a state nothing produces would have moved the problem
+    rather than solved it.
+
+    So each status is reached here by a named series, and `INDETERMINATE` in
+    particular is kept only because the implementation genuinely needs it.
+    """
+
+    import pandas as _pd
+
+    CASES = {
+        "rate": ([100.0, 0.0], 110.0, "contributions, then a terminal value"),
+        "non_unique": ([-100.0, 450.0, 0.0], 450.0,
+                       "a withdrawal makes the coefficients read - + -"),
+        "insufficient_cash_flows": ([0.0, 0.0], 100.0, "no money ever moved"),
+        "no_solution": ([-100.0, -50.0], 10.0,
+                        "no sign change, so Descartes gives no positive root"),
+        "indeterminate": ([-100.0, 400.0, 0.0], 400.0,
+                          "a root that touches zero without crossing"),
+    }
+
+    @pytest.mark.parametrize("status", sorted(CASES))
+    def test_each_status_has_a_series_that_produces_it(self, status):
+        import pandas as pd
+
+        from src.mission.accounting import money_weighted_return
+
+        amounts, terminal, _why = self.CASES[status]
+        result = money_weighted_return(pd.Series(amounts),
+                                       terminal_value=terminal,
+                                       periods_per_year=1)
+        assert result.status.value == status
+
+    def test_the_cases_cover_the_whole_enum(self):
+        """A status added later with no series would be a state nobody can
+        reach, which is how an outcome becomes decoration."""
+        from src.mission.accounting import MWRStatus
+
+        assert {s.value for s in MWRStatus} == set(self.CASES)
+
+    def test_indeterminate_is_earned_not_assumed(self):
+        """The tangent case, spelled out: `-100(g-2)²` has a root at `g = 2`
+        and the present value never changes sign, so a crossing scan finds
+        nothing while Descartes permits two roots. Reporting `NO_SOLUTION`
+        would turn "could not establish" into "established"."""
+        import pandas as pd
+
+        from src.mission.accounting import MWRStatus, money_weighted_return
+
+        result = money_weighted_return(pd.Series([-100.0, 400.0, 0.0]),
+                                       terminal_value=400.0,
+                                       periods_per_year=1)
+        assert result.status is MWRStatus.INDETERMINATE
+        assert result.rate is None
+
+        def npv(rate):
+            g = 1.0 + rate
+            return -100 * g ** 2 + 400 * g - 400
+
+        assert abs(npv(1.0)) < 1e-9, "there is a root"
+        assert npv(0.9) < 0 and npv(1.1) < 0, "and it never crosses"
+
+
+class TestTheInvariantIsEnforced:
+    def test_a_rate_status_must_carry_a_number(self):
+        from src.mission.accounting import MWRResult, MWRStatus
+
+        with pytest.raises(ValueError):
+            MWRResult(MWRStatus.RATE)
+
+    @pytest.mark.parametrize("status", ["no_solution", "non_unique",
+                                        "insufficient_cash_flows",
+                                        "indeterminate"])
+    def test_and_every_other_status_must_not(self, status):
+        """The shape the old return type allowed: a reason and a number
+        together, with nothing saying which to believe."""
+        from src.mission.accounting import MWRResult, MWRStatus
+
+        with pytest.raises(ValueError):
+            MWRResult(MWRStatus(status), 0.1)

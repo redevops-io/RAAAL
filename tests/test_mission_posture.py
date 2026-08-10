@@ -98,7 +98,8 @@ class TestTheVerdictIsDerivedNotDeclared:
         mission, benchmarks, declared = payload_parts
         by_outcome = sorted(
             benchmarks,
-            key=lambda b: -(b.result.money_weighted if b.result else -9),
+            key=lambda b: -(b.result.money_weighted.rate if b.result
+                            and b.result.money_weighted.rate is not None else -9),
         )
         payload = comparison_payload(mission, by_outcome, declared_order=declared,
                                      rendered_text="neutral")
