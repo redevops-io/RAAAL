@@ -311,3 +311,61 @@ class TestTheWatchSet:
         texts = {c["text"] for c in cases}
         missing = [t for t in WATCHED if t not in texts]
         assert not missing, f"{missing} are watched and not in the corpus"
+
+
+class TestTheSpendCeilingIsReal:
+    """A ceiling nothing reads is not a ceiling.
+
+    The drift workflow pinned `QUANTIFY_PARSER_MAX_TOKENS` as a spend control
+    while `HostedReader.max_tokens` kept its hardcoded default, so the budget
+    was a comment in YAML — the exact failure that workflow's own header warns
+    about, committed in the workflow itself.
+    """
+
+    def test_the_ceiling_is_resolved_from_the_environment(self):
+        from src.deploy.context import PARSER_MAX_TOKENS_VAR, resolve
+
+        assert resolve({PARSER_MAX_TOKENS_VAR: "2048"}).model.max_tokens == 2048
+
+    @pytest.mark.parametrize("raw", ["", "nonsense", "0", "-5"])
+    def test_an_unusable_value_keeps_the_default(self, raw):
+        """A malformed budget must not stop a deployment serving, and a zero
+        ceiling would refuse every request while looking like a setting."""
+        from src.deploy.context import PARSER_MAX_TOKENS_VAR, resolve
+
+        assert resolve({PARSER_MAX_TOKENS_VAR: raw}).model.max_tokens == 8000
+
+    def test_the_reader_is_built_with_it(self, monkeypatch):
+        """The half that was missing. Resolving the value and never passing it
+        on would satisfy the test above and change nothing about the bill."""
+        from src.deploy import context as deploy_context
+
+        resolved = deploy_context.resolve({
+            "QUANTIFY_PARSER_MODE": "RUNTIME",
+            "QUANTIFY_PILOT_READER": "HOSTED",
+            "QUANTIFY_PARSER_MODEL": "claude-sonnet-5",
+            "ANTHROPIC_API_KEY": "unused",
+            "QUANTIFY_PARSER_MAX_TOKENS": "2048",
+        })
+        monkeypatch.setattr(deploy_context, "current", lambda: resolved)
+
+        from src.workspace.pilot_routes import configured_reader
+
+        assert configured_reader().max_tokens == 2048
+
+    def test_the_workflow_pins_a_variable_the_code_reads(self):
+        """Checked structurally, because the defect was a name in YAML that
+        matched nothing in Python."""
+        import re
+        from pathlib import Path
+
+        from src.deploy import context
+
+        workflow = (Path(__file__).resolve().parent.parent / ".github"
+                    / "workflows" / "drift-lane.yml").read_text()
+        pinned = set(re.findall(r"^\s{2}(QUANTIFY_\w+):", workflow, re.M))
+        known = {getattr(context, name) for name in dir(context)
+                 if name.endswith("_VAR")}
+        known |= {"QUANTIFY_PARSER_MODEL", "QUANTIFY_DATABASE_URL"}
+        unread = pinned - known
+        assert not unread, f"{sorted(unread)} are pinned and read by nothing"

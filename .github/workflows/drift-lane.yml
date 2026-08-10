@@ -11,9 +11,15 @@ name: Discovery drift lane
 #   manual     whatever is asked for              pre-release confidence
 #
 # **The spend policy is here rather than in a document.** A budget written in
-# prose is a budget nobody enforces; `QUANTIFY_DRIFT_DRAWS` and
-# `QUANTIFY_PARSER_MAX_TOKENS` below are what actually bound the bill, and
-# changing them is a reviewed diff.
+# prose is a budget nobody enforces. What bounds the bill is the `draws` input
+# below (defaulted per cadence) and `QUANTIFY_PARSER_MAX_TOKENS`, which
+# `deploy.context` resolves and hands to the reader — changing either is a
+# reviewed diff.
+#
+# The first version of this header named `QUANTIFY_DRIFT_DRAWS`, which nothing
+# sets or reads, and pinned the token ceiling while `HostedReader` kept its
+# hardcoded default. Both were budgets that were comments, in the file whose
+# header says budgets must not be comments.
 #
 # **A skipped or failed run is not fresh evidence.** The artifact is written
 # only by a job that completed, and `prelean_gate` refuses one older than seven
@@ -48,6 +54,9 @@ env:
   QUANTIFY_PILOT_READER: HOSTED
   QUANTIFY_PARSER_MODEL: claude-sonnet-5
   QUANTIFY_SYNTAX_WITNESS: 'yes'
+  # Read by `deploy.context` and passed to the reader. It was pinned here
+  # while nothing consumed it — a ceiling that is a comment in YAML, which is
+  # the failure this header warns about, committed in the header's own file.
   QUANTIFY_PARSER_MAX_TOKENS: '2048'
   PILOT_DATA_POLICY: SYNTHETIC_ONLY
 
@@ -69,6 +78,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install -U pip
+          pip install -r requirements-core.txt
           pip install -r requirements.txt
           python -c "import stanza; stanza.download('en')"
 
@@ -100,6 +110,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install -U pip
+          pip install -r requirements-core.txt
           pip install -r requirements.txt
           python -c "import stanza; stanza.download('en')"
 

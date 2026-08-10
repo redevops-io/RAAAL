@@ -62,7 +62,8 @@ def configured_reader():
 
     from ..discovery.readers_quantify import HostedReader
 
-    return HostedReader(model=model.model or "claude-sonnet-5")
+    return HostedReader(model=model.model or "claude-sonnet-5",
+                        max_tokens=model.max_tokens)
 
 
 def _declared_profile():

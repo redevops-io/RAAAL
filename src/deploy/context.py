@@ -50,6 +50,14 @@ TRACE_PATH_VAR = "QUANTIFY_TRACE_PATH"
 TRACE_RETENTION_VAR = "QUANTIFY_TRACE_RETENTION_DAYS"
 
 
+#: The per-call token ceiling for the hosted reader. Resolved here because a
+#: ceiling nothing reads is not a ceiling: the drift workflow pinned this
+#: variable as a spend control while `HostedReader.max_tokens` kept its
+#: hardcoded default, so the "budget" was a comment in YAML. That is the exact
+#: failure that workflow's own header warns about, committed in the workflow
+#: itself.
+PARSER_MAX_TOKENS_VAR = "QUANTIFY_PARSER_MAX_TOKENS"
+
 #: Whether the deterministic syntax witness runs beside the model on the
 #: serving path. Declared, never inferred from whether Stanza imports: an
 #: image that happens to have the package is not a deployment that decided to
@@ -75,6 +83,17 @@ def _retention(raw: Optional[str], *, default: Optional[int] = None) -> int:
     except (TypeError, ValueError):
         return default
     return days if days > 0 else default
+
+
+def _positive_int(raw: Optional[str], default: int) -> int:
+    """A ceiling, or the default. An unreadable value keeps the default rather
+    than raising: a malformed budget must not stop a deployment serving, and a
+    zero ceiling would refuse every request while looking like a setting."""
+    try:
+        value = int(str(raw))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
 
 
 def _affirmative(raw: Optional[str]) -> bool:
@@ -127,6 +146,7 @@ def _model_target(source: Mapping[str, str]) -> "ModelTarget":
         model=source.get("QUANTIFY_PARSER_MODEL"),
         mode=mode, fallback=fallback, declared=bool(raw_mode),
         pilot_reader=reader,
+        max_tokens=_positive_int(source.get(PARSER_MAX_TOKENS_VAR), 8000),
         syntax_witness=_affirmative(source.get(SYNTAX_WITNESS_VAR)),
         prompt_version=source.get(PARSER_PROMPT_VERSION_VAR) or PARSER_VERSION)
 
@@ -257,6 +277,13 @@ class ModelTarget:
     mode: "ParserMode" = ParserMode.DETERMINISTIC
     fallback: "ParserFallback" = ParserFallback.REFUSE
     pilot_reader: "PilotReader" = PilotReader.HOSTED
+    max_tokens: int = 8000
+    """Per-call ceiling for the hosted reader, and a real spend control.
+
+    Mirrors `readers_quantify.HostedReader.max_tokens`, which is where the
+    default comes from. Resolved rather than read at the call site, like
+    everything else here."""
+
     syntax_witness: bool = False
     """Whether a second, deterministic reader constrains the model's semantics.
 
@@ -359,6 +386,7 @@ class ModelTarget:
                 "mode": self.mode.value, "fallback": self.fallback.value,
                 "pilot_reader": self.pilot_reader.value,
                 "syntax_witness": self.syntax_witness,
+                "max_tokens": self.max_tokens,
                 "prompt_version": self.prompt_version,
                 "declared": self.declared}
 
