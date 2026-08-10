@@ -405,3 +405,113 @@ class TestEvaluationWindowsAgree:
         assert "threeMonths.reportable everySession == [3, 4, 5]" in text
         assert "meanOver frameValues = 250" in text
         assert "meanOver reportedValues = 400" in text
+
+
+class TestNoProofIsAdmitted:
+    """`sorry` compiles. It emits a warning and `lake build` still exits zero.
+
+    That is the formal-layer version of the defect this project keeps finding:
+    a check that passes without checking. A theorem closed with `sorry` reads
+    exactly like a proven one in the source, in the build output, and in any
+    summary written from either.
+
+    The moving-average slice was drafted with two of them, so this is not a
+    hypothetical guard against a habit nobody has.
+    """
+
+    FORMAL = LEAN.parent
+
+    def test_nothing_in_the_formal_tree_is_admitted(self):
+        if not self.FORMAL.exists():
+            pytest.skip("formal/Quantify is absent")
+
+        offenders = []
+        for path in sorted(self.FORMAL.glob("*.lean")):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                stripped = line.strip()
+                if stripped.startswith("--") or stripped.startswith("/-"):
+                    continue
+                if re.search(r"\bsorry\b", line):
+                    offenders.append(f"{path.name}:{number}")
+        assert not offenders, (
+            f"{offenders} close a proof with `sorry`, which compiles, warns, "
+            "and exits zero — a theorem that is not proven and reads as though "
+            "it were")
+
+    def test_and_no_axiom_was_added_to_get_there(self):
+        """The other way to admit something. An `axiom` is a proof obligation
+        moved rather than discharged, and this project's rule is that a claim
+        nobody exercises is a comment."""
+        if not self.FORMAL.exists():
+            pytest.skip("formal/Quantify is absent")
+
+        offenders = []
+        for path in sorted(self.FORMAL.glob("*.lean")):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                if re.match(r"\s*axiom\s", line):
+                    offenders.append(f"{path.name}:{number}")
+        assert not offenders, f"{offenders} declare an axiom"
+
+
+class TestMovingAverageAgrees:
+    """The threshold series, computed independently on this side.
+
+    Kept apart from trigger semantics on both sides: this says the number is
+    right, `TestTriggerSemanticsAgree` says what crossing it means.
+    """
+
+    SERIES = [100, 100, 100, 100, 100, 100, 100, 400, 400, 400]
+
+    @classmethod
+    def _ma(cls, n, t, series=None):
+        series = cls.SERIES if series is None else series
+        if n == 0 or t + 1 < n:
+            return None
+        window = series[t + 1 - n:t + 1]
+        return sum(window) // n if len(window) == n else None
+
+    def test_the_window_ends_at_the_session_asked_for(self):
+        assert self._ma(3, 9) == 400
+        assert self._ma(5, 9) == 280
+
+    def test_nothing_before_the_warm_up_completes(self):
+        assert self._ma(5, 3) is None
+        assert self._ma(5, 4) == 100
+
+    def test_window_length_changes_the_threshold(self):
+        assert self._ma(3, 9) != self._ma(5, 9)
+
+    def test_off_by_one_is_a_different_statistic_where_it_shows(self):
+        assert self._ma(3, 8) == 300
+        assert self._ma(2, 8) == 400
+        assert self._ma(4, 8) == 250
+
+    def test_but_an_off_by_one_hides_on_a_flat_stretch(self):
+        """Why a 200-day average over 199 observations can run for months
+        looking right: on quiet stretches it agrees with itself, and diverges
+        only where the boundary observation differs — which is exactly where a
+        crossing happens."""
+        assert self._ma(3, 9) == self._ma(2, 9)
+
+    def test_a_price_outside_the_window_cannot_move_it(self):
+        outside = [999] + self.SERIES[1:]
+        assert self._ma(3, 9, outside) == self._ma(3, 9)
+
+    def test_and_a_price_inside_it_does(self):
+        inside = self.SERIES[:9] + [700]
+        assert self._ma(3, 9, inside) != self._ma(3, 9)
+
+    def test_a_flat_series_averages_to_the_constant(self):
+        assert self._ma(4, 9, [250] * 10) == 250
+
+    def test_the_lean_file_states_the_same_series_and_values(self):
+        path = LEAN.parent / "MovingAverage.lean"
+        if not path.exists():
+            pytest.skip("formal/Quantify/MovingAverage.lean is absent")
+        text = path.read_text()
+
+        assert "[100, 100, 100, 100, 100, 100, 100, 400, 400, 400]" in text
+        assert "movingAverage 3 series 9 == some 400" in text
+        assert "movingAverage 5 series 9 == some 280" in text
+        assert "movingAverage 3 series 8 = some 300" in text
+        assert "movingAverage 5 series 3 == none" in text
