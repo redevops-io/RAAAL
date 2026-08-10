@@ -130,7 +130,8 @@ def _staleness(drift: Mapping[str, Any], *, now=None) -> Sequence[str]:
 
 
 def verdict(*, drift_path: Optional[Path] = None,
-            closure_path: Optional[Path] = None, now=None) -> Gate:
+            closure_path: Optional[Path] = None, now=None,
+            require_ci: bool = True) -> Gate:
     """The gate, from artifacts on disk rather than from a fresh run.
 
     Reading files rather than measuring here is deliberate: the drift lane
@@ -138,6 +139,12 @@ def verdict(*, drift_path: Optional[Path] = None,
     it may start Lean. A gate that ran its own evidence would be re-earning the
     guarantee at the moment of being asked, which is when the answer is least
     likely to be scrutinised.
+
+    `require_ci` is the difference between "somebody ran this on a laptop" and
+    "the scheduled lane spoke to the provider". Both are useful and only one is
+    a guarantee: a seven-day-old local run would otherwise keep the gate open
+    while CI had never successfully made a call. Development passes `False`
+    deliberately and says so; nothing else should.
     """
     drift_path = drift_path or DRIFT
     closure_path = closure_path or CLOSURE
@@ -151,6 +158,16 @@ def verdict(*, drift_path: Optional[Path] = None,
     else:
         drift = json.loads(drift_path.read_text())
         blockers.extend(_staleness(drift, now=now))
+
+        producer = drift.get("provenance", {}).get("producer", "unknown")
+        evidence["producer"] = producer
+        evidence["mode"] = drift.get("provenance", {}).get("mode", "")
+        if require_ci and producer != "github-actions":
+            blockers.append(
+                f"the drift artifact was produced by {producer!r}, not the "
+                "scheduled lane. A local run is evidence for development and "
+                "not a guarantee about the deployment that serves people; "
+                "dispatch .github/workflows/drift-lane.yml")
         unsafe = drift.get("execution_unsafe", [])
         evidence["execution_unsafe"] = len(unsafe)
         evidence["by_classification"] = drift.get("by_classification", {})

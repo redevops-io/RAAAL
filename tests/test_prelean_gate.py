@@ -32,7 +32,8 @@ def _drift(tmp_path, versions, *, unsafe=(), draws=3, age_days=0,
            overrides=None):
     at = datetime.now(timezone.utc) - timedelta(days=age_days)
     provenance = {**versions, "recorded_at": at.isoformat(),
-                  "draws_per_prompt": draws}
+                  "draws_per_prompt": draws,
+                  "producer": "github-actions", "mode": "schedule"}
     provenance.update(overrides or {})
     path = tmp_path / "drift.json"
     path.write_text(json.dumps({
@@ -104,7 +105,8 @@ class TestSafeInstabilityDoesNotBlock:
         path.write_text(json.dumps({
             "provenance": {**versions,
                            "recorded_at": datetime.now(timezone.utc).isoformat(),
-                           "draws_per_prompt": 3},
+                           "draws_per_prompt": 3,
+                           "producer": "github-actions", "mode": "schedule"},
             "by_classification": {"UNSTABLE_SAFE": 9, "STABLE_REFUSAL": 27},
             "execution_unsafe": []}))
         gate = verdict(drift_path=path, closure_path=_closure(tmp_path))
@@ -263,7 +265,8 @@ class TestTheWatchSet:
         path.write_text(_json.dumps({
             "provenance": {**versions,
                            "recorded_at": datetime.now(timezone.utc).isoformat(),
-                           "draws_per_prompt": 3},
+                           "draws_per_prompt": 3,
+                           "producer": "github-actions", "mode": "schedule"},
             "by_classification": {},
             "execution_unsafe": [r["text"] for r in results
                                  if r["classification"] == "UNSTABLE_EXECUTABLE"],
@@ -369,3 +372,103 @@ class TestTheSpendCeilingIsReal:
         known |= {"QUANTIFY_PARSER_MODEL", "QUANTIFY_DATABASE_URL"}
         unread = pinned - known
         assert not unread, f"{sorted(unread)} are pinned and read by nothing"
+
+
+class TestLocalEvidenceIsNotACIGuarantee:
+    """A laptop run and the scheduled lane are different claims.
+
+    Both are useful and only one is a guarantee. Without this, a seven-day-old
+    local artifact keeps the gate open while CI has never successfully spoken
+    to the provider — and the gate's whole purpose is to say the *deployment*
+    is safe, not that somebody's checkout was.
+    """
+
+    def _local(self, tmp_path, versions):
+        at = datetime.now(timezone.utc)
+        path = tmp_path / "drift.json"
+        path.write_text(json.dumps({
+            "provenance": {**versions, "recorded_at": at.isoformat(),
+                           "draws_per_prompt": 3, "producer": "local",
+                           "mode": "local"},
+            "by_classification": {"STABLE_REFUSAL": 36},
+            "execution_unsafe": [], "silently_reduced_any_draw": []}))
+        return path
+
+    def test_a_local_artifact_does_not_open_the_gate(self, tmp_path, versions):
+        from src.mission.prelean_gate import verdict
+
+        gate = verdict(drift_path=self._local(tmp_path, versions),
+                       closure_path=_closure(tmp_path))
+        assert not gate.open
+        assert any("not the scheduled lane" in b for b in gate.blockers)
+        assert gate.evidence["producer"] == "local"
+
+    def test_but_development_may_ask_without_it(self, tmp_path, versions):
+        """`require_ci=False` is for a person checking their own work. It is a
+        parameter rather than a default so that using it is a decision somebody
+        made, and shows up in the call."""
+        from src.mission.prelean_gate import verdict
+
+        gate = verdict(drift_path=self._local(tmp_path, versions),
+                       closure_path=_closure(tmp_path), require_ci=False)
+        assert gate.open, gate.blockers
+
+    def test_an_artifact_predating_the_field_is_not_treated_as_ci(
+            self, tmp_path, versions):
+        """Absent provenance reads as unknown, not as trusted. The artifact on
+        disk when this check was added had no `producer` at all, and defaulting
+        it either way would have decided the question by omission."""
+        from src.mission.prelean_gate import verdict
+
+        at = datetime.now(timezone.utc)
+        path = tmp_path / "drift.json"
+        path.write_text(json.dumps({
+            "provenance": {**versions, "recorded_at": at.isoformat(),
+                           "draws_per_prompt": 3},
+            "by_classification": {}, "execution_unsafe": [],
+            "silently_reduced_any_draw": []}))
+        gate = verdict(drift_path=path, closure_path=_closure(tmp_path))
+        assert not gate.open
+        assert gate.evidence["producer"] == "unknown"
+
+    def test_the_lane_records_who_produced_it(self, monkeypatch):
+        """The other half. A gate that demanded provenance the producer never
+        wrote would be permanently closed for a reason no run could fix."""
+        import sys
+        from pathlib import Path as _Path
+
+        sys.path.insert(0, str(_Path(__file__).resolve().parent.parent
+                               / "corpus" / "parser"))
+        import drift_lane
+
+        monkeypatch.setenv("GITHUB_ACTIONS", "true")
+        monkeypatch.setenv("GITHUB_WORKFLOW", "Discovery drift lane")
+        monkeypatch.setenv("GITHUB_RUN_ID", "12345")
+        monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
+
+        class _Reader:
+            id = "claude-sonnet-5@1"
+            model = "claude-sonnet-5"
+
+        provenance = drift_lane._provenance(_Reader(), _Reader(), ["a"], 3)
+        assert provenance["producer"] == "github-actions"
+        assert provenance["workflow"] == "Discovery drift lane"
+        assert provenance["run_id"] == "12345"
+        assert provenance["mode"] == "workflow_dispatch"
+
+    def test_and_says_local_when_it_is(self, monkeypatch):
+        import sys
+        from pathlib import Path as _Path
+
+        sys.path.insert(0, str(_Path(__file__).resolve().parent.parent
+                               / "corpus" / "parser"))
+        import drift_lane
+
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+
+        class _Reader:
+            id = "claude-sonnet-5@1"
+            model = "claude-sonnet-5"
+
+        assert drift_lane._provenance(_Reader(), _Reader(), ["a"], 3)[
+            "producer"] == "local"

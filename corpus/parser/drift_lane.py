@@ -151,7 +151,20 @@ def _provenance(model_reader, syntax_reader, texts: list, draws: int) -> dict:
     from src.discovery.schema import QUANTIFY_SCHEMA
     from src.discovery.witnesses import BOTH
 
+    # Who produced this, so a development run cannot stand in for the
+    # scheduled lane. Read from the environment because that is the only place
+    # that knows — this is a corpus script, not a serving consumer, and the
+    # rule `deploy.context` enforces is about request handlers deciding where
+    # their answers come from.
+    import os
+
+    on_ci = os.environ.get("GITHUB_ACTIONS") == "true"
     return {
+        "producer": "github-actions" if on_ci else "local",
+        "workflow": os.environ.get("GITHUB_WORKFLOW", ""),
+        "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "mode": ("longitudinal" if draws < 3
+                 else os.environ.get("GITHUB_EVENT_NAME", "local")),
         "schema_fingerprint": schema_fingerprint(QUANTIFY_SCHEMA),
         "prompt_set_digest": sha256(
             "\n".join(sorted(texts)).encode()).hexdigest()[:16],

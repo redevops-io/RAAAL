@@ -346,3 +346,62 @@ class TestOrderingAndAssociationAgree:
         assert _re.search(
             r"fillByPosition delayedFills delayedEvents delayedA = some ⟨2, 4⟩",
             text)
+
+
+class TestEvaluationWindowsAgree:
+    """Data may exist before the evaluation period. Economic events may not.
+
+    The "three months returned ten years" defect stated precisely. It was never
+    that the engine loaded too much history — it has to, or the indicator has
+    nothing to average. It was that money moving during the warm-up was counted
+    in a result the person asked to be about three months.
+    """
+
+    WARM_UP, FIRST, LAST = 3, 3, 5
+    EVERY_SESSION = [0, 1, 2, 3, 4, 5]
+
+    def _in_frame(self, s):
+        return (self.FIRST - self.WARM_UP) <= s <= self.LAST
+
+    def _in_reported(self, s):
+        return self.FIRST <= s <= self.LAST
+
+    def test_the_frame_is_wider_than_the_report(self):
+        assert [s for s in self.EVERY_SESSION if self._in_frame(s)] == \
+            self.EVERY_SESSION
+        assert [s for s in self.EVERY_SESSION if self._in_reported(s)] == \
+            [3, 4, 5]
+
+    def test_warm_up_is_loaded_and_silent(self):
+        """Both halves. Either alone permits the defect: a warm-up outside the
+        frame cannot feed an indicator, and one inside the report is money
+        counted twice."""
+        for session in (0, 1, 2):
+            assert self._in_frame(session)
+            assert not self._in_reported(session)
+
+    def test_only_the_requested_period_is_reportable(self):
+        reportable = [s for s in self.EVERY_SESSION if self._in_reported(s)]
+        assert len(reportable) == 3, (
+            "six sessions of activity, three reportable — the defect reported "
+            "all six and called it three months")
+
+    def test_the_warm_up_actually_changes_the_indicator(self):
+        """Without this the whole fixture is vacuous: a window whose early
+        sessions did not matter would satisfy every boundary check while
+        proving nothing, because nothing was there to leak."""
+        frame = [100, 100, 100, 400, 400, 400]
+        reported = [400, 400, 400]
+        assert sum(frame) // len(frame) == 250
+        assert sum(reported) // len(reported) == 400
+
+    def test_the_lean_file_states_the_same_window_and_counts(self):
+        path = LEAN.parent / "Window.lean"
+        if not path.exists():
+            pytest.skip("formal/Quantify/Window.lean is absent")
+        text = path.read_text()
+
+        assert "def threeMonths : Window := ⟨3, 3, 5⟩" in text
+        assert "threeMonths.reportable everySession == [3, 4, 5]" in text
+        assert "meanOver frameValues = 250" in text
+        assert "meanOver reportedValues = 400" in text
