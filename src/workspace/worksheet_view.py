@@ -15,6 +15,20 @@ time is a second implementation of the engine living in the view layer.
 """
 from __future__ import annotations
 
+
+#: Fields this view reads from a run result that `MissionResult.to_json` does
+#: not emit, and why each is still read. Declared here rather than in a central
+#: list so the reason sits beside the code, and enforced by
+#: `tests/test_result_contract.py` — three columns in this file were blank for
+#: months because `dict.get` turns a missing key into an empty cell.
+RESULT_FIELD_NOTES = {
+    "max_drawdown": (
+        "EXPLICITLY_ABSENT",
+        "Mission computes no drawdown. `evaluation.runner` does, on a "
+        "different path, and wiring it here is a product decision rather than "
+        "a rename. The read stays so the gap is visible."),
+}
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 

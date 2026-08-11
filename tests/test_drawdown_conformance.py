@@ -51,83 +51,81 @@ class TestTheImplementationAgreesWhereItCan:
         assert _implementation([100, 101, 102]) == pytest.approx(0.0)
 
 
-class TestTheOpeningLevelIsMissingFromTheCurve:
-    """The defect, found by running the implementation against the definition.
+class TestTheOpeningLevelIsInTheCurve:
+    """The defect this lane found, and the cases that prove it closed.
 
         curve = (1 + returns).cumprod()
 
-    The curve begins at the *first return*, so the starting value is never in
-    it. `cummax` therefore starts at the post-first-move level, and any fall
-    from the opening level is measured against a peak that already reflects the
-    fall — or is invisible entirely.
+    began at the first *return*, so the opening level was never in it and
+    `cummax` started at the post-first-move value. A portfolio that halved on
+    its first session reported a maximum drawdown of zero.
 
-    A portfolio that halves on its first day and never recovers reports a
-    maximum drawdown of zero.
+    Note which fixture caught it. `100 → 120 → 90 → 110 → 130` — the series
+    chosen to separate correct implementations from three plausible wrong ones
+    — conformed under the defect, because it rises first and the missing
+    opening level never becomes the peak. It took a series that falls
+    immediately.
     """
 
-    def test_a_first_day_halving_reports_nothing(self):
+    def test_a_first_session_crash_is_reported(self):
         import pandas as pd
 
         from src.evaluation.runner import _max_drawdown
 
-        assert _max_drawdown(pd.Series([-0.5])) == 0.0
+        assert abs(_max_drawdown(pd.Series([-0.5]))) == pytest.approx(0.5)
 
-    def test_a_fall_from_the_opening_level_is_understated(self):
-        """`100 → 75 → 50` is a half below its peak. The implementation sees a
-        third, because it takes 75 as the peak."""
-        assert _implementation([100, 75, 50]) == pytest.approx(1 / 3)
-        assert _implementation([100, 75, 50]) != pytest.approx(0.5)
+    @pytest.mark.parametrize("values,expected", [
+        ([100, 50], 0.5),
+        ([100, 75, 50], 0.5),
+        ([100, 50, 100, 101, 102], 0.5),
+        ([100, 120, 90, 110, 130], 0.25),
+        ([100, 110, 120, 130], 0.0),
+    ])
+    def test_every_case_lean_exposed(self, values, expected):
+        assert _implementation(values) == pytest.approx(expected)
 
-    def test_and_a_crash_before_a_calm_stretch_vanishes(self):
-        """`100 → 50 → 100 → 101 → 102` fell by half. The implementation
-        reports nothing, because the curve starts at the bottom."""
-        assert _implementation([100, 50, 100, 101, 102]) == pytest.approx(0.0)
+    def test_removing_the_opening_level_breaks_conformance(self):
+        """The mutation, kept. Without it these fixtures would pass for an
+        implementation that had quietly reverted."""
+        import pandas as pd
 
-    def test_the_definition_says_otherwise(self):
-        """What Lean states for the same series, so the disagreement is
-        recorded as a disagreement rather than as a tolerance."""
-        from pathlib import Path
+        def without_opening(values):
+            returns = _returns_from(values)
+            curve = (1.0 + returns).cumprod()
+            return abs(float((curve / curve.cummax() - 1.0).min()))
 
-        lean = (Path(__file__).resolve().parent.parent / "formal" / "Quantify"
-                / "Returns" / "Drawdown.lean")
-        if not lean.exists():
-            pytest.skip("Drawdown.lean is absent")
-        text = lean.read_text()
-        assert "maxDrawdown falls = 1 / 2" in text
-        assert "maxDrawdown crashThenCalm = 1 / 2" in text
+        assert without_opening([100, 75, 50]) == pytest.approx(1 / 3)
+        assert without_opening([100, 50, 100, 101, 102]) == pytest.approx(0.0)
+        assert without_opening([100, 120, 90, 110, 130]) == pytest.approx(0.25)
 
-    def test_the_gap_is_recorded_where_somebody_will_look(self):
+
+class TestTheSemanticsAreVersioned:
+    """`@1` and `@2` differ materially on any series that fell early.
+
+    A stored result with no version cannot be told apart from one measured
+    under `@1`, so recomputing history silently would present old evidence as
+    though it had always been measured this way.
+    """
+
+    def test_the_build_declares_which_semantics_it_computes(self):
+        from src.evaluation.runner import DRAWDOWN_SEMANTICS
+
+        assert DRAWDOWN_SEMANTICS == "drawdown@2"
+
+    def test_the_version_travels_with_the_number(self):
+        import inspect
+
+        from src.evaluation.runner import EvaluationResult
+
+        source = inspect.getsource(EvaluationResult.to_json)
+        assert '"drawdown_semantics"' in source
+        assert '"max_drawdown"' in source
+
+    def test_the_document_records_both_versions(self):
         from pathlib import Path
 
         doc = Path(__file__).resolve().parent.parent / "docs" / "Drawdown.md"
         if not doc.exists():
             pytest.skip("docs/Drawdown.md is absent")
-        assert "_max_drawdown" in doc.read_text()
-
-
-class TestTheFixWouldBeOneLine:
-    """Stated as a test rather than applied, for the reason the MWR slice
-    followed: a lane that finds a defect should not also choose the remedy.
-
-    Prepending the opening level to the curve gives the definition's answer on
-    every fixture above.
-    """
-
-    @staticmethod
-    def _with_opening_level(values):
-        import pandas as pd
-
-        returns = _returns_from(values)
-        curve = pd.concat([pd.Series([1.0]), (1.0 + returns).cumprod()],
-                          ignore_index=True)
-        return abs(float((curve / curve.cummax() - 1.0).min()))
-
-    @pytest.mark.parametrize("values,expected", [
-        ([100, 120, 90, 110, 130], 0.25),
-        ([100, 110, 120, 130], 0.0),
-        ([100, 75, 50], 0.5),
-        ([100, 50, 100, 101, 102], 0.5),
-        ([100, 101, 102], 0.0),
-    ])
-    def test_it_would_agree_with_the_definition(self, values, expected):
-        assert self._with_opening_level(values) == pytest.approx(expected)
+        text = doc.read_text()
+        assert "drawdown@1" in text and "drawdown@2" in text

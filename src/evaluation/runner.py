@@ -205,6 +205,10 @@ class EvaluationResult:
             "volatility": self.volatility,
             "sharpe": self.sharpe,
             "max_drawdown": self.max_drawdown,
+            # Which semantics produced that number. A stored result with no
+            # version cannot be told apart from one measured under `@1`, and
+            # the two differ materially on any series that fell early.
+            "drawdown_semantics": DRAWDOWN_SEMANTICS,
             "n_rebalances": self.n_rebalances,
             "n_observations": self.n_observations,
             "period_start": self.period_start,
@@ -216,8 +220,32 @@ class EvaluationResult:
         }
 
 
+#: The semantics this build computes drawdown under.
+#:
+#: `@1` built the equity curve as `(1 + returns).cumprod()`, which starts at
+#: the first *return*, so the opening level was never in it and `cummax` began
+#: at the post-first-move value. Any fall from the opening level was measured
+#: against a peak that had already absorbed it, and a portfolio that halved on
+#: its first session reported a maximum drawdown of zero.
+#:
+#: `@2` includes the opening level. Versioned rather than corrected in place
+#: because every stored result carrying a drawdown was produced under `@1`, and
+#: recomputing them silently would present old evidence as though it had always
+#: been measured this way.
+DRAWDOWN_SEMANTICS = "drawdown@2"
+
+
 def _max_drawdown(daily: pd.Series) -> float:
-    curve = (1.0 + daily).cumprod()
+    """The largest fall below the running high-water mark, as a negative
+    fraction.
+
+    The curve starts at 1.0 — the opening level — so a fall in the first
+    session is measured from where the portfolio began. `docs/Drawdown.md` is
+    the definition and `tests/test_drawdown_conformance.py` checks this against
+    it.
+    """
+    curve = pd.concat([pd.Series([1.0]), (1.0 + daily).cumprod()],
+                      ignore_index=True)
     return float((curve / curve.cummax() - 1.0).min())
 
 

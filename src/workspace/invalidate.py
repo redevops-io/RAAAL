@@ -23,6 +23,17 @@ victims.
 """
 from __future__ import annotations
 
+
+#: See `worksheet_view.RESULT_FIELD_NOTES`.
+RESULT_FIELD_NOTES = {
+    "rule_events": (
+        "EXPLICITLY_ABSENT",
+        "The producer writes this into `modelling_scope`, which is where it "
+        "belongs. The top-level read is a fallback for an older persisted "
+        "shape, and returns None rather than zero when absent — a run recorded "
+        "before the engine had the vocabulary is not a run that reported zero."),
+}
+
 import sys
 from typing import Any, Dict, List, Optional, Sequence
 
