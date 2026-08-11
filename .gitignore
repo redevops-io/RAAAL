@@ -35,6 +35,21 @@ env/
 data/*
 !data/manifests/
 
+# The instrument registry is source, not data. `instruments.yaml`,
+# `concepts.yaml` and `aliases.yaml` are hand-authored — they carry prose
+# explaining why an index is not a fund — and nothing generates them. `data/*`
+# swept them up anyway, so they lived outside version control while ~80 tests
+# depended on them. A clean checkout of a commit whose suite passed 4717 locally
+# failed 80 and errored on 13, and the drift lane would have failed in CI for
+# the same reason, producing a red run that looked like a finding about the
+# model and was a missing file.
+#
+# This is the second time this rule has done this. The manifest comment below
+# records the first. The lesson that did not generalise: `data/` is where
+# authored things go to be forgotten, so anything under it that a human wrote
+# must be negated explicitly the day it is written.
+!data/instruments/
+
 # Dataset manifests are committed even though the datasets are not. They carry
 # the snapshot identity, version and hash, so a result can name the input it was
 # computed against without the licensed bytes ever entering the repository.

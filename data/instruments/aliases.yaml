@@ -1,0 +1,92 @@
+# How people ask, and what the phrase is evidence of.
+#
+# An alias is an *observation*, not a substitution. "SPX" names an index;
+# "SPX ETF" names the same index and asks for a fund; "Vanguard S&P fund"
+# names the index, asks for a fund, and constrains the issuer. A flat
+# phrase -> ticker map cannot hold that, which is why "SPX ETF" used to
+# resolve to a missing price rather than a question about intent.
+#
+# `vehicle_hint` is what the user asked to buy. `issuer_hint` narrows it.
+# `source` is where the alias came from, so a curated entry and one proposed
+# from a user's clarification are never confused.
+version: 1
+
+aliases:
+  # Concept aliases live with the concepts; these carry extra facets.
+  - phrase: "spx etf"
+    target_kind: CONCEPT
+    target_id: INDEX:SP500
+    vehicle_hint: ETF
+    source: CURATED
+    confidence: HIGH
+
+  - phrase: "sp500 etf"
+    target_kind: CONCEPT
+    target_id: INDEX:SP500
+    vehicle_hint: ETF
+    source: CURATED
+    confidence: HIGH
+
+  - phrase: "s&p 500 etf"
+    target_kind: CONCEPT
+    target_id: INDEX:SP500
+    vehicle_hint: ETF
+    source: CURATED
+    confidence: HIGH
+
+  - phrase: "s&p fund"
+    target_kind: CONCEPT
+    target_id: INDEX:SP500
+    vehicle_hint: FUND
+    source: CURATED
+    confidence: MEDIUM
+
+  - phrase: "vanguard s&p fund"
+    target_kind: CONCEPT
+    target_id: INDEX:SP500
+    vehicle_hint: FUND
+    issuer_hint: Vanguard
+    source: CURATED
+    confidence: HIGH
+
+  - phrase: "vanguard s&p 500"
+    target_kind: CONCEPT
+    target_id: INDEX:SP500
+    vehicle_hint: ETF
+    issuer_hint: Vanguard
+    source: CURATED
+    confidence: HIGH
+
+  - phrase: "nasdaq etf"
+    target_kind: CONCEPT
+    target_id: INDEX:NASDAQ100
+    vehicle_hint: ETF
+    source: CURATED
+    confidence: HIGH
+
+  - phrase: "dow etf"
+    target_kind: CONCEPT
+    target_id: INDEX:DJIA
+    vehicle_hint: ETF
+    source: CURATED
+    confidence: HIGH
+
+  # Direct instrument aliases, where the user named a fund rather than a
+  # concept.
+  - phrase: "spider"
+    target_kind: INSTRUMENT
+    target_id: US:NYSEARCA:SPY
+    source: CURATED
+    confidence: MEDIUM
+
+  - phrase: "the spy"
+    target_kind: INSTRUMENT
+    target_id: US:NYSEARCA:SPY
+    source: CURATED
+    confidence: HIGH
+
+  - phrase: "triple qs"
+    target_kind: INSTRUMENT
+    target_id: US:NYSEARCA:QQQ
+    source: CURATED
+    confidence: MEDIUM
