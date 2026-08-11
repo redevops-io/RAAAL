@@ -82,8 +82,36 @@ PLAN_RESUBMITTED = "plan_resubmitted"
 #: `plan_compiled` staying flat looks identical to nobody visiting at all.
 LEFT_FOR_LEGACY = "left_for_legacy"
 
+#: Discovery asked for something before it would seal.
+#:
+#: The plan-level events above record what happened *to a plan*, which turned
+#: out to be the wrong half of the story. The harvested corpus found that 16 of
+#: 29 attested strategy statements never reach a plan at all — they stop at a
+#: question, because real financial intent is routinely incomplete on first
+#: utterance. A pilot instrumented only on plans would record those sessions as
+#: near-silence and could not say whether the runtime asked well or badly.
+#:
+#: `detail` carries the dimension names and nothing else. A dimension name is
+#: schema vocabulary — `assets`, `amount` — and never the participant's words,
+#: so this stays on the countable side of the split that `pilot_session`
+#: describes. What they typed lives in `pilot_transcripts`, under a
+#: declaration.
+DISCOVERY_ASKED = "discovery_asked"
+
+#: The participant answered, and which dimensions closed as a result.
+#:
+#: Both halves are needed to say anything about burden. Questions asked alone
+#: cannot distinguish a runtime that asked once and got what it needed from one
+#: that asked three times and was ignored.
+DISCOVERY_ANSWERED = "discovery_answered"
+
+#: Discovery closed the meaning. The boundary event: everything before it is
+#: interaction, everything after is execution.
+INTENT_SEALED = "intent_sealed"
+
 KINDS = (PLAN_COMPILED, PLAN_SAVED, PLAN_REOPENED, PLAN_RESULT_SHOWN,
-         PLAN_REFUSED, PLAN_RESUBMITTED, LEFT_FOR_LEGACY)
+         PLAN_REFUSED, PLAN_RESUBMITTED, LEFT_FOR_LEGACY,
+         DISCOVERY_ASKED, DISCOVERY_ANSWERED, INTENT_SEALED)
 
 #: Coarse, stable reasons an execution produced no figure. Codes rather than
 #: the engine's message: a message is rendered copy, it can carry the user's
@@ -211,6 +239,8 @@ def observe(reading, *, plan_id: str = "", participant: str = "",
                executable=bool(reading.executable),
                open_question_count=len(reading.questions))
 
+    observe_discovery(reading, plan_id=plan_id, participant=participant)
+
     for refusal in reading.refusals:
         record(PLAN_REFUSED, plan_id=plan_id, participant=participant,
                refusal_code=CAPABILITY_REFUSED,
@@ -226,6 +256,50 @@ def observe(reading, *, plan_id: str = "", participant: str = "",
         else:
             record(PLAN_REFUSED, plan_id=plan_id, participant=participant,
                    refusal_code=_execution_refusal_code(run))
+
+
+#: A dimension Mission could not proceed without and Discovery never raised.
+#:
+#: The third of the three burden questions, and the only one that cannot be
+#: answered by counting questions. A runtime that asks nothing looks perfect on
+#: "how many follow-ups?" and is failing worse than one that asks twice — the
+#: person is simply refused at the end with no chance to supply what was
+#: missing.
+NOT_ASKED_ABOUT = "not_asked_about"
+
+
+def observe_discovery(reading, *, plan_id: str = "",
+                      participant: str = "") -> None:
+    """What Discovery asked, what it sealed, and what it should have asked.
+
+    Structured only. Dimension names are schema vocabulary and never the
+    participant's sentence, so this stays on the countable side of the split —
+    what somebody typed lives in `pilot_transcripts` under a declaration.
+
+    The `not_asked_about` list is computed rather than declared: a dimension
+    Mission refuses as `UNRESOLVED_INPUT` that never appeared in Discovery's
+    questions is, by construction, a material fact the interaction failed to
+    ask for. It is derived from what the two layers actually did, so it cannot
+    drift out of step with either of them the way a hand-maintained list would.
+    """
+    questions = sorted(reading.questions)
+    if questions:
+        record(DISCOVERY_ASKED, plan_id=plan_id, participant=participant,
+               dimensions=questions, question_count=len(questions))
+
+    unresolved = sorted({
+        getattr(r, "dimension", "") for r in reading.refusals
+        if getattr(r, "kind", "") == "UNRESOLVED_INPUT"})
+    unasked = [d for d in unresolved if d and d not in questions]
+    if unasked:
+        record(DISCOVERY_ASKED, plan_id=plan_id, participant=participant,
+               dimensions=[], question_count=0,
+               **{NOT_ASKED_ABOUT: unasked})
+
+    if reading.executable:
+        record(INTENT_SEALED, plan_id=plan_id, participant=participant,
+               settled_count=len(list(reading.settled)),
+               questions_before_sealing=len(questions))
 
 
 def answers_already_in_the_prompt(prompt: str,
@@ -276,6 +350,19 @@ def observe_resubmission(*, attempt: int, changed: Optional[bool],
     record(PLAN_RESUBMITTED, participant=participant, attempt=attempt,
            text_changed=changed, answered_field_count=len(answered),
            repeated_from_prompt=list(repeated))
+
+    # The other half of the burden pair. Questions asked cannot on their own
+    # tell a runtime that asked once and got what it needed from one that asked
+    # three times and was ignored, and this is where the answer arrives — a
+    # resubmission carrying dimensions that were open before it.
+    #
+    # Emitted here rather than declared beside the other kinds because
+    # `test_all_seven_appear` refuses an event constant no journey produces.
+    # It caught this one: the kind existed and nothing recorded it, which is
+    # the shape of a manifest entry that reads as a permanent zero.
+    if answered:
+        record(DISCOVERY_ANSWERED, participant=participant, attempt=attempt,
+               dimensions=sorted(answered), answered_count=len(answered))
 
 
 def observe_departure(path: str, *, participant: str = "") -> None:

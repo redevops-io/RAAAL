@@ -242,12 +242,23 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
     cadence = intent.fields.get("cadence")
     amount = intent.fields.get("amount")
     recurring = cadence is not None and str(cadence.value) not in ("once", "")
-    # Absent, or stated and readable as zero. A figure stated and *unreadable*
-    # is deliberately not this check's business: the numeric check below says
-    # so far more usefully, and firing both put two refusals for `amount` on
-    # the same plan — one dimension refused twice reads as two problems.
-    figure = _decimal(amount.value) if amount is not None else None
-    silent = amount is None or figure == Decimal(0)
+    # Absent, and *only* absent.
+    #
+    # The first version of this check read `amount is None or figure == 0`,
+    # which refused an explicitly stated zero as though it were missing. Those
+    # are different statements and the difference is the whole point: zero is a
+    # substantive instruction — model this plan with no contributions — and
+    # missing is the absence of one. Collapsing them made the runtime refuse a
+    # thing the person had said, which is the mirror image of the defect this
+    # check was added to close.
+    #
+    #     missing material quantity   -> unresolved
+    #     explicitly zero quantity    -> zero
+    #
+    # A figure stated and *unreadable* is not this check's business either: the
+    # numeric check below says so far more usefully, and firing both put two
+    # refusals for `amount` on one plan, which reads as two problems.
+    silent = amount is None
     if recurring and silent and "trigger_semantics" not in intent.fields:
         refusals.append(Refusal(
             kind="UNRESOLVED_INPUT", dimension="amount",

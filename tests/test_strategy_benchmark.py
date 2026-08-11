@@ -241,3 +241,41 @@ class TestTheTaxonomyCannotBeUsedToHideThings:
         assert findings["dangerous_instances"] == sum(
             q["instances"] for q in findings["queue"]
             if q["kind"] in DANGEROUS)
+
+
+class TestTheCorpusCannotSilentlyShrink:
+    """Rule 1 in `docs/Evidence-Rules.md`, applied here because the benchmark
+    has the same shape as the semantics tier that the rule came from: the case
+    list is generated rather than declared, so a class removed from `suite.py`
+    leaves the corpus with nothing failing.
+
+    Growth is expected and free. Disappearance requires somebody to say why.
+    """
+
+    RECORDED = json.loads(
+        (BENCH / "recorded_prompts.json").read_text())
+
+    #: Prompts that have left the corpus, and the reason each one left.
+    #: Empty, and it should stay that way: the benchmark is authored, so a
+    #: prompt leaving is a deliberate edit rather than a reader changing its
+    #: mind.
+    WITHDRAWN: dict = {}
+
+    def test_every_prompt_ever_measured_is_still_measured(self, suite):
+        gone = set(self.RECORDED["prompts"]) - set(suite["prompts"])
+        unexplained = sorted(gone - set(self.WITHDRAWN))
+        assert not unexplained, (
+            f"{len(unexplained)} prompts have left the corpus without a "
+            f"disposition, e.g. {unexplained[:2]}. A prompt that entered "
+            "because it demonstrated something does not leave quietly; name it "
+            "in WITHDRAWN with the reason, or put it back")
+
+    def test_the_withdrawn_list_does_not_outlive_its_reasons(self, suite):
+        stale = sorted(set(self.WITHDRAWN) & set(suite["prompts"]))
+        assert not stale, (
+            f"{stale} are listed as withdrawn and are in the corpus again")
+
+    def test_the_recorded_set_is_not_comparing_against_nothing(self):
+        """The failure mode of every ratchet: both sides drift to empty and it
+        passes by having nothing to check."""
+        assert self.RECORDED["count"] == len(self.RECORDED["prompts"]) > 0

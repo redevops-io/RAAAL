@@ -54,10 +54,20 @@ def _journey(client):
 
 
 def _everything_a_participant_can_do(client):
-    """The journey plus the two things people do that are not the happy path:
-    they retype, and they go back to what they knew."""
+    """The journey plus the three things people do that are not the happy path:
+    they retype, they answer what they were asked, and they go back to what
+    they knew.
+
+    Answering was missing until `discovery_answered` was added and this test
+    reported it as never emitted. The event had a producer — `/pilot/answer`
+    is how somebody supplies a holding the sentence left out — and this helper
+    simply never walked it, which meant the most common real interaction was
+    absent from the journey that certifies the instrumentation.
+    """
     client.get(NEW, params={"describe": SENTENCE})
     client.get(NEW, params={"describe": REVISED})                  # resubmit
+    client.post("/pilot/answer",                                   # answered
+                data={"describe": SENTENCE, "answer_assets": "VTI"})
     location = _journey(client)
     client.get("/workspace/")                                      # departure
     return location
@@ -66,12 +76,42 @@ def _everything_a_participant_can_do(client):
 class TestEveryProducerIsReachableFromTheRealJourney:
     """An event nothing emits is a column that reads as zero forever.
 
-    Each of the five is asserted to appear from `/workspace/new` → save →
+    Each kind is asserted to appear from `/workspace/new` → answer → save →
     reopen, which is the journey a cohort actually walks — not from calling the
     recorder directly, which would prove only that the recorder works.
+
+    The count was in the name of this test and went stale twice. It is gone.
     """
 
-    def test_all_seven_appear(self, client):
+    def test_answering_while_saving_is_a_known_blind_spot(self, client):
+        """A gap this test surface found and which is deliberately not closed
+        here.
+
+        `/pilot/save` accepts `answer_<dimension>` fields and calls only
+        `observe_save`. So a participant who supplies the missing holding *and*
+        saves in one step has answered a question, and no `discovery_answered`
+        is recorded for it — the follow-up burden report will undercount
+        answers by exactly the people who did the efficient thing.
+
+        Recorded rather than fixed because the fix has a choice in it: emitting
+        from the save route double-counts anyone who answers and then saves,
+        and picking between those is a decision about what the metric means
+        rather than a bug to patch quietly before a cohort runs.
+        """
+        from src.workspace.pilot_events import DISCOVERY_ANSWERED, every_event
+
+        client.get(NEW, params={"describe": SENTENCE})
+        before = sum(1 for e in every_event() if e["kind"] == DISCOVERY_ANSWERED)
+        client.post("/pilot/save",
+                    data={"describe": SENTENCE, "answer_assets": "VTI"},
+                    follow_redirects=False)
+        after = sum(1 for e in every_event() if e["kind"] == DISCOVERY_ANSWERED)
+        assert after == before, (
+            "the save route now records an answer; the blind spot this test "
+            "documents is closed, so update docs/PilotObservations.md and "
+            "delete this test rather than leaving it asserting the old shape")
+
+    def test_every_kind_appears(self, client):
         _everything_a_participant_can_do(client)
 
         from src.workspace.pilot_events import KINDS, every_event

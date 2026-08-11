@@ -243,6 +243,27 @@ class TestAStatedNumberIsNeverQuietlyDefaulted:
         assert [r.dimension for r in out.refusals] == ["amount"]
         assert out.refusals[0].kind == "UNRESOLVED_INPUT"
 
+    def test_an_explicit_zero_is_an_instruction_and_is_honoured(self):
+        """Zero is a statement, not a gap.
+
+            missing material quantity   -> unresolved
+            explicitly zero quantity    -> zero
+
+        The first version of the recurring check refused both, which made the
+        runtime reject something the person had actually said in order to
+        prevent something they had not. Somebody modelling "what if I stop
+        contributing" is asking a real question and this is how they ask it.
+        """
+        out = compile_intent(intent(amount="0"), benchmark_rule=RULE)
+        assert out.scenario is not None, [r.detail for r in out.refusals]
+        assert out.scenario.flow_schedule.amount == 0.0
+        assert out.scenario.flow_schedule.cadence == "monthly"
+
+    def test_and_so_is_a_currency_formatted_zero(self):
+        out = compile_intent(intent(amount="$0"), benchmark_rule=RULE)
+        assert out.scenario is not None
+        assert out.scenario.flow_schedule.amount == 0.0
+
     def test_a_one_off_plan_with_no_amount_still_compiles(self):
         """The exception, and a real one: a plan may model opening capital with
         no contributions after it. `once` is not a claim that money moves

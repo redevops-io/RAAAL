@@ -266,3 +266,55 @@ artifacts rather than a list of plan ids someone read off a page.
 **Deployment 2** executes the rule and reports a timeline — which is also the
 independent witness that it ran, because one purchase and $1,000 total cannot
 support a repeating rule and would be visible as such.
+
+
+## Follow-up burden (added before the cohort)
+
+The harvested corpus changed what the pilot should watch. 16 of 29 attested
+strategy statements never reach a plan — they stop at a question about
+holdings, because real financial intent is routinely incomplete on first
+utterance. Instrumentation built only on plan events would record those
+sessions as near-silence and could not say whether the runtime asked well or
+badly.
+
+So the interaction is captured, not only the outcome:
+
+    original utterance          pilot_transcripts, under a declaration
+    unresolved dimensions       discovery_asked
+    questions asked             discovery_asked, by dimension
+    the answer supplied         discovery_answered, by dimension
+    sealed intent               intent_sealed
+    disposition and result      the plan events already recorded
+
+`src/workspace/pilot_burden.py` joins them into three questions that are
+deliberately not one question:
+
+**How many follow-ups were needed.** `asked_by_dimension`.
+
+**Which were unnecessary.** `answer_was_already_in_the_prompt` — dimensions the
+participant answered with something their original sentence already contained.
+A proxy, and named for what it measures: somebody may restate a thing the
+runtime was right to be unsure about.
+
+**Which missing material facts were never asked about.**
+`never_asked_by_dimension`, computed as a dimension Mission refuses as
+`UNRESOLVED_INPUT` that Discovery never raised. This is the one a question
+count cannot reach: a runtime that asks nothing scores perfectly on burden and
+may be failing worse than one that asks twice, because the person is refused at
+the end having never been given the chance to supply what was missing.
+
+No rates. A ten-person cohort makes a percentage look like a measurement and
+behave like one participant's afternoon.
+
+### A known blind spot, recorded rather than patched
+
+`/pilot/save` accepts `answer_<dimension>` fields and records no answer event,
+so a participant who supplies the missing holding *and* saves in one step is
+not counted as having answered. The burden report undercounts answers by
+exactly the people who did the efficient thing.
+
+It is left open because closing it involves a choice rather than a fix:
+emitting from the save route double-counts anyone who answers and then saves,
+and deciding between those is a decision about what the metric means. Pinned by
+`test_answering_while_saving_is_a_known_blind_spot`, which fails if the
+behaviour changes without this note changing with it.

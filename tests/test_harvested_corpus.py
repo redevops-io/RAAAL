@@ -167,3 +167,41 @@ class TestWhatTheHarvestFound:
         assert survival["tally"]["DROPPED"] == 0, (
             f"{survival['dropped_by_concept']} were silently dropped from "
             "plans that executed")
+
+
+class TestTheRateCannotBecomeAProductClaim:
+    """Rule 3 in `docs/Evidence-Rules.md`. The caution lives in the artifact
+    because the artifact is what gets quoted, and this is the same discipline
+    applied to the prose that surrounds it."""
+
+    DOCS = Path(__file__).resolve().parent.parent / "docs"
+
+    def test_any_document_quoting_the_rate_also_carries_the_caution(self):
+        """A percentage in a document with no denominator beside it is a claim,
+        whatever the surrounding sentence intended. 18/18 reads as a triumph
+        and means that nothing ran."""
+        import re
+
+        pattern = re.compile(r"survival[^.\n]{0,40}?(\d{1,3})\s*/\s*(\d{1,3})"
+                             r"|survival[^.\n]{0,40}?(\d{2,3}(?:\.\d+)?)\s*%",
+                             re.I)
+        for path in sorted(self.DOCS.glob("*.md")):
+            text = path.read_text()
+            if not pattern.search(text):
+                continue
+            lowered = text.lower()
+            assert ("should not be quoted" in lowered
+                    or "must not be quoted" in lowered
+                    or "not a product claim" in lowered), (
+                f"{path.name} quotes a material-semantic survival figure with "
+                "no caution beside it. The number is high because no attested "
+                "sentence reached a plan; unqualified it says the opposite of "
+                "what it means")
+
+    def test_the_artifact_states_its_own_denominator(self, survival):
+        """`adjudicated` is what the rate is over, and it is a fraction of the
+        semantics asserted. A rate published without it cannot be read."""
+        assert survival["adjudicated"] < survival["material_semantics"]
+        assert survival["adjudicated"] == (
+            survival["tally"]["HONOURED"] + survival["tally"]["NAMED"]
+            + survival["tally"]["DROPPED"])
