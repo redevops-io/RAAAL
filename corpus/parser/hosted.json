@@ -7,7 +7,7 @@
     "schema_version": "quantify-discovery-schema@6",
     "max_tokens": 8000
   },
-  "count": 180,
+  "count": 209,
   "note": "Replayed by the corpus. A recording is not an answer — fusion decides whether the model's proposal proceeds, exactly as it would for a live reply.",
   "readings": [
     {
@@ -439,6 +439,564 @@
       ]
     },
     {
+      "text": "At a minimum, I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "other",
+          "confidence": "0.4",
+          "source_span": "I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs",
+          "note": "Describes desired reserve levels rather than a clear evaluate/compare/plan/withdraw/convert/debt objective; closest is planning how much to hold back before investing."
+        }
+      ],
+      "relations": [
+        {
+          "kind": "reserve_policy",
+          "members": [
+            {
+              "role": "reserve",
+              "subject": "emergency fund",
+              "qualifiers": {
+                "duration": "12 month",
+                "precedence": "before_investing"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "At a minimum, I'd like to maintain a 12 month emergency fund"
+        },
+        {
+          "kind": "reserve_policy",
+          "members": [
+            {
+              "role": "reserve",
+              "subject": "unexpected home repairs",
+              "qualifiers": {
+                "duration": "~5%",
+                "precedence": "before_investing"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "plus ~5% for unexpected home repairs"
+        }
+      ],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "At the moment I invest $50 every week.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "I invest $50 every week",
+          "note": "describes an ongoing contribution pattern"
+        },
+        {
+          "dimension": "cadence",
+          "value": "weekly",
+          "confidence": "0.95",
+          "source_span": "every week",
+          "note": "explicit weekly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$50",
+          "confidence": "0.95",
+          "source_span": "$50",
+          "note": "explicit per-contribution amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "day_rule",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "Beyond that, I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually",
+          "note": "describes two recurring contribution commitments"
+        },
+        {
+          "dimension": "account_type",
+          "value": "ROTH",
+          "confidence": "0.9",
+          "source_span": "Roth IRAs",
+          "note": "explicit account named"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "each year",
+          "note": "applies to Roth IRA funding"
+        },
+        {
+          "dimension": "account_type",
+          "value": "OTHER",
+          "confidence": "0.8",
+          "source_span": "403(b)",
+          "note": "403(b) not among listed account types; reported as written"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "annually",
+          "note": "applies to 403(b) contribution"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "amount",
+        "assets",
+        "day_rule",
+        "evaluation_period",
+        "execution_timing"
+      ]
+    },
+    {
+      "text": "Currently I invest 31 EUR/month but plan to go to around 100 to 150 EUR/month once I start by PhD position.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.9",
+          "source_span": "invest 31 EUR/month but plan to go to around 100 to 150 EUR/month",
+          "note": "Describes a change in contribution amount tied to a future life event."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "EUR/month",
+          "note": "Both current and planned amounts are stated per month."
+        },
+        {
+          "dimension": "amount",
+          "value": "31 EUR",
+          "confidence": "0.9",
+          "source_span": "31 EUR/month",
+          "note": "Current contribution amount."
+        },
+        {
+          "dimension": "amount",
+          "value": "100 to 150 EUR",
+          "confidence": "0.8",
+          "source_span": "around 100 to 150 EUR/month",
+          "note": "Planned future contribution amount, given as a range and approximate ('around')."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "I will add money into the portfolio",
+          "note": "describes an ongoing contribution and rebalancing plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "quarterly",
+          "confidence": "0.9",
+          "source_span": "Every three months",
+          "note": "explicit calendar interval"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.8",
+          "source_span": "restore its 70/30 allocation",
+          "note": "explicit target weights rather than a computed method"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "70/30",
+          "confidence": "0.85",
+          "source_span": "70/30 allocation",
+          "note": "holdings the weights apply to are not named"
+        },
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "rebalance every three months to restore 70/30 allocation",
+          "confidence": "0.8",
+          "source_span": "rebalance the portfolio to restore its 70/30 allocation",
+          "note": "rebalancing tied to same quarterly cadence as contributions"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "selection_rule",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "However, consider that I start with a 60-40 equity to fixed asset allocation.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "equity, fixed asset",
+          "confidence": "0.6",
+          "source_span": "60-40 equity to fixed asset allocation",
+          "note": "described as asset classes, not specific instruments"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.8",
+          "source_span": "60-40 equity to fixed asset allocation",
+          "note": "explicit split given, not a computed method"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.9",
+          "source_span": "60-40 equity to fixed asset allocation",
+          "note": "order follows equity then fixed asset as named"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.6",
+          "source_span": "converted monthly payments to savings",
+          "note": "the amount formerly paid toward the mortgage is now redirected on the same monthly schedule"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I am also contributing $5500 to my Roth IRA each year.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.9",
+          "source_span": "contributing $5500 to my Roth IRA each year",
+          "note": "describes an ongoing contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "each year",
+          "note": "contribution recurs yearly"
+        },
+        {
+          "dimension": "amount",
+          "value": "5500",
+          "confidence": "0.95",
+          "source_span": "$5500",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "account_type",
+          "value": "ROTH",
+          "confidence": "0.95",
+          "source_span": "Roth IRA",
+          "note": "explicit account named"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "day_rule",
+        "dividend_policy"
+      ]
+    },
+    {
+      "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "mutual funds",
+          "confidence": "0.8",
+          "source_span": "mutual funds",
+          "note": "Instrument type as written, not resolved to a specific fund"
+        },
+        {
+          "dimension": "account_type",
+          "value": "TAXABLE",
+          "confidence": "0.6",
+          "source_span": "brokerage account",
+          "note": "Brokerage account is taken as taxable; no explicit account designation like IRA/Roth given"
+        },
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.3",
+          "source_span": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account",
+          "note": "Sentence describes an ongoing investment approach rather than a stated question, so this is inferred loosely"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I can probably invest 500€-600€ monthly for something.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "I can probably invest 500€-600€ monthly for something",
+          "note": "expresses intent to set up regular contributions, though purpose is vague ('for something')"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "monthly",
+          "note": "explicit calendar cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "500€-600€",
+          "confidence": "0.9",
+          "source_span": "500€-600€",
+          "note": "a range rather than a single figure"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "I contribute about $750/month to my 401k",
+          "note": "Describes a recurring contribution plan to a retirement account."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "$750/month",
+          "note": "Explicit monthly cadence stated."
+        },
+        {
+          "dimension": "amount",
+          "value": "$750",
+          "confidence": "0.85",
+          "source_span": "about $750/month",
+          "note": "Approximate monthly contribution amount."
+        },
+        {
+          "dimension": "account_type",
+          "value": "TRADITIONAL_401K",
+          "confidence": "0.5",
+          "source_span": "401k",
+          "note": "Plain '401k' without 'Roth' qualifier is read as traditional by default, though not explicitly stated."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "I contribute monthly and rebalance at year end",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@6",
@@ -482,6 +1040,35 @@
       ]
     },
     {
+      "text": "I currently max out my HSA contributions.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "account_type",
+          "value": "HSA",
+          "confidence": "0.95",
+          "source_span": "HSA contributions",
+          "note": "Explicit account named."
+        },
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "max out my HSA contributions",
+          "note": "Describes an ongoing contribution behavior, best matched to plan_contributions."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "amount",
+        "cadence",
+        "day_rule"
+      ]
+    },
+    {
       "text": "I have a Roth",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@6",
@@ -512,6 +1099,247 @@
         "objective",
         "observed_assets",
         "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "compare_strategies",
+          "confidence": "0.55",
+          "source_span": "differently frequencies (daily, weekly and fortnightly)",
+          "note": "testing multiple rebalancing frequencies implies comparing outcomes across them"
+        },
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "daily, weekly and fortnightly",
+          "confidence": "0.9",
+          "source_span": "rebalancing of weights with differently frequencies (daily, weekly and fortnightly)",
+          "note": "rebalancing frequency stated as three separate options, not a single cadence"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "other",
+          "confidence": "0.4",
+          "source_span": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
+          "note": "Describes a planned sale of vested equity; does not match evaluate/withdraw/convert/debt categories cleanly."
+        },
+        {
+          "dimension": "sell_action",
+          "value": "sell all of my equity stake as I vest",
+          "confidence": "0.9",
+          "source_span": "sell all of my equity stake as I vest",
+          "note": "Explicit sell action tied to vesting."
+        },
+        {
+          "dimension": "cadence",
+          "value": "quarterly",
+          "confidence": "0.8",
+          "source_span": "quarter by quarter",
+          "note": "Sale occurs on a quarterly schedule."
+        },
+        {
+          "dimension": "assets",
+          "value": "equity stake",
+          "confidence": "0.7",
+          "source_span": "equity stake",
+          "note": "Asset described only as 'equity stake', not a specific ticker or fund."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "I put 10% of my after-tax salary in a traditional IRA every year",
+          "note": "Describes a recurring contribution plan."
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "every year",
+          "note": "Explicit yearly contribution."
+        },
+        {
+          "dimension": "amount",
+          "value": "10% of after-tax salary",
+          "confidence": "0.9",
+          "source_span": "10% of my after-tax salary",
+          "note": "Percentage-based contribution amount."
+        },
+        {
+          "dimension": "account_type",
+          "value": "TRADITIONAL_IRA",
+          "confidence": "0.95",
+          "source_span": "traditional IRA",
+          "note": "Explicit account named."
+        }
+      ],
+      "relations": [],
+      "unread": []
+    },
+    {
+      "text": "I put 100% of my 401k into an S&P index fund.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "S&P index fund",
+          "confidence": "0.9",
+          "source_span": "S&P index fund",
+          "note": "asset as written, not resolved to a ticker"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.7",
+          "source_span": "100% of my 401k",
+          "note": "single holding given an explicit percentage"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "100%",
+          "confidence": "0.8",
+          "source_span": "100% of my 401k",
+          "note": "entire account allocated to one fund"
+        },
+        {
+          "dimension": "objective",
+          "value": "other",
+          "confidence": "0.4",
+          "source_span": "I put 100% of my 401k into an S&P index fund.",
+          "note": "sentence states an allocation rather than asking to evaluate, compare, contribute, withdraw, convert, or repay debt"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I understand that rebalancing once a year is better than doing it once every two years.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "compare_strategies",
+          "confidence": "0.85",
+          "source_span": "rebalancing once a year is better than doing it once every two years",
+          "note": "Person is comparing two rebalancing frequencies to determine which is better."
+        },
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "annual",
+          "confidence": "0.8",
+          "source_span": "rebalancing once a year",
+          "note": "One of the two rebalancing frequencies being compared."
+        },
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "once every two years",
+          "confidence": "0.8",
+          "source_span": "once every two years",
+          "note": "The other rebalancing frequency being compared; not a listed value so reported as written."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
         "selection_rule",
         "sell_action",
         "stated_weights",
@@ -610,6 +1438,225 @@
       ]
     },
     {
+      "text": "I'm about to start putting roughly 8-10% of paychecks into my 401k but havent as of yet.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "putting roughly 8-10% of paychecks into my 401k",
+          "note": "describes an intended future contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "payroll",
+          "confidence": "0.8",
+          "source_span": "paychecks",
+          "note": "contribution tied to each paycheck"
+        },
+        {
+          "dimension": "amount",
+          "value": "roughly 8-10%",
+          "confidence": "0.8",
+          "source_span": "roughly 8-10% of paychecks",
+          "note": "percentage of paycheck, not a fixed dollar amount"
+        },
+        {
+          "dimension": "account_type",
+          "value": "401k",
+          "confidence": "0.4",
+          "source_span": "401k",
+          "note": "names a 401k account but does not specify traditional or Roth"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.55",
+          "source_span": "which over the last 12 months has had a 12.98% rate of return",
+          "note": "sentence reports and evaluates performance of an ongoing contribution habit"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "contribution frequency"
+        },
+        {
+          "dimension": "amount",
+          "value": "550",
+          "confidence": "0.95",
+          "source_span": "$550",
+          "note": "per-contribution amount"
+        },
+        {
+          "dimension": "account_type",
+          "value": "TRADITIONAL_401K",
+          "confidence": "0.5",
+          "source_span": "401k",
+          "note": "no Roth/traditional distinction stated; defaulting to standard 401k reading"
+        },
+        {
+          "dimension": "evaluation_period",
+          "value": "trailing:12m",
+          "confidence": "0.9",
+          "source_span": "over the last 12 months",
+          "note": "window over which return is measured"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "day_rule",
+        "dividend_policy"
+      ]
+    },
+    {
+      "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "putting in 22% to max out my $18,000 limit for the year",
+          "note": "describes an ongoing contribution plan aimed at hitting an annual limit"
+        },
+        {
+          "dimension": "amount",
+          "value": "22%",
+          "confidence": "0.9",
+          "source_span": "putting in 22%",
+          "note": "contribution rate as stated"
+        },
+        {
+          "dimension": "amount",
+          "value": "$18,000",
+          "confidence": "0.7",
+          "source_span": "$18,000 limit for the year",
+          "note": "stated annual contribution cap, distinct from the per-paycheck rate"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "cadence",
+        "day_rule",
+        "evaluation_period",
+        "execution_timing",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "If I don't touch it, he will continue to put in $50 a month.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.5",
+          "source_span": "he will continue to put in $50 a month",
+          "note": "describes an ongoing contribution being continued"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "a month",
+          "note": "explicit monthly contribution rate"
+        },
+        {
+          "dimension": "amount",
+          "value": "$50",
+          "confidence": "0.9",
+          "source_span": "$50 a month",
+          "note": "stated per-contribution amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "assets",
+        "day_rule"
+      ]
+    },
+    {
+      "text": "In other words, I would like to target, say, an 10% annualised volatility.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "allocation_method",
+          "value": "volatility_target",
+          "confidence": "0.7",
+          "source_span": "target, say, an 10% annualised volatility",
+          "note": "sentence expresses a desired annualised volatility level as the sizing rule, matching the volatility_target method"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "Invest $500 monthly into VTI.",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@6",
@@ -652,6 +1699,321 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
+      ]
+    },
+    {
+      "text": "Mutual Funds - No tax rebate/exemption, I invest 5% of salary per month.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "I invest 5% of salary per month",
+          "note": "Describes an ongoing contribution plan rather than an evaluation or withdrawal."
+        },
+        {
+          "dimension": "assets",
+          "value": "Mutual Funds",
+          "confidence": "0.9",
+          "source_span": "Mutual Funds",
+          "note": "Stated as written, not resolved to any specific fund."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.85",
+          "source_span": "per month",
+          "note": "Explicit monthly cadence."
+        },
+        {
+          "dimension": "amount",
+          "value": "5% of salary",
+          "confidence": "0.85",
+          "source_span": "5% of salary",
+          "note": "Amount expressed as a percentage of salary, reported as written."
+        },
+        {
+          "dimension": "account_type",
+          "value": "TAXABLE",
+          "confidence": "0.5",
+          "source_span": "No tax rebate/exemption",
+          "note": "Absence of tax rebate/exemption implies a taxable account, though not stated directly."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "Now, what I'm thinking of doing is putting a portion of my cash savings into I-Bonds every year.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "putting a portion of my cash savings into I-Bonds every year",
+          "note": "describes an intended recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "every year",
+          "note": "explicit yearly recurrence"
+        },
+        {
+          "dimension": "assets",
+          "value": "I-Bonds",
+          "confidence": "0.9",
+          "source_span": "I-Bonds",
+          "note": "asset as written, not resolved to a specific instrument"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "my initial asset allocation was not correct",
+          "note": "reconsidering prior allocation choice"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "80-20",
+          "confidence": "0.8",
+          "source_span": "80-20 split",
+          "note": "explicit split, holdings not named"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "assets"
+      ]
+    },
+    {
+      "text": "Savings Bank Account - No tax rebate/exemption, I put 15% of salary per month.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "I put 15% of salary per month",
+          "note": "Describes a recurring contribution plan, not an evaluation or comparison."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "per month",
+          "note": "Explicit monthly cadence."
+        },
+        {
+          "dimension": "amount",
+          "value": "15% of salary",
+          "confidence": "0.9",
+          "source_span": "15% of salary per month",
+          "note": "Amount expressed as a percentage of salary, not a fixed number."
+        },
+        {
+          "dimension": "account_type",
+          "value": "TAXABLE",
+          "confidence": "0.5",
+          "source_span": "Savings Bank Account - No tax rebate/exemption",
+          "note": "No formal account_type match; inferred as taxable given explicit statement of no tax benefit, but this is a savings bank account, not a brokerage/retirement account."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "The portfolio I have in mind has a 73/23/4% allocation",
+          "note": "describes a prospective portfolio, likely for evaluation, though not explicitly stated"
+        },
+        {
+          "dimension": "assets",
+          "value": "stocks/bonds/other",
+          "confidence": "0.7",
+          "source_span": "stocks/bonds/other",
+          "note": "asset classes as written, not specific instruments or tickers"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "73/23/4",
+          "confidence": "0.9",
+          "source_span": "73/23/4% allocation",
+          "note": "weights given in the order stocks/bonds/other"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "we are automatically contributing $50 to each account each month",
+          "note": "Describes an ongoing contribution plan across accounts."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "each month",
+          "note": "Contribution recurs on a monthly basis."
+        },
+        {
+          "dimension": "amount",
+          "value": "$50",
+          "confidence": "0.9",
+          "source_span": "$50",
+          "note": "Per-contribution amount stated explicitly."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "To do this, I employed this methodology: Set a portfolio holding period of 21 days.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "holding_period",
+          "value": "21 days",
+          "confidence": "0.9",
+          "source_span": "Set a portfolio holding period of 21 days",
+          "note": "Explicit stated holding duration for the portfolio position."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {

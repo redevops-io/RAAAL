@@ -1,18 +1,22 @@
 {
   "schema": "quantify-stackexchange-candidates@1",
-  "count": 97,
+  "count": 220,
   "by_group": {
-    "rebalancing": 7,
-    "account": 32,
-    "allocation": 12,
-    "cadence": 37,
-    "funding": 22,
-    "reserve": 5,
-    "window": 8,
-    "income": 8,
-    "glidepath": 3,
-    "tax": 7,
-    "withdrawal": 4
+    "rebalancing": 10,
+    "account": 54,
+    "allocation": 18,
+    "cadence": 104,
+    "funding": 46,
+    "reserve": 9,
+    "window": 30,
+    "income": 14,
+    "glidepath": 4,
+    "tax": 12,
+    "withdrawal": 12,
+    "leverage": 5,
+    "factor": 1,
+    "timing": 1,
+    "trigger": 1
   },
   "licence": "CC-BY-SA 4.0",
   "attribution": "Sentences are quoted verbatim from Stack Exchange posts under CC-BY-SA 4.0. Each carries the URL of the question it came from, which is the attribution the licence requires.",
@@ -1007,6 +1011,52 @@
       "reviewed": false
     },
     {
+      "text": "At a minimum, I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs.",
+      "stresses": [
+        "cadence",
+        "window",
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/126216/home-mortgage-w-very-low-interest-rates-more-or-less-down",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "T Rowe Price: ~$28,000 (my dad started this with $5,000 when I was 1 and put $50 in it every month since then.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46758/just-getting-started-and-not-sure-where-to-go-from-here",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "If I don't touch it, he will continue to put in $50 a month.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46758/just-getting-started-and-not-sure-where-to-go-from-here",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I started using Mint about a week ago to help keep track of these things.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46758/just-getting-started-and-not-sure-where-to-go-from-here",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
       "text": "Our current repayments have us on target to have it paid off in around 15 more years.",
       "stresses": [
         "cadence"
@@ -1129,6 +1179,1366 @@
       ],
       "provenance": "stackexchange",
       "source": "https://money.stackexchange.com/questions/95751/pay-off-car-debt-or-start-value-investing",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I can probably invest 500€-600€ monthly for something.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/49912/how-should-i-invest-my-money-as-a-young-graduate-in-europe",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "For example I want to earn from my investments at least 70k€ after 5-10 years.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/49912/how-should-i-invest-my-money-as-a-young-graduate-in-europe",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am currently living in a house with my family, which I see 5 - 10 more years left, until we move onto to a new home.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/84919/pay-off-entire-mortgage-or-put-into-investments",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have the money to pay this off and could invest what I am currently paying per month, $2600.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/169122/pay-off-mortgage-and-invest-or-stay-the-course",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "We draw £680/month salary + dividends up to $45k/year/person, below the max dividend rate.",
+      "stresses": [
+        "cadence",
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/93344/how-to-use-%c2%a3450-000",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
+      "stresses": [
+        "cadence",
+        "funding",
+        "window",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/79916/should-i-temporarily-stop-or-decrease-401k-investment-to-pay-off-a-loan",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'd also like to keep the ISA savings without drawing upon it to sustain the leveraged growth.",
+      "stresses": [
+        "account",
+        "leverage"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/43988/best-way-to-make-most-of-savings-with-isa-and-offset-mortgage",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "After 10-15 years' time we would sell the house and collect our equivalent share of the profits...",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/40001/what-things-should-i-consider-when-getting-a-joint-mortgage",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "(I am, so far, a total non-investor in any active way other than some 401ks that I take no active involvement with).",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/36573/concerns-about-paying-mortgage-early-after-cash-liquid-again",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "But if I invested in stocks, perhaps 1 year could show 4% or better returns--but it is money at risk.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/36573/concerns-about-paying-mortgage-early-after-cash-liquid-again",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/28502/3-year-horizon-before-trading-up-to-next-home-put-windfall-in-savings-or-pay-o",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My wife's and my plan is to move to a different city 3 years from now.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/28502/3-year-horizon-before-trading-up-to-next-home-put-windfall-in-savings-or-pay-o",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My fiancee and I have roughly $100k in savings, which we want to use to buy a house in a few years.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/55955/what-to-consider-when-loaning-parents-50k-to-pay-off-investment-property",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm looking to buy a home in the next 3 or 4 months.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/13358/calculating-future-and-present-value-into-mortgage-comparisons",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I see this as merely reallocating retirement funds from one investment into another.",
+      "stresses": [
+        "rebalancing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/75155/is-it-sensible-to-redirect-retirement-contributions-from-401k-towards-becoming",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Should we invest in annuity or pay off the mortgage?",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/50205/paying-off-mortgage-or-invest-in-annuity",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I want to buy a house well condo in a year.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46529/how-to-bump-up-my-credit-for-buying-a-house-in-a-year-open-another-card-or-not",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "The reason my utilization is so high is because I put all my expenses on the card and pay them off each month.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46529/how-to-bump-up-my-credit-for-buying-a-house-in-a-year-open-another-card-or-not",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I could pay off my car loan early but I enjoy the extra leverage for investing.",
+      "stresses": [
+        "leverage"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46529/how-to-bump-up-my-credit-for-buying-a-house-in-a-year-open-another-card-or-not",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I do not have any 401k or IRA I don't like that you need to rely on government and keep the money there forever.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46415/building-financial-independence",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Soon, I am planning on spending 20k on a new car (paying cash), putting 10k in emergency fund and investing 20k.",
+      "stresses": [
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/46415/building-financial-independence",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Our house is currently our only major investment - it has a 30yr ARM at 4.25% for the first seven years.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/113222/usa-ny-state-homeowner-post-tca-should-i-pay-off-mortgage-or-attempt-to-find-i",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Our Situation: We are 40 (give or take) and we both max out our retirement contributions (with employer matching).",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/105641/too-much-cash-pay-off-mortgage-invest-in-market-or-all-of-the-above",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Our goal : we would like to buy a house in the 1.25M-1.5M range in the next five years but not for at least three years.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/105641/too-much-cash-pay-off-mortgage-invest-in-market-or-all-of-the-above",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I would like some advice on property allocation between siblings and parents.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/84513/family-inheritance-and-property",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have just bought a second home for investment with the rate 4.625% for 30 years.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/78774/should-i-refinance-my-primary-home-take-cash-out-to-pay-off-my-investment-prope",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My RRSP contributions were always filled, and the rest went to extra mortgage payments.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/43834/investments-beyond-rrsp-and-tfsa-in-non-registered-accounts",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Do I have to become an expert on rebalancing and tax accounting to consider anything more sophisticated than a GIC?",
+      "stresses": [
+        "rebalancing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/43834/investments-beyond-rrsp-and-tfsa-in-non-registered-accounts",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "TL;DR How much should I keep as an emergency fund and how should I prioritise/distribute anything surplus to this?",
+      "stresses": [
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/55364/how-should-i-distribute-my-savings",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "We were originally planning to save for the next 3 years so that we could put down 20% on a house.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/142502/at-what-point-is-it-better-to-buy-a-home-vs-continue-renting-what-additional-co",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Of course the longer we wait to buy a house, the more money we can save towards a downpayment (over $3000 per month).",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/142502/at-what-point-is-it-better-to-buy-a-home-vs-continue-renting-what-additional-co",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "She still however feels that I should have been contributing to the mortgage and the upkeep of the property.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/140342/am-i-being-unreasonable-to-force-sale-of-joint-property",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "What I mean is, say you plan to buy a house, rent it out for X years, then sell it.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/131896/should-mortgage-be-amortized-or-not-real-estate-investing",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My normal payment would put me back at 80% LTV in a few years.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/123702/when-is-a-lump-sum-principal-payment-to-remove-pmi-worth-it",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I currently have a 30 year doctor's loan on my house that I will be selling.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/76075/should-i-get-a-doctors-mortgage-or-a-15-or-30-year-conventional-mortgage",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "If I sell the house within 5 years, which option will save me the most money?",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/76075/should-i-get-a-doctors-mortgage-or-a-15-or-30-year-conventional-mortgage",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I say that I'd like to buy a house in about 5 years time- this is just a rough guess...",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/59003/saving-investing-a-lump-sum",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Right now, if I add an additional $400 per month to the payment, it will be paid in full by the date required.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/30776/15-yr-mortgage-amortized-as-30-yr-with-balloon-pay-off-early",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have been investing with Raiz (I think in other places it's called Acorns) for just over 2 years now.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/136064/focus-on-mortgage-or-keep-investing",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "At the moment I invest $50 every week.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/136064/focus-on-mortgage-or-keep-investing",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "So it looks to me like 488.23 would be my yearly return on putting $12000 in an offset.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/118580/are-offset-accounts-or-paying-of-mortage-going-to-give-me-a-better-roi",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I make enough each month to pay all the bills and still put away about 25% of my income which, we do.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/95517/should-i-pay-off-my-home-mortgage-using-rental-home-equity",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Additionally, we are planning to invest the remaining portion of 125K into retirement accounts and an emergency fund.",
+      "stresses": [
+        "reserve"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/44329/investing-inheritance-money-to-build-a-spec-home",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Three months ago, I moved and purchased a new primary residence.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/94106/should-i-sell-investment-property-to-pay-off-student-loan-debt-and-variable-rate",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am guessing I would get hit hard with capital gains tax as it is an investment property.",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/94106/should-i-sell-investment-property-to-pay-off-student-loan-debt-and-variable-rate",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My ultimate intention is to secure a regular 2-3k monthly income, so I can move to my family abroad and help out there.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/161876/with-500k-in-netherlands-best-path-towards-regular-income-settle-mortgage-and",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I invested in a quality bed and bedroom set which I financed over 12 months.",
+      "stresses": [
+        "cadence",
+        "window",
+        "factor"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/40155/23-and-on-my-own-what-should-i-be-doing",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have some investment in stocks and focus on monthly savings and don’t usually splurge money.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/126850/how-do-i-get-confidence-that-i-am-planning-for-retirement-correctly",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "We just moved into this place last August, on a 2-year lease.",
+      "stresses": [
+        "cadence",
+        "window",
+        "timing"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/43809/should-i-buy-my-house-from-my-landlord",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "On the new investing options side: I have plenty of room to invest more per month.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/100316/no-debt-any-advice-where-to-invest-saved-money-and-what-to-invest-in-after-maxi",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Within two years after purchasing the house we would like to invest in peer-to-peer lending.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/12888/financial-advice-for-newlyweds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "or should we contribute equally to each?",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/12888/financial-advice-for-newlyweds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "What else should I be aware of (ease of withdrawal, risks)?",
+      "stresses": [
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/130458/what-is-a-good-starting-point-for-a-new-investor",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Can I invest in a way that de-risks that?",
+      "stresses": [
+        "glidepath"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/130458/what-is-a-good-starting-point-for-a-new-investor",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "How much should I put into savings a month to go towards these loans?",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/53847/what-is-the-fastest-way-to-retire-using-passive-income-on-real-estate",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/87512/savings-investment-diversification",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm about to start putting roughly 8-10% of paychecks into my 401k but havent as of yet.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/55829/should-i-buy-2200-of-a-hot-stock-or-invest-elsewhere",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Monthly, it seems I spend a certain amount $1700-2k and then make back $2200ish, so saving $200-500ish.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/55829/should-i-buy-2200-of-a-hot-stock-or-invest-elsewhere",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Also I have been reading about a 4th quarter share buyback and how many analysts expect it to climb even higher.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/55829/should-i-buy-2200-of-a-hot-stock-or-invest-elsewhere",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I started investing two years ago.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/99905/considering-leverage",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have about £30000 that I could start investing now in a tax efficient way (UK ISA, which means essentially zero tax).",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/87136/how-to-spread-%c2%a330000-investment-over-a-long-enough-period-of-time",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "At the moment, I would say I have a 7-10 years investment goal.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/87136/how-to-spread-%c2%a330000-investment-over-a-long-enough-period-of-time",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Can I simply put some average number over the years?",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/16148/financial-information-for-applying-an-apartment",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have a mix of accounts for my investments including brokerage, 401k and Roth IRA.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/80737/consider-pre-tax-status-of-retirement-accounts-in-determining-portfolio-allocati",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "In trying to achieve my target portfolio allocation, should I consider the pre-tax nature of my 401k?",
+      "stresses": [
+        "allocation",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/80737/consider-pre-tax-status-of-retirement-accounts-in-determining-portfolio-allocati",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Assume a 25% tax rate in retirement and discount all my 401k investments by 25% in calculating my current allocation.",
+      "stresses": [
+        "allocation",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/80737/consider-pre-tax-status-of-retirement-accounts-in-determining-portfolio-allocati",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "We put down a 10% deposit (€11,400) and so took out a mortgage of €102,600.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/104422/what-can-i-do-with-a-property-that-wont-sell-following-divorce",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "My wife has been contributing to the mortgage since we separated, even though she doesn't live there.",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/104422/what-can-i-do-with-a-property-that-wont-sell-following-divorce",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "THE FIRST TWO YEARS In the first two years, I was able to withdraw a salary of $20k each year.",
+      "stresses": [
+        "cadence",
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/95821/how-to-place-value-on-small-business-that-has-0-earnings",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I just moved to the US and was working in India till some months back.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/29623/us-tax-returns-for-a-resident-no-us-income-and-indian-shares",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have an apartment in India this year, will this need to be declared or only when I sell the same later on ?",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/29623/us-tax-returns-for-a-resident-no-us-income-and-indian-shares",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I will be setting up a pension plan within a couple of months and my employer will also contribute to that.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/7120/starting-an-investment-portfolio",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I haven't placed any buy order in the month of June as I don't have money to buy anything.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/97680/where-i-can-complain-about-my-stock-broker-for-invalid-transaction-done-by-syste",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "So I am not sure if this will put me as doing a \"wash sale\".",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/161952/in-the-us-which-shares-should-i-sell-if-i-want-to-keep-the-most-compounding-eff",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I also own some stocks but I keep them in stocks and shares ISA, so I don't have to pay tax on them.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/134545/uk-taxes-and-cryptocurrencies",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "As far as I understand, I'll have to pay Capital Gains Tax if my total gains on selling cryptocurrencies exceed £12,300.",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/134545/uk-taxes-and-cryptocurrencies",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I need to move away from the cash account because I want to sell covered call options (which I know is safe).",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/127628/what-are-the-situations-that-could-cause-unlimited-liability-in-my-stock-brokera",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Background: I want to sell one mutual fund that I own in Vanguard to claim a tax loss on it.",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/54289/claiming-tax-loss-after-selling-us-mutual-fund-using-specific-lots",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Currently I make around 8k in cash and around 10k in stock monthly, while my spendings are around 4-5k.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/127051/how-when-to-shift-from-stock-to-bonds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "And even if it was, I cannot move that funds without tax implications before I am 60/65.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/127051/how-when-to-shift-from-stock-to-bonds",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "But, you see, the money isn't sitting as cash in my brokerage account, as in the \"put\" case.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/36369/how-do-i-calculate-the-return-on-my-stock-call-option-similar-to-my-put-exa",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "If it's value rises above the strike price, I'll have to sell it.",
+      "stresses": [
+        "trigger"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/36369/how-do-i-calculate-the-return-on-my-stock-call-option-similar-to-my-put-exa",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Question 2 : When I sell the stocks (say after 4 years), should I pay tax any more tax ?",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/97121/stock-vesting-and-taxation-situations",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I usually do selling covered put and covered call.",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/155743/naked-call-become-short-seller",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Now why would I want to buy apple's share paying $11 and wait for another 4 years to recover the invested amount.",
+      "stresses": [
+        "cadence",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/137841/what-is-the-benefit-of-buying-a-share",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "The second problem so far is that I haven't factored for inflation: How will contribution limits rise?",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/7616/saving-for-retirement-how-much-is-enough",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "For this I assumed an investment yield of 3-5%.",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/7616/saving-for-retirement-how-much-is-enough",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Questions So for example, if I start investing at 27, get a 10% yield, and retire at 65 I will have $2,116,952.",
+      "stresses": [
+        "income"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/7616/saving-for-retirement-how-much-is-enough",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "(Of course it would be $140k if my wife did the same.) Should I increase the annual contribution somehow?",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/7616/saving-for-retirement-how-much-is-enough",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Alternatively, could I ask them to reduce my salary and increase their contributions to my 401k?",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/45764/could-my-employer-give-me-a-raise-in-terms-of-employer-401k-contributions-instea",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
+      "stresses": [
+        "allocation",
+        "rebalancing",
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/142270/do-bond-funds-have-an-inherent-advantage-over-individual-bonds-within-a-portfoli",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Currently I invest 31 EUR/month but plan to go to around 100 to 150 EUR/month once I start by PhD position.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/75058/how-aggressive-should-my-personal-portfolio-be",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "For example, what would my taxable income become if I took $450k and invested it in my own business?",
+      "stresses": [
+        "tax"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/56228/strategy-to-offset-a-big-one-time-windfall-or-gain-income-for-tax-purposes",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "We live in a high tax state that offers a tax deduction on contributions of up to $10K per year to the state's 529 plan.",
+      "stresses": [
+        "cadence",
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/89241/529-plan-strategy-for-contributions-and-withdrawals",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "What is my best allowed strategy for contributions and withdrawals for the time that she is in college?",
+      "stresses": [
+        "funding",
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/89241/529-plan-strategy-for-contributions-and-withdrawals",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Would I be better off minimizing/deferring the withdrawals for as long as I can afford to?",
+      "stresses": [
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/89241/529-plan-strategy-for-contributions-and-withdrawals",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Can I put money away in a investment plan that allows me to deduct the deposited amount from my adjusted gross income?",
+      "stresses": [
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/131314/what-is-a-good-vehicle-to-do-ad-hoc-savings-for-kids-college",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Can I deposit and withdraw money in 529 in a short timeframe?",
+      "stresses": [
+        "funding",
+        "withdrawal",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/141679/how-soon-can-i-use-529-for-paying-college",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "We've been diligently contributing to our retirement accounts (401(k)s and Roth IRAs) for about a decade.",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/106895/should-i-stop-contributing-to-retirement-accounts-and-instead-focus-on-expandin",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "(I would like to extend it to 20 years before withdrawal).",
+      "stresses": [
+        "cadence",
+        "window",
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/109806/how-to-diversify-long-term-retirement-investment-schemes-in-india-so-have-sustai",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Mutual Funds - No tax rebate/exemption, I invest 5% of salary per month.",
+      "stresses": [
+        "cadence",
+        "funding"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/109806/how-to-diversify-long-term-retirement-investment-schemes-in-india-so-have-sustai",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Savings Bank Account - No tax rebate/exemption, I put 15% of salary per month.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/109806/how-to-diversify-long-term-retirement-investment-schemes-in-india-so-have-sustai",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I figure if I withdraw all of it, that the government will take 50% worst case scenario.",
+      "stresses": [
+        "withdrawal"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/15183/should-i-use-retirement-savings-to-reduce-mortgage-given-the-following",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "In my current employer's 401(k) plan, I began with traditional 401k deferred taxation contributions.",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/169554/rule-of-55-with-a-401k-plan-with-mixed-roth-and-401k-contributions",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I am now making 100% Roth 401(k) contributions to the plan.",
+      "stresses": [
+        "funding",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/169554/rule-of-55-with-a-401k-plan-with-mixed-roth-and-401k-contributions",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I have one 401(k) account that holds both.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/169554/rule-of-55-with-a-401k-plan-with-mixed-roth-and-401k-contributions",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "From advice and anecdotes I gather it seems like converting to an IRA is the first step in reducing confusion.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/23940/401k-early-withdrawal-impact-on-unemployment-benefits",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I'm about 10 years from retirement and making maximum contributions to the tax-advantaged accounts.",
+      "stresses": [
+        "cadence",
+        "funding",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/142729/strategies-for-asset-allocation-considering-different-kinds-of-tax-advantaged-ac",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Throughout the years I put a lot of my pre-tax income into my 401(k) (before I got married).",
+      "stresses": [
+        "cadence",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/77018/small-withdrawals-from-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "The other company I worked 25 years for didn't match any contributions and gave me a $65K pension.",
+      "stresses": [
+        "cadence",
+        "funding",
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/77018/small-withdrawals-from-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I can put $5500 in my IRA before taxes, SS and medicare tax.",
+      "stresses": [
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/77018/small-withdrawals-from-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I guess what I am trying to ask is, how can I make a withdrawal from an IRA without having to pay tax on tax.",
+      "stresses": [
+        "withdrawal",
+        "account"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/77018/small-withdrawals-from-ira",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "To do this, I employed this methodology: Set a portfolio holding period of 21 days.",
+      "stresses": [
+        "window"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://quant.stackexchange.com/questions/77807/intuition-behind-portfolio-weights-with-lower-rmse-but-higher-variance",
+      "site": "quant",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "And if we're allowed to use leverage we should be ale to achieve target return at lower risk?",
+      "stresses": [
+        "leverage"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://quant.stackexchange.com/questions/25757/adding-negative-ev-position-to-portfolio-for-diversification",
+      "site": "quant",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "In other words, I would like to target, say, an 10% annualised volatility.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://quant.stackexchange.com/questions/71489/when-how-do-i-vol-scale-portfolio-weights-when-optimizing-the-portfolio",
+      "site": "quant",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "How can I meet a volatility target, either before , as part of or after portfolio optimisation?",
+      "stresses": [
+        "leverage"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://quant.stackexchange.com/questions/71489/when-how-do-i-vol-scale-portfolio-weights-when-optimizing-the-portfolio",
+      "site": "quant",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Let's assume I convert 10,000 CAD to 5,000 USD and hold it for one year.",
+      "stresses": [
+        "cadence"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/157737/calculating-foreign-exchange-capital-loss-on-margin-loan-repayment",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "Afterward, I use the 5,000 USD I had previously converted to partially pay off this stock investment margin loan.",
+      "stresses": [
+        "leverage"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/157737/calculating-foreign-exchange-capital-loss-on-margin-loan-repayment",
+      "site": "money",
+      "licence": "CC-BY-SA 4.0",
+      "reviewed": false
+    },
+    {
+      "text": "I had a $10 put option for VIVO with 02/21/20 expiration.",
+      "stresses": [
+        "allocation"
+      ],
+      "provenance": "stackexchange",
+      "source": "https://money.stackexchange.com/questions/120397/significant-75-end-of-day-jump-in-option-price",
       "site": "money",
       "licence": "CC-BY-SA 4.0",
       "reviewed": false

@@ -221,6 +221,41 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
     # `m` would close this sentence and leave the class open for the next
     # notation somebody writes, which is the same mistake as closing rotation by
     # adding `rotate` to a lemma set.
+    # A recurring contribution of nothing.
+    #
+    # Found in the harvested corpus, and the only attested sentence of 29 that
+    # reached a plan at all: "putting a portion of my cash savings into I-Bonds
+    # every year" compiled to an executable plan holding I-Bonds on an annual
+    # cadence with `amount = 0`, no question asked, and `amount` not even listed
+    # among the applied defaults. The person named a quantity — "a portion" —
+    # and was shown a plan that contributes nothing.
+    #
+    # The incoherence is between the two halves and needs no reading of the
+    # sentence to see: the cadence says money moves every year and the amount
+    # says none does. `once` is the exception and a real one — a plan may model
+    # opening capital with no contributions after it.
+    #
+    # This is the general case of the `$1k` defect above. That one was a figure
+    # stated and unreadable; this one is a figure implied and never settled.
+    # Both produced a plan indistinguishable from the one asked for except that
+    # it invested nothing.
+    cadence = intent.fields.get("cadence")
+    amount = intent.fields.get("amount")
+    recurring = cadence is not None and str(cadence.value) not in ("once", "")
+    # Absent, or stated and readable as zero. A figure stated and *unreadable*
+    # is deliberately not this check's business: the numeric check below says
+    # so far more usefully, and firing both put two refusals for `amount` on
+    # the same plan — one dimension refused twice reads as two problems.
+    figure = _decimal(amount.value) if amount is not None else None
+    silent = amount is None or figure == Decimal(0)
+    if recurring and silent and "trigger_semantics" not in intent.fields:
+        refusals.append(Refusal(
+            kind="UNRESOLVED_INPUT", dimension="amount",
+            detail=f"the plan contributes on a {cadence.value} cadence and "
+                   "never says how much. A recurring contribution of zero is "
+                   "a plan that does nothing, and it would be shown as though "
+                   "it were the one you described"))
+
     for dimension in NUMERIC:
         stated = intent.fields.get(dimension)
         if stated is not None and _decimal(stated.value) is None:

@@ -224,11 +224,31 @@ class TestAStatedNumberIsNeverQuietlyDefaulted:
         assert [r.dimension for r in out.refusals] == ["amount"]
         assert "$1k" in out.refusals[0].detail
 
-    def test_an_absent_amount_still_compiles(self):
-        """The other half, and the reason this is a distinction rather than a
-        new refusal. Nobody stated a figure, so there is nothing to fail to
-        read, and a plan with no contributions is a plan."""
+    def test_a_recurring_plan_with_no_amount_is_asked_about(self):
+        """This assertion previously ran the other way, and it was wrong.
+
+        It read: nobody stated a figure, so there is nothing to fail to read,
+        and a plan with no contributions is a plan. The harvested corpus showed
+        what that permits. "putting a portion of my cash savings into I-Bonds
+        every year" was the *only* one of 29 attested strategy statements to
+        reach a plan, and the plan held I-Bonds on an annual cadence and
+        contributed zero — no question, and `amount` not even reported as an
+        applied default.
+
+        The incoherence needs no reading of the sentence: the cadence says
+        money moves every year and the amount says none does.
+        """
         out = compile_intent(intent(amount=None), benchmark_rule=RULE)
+        assert out.scenario is None
+        assert [r.dimension for r in out.refusals] == ["amount"]
+        assert out.refusals[0].kind == "UNRESOLVED_INPUT"
+
+    def test_a_one_off_plan_with_no_amount_still_compiles(self):
+        """The exception, and a real one: a plan may model opening capital with
+        no contributions after it. `once` is not a claim that money moves
+        repeatedly, so there is nothing for a zero amount to contradict."""
+        out = compile_intent(intent(amount=None, cadence="once"),
+                             benchmark_rule=RULE)
         assert out.scenario is not None
         assert out.scenario.flow_schedule.amount == 0.0
 

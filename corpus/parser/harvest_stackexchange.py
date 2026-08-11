@@ -84,6 +84,62 @@ SEARCHES = [
     ("quant", "covered call income strategy"),
     ("quant", "value averaging versus dollar cost averaging"),
     ("quant", "sequence of returns risk withdrawal"),
+
+    # Widened to reach the volume the evaluation corpus needs. The first two
+    # rounds produced 97 sentences, which is not enough for a recurrence
+    # ranking to mean anything — a defect seen twice in 97 and a defect seen
+    # twice in 400 are different claims. These searches add breadth rather than
+    # depth: new families and new vocabulary for families already present, so
+    # the pack does not simply get more of what it already had.
+    ("money", "how should I invest my savings monthly"),
+    ("money", "portfolio allocation stocks bonds international"),
+    ("money", "lump sum versus dollar cost averaging"),
+    ("money", "when should I sell my shares"),
+    ("money", "stop loss limit order investing"),
+    ("money", "buy and hold versus market timing"),
+    ("money", "increase contributions with salary raise"),
+    ("money", "three fund portfolio simple"),
+    ("money", "bond ladder treasury duration"),
+    ("money", "sell losers keep winners portfolio"),
+    ("money", "inheritance windfall invest strategy"),
+    ("money", "college savings withdraw tuition"),
+    ("money", "match employer contribution percent salary"),
+    ("money", "currency hedged international allocation"),
+    ("money", "rental property versus index fund"),
+    ("money", "gold commodities inflation hedge allocation"),
+    ("money", "cash sitting on sidelines waiting"),
+    ("money", "reduce risk before retirement"),
+    ("money", "withdraw from taxable or retirement account first"),
+    ("money", "social security claiming age delay"),
+    ("quant", "mean reversion pairs trading rules"),
+    ("quant", "equal weight versus cap weight index"),
+    ("quant", "minimum variance portfolio optimization"),
+    ("quant", "transaction costs turnover rebalancing"),
+    ("quant", "trend following moving average rules"),
+    ("quant", "stop loss drawdown control strategy"),
+    ("quant", "portfolio rebalancing bands tolerance"),
+    ("quant", "monte carlo retirement simulation withdrawal"),
+
+    # Aimed at the thin groups. The first widening tripled `cadence` and left
+    # `trigger`, `factor`, `timing` and `leverage` in single figures, which is
+    # itself worth knowing: the authored corpus tested triggers heavily and the
+    # attested language barely contains them. Searching *for* those families is
+    # how to tell "people do not say this" from "these searches do not surface
+    # it", and the two have opposite consequences for what to build.
+    ("quant", "buy when price crosses above 200 day moving average"),
+    ("quant", "signal threshold entry exit rules backtest"),
+    ("quant", "rebalance when weight drifts more than 5 percent"),
+    ("quant", "execute at open or close slippage"),
+    ("quant", "momentum ranking top n assets monthly"),
+    ("quant", "volatility targeting position sizing"),
+    ("quant", "leveraged etf daily rebalancing decay"),
+    ("quant", "factor exposure value momentum quality portfolio"),
+    ("money", "invest when market drops percent buy the dip"),
+    ("money", "sell when stock doubles rule"),
+    ("money", "rebalance threshold percentage bands"),
+    ("money", "tilt portfolio towards small cap value"),
+    ("money", "margin loan borrow to invest"),
+    ("money", "trade at market open or end of day"),
 ]
 
 #: Which parser property a sentence stresses, by the shape of the sentence and
@@ -141,10 +197,20 @@ ACTIONISH = re.compile(
 SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
 
 
-def fetch(site: str, query: str, pagesize: int = 30) -> list:
+#: How many pages of results to take per search.
+#:
+#: Volume here is bought by reading further down the same searches, not by
+#: loosening the filters. That distinction matters: relaxing the sentence
+#: window or the action filter would raise the count by admitting sentences
+#: that are not strategy statements, and a corpus inflated that way reports a
+#: survival rate for a population it does not have.
+PAGES = 3
+
+
+def fetch(site: str, query: str, pagesize: int = 60, page: int = 1) -> list:
     url = API + "?" + urllib.parse.urlencode({
         "order": "desc", "sort": "votes", "q": query, "site": site,
-        "pagesize": pagesize, "filter": "withbody"})
+        "page": page, "pagesize": pagesize, "filter": "withbody"})
     request = urllib.request.Request(url, headers={"Accept-Encoding": "gzip"})
     with urllib.request.urlopen(request, timeout=60) as response:
         raw = response.read()
@@ -153,7 +219,7 @@ def fetch(site: str, query: str, pagesize: int = 30) -> list:
     payload = json.loads(raw)
     if payload.get("quota_remaining", 1) < 20:
         print(f"  quota low: {payload.get('quota_remaining')} left", file=sys.stderr)
-    return payload.get("items", [])
+    return payload.get("items", []), payload.get("has_more", False)
 
 
 def clean(text: str) -> str:
@@ -194,21 +260,25 @@ def candidates_from(item: dict) -> list:
 def main(dry_run: bool = False) -> int:
     seen, candidates = set(), []
     for site, query in SEARCHES:
-        try:
-            items = fetch(site, query)
-        except Exception as failure:                      # noqa: BLE001
-            print(f"  {site}/{query!r}: FAILED {type(failure).__name__}: "
-                  f"{str(failure)[:100]}", file=sys.stderr)
-            continue
-        for item in items:
-            item["site"] = site
-            for candidate in candidates_from(item):
-                if candidate["text"].lower() in seen:
-                    continue
-                seen.add(candidate["text"].lower())
-                candidates.append(candidate)
+        for page in range(1, PAGES + 1):
+            try:
+                items, has_more = fetch(site, query, page=page)
+            except Exception as failure:                  # noqa: BLE001
+                print(f"  {site}/{query!r} p{page}: FAILED "
+                      f"{type(failure).__name__}: {str(failure)[:100]}",
+                      file=sys.stderr)
+                break
+            for item in items:
+                item["site"] = site
+                for candidate in candidates_from(item):
+                    if candidate["text"].lower() in seen:
+                        continue
+                    seen.add(candidate["text"].lower())
+                    candidates.append(candidate)
+            time.sleep(1.0)   # polite; the API is free and shared
+            if not has_more:
+                break
         print(f"  {site}: {query!r} -> {len(candidates)} running total")
-        time.sleep(1.0)   # polite; the API is free and shared
 
     groups: dict = {}
     for candidate in candidates:

@@ -1,0 +1,588 @@
+{
+  "schema": "quantify-harvested-annotations@1",
+  "harvested": 220,
+  "strategy_statements": 29,
+  "not_a_strategy_statement": 191,
+  "licence": "CC-BY-SA 4.0",
+  "attribution": "Sentences are quoted verbatim from Stack Exchange posts under CC-BY-SA 4.0. Each carries the URL of the question it came from, which is the attribution the licence requires.",
+  "annotation_note": "Every interpretation here was decided by reading the sentence, before the runtime was asked. None was produced by running Discovery and recording its output; an answer key copied from the system under test measures only self-consistency while looking like evidence.",
+  "yield_note": "29 of 220 sentences that passed a filter built to admit people describing what they do with money are statements of a strategy. The rest are personal circumstance, questions about the world, or fragments. People writing to a forum describe their situation; people typing into a strategy box describe a strategy, and this corpus is drawn from the first population.",
+  "maps_to": {
+    "what to hold": "assets",
+    "how much goes in": "amount",
+    "how often money goes in": "cadence",
+    "how the money is split": "allocation_method",
+    "the split they named": "stated_weights",
+    "putting the portfolio back to its target": "periodic_rebalancing",
+    "how often it is put back": "periodic_rebalancing",
+    "how long a holding is kept": "holding_period",
+    "selling something": "sell_action",
+    "which account it sits in": "account_type",
+    "cash held aside": "reserve_policy",
+    "a volatility level to aim at": null,
+    "contributions as a share of pay": null,
+    "a cap on what may go in": null,
+    "raising the contribution later": null
+  },
+  "annotations": [
+    {
+      "text": "I put 100% of my 401k into an S&P index fund.",
+      "interpretation": "hold a single S&P index fund, in a 401(k)",
+      "disposition": "REFUSES",
+      "material": [
+        "what to hold",
+        "how the money is split",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/39679/how-or-is-it-necessary-to-rebalance-a-401k-with-only-one-index-fund",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "However, consider that I start with a 60-40 equity to fixed asset allocation.",
+      "interpretation": "open with 60% equities and 40% fixed income",
+      "disposition": "REFUSES",
+      "material": [
+        "what to hold",
+        "the split they named"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split.",
+      "interpretation": "hold 80/20 rather than what is held now",
+      "disposition": "REFUSES",
+      "material": [
+        "what to hold",
+        "the split they named"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I understand that rebalancing once a year is better than doing it once every two years.",
+      "interpretation": "rebalance annually",
+      "disposition": "REFUSES",
+      "material": [
+        "putting the portfolio back to its target",
+        "how often it is put back"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/145454/is-there-a-quantitative-answer-to-how-frequently-i-should-optimize-my-portfolio",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
+      "interpretation": "rebalance on a calendar, at one of several frequencies",
+      "disposition": "REFUSES",
+      "material": [
+        "putting the portfolio back to its target",
+        "how often it is put back"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://quant.stackexchange.com/questions/78187/portfolio-optimization-with-etfs-and-futures",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month.",
+      "interpretation": "contribute $50 a month to each of several accounts",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/76425/should-i-switch-to-a-new-ira-custodian",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
+      "interpretation": "hold stocks, bonds and other at 73/23/4",
+      "disposition": "REFUSES",
+      "material": [
+        "what to hold",
+        "the split they named"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/55630/first-401k-portfolio-with-high-expense-ratios-which-funds-to-pick-24yo",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "Beyond that, I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually.",
+      "interpretation": "contribute the annual maximum to a Roth IRA and a 403(b) every year",
+      "disposition": "REFUSES",
+      "material": [
+        "how often money goes in",
+        "which account it sits in",
+        "a cap on what may go in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
+      "interpretation": "contribute 22% of pay, up to $18,000 a year",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "contributions as a share of pay",
+        "a cap on what may go in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I am also contributing $5500 to my Roth IRA each year.",
+      "interpretation": "contribute $5,500 a year to a Roth IRA",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "Now, what I'm thinking of doing is putting a portion of my cash savings into I-Bonds every year.",
+      "interpretation": "buy I-Bonds annually with part of a cash balance",
+      "disposition": "CLARIFIES",
+      "material": [
+        "what to hold",
+        "how much goes in",
+        "how often money goes in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/45170/where-do-i-bonds-fit-into-personal-finance-plans",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
+      "interpretation": "contribute 10% of after-tax pay to a traditional IRA each year",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "contributions as a share of pay",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/20835/investments-other-than-cds",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "At a minimum, I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs.",
+      "interpretation": "hold twelve months of expenses in cash, plus a further 5%",
+      "disposition": "REFUSES",
+      "material": [
+        "cash held aside"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/126216/home-mortgage-w-very-low-interest-rates-more-or-less-down",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "If I don't touch it, he will continue to put in $50 a month.",
+      "interpretation": "contribute $50 monthly",
+      "disposition": "CLARIFIES",
+      "material": [
+        "how much goes in",
+        "how often money goes in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/46758/just-getting-started-and-not-sure-where-to-go-from-here",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
+      "interpretation": "contribute $750 a month to a 401(k)",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/111369/strategy-to-pay-off-revolving-debt-while-building-reserve-savings-fund",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I can probably invest 500€-600€ monthly for something.",
+      "interpretation": "contribute somewhere between €500 and €600 a month",
+      "disposition": "CLARIFIES",
+      "material": [
+        "how much goes in",
+        "how often money goes in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/49912/how-should-i-invest-my-money-as-a-young-graduate-in-europe",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
+      "interpretation": "contribute $550 a month to a 401(k)",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/79916/should-i-temporarily-stop-or-decrease-401k-investment-to-pay-off-a-loan",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
+      "interpretation": "sell each tranche of equity as it vests, quarterly",
+      "disposition": "REFUSES",
+      "material": [
+        "selling something",
+        "how often money goes in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/28502/3-year-horizon-before-trading-up-to-next-home-put-windfall-in-savings-or-pay-o",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "At the moment I invest $50 every week.",
+      "interpretation": "contribute $50 weekly",
+      "disposition": "CLARIFIES",
+      "material": [
+        "how much goes in",
+        "how often money goes in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/136064/focus-on-mortgage-or-keep-investing",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
+      "interpretation": "redirect a monthly mortgage payment into savings",
+      "disposition": "CLARIFIES",
+      "material": [
+        "how often money goes in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/87512/savings-investment-diversification",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I'm about to start putting roughly 8-10% of paychecks into my 401k but havent as of yet.",
+      "interpretation": "contribute 8-10% of each paycheck to a 401(k)",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "contributions as a share of pay",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/55829/should-i-buy-2200-of-a-hot-stock-or-invest-elsewhere",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
+      "interpretation": "contribute quarterly and rebalance to 70/30 at the same time",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "putting the portfolio back to its target",
+        "how often it is put back",
+        "the split they named"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/142270/do-bond-funds-have-an-inherent-advantage-over-individual-bonds-within-a-portfoli",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "Currently I invest 31 EUR/month but plan to go to around 100 to 150 EUR/month once I start by PhD position.",
+      "interpretation": "contribute €31 a month now, raising it to €100-150 later",
+      "disposition": "REFUSES",
+      "material": [
+        "how much goes in",
+        "how often money goes in",
+        "raising the contribution later"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/75058/how-aggressive-should-my-personal-portfolio-be",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "Mutual Funds - No tax rebate/exemption, I invest 5% of salary per month.",
+      "interpretation": "contribute 5% of monthly salary to mutual funds",
+      "disposition": "REFUSES",
+      "material": [
+        "what to hold",
+        "how much goes in",
+        "how often money goes in",
+        "contributions as a share of pay"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/109806/how-to-diversify-long-term-retirement-investment-schemes-in-india-so-have-sustai",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "Savings Bank Account - No tax rebate/exemption, I put 15% of salary per month.",
+      "interpretation": "put 15% of monthly salary into a savings account",
+      "disposition": "REFUSES",
+      "material": [
+        "what to hold",
+        "how much goes in",
+        "how often money goes in",
+        "contributions as a share of pay"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/109806/how-to-diversify-long-term-retirement-investment-schemes-in-india-so-have-sustai",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "To do this, I employed this methodology: Set a portfolio holding period of 21 days.",
+      "interpretation": "hold each position for 21 days",
+      "disposition": "REFUSES",
+      "material": [
+        "how long a holding is kept"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://quant.stackexchange.com/questions/77807/intuition-behind-portfolio-weights-with-lower-rmse-but-higher-variance",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "In other words, I would like to target, say, an 10% annualised volatility.",
+      "interpretation": "size positions so annualised volatility comes out near 10%",
+      "disposition": "REFUSES",
+      "material": [
+        "a volatility level to aim at"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://quant.stackexchange.com/questions/71489/when-how-do-i-vol-scale-portfolio-weights-when-optimizing-the-portfolio",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I currently max out my HSA contributions.",
+      "interpretation": "contribute the annual maximum to an HSA",
+      "disposition": "REFUSES",
+      "material": [
+        "which account it sits in",
+        "a cap on what may go in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost",
+      "licence": "CC-BY-SA 4.0"
+    },
+    {
+      "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
+      "interpretation": "contribute to mutual funds in a brokerage account, periodically",
+      "disposition": "CLARIFIES",
+      "material": [
+        "what to hold",
+        "how often money goes in",
+        "which account it sits in"
+      ],
+      "kind": "STRATEGY_STATEMENT",
+      "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what",
+      "licence": "CC-BY-SA 4.0"
+    }
+  ],
+  "not_strategy_statements": [
+    "I'm looking for an application that can help me rebalance my investment portfolio.",
+    "After year 1 my allocation (because of incredible equity performance) becomes 80-20.",
+    "Why do I want to rebalance down to 60-40?",
+    "I'm not going to be contributing to these funds within the above timeframe.",
+    "Should this be part of my consideration in asset allocation?",
+    "Would I need to rebalance over time if holding SPY?",
+    "I'm pretty sure that contributing pretax to 401k is a good idea because I won't be in the 28% tax bracket when I retire.",
+    "I also have a 401k (contributing about $13k/year) and an emergency fund.",
+    "Next year I will contribute about $10k to this portfolio.",
+    "However, I just upgraded from 2012 to 2015, and it radically changed what it thought my asset allocation was.",
+    "I have invested some money in NHAI and IRFC bonds, with a lock-in period of 10 years (the least offered).",
+    "I also plan to reinvest all of the dividends into the portfolio.",
+    "I'm not so comfortable if this is the right asset allocation strategy for this.",
+    "I'm using Markowitz Mean-Variance Optimization to rebalance my portfolio of 30 holdings.",
+    "My employer will contribute $100 to the HSA, and will match another 400 of my contributions.",
+    "To do this, I would have to divert a portion of my current monthly contributions.",
+    "Background: I recently turned 25 and became applicable to invest into my employer's 401K.",
+    "It seems like I could open a Roth IRA with them and set a Target Retirement Fund and be done.",
+    "(10-20% of my allocation?)",
+    "I'll do my best to keep this brief: Me - 32 years old, currently make ~$200-$220k per year, feeling restless.",
+    "I'm rebalancing my portfolio.",
+    "I'm interested in investing in the Vanguard Target Retirement Income Fund in my IRA.",
+    "My question is similar to this one ( Do I need to own all the funds my target-date funds owns to mimic it?",
+    "After doing some research, I’ve grown concerned about the allocation strategy of this target date fund.",
+    "Does anyone see any potential issues with my plan to allocate 100% of my 401(k) to the Russell 1000 Index Fund?",
+    "I have an investment horizon of 50 years, so by \"long-term\", I mean 50 years.",
+    "I have recently began to question the wisdom of a 100% stock allocation for my long-term portfolio.",
+    "My question concerns the asset allocation of stocks , so we leave the bonds out of the question.",
+    "Our goal for the Roth IRAs is to have an additional cushion on top of the pension and 401K.",
+    "I'm leaving the country soon and I will not be able to continue contributing to 401K here.",
+    "or will the bank create impediments or am I required by Law to keep the money at least X months/years in IRA?",
+    "Is there a generally recommended strategy for allocating my contributions across these accounts?",
+    "I am choosing my 401(k) investment options from my company.",
+    "Right now I own shares of CMF and want to do some tax-harvesting on some of my short-term losses for 2016.",
+    "I'm thinking of turning on Wealthfront's tax loss harvesting, but want to avoid any \"wash sales\".",
+    "The only securities I have outside Wealthfront are Vanguard target date funds in some companies' 401k plans.",
+    "Over a month ago, I wanted to do some tax-loss harvesting.",
+    "Right before I sold, the fund paid out dividends which were automatically reinvested.",
+    "I did some tax loss harvesting last week and am hoping I didn't incur a wash sale this week.",
+    "Therefore, I need to ensure my dividends are not reinvested in a similar fund, because it tracks the same index.",
+    "On the Ascensus website my options are 'Manage Investments' and 'Manage Contributions'.",
+    "Do I just need to change my contributions to exclude the fund I am worried about a wash sale with?",
+    "I was reading up on tax loss harvesting because I recently sold some stock at a loss.",
+    "I’m planning to not buy anymore — just sell (Irrespective of remaining expiring on 11/1 turning profit or loss).",
+    "I kept on buying these OXY calls up until this week — not going to repeat it.",
+    "I live in the United States and I have an annuity that hasn't been annuitized in a traditional IRA account (IRA A).",
+    "If I annuitize IRA A this year, it will pay out $7K this year.",
+    "How much do I still need to take out from IRA B if I annuitize IRA A this year?",
+    "I'm left with a good €650-€850 that I put in my savings on a monthly basis.",
+    "I decided to give this a try; I invested a couple of thousand dollars over two years and monitored the results.",
+    "I have been reading quite a bit about dividend investing around the web.",
+    "The eventual end goal being, that all of our investment funds end up in her account and I close my brokerage account.",
+    "She says, \"I will be buying you a tax deferred annuity with an income rider.",
+    "I was looking at buying a $27000 used 2008 BMW 328i, financing at about 500/month for 60 months.",
+    "I am in my mid 20s, I have a (quite) good job and I am able to put aside, each month, about $800.",
+    "When I suddenly need cash, I just withdraw from the investments.",
+    "I don't like drawing down the fund, but I do have the fallback of taking a 401k loan if I need it.",
+    "I could roll over, take the amount of the contribution out as a loan, and then redeposit it as a 2010 contrib.",
+    "I would also have to liquidate a bunch of funds that I hold in the IRA.",
+    "Dave says I should keep adding to this fund until I can support myself for 3-6 months.",
+    "At that point, I would continue to add money to my Roth IRA until I have 6 months worth of my salary.",
+    "Alternatively, should I buy I-Bonds up to the $10k/year limit and only put excess in TIPS?",
+    "However, I could take out $2700 in subsidized loans which would put me ahead by about $335 / month.",
+    "I have no emergency fund, I recently moved and so that went towards getting my apartment set up.",
+    "So I know that in most cases, withdrawing cash from a retirement fund is never a good idea.",
+    "My idea is to withdraw about 18K to pay off about 90% of that debt, therefore freeing up 400 a month.",
+    "We are also already putting away some money for retirement and have an emergency fund established.",
+    "I just became eligible to contribute to my company's 401K plan which I will start contributing to this week ($0).",
+    "And of course, I'll always keep my emergency fund in a low-penalty CD.",
+    "My knowledge of mutual fund investments is 1 month old.",
+    "I have $15000 on top my emergency savings and I max out my Roth IRA in addition.",
+    "(c) If not my choice of my portfolio, where would you invest $15K under similar circumstances and similar goals.",
+    "T Rowe Price: ~$28,000 (my dad started this with $5,000 when I was 1 and put $50 in it every month since then.",
+    "I started using Mint about a week ago to help keep track of these things.",
+    "Our current repayments have us on target to have it paid off in around 15 more years.",
+    "I have no plans to sell my home in the American south, which got a new roof and HVAC system within the last five years.",
+    "My current employer doesn't pay any matching contributions.",
+    "FWIW, I have other investments as well that total roughly $300k that are completely separate from my 401k funds.",
+    "The remainder of my money goes towards an emergency fund, and purchasing investments.",
+    "I have $10,000 extra cash that I can either use to pay down my 5% mortgage, or contribute to my IRA.",
+    "My employer does not match 401k contributions at all.",
+    "Currently, I do not make any contributions to a 401k or an IRA due to a need for liquidity.",
+    "I have a bit more cash I can put down on a mortgage monthly (and no other debt at this point).",
+    "In 1½-2 years from now, just saving the extra cash, we would definitely be able to start investing in real estate.",
+    "For example I want to earn from my investments at least 70k€ after 5-10 years.",
+    "I am currently living in a house with my family, which I see 5 - 10 more years left, until we move onto to a new home.",
+    "I have the money to pay this off and could invest what I am currently paying per month, $2600.",
+    "We draw £680/month salary + dividends up to $45k/year/person, below the max dividend rate.",
+    "I'd also like to keep the ISA savings without drawing upon it to sustain the leveraged growth.",
+    "After 10-15 years' time we would sell the house and collect our equivalent share of the profits...",
+    "(I am, so far, a total non-investor in any active way other than some 401ks that I take no active involvement with).",
+    "But if I invested in stocks, perhaps 1 year could show 4% or better returns--but it is money at risk.",
+    "My wife's and my plan is to move to a different city 3 years from now.",
+    "My fiancee and I have roughly $100k in savings, which we want to use to buy a house in a few years.",
+    "I'm looking to buy a home in the next 3 or 4 months.",
+    "I see this as merely reallocating retirement funds from one investment into another.",
+    "Should we invest in annuity or pay off the mortgage?",
+    "I want to buy a house well condo in a year.",
+    "The reason my utilization is so high is because I put all my expenses on the card and pay them off each month.",
+    "I could pay off my car loan early but I enjoy the extra leverage for investing.",
+    "I do not have any 401k or IRA I don't like that you need to rely on government and keep the money there forever.",
+    "Soon, I am planning on spending 20k on a new car (paying cash), putting 10k in emergency fund and investing 20k.",
+    "Our house is currently our only major investment - it has a 30yr ARM at 4.25% for the first seven years.",
+    "Our Situation: We are 40 (give or take) and we both max out our retirement contributions (with employer matching).",
+    "Our goal : we would like to buy a house in the 1.25M-1.5M range in the next five years but not for at least three years.",
+    "I would like some advice on property allocation between siblings and parents.",
+    "I have just bought a second home for investment with the rate 4.625% for 30 years.",
+    "My RRSP contributions were always filled, and the rest went to extra mortgage payments.",
+    "Do I have to become an expert on rebalancing and tax accounting to consider anything more sophisticated than a GIC?",
+    "TL;DR How much should I keep as an emergency fund and how should I prioritise/distribute anything surplus to this?",
+    "We were originally planning to save for the next 3 years so that we could put down 20% on a house.",
+    "Of course the longer we wait to buy a house, the more money we can save towards a downpayment (over $3000 per month).",
+    "She still however feels that I should have been contributing to the mortgage and the upkeep of the property.",
+    "What I mean is, say you plan to buy a house, rent it out for X years, then sell it.",
+    "My normal payment would put me back at 80% LTV in a few years.",
+    "I currently have a 30 year doctor's loan on my house that I will be selling.",
+    "If I sell the house within 5 years, which option will save me the most money?",
+    "I say that I'd like to buy a house in about 5 years time- this is just a rough guess...",
+    "Right now, if I add an additional $400 per month to the payment, it will be paid in full by the date required.",
+    "I have been investing with Raiz (I think in other places it's called Acorns) for just over 2 years now.",
+    "So it looks to me like 488.23 would be my yearly return on putting $12000 in an offset.",
+    "I make enough each month to pay all the bills and still put away about 25% of my income which, we do.",
+    "Additionally, we are planning to invest the remaining portion of 125K into retirement accounts and an emergency fund.",
+    "Three months ago, I moved and purchased a new primary residence.",
+    "I am guessing I would get hit hard with capital gains tax as it is an investment property.",
+    "My ultimate intention is to secure a regular 2-3k monthly income, so I can move to my family abroad and help out there.",
+    "I invested in a quality bed and bedroom set which I financed over 12 months.",
+    "I have some investment in stocks and focus on monthly savings and don’t usually splurge money.",
+    "We just moved into this place last August, on a 2-year lease.",
+    "On the new investing options side: I have plenty of room to invest more per month.",
+    "Within two years after purchasing the house we would like to invest in peer-to-peer lending.",
+    "or should we contribute equally to each?",
+    "What else should I be aware of (ease of withdrawal, risks)?",
+    "Can I invest in a way that de-risks that?",
+    "How much should I put into savings a month to go towards these loans?",
+    "Monthly, it seems I spend a certain amount $1700-2k and then make back $2200ish, so saving $200-500ish.",
+    "Also I have been reading about a 4th quarter share buyback and how many analysts expect it to climb even higher.",
+    "I started investing two years ago.",
+    "I have about £30000 that I could start investing now in a tax efficient way (UK ISA, which means essentially zero tax).",
+    "At the moment, I would say I have a 7-10 years investment goal.",
+    "Can I simply put some average number over the years?",
+    "I have a mix of accounts for my investments including brokerage, 401k and Roth IRA.",
+    "In trying to achieve my target portfolio allocation, should I consider the pre-tax nature of my 401k?",
+    "Assume a 25% tax rate in retirement and discount all my 401k investments by 25% in calculating my current allocation.",
+    "We put down a 10% deposit (€11,400) and so took out a mortgage of €102,600.",
+    "My wife has been contributing to the mortgage since we separated, even though she doesn't live there.",
+    "THE FIRST TWO YEARS In the first two years, I was able to withdraw a salary of $20k each year.",
+    "I just moved to the US and was working in India till some months back.",
+    "I have an apartment in India this year, will this need to be declared or only when I sell the same later on ?",
+    "I will be setting up a pension plan within a couple of months and my employer will also contribute to that.",
+    "I haven't placed any buy order in the month of June as I don't have money to buy anything.",
+    "So I am not sure if this will put me as doing a \"wash sale\".",
+    "I also own some stocks but I keep them in stocks and shares ISA, so I don't have to pay tax on them.",
+    "As far as I understand, I'll have to pay Capital Gains Tax if my total gains on selling cryptocurrencies exceed £12,300.",
+    "I need to move away from the cash account because I want to sell covered call options (which I know is safe).",
+    "Background: I want to sell one mutual fund that I own in Vanguard to claim a tax loss on it.",
+    "Currently I make around 8k in cash and around 10k in stock monthly, while my spendings are around 4-5k.",
+    "And even if it was, I cannot move that funds without tax implications before I am 60/65.",
+    "But, you see, the money isn't sitting as cash in my brokerage account, as in the \"put\" case.",
+    "If it's value rises above the strike price, I'll have to sell it.",
+    "Question 2 : When I sell the stocks (say after 4 years), should I pay tax any more tax ?",
+    "I usually do selling covered put and covered call.",
+    "Now why would I want to buy apple's share paying $11 and wait for another 4 years to recover the invested amount.",
+    "The second problem so far is that I haven't factored for inflation: How will contribution limits rise?",
+    "For this I assumed an investment yield of 3-5%.",
+    "Questions So for example, if I start investing at 27, get a 10% yield, and retire at 65 I will have $2,116,952.",
+    "(Of course it would be $140k if my wife did the same.) Should I increase the annual contribution somehow?",
+    "Alternatively, could I ask them to reduce my salary and increase their contributions to my 401k?",
+    "For example, what would my taxable income become if I took $450k and invested it in my own business?",
+    "We live in a high tax state that offers a tax deduction on contributions of up to $10K per year to the state's 529 plan.",
+    "What is my best allowed strategy for contributions and withdrawals for the time that she is in college?",
+    "Would I be better off minimizing/deferring the withdrawals for as long as I can afford to?",
+    "Can I put money away in a investment plan that allows me to deduct the deposited amount from my adjusted gross income?",
+    "Can I deposit and withdraw money in 529 in a short timeframe?",
+    "We've been diligently contributing to our retirement accounts (401(k)s and Roth IRAs) for about a decade.",
+    "(I would like to extend it to 20 years before withdrawal).",
+    "I figure if I withdraw all of it, that the government will take 50% worst case scenario.",
+    "In my current employer's 401(k) plan, I began with traditional 401k deferred taxation contributions.",
+    "I am now making 100% Roth 401(k) contributions to the plan.",
+    "I have one 401(k) account that holds both.",
+    "From advice and anecdotes I gather it seems like converting to an IRA is the first step in reducing confusion.",
+    "I'm about 10 years from retirement and making maximum contributions to the tax-advantaged accounts.",
+    "Throughout the years I put a lot of my pre-tax income into my 401(k) (before I got married).",
+    "The other company I worked 25 years for didn't match any contributions and gave me a $65K pension.",
+    "I can put $5500 in my IRA before taxes, SS and medicare tax.",
+    "I guess what I am trying to ask is, how can I make a withdrawal from an IRA without having to pay tax on tax.",
+    "And if we're allowed to use leverage we should be ale to achieve target return at lower risk?",
+    "How can I meet a volatility target, either before , as part of or after portfolio optimisation?",
+    "Let's assume I convert 10,000 CAD to 5,000 USD and hold it for one year.",
+    "Afterward, I use the 5,000 USD I had previously converted to partially pay off this stock investment margin loan.",
+    "I had a $10 put option for VIVO with 02/21/20 expiration."
+  ]
+}

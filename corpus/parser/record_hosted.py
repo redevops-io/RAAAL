@@ -88,10 +88,25 @@ def benchmark_sentences() -> list:
     return list(json.loads(path.read_text())["prompts"])
 
 
+def harvested_sentences() -> list:
+    """The annotated strategy statements from the harvested corpus.
+
+    Recorded here with everything else, for the same reason: one recording
+    store, one drift lane. A harvested sentence with no recording would drop
+    silently out of the survival denominator, which raises the rate by exactly
+    the sentences nobody managed to read.
+    """
+    path = (Path(__file__).resolve().parent.parent / "harvested"
+            / "annotations.json")
+    if not path.exists():
+        return []
+    return [e["text"] for e in json.loads(path.read_text())["annotations"]]
+
+
 def wanted() -> list:
     texts = [c.text for c in load() if c.tier == "semantics" and c.language == "en"]
     return sorted(set(texts) | set(ACCEPTANCE) | set(strategy_family_sentences())
-                  | set(benchmark_sentences()))
+                  | set(benchmark_sentences()) | set(harvested_sentences()))
 
 
 def main(argv: list) -> int:

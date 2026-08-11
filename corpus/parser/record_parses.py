@@ -54,6 +54,15 @@ def main(languages: list) -> int:
     if suite.exists():
         extra += [(p, "en") for p in _json.loads(suite.read_text())["prompts"]]
 
+    # The harvested corpus. Same reason again: a sentence the fused path is
+    # measured on needs a parse, or the measurement quietly falls back to one
+    # witness and reports a single-reader result as though it were fused.
+    harvested = (Path(__file__).resolve().parent.parent / "harvested"
+                 / "annotations.json")
+    if harvested.exists():
+        extra += [(e["text"], "en")
+                  for e in _json.loads(harvested.read_text())["annotations"]]
+
     wanted = sorted({c.language for c in cases}
                     if not languages else set(languages))
 
