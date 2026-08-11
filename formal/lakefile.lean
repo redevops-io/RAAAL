@@ -23,7 +23,7 @@ lean_lib Quantify where
   roots := #[`Quantify.Types, `Quantify.Ledger, `Quantify.Cadence,
              `Quantify.Triggers, `Quantify.Ordering, `Quantify.Window,
              `Quantify.MovingAverage, `Quantify.Composition,
-             `Quantify.Fixtures]
+             `Quantify.Summary, `Quantify.Fixtures]
 
 /-- Return metrics, over exact rationals.
 
