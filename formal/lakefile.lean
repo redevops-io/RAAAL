@@ -33,4 +33,4 @@ lean_lib Quantify where
     default target at all and two mutations passed. -/
 @[default_target]
 lean_lib QuantifyReturns where
-  roots := #[`Quantify.Returns.Simple, `Quantify.Returns.TimeWeighted, `Quantify.Returns.MoneyWeighted]
+  roots := #[`Quantify.Returns.Simple, `Quantify.Returns.TimeWeighted, `Quantify.Returns.MoneyWeighted, `Quantify.Returns.Drawdown]
