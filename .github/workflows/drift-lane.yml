@@ -52,7 +52,11 @@ env:
   # in the artifact says which.
   QUANTIFY_PARSER_MODE: RUNTIME
   QUANTIFY_PILOT_READER: HOSTED
-  QUANTIFY_PARSER_MODEL: claude-sonnet-5
+  QUANTIFY_PARSER_PROVIDER: OPENAI
+  # A dated snapshot, not the `gpt-4.1` alias. This lane exists to tell a
+  # provider changing under a fixed id from a reader changing, and an alias
+  # makes that question unanswerable.
+  QUANTIFY_PARSER_MODEL: gpt-4.1-2025-04-14
   QUANTIFY_SYNTAX_WITNESS: 'yes'
   # Read by `deploy.context` and passed to the reader. It was pinned here
   # while nothing consumed it — a ceiling that is a comment in YAML, which is
@@ -84,7 +88,7 @@ jobs:
 
       - name: One draw per prompt
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python corpus/parser/drift_lane.py --longitudinal
 
       - uses: actions/upload-artifact@v4
@@ -116,7 +120,7 @@ jobs:
 
       - name: Repeated draws in the serving profile
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python corpus/parser/drift_lane.py \
             --draws "${{ github.event.inputs.draws || '3' }}"
