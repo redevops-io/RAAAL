@@ -83,6 +83,74 @@ def test_the_report_and_this_file_agree_on_what_is_answerable():
 #: draw happened to break.
 DRIFTED: set = set()
 
+#: Cases that were once answered correctly and are not answered now.
+#:
+#: `CASES` is derived from `closure.json`, which is regenerated. That means a
+#: case the pipeline stops agreeing about does not fail — it stops being
+#: collected, and the suite goes green with one fewer thing tested. This is the
+#: corpus selecting itself down to whatever it can currently pass, which is the
+#: failure mode a regression corpus exists to make impossible.
+#:
+#: It was not a hypothetical. Re-recording under schema `@6` moved
+#: `sema-window-moving_average-013` from AGREE to DISAGREE and moved two
+#: `day_rule` cases the other way. The total went 41 → 42, the suite stayed
+#: green, and a case had silently left the tested set under cover of a number
+#: going up. `corpus/parser/answerable.json` is the recorded set; this dict is
+#: the only way out of it, and each entry has to say what happened.
+LEFT_THE_ANSWERABLE_SET = {
+    "sema-window-moving_average-013":
+        "the dimension has no unit: syntax reads `12` from 'the 12-month "
+        "moving average' and the hosted reader reads `252`, twelve months in "
+        "trading sessions. Both are defensible readings of a field that never "
+        "says what it counts, and fusion is right to refuse to settle it. "
+        "Fixing it means giving `moving_average_window` a unit, which is a "
+        "schema change held until the harvested corpus says which units real "
+        "language uses. Queued in docs/Benchmark-Queue.md.",
+}
+
+
+class TestTheCorpusCannotSelectItselfDown:
+    """The set of cases this file runs is derived, not declared. Without this,
+    the cheapest way to make the semantics tier pass is for a case to stop
+    agreeing."""
+
+    RECORDED = json.loads(
+        (Path(__file__).resolve().parent.parent / "corpus" / "parser"
+         / "answerable.json").read_text())
+
+    def test_every_case_once_answered_is_answered_or_accounted_for(self):
+        gone = set(self.RECORDED["ids"]) - set(ANSWERABLE)
+        unexplained = sorted(gone - set(LEFT_THE_ANSWERABLE_SET))
+        assert not unexplained, (
+            f"{unexplained} used to be answered correctly and are not in the "
+            "collected set any more. They did not fail — they stopped being "
+            "collected, which is why nothing else caught this. Either fix the "
+            "regression or name it in LEFT_THE_ANSWERABLE_SET")
+
+    def test_the_exception_list_does_not_outlive_its_reasons(self):
+        """The same staleness rule the model-error list carries. An entry that
+        starts passing again and stays listed is a case excluded from the suite
+        for a reason that no longer holds."""
+        stale = sorted(set(LEFT_THE_ANSWERABLE_SET) & set(ANSWERABLE))
+        assert not stale, (
+            f"{stale} are listed as having left the answerable set and are "
+            "answered again; remove them so the list keeps meaning something")
+
+    def test_every_recorded_id_is_a_real_case(self):
+        """`answerable.json` can be edited, and the cheapest way to bury a
+        regression is to delete its id from the recorded set. A test cannot
+        stop that — the file is committed and a reviewer has to look. What a
+        test *can* stop is the quieter version: ids drifting out of sync with
+        the corpus until the guard compares against phantoms and passes
+        because both sides are empty of anything real.
+        """
+        known = {case.id for case in load()}
+        phantom = sorted(set(self.RECORDED["ids"]) - known)
+        assert not phantom, (
+            f"{phantom} are recorded as answerable and name no case in the "
+            "corpus")
+        assert self.RECORDED["count"] == len(self.RECORDED["ids"]) > 0
+
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.id)
 def test_the_pipeline_produces_the_field_and_the_value(case, request):

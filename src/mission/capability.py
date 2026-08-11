@@ -227,6 +227,19 @@ MANIFEST: Mapping[str, Dimension] = {
         "periodic_rebalancing", REFUSED,
         why="this build buys and holds; it does not rebalance"),
 
+    "selection_rule": _d(
+        "selection_rule", NOT_MODELLED,
+        why="choosing holdings by ranking them is not modelled: this build "
+            "buys what it was told to buy, so a rule that picks a different "
+            "holding each period has nothing to act on — and executing it as "
+            "a purchase of every candidate is a different strategy"),
+
+    "holding_period": _d(
+        "holding_period", NOT_MODELLED,
+        why="this build buys and holds to the end of the evaluation period, "
+            "so a stated holding length has no effect it could have; honouring "
+            "it would require selling, which is not modelled either"),
+
     "sell_action": _d(
         "sell_action", REFUSED,
         why=("this build only buys; selling, withdrawing and harvesting are "

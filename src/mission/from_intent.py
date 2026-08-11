@@ -36,6 +36,25 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 
 from runtime_contracts import Author, VerifiedIntent
 from .capability import Refusal, refusals_for
+
+#: Dimensions that legitimately do not shape the executable plan.
+#:
+#: `objective` says what the person wants to find out. It is classified in the
+#: manifest — `assess_withdrawal` and the rest are refused there — and it does
+#: not belong in a `ScenarioSpecification`. Declared rather than inferred: a
+#: dimension omitted from this set and from every builder refuses, which is the
+#: safe direction.
+NOT_EXECUTABLE = frozenset({"objective"})
+
+#: Dimensions the scenario builders read straight off `intent.fields` rather
+#: than through the `value` closure. Named here so the stranded-dimension check
+#: sees both access paths; `tests/test_stranded_dimensions.py` asserts this
+#: stays in step with the module rather than drifting into a stale list.
+READ_DIRECTLY = frozenset({"assets", "trigger_semantics", "observed_assets"})
+
+
+def _read_directly(intent: Any) -> set:
+    return {name for name in READ_DIRECTLY if name in intent.fields}
 from .funding import EventTriggered, Scheduled, Trigger
 from .scenario import (
     AllocationRule,
@@ -171,8 +190,10 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
                         refusals=tuple(refusals))
 
     applied: list = []
+    consulted: set = set()
 
     def value(dimension: str) -> Any:
+        consulted.add(dimension)
         found = intent.fields.get(dimension)
         if found is not None:
             return found.value
@@ -196,6 +217,36 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
         tax_treatment=str(ENGINE_CONSTANTS["tax_treatment"]),
         funding=funding,
     )
+    # A stated dimension that no builder read is an instruction that vanished.
+    #
+    # `moving_average_window` was the case that found this: "buy VTI below its
+    # 200-day moving average" read the window correctly, no trigger existed for
+    # it to attach to, and the window was dropped — so it compiled to the same
+    # plan as "hold VTI for 200 days", a plain purchase. Discovery had told the
+    # two apart perfectly; the drop happened here.
+    #
+    # Checked by construction rather than by a list of dimensions to remember:
+    # anything added to the schema and not wired into a builder refuses instead
+    # of being silently ignored.
+    # `consulted` must mean every path a builder reads a field by, not only
+    # the `value` closure. `_assets`, `_trigger` and the watched-asset lookup
+    # read `intent.fields` directly, so the first version stranded `assets` on
+    # every plan and refused thirty-one supported strategies — a check meant to
+    # catch dropped instructions rejecting the ones that were honoured.
+    consulted |= _read_directly(intent)
+
+    stranded = sorted(set(intent.fields) - consulted - NOT_EXECUTABLE)
+    if stranded:
+        return Compiled(
+            scenario=None, derivation=derivation,
+            refusals=tuple(Refusal(
+                kind="UNSUPPORTED_DIMENSION", dimension=name,
+                stated_value=intent.fields[name].value,
+                detail=("this build has nowhere to put it: it was read from "
+                        "what you said and no part of the plan consumes it, "
+                        "so executing would quietly drop it"))
+                for name in stranded))
+
     return Compiled(scenario=scenario, derivation=derivation,
                     applied_defaults=tuple(sorted(set(applied))))
 

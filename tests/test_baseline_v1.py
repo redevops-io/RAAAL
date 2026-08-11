@@ -35,13 +35,28 @@ class TestTheRecordedVersionsAreTheRealOnes:
 
         assert schema_fingerprint(QUANTIFY_SCHEMA) in _recorded()
 
-    def test_the_schema_is_at_five_not_three(self):
-        """It moved twice during the strategy-family work. A baseline naming
-        `@3` would name an artifact that has not existed since."""
+    def test_the_schema_version_is_the_one_in_the_tree(self):
+        """Read out, not typed. A baseline naming `@3` would name an artifact
+        that has not existed since."""
         from src.discovery import QUANTIFY_SCHEMA
 
-        assert QUANTIFY_SCHEMA.version == "quantify-discovery-schema@5"
-        assert "@5" in _recorded()
+        assert QUANTIFY_SCHEMA.version in _recorded()
+
+    def test_the_version_it_was_frozen_at_is_still_recorded(self):
+        """The baseline moved: `@5` was frozen, `@6` is current, and the
+        benchmark is why. Renumbering the line in place would have destroyed
+        the before/after point this document exists to provide, so the old
+        fingerprint stays and the movement is narrated.
+
+        This assertion is the thing that makes that non-optional. Without it,
+        the cheapest way to make the fingerprint test pass on the *next* schema
+        change is to overwrite one line, and the history goes with it.
+        """
+        text = _recorded()
+        assert "ca8f3b7785ff5d70" in text, (
+            "the fingerprint this baseline was frozen at is gone; the schema "
+            "line was rewritten instead of the movement being recorded")
+        assert "moved after this baseline was frozen" in text
 
     @pytest.mark.parametrize("module,name", [
         ("src.mission.capability", "MANIFEST_SCHEMA"),
@@ -90,8 +105,15 @@ class TestTheOpenItemsAreStillOpen:
         gate = verdict()
         if gate.open:
             pytest.skip("the gate has been opened by a real CI run")
-        assert all("not the scheduled lane" in b or "days old" in b
-                   for b in gate.blockers), gate.blockers
+        # `and this build is` is the staleness blocker, and it fired for real:
+        # the drift artifact was recorded against schema `@5`, the benchmark
+        # moved the schema to `@6`, and the gate refused to count evidence
+        # gathered about a build that no longer exists. That is the artifact
+        # being self-describing rather than a semantic condition breaking, so
+        # it belongs in this list beside provenance and age.
+        allowed = ("not the scheduled lane", "days old", "and this build is")
+        assert all(any(a in b for a in allowed) for b in gate.blockers), \
+            gate.blockers
 
 
 class TestTheReopenTriggersAreWrittenDown:

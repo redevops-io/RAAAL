@@ -1,9 +1,17 @@
 # The shadow matrices are stale
 
     built under   quantify-discovery-schema@2/103c025ac629946f
-    current       quantify-discovery-schema@5/ca8f3b7785ff5d70
+    current       quantify-discovery-schema@6/eb01a824e4f43d02
 
 ## What changed
+
+@6 added the `selection_rule` and `holding_period` dimensions. The strategy
+evaluation benchmark found "hold whichever performed best" compiling to two
+holdings on a monthly cadence — the selection gone, and the plan executing
+anyway — and separately found "hold VTI for 200 days" and "buy VTI below its
+200-day moving average" producing the identical plan. Both are dimensions the
+schema could not represent, so Discovery had nothing to hand Mission and Mission
+had nothing to refuse by name.
 
 @5 added the `asset_location` relation — the last schema gap the strategy sweep
 left standing, where `account_type` returned TAXABLE for a sentence whose whole

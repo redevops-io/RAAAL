@@ -139,14 +139,40 @@ class TestTheFindingsAreRealFindings:
     """Spot-checks on the ones this run surfaced, so a later change that fixes
     or breaks them shows up here rather than in a count."""
 
-    def test_a_rotation_strategy_executes_as_something_else(self, findings):
-        """"hold whichever performed best" reads as two holdings and a monthly
-        cadence, and executes — the selection is gone. The presence guards did
-        not fire because no disposal verb appears in the sentence."""
+    def test_a_rotation_strategy_no_longer_executes_as_something_else(
+            self, findings):
+        """The benchmark's first finding, closed, and kept as a regression.
+
+        "hold whichever performed best" used to read as two holdings and a
+        monthly cadence and *execute* — the selection silently gone, the person
+        shown a buy-and-hold backtest and told it was their rotation strategy.
+
+        It was not closed by teaching the syntax guard the words `rotate`,
+        `stronger` and `whichever`. Those are witnesses of a missing semantic,
+        not the semantic itself, and a guard built from them would pass this
+        test while the next synonym reduced silently. It was closed by giving
+        Discovery a `selection_rule` dimension to represent the concept and
+        Mission a `NOT_MODELLED` entry to refuse it by name.
+        """
         rotation = [f for f in findings["findings"]
                     if f["class"] == "momentum-rotation"
                     and f["kind"] == "SILENT_REDUCTION"]
-        assert len(rotation) >= 3
+        assert rotation == [], (
+            f"rotation is silently reducing again: {rotation}")
+
+    def test_and_it_is_refused_by_name_rather_than_merely_not_executing(
+            self, findings, suite):
+        """The half that makes the fix a fix. A sentence that stopped executing
+        because some unrelated guard tripped would satisfy the test above and
+        still leave the person with no idea which part of their strategy this
+        build cannot do."""
+        entry = next(e for e in suite["classes"] if e["id"] == "momentum-rotation")
+        for phrasing in entry["phrasings"]:
+            point = findings["checkpoints"][phrasing]
+            assert not point["executable"], f"{phrasing!r} still executes"
+            assert "selection_rule" in point["refusals"], (
+                f"{phrasing!r} does not execute, but names "
+                f"{point['refusals']} rather than the selection it dropped")
 
     def test_holding_order_changes_the_compiled_plan(self, findings):
         """`VTI and BND` against `BND and VTI` for an equal-weight strategy.

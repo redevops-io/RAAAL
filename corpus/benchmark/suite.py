@@ -45,9 +45,19 @@ REFUSES = "REFUSES"
 CLARIFIES = "CLARIFIES"
 
 
-def _class(cid, family, disposition, phrasings, *, refuses=None, note=""):
+def _class(cid, family, disposition, phrasings, *, refuses=None, note="",
+           states=None):
+    """`refuses` — capabilities whose refusal is a correct answer here. Any one
+    of them satisfies the class, because a sentence can state several
+    unsupported things and naming one of them is a real refusal.
+
+    `states` — every unsupported thing the sentence actually asserts. All must
+    be named, or the person is told about one and left believing the others
+    were fine. "rebalance back to 60/40 every year" is refused for
+    `stated_weights` and never mentions the rebalancing.
+    """
     return {"id": cid, "family": family, "disposition": disposition,
-            "refuses": refuses or [], "note": note,
+            "refuses": refuses or [], "states": states or [], "note": note,
             "phrasings": list(phrasings)}
 
 
@@ -123,7 +133,9 @@ CLASSES = [
         "annually rebalance to a 60/40 target",
         "each year, bring the portfolio back to 60/40",
         "yearly rebalancing to 60% stocks and 40% bonds",
-    ], refuses=["periodic_rebalancing"]),
+    ], refuses=["periodic_rebalancing", "stated_weights", "allocation_method"],
+       states=["periodic_rebalancing", "stated_weights"],
+       note="two unsupported things in one sentence"),
     _class("rebalance-threshold", "rebalancing", REFUSES, [
         "rebalance whenever an allocation drifts more than 5 points",
         "rebalance if any holding moves 5% away from its target",
@@ -172,7 +184,9 @@ CLASSES = [
         "shift 1% from stocks to bonds every year as I get older",
         "move one percent a year out of equities into fixed income",
         "reduce the equity share by 1% annually",
-    ], refuses=["periodic_rebalancing"]),
+    ], refuses=["periodic_rebalancing", "sell_action"],
+       note="moving money out of equities is selling, and refusing on that is "
+            "as correct as refusing on the rebalancing"),
 
     # ---- risk and leverage ---------------------------------------------
     _class("volatility-target", "risk", REFUSES, [
@@ -196,7 +210,9 @@ CLASSES = [
         "each month hold whichever of VTI and BND performed best",
         "rotate monthly into the stronger of VTI and BND",
         "monthly, buy the better performer of VTI or BND",
-    ], refuses=["sell_action"]),
+    ], refuses=["selection_rule", "sell_action"],
+       note="the selection is the strategy; `selection_rule` was added after "
+            "this family executed as a plain purchase of every candidate"),
 
     # ---- comparison questions -------------------------------------------
     _class("mortgage-versus-investing", "comparison", REFUSES, [

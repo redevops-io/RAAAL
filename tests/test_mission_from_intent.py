@@ -174,9 +174,31 @@ class TestFundingAndItsProjectionCannotDisagree:
         assert out.scenario.flow_schedule.cadence == "annual"
 
     def test_an_event_plan_declares_no_calendar(self):
-        """`funding` is the authority and `flow_schedule` is its projection;
-        the scenario refuses a plan carrying both a trigger and a cadence."""
-        out = compile_intent(intent(trigger_semantics="crossing_event"),
-                             benchmark_rule=RULE)
+        """`funding` is the authority and `flow_schedule` is its projection."""
+        out = compile_intent(intent(trigger_semantics="crossing_event",
+                                    cadence=None), benchmark_rule=RULE)
         assert out.scenario.flow_schedule.cadence == "event_triggered"
         assert out.scenario.flow_schedule.amount == 0.0
+
+    def test_a_calendar_stated_beside_a_trigger_is_refused_not_dropped(self):
+        """The second silent reduction, found by the general stranded-dimension
+        check rather than by looking for it.
+
+        This case used to compile: `cadence="monthly"` alongside a crossing
+        trigger produced an `EventTriggered` schedule whose `cadence` read
+        `"event_triggered"`, and the stated *monthly* went nowhere. Nothing in
+        the result said a word of the request had been discarded, so the person
+        who asked to contribute monthly *and* on a crossing was shown a plan
+        that did one of those things and told it was their plan.
+
+        The event path never consults `cadence`, which is defensible — a
+        trigger and a calendar are two different authorities on when money
+        moves, and this build has no representation for both at once. What is
+        not defensible is deciding that silently. Refusing by name leaves the
+        person able to drop one of the two and get what they asked for.
+        """
+        out = compile_intent(intent(trigger_semantics="crossing_event"),
+                             benchmark_rule=RULE)
+        assert out.scenario is None
+        assert [r.dimension for r in out.refusals] == ["cadence"]
+        assert out.refusals[0].kind == "UNSUPPORTED_DIMENSION"

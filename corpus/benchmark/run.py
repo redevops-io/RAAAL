@@ -46,6 +46,7 @@ WRONG_EXECUTABLE_MEANING = "WRONG_EXECUTABLE_MEANING"
 FALSE_CLAIM_OF_SUPPORT = "FALSE_CLAIM_OF_SUPPORT"
 UNNECESSARY_REFUSAL = "UNNECESSARY_REFUSAL"
 UNNECESSARY_QUESTION = "UNNECESSARY_QUESTION"
+INCOMPLETE_REFUSAL = "INCOMPLETE_REFUSAL"
 READER_FAILED = "READER_FAILED"
 
 DANGEROUS = {SILENT_REDUCTION, UNSTABLE_EXECUTION, WRONG_EXECUTABLE_MEANING,
@@ -153,6 +154,19 @@ def classify_class(entry: dict, points: dict) -> list:
                         "class": entry["id"], "prompt": phrasing,
                         "detail": (f"refused {point['refusals']}, expected one "
                                    f"of {entry['refuses']}")})
+                # Every unsupported thing the sentence states must be named.
+                # Refusing one and staying silent about the other leaves the
+                # person believing the rest was fine.
+                unmentioned = sorted(set(entry["states"])
+                                     - set(point["refusals"])
+                                     - set(point["settled"]))
+                if unmentioned:
+                    findings.append({
+                        "kind": INCOMPLETE_REFUSAL, "layer": DISCOVERY,
+                        "class": entry["id"], "prompt": phrasing,
+                        "detail": (f"refused {point['refusals']} and never "
+                                   f"mentioned {unmentioned}, which the "
+                                   "sentence also asks for")})
 
         if expected == "EXECUTES":
             if got == "REFUSES":

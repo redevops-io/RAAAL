@@ -6,7 +6,7 @@ before/after point. Every version below is read out of the tree by
 records what somebody believed is not a baseline.
 
     commit                  89959bd
-    Discovery schema        quantify-discovery-schema@5/ca8f3b7785ff5d70
+    Discovery schema        quantify-discovery-schema@6/eb01a824e4f43d02
     capability manifest     quantify/capability-manifest@1
     hosted prompt           quantify-hosted-prompt@1
     fusion pipeline         quantify-pipeline@1
@@ -14,11 +14,34 @@ records what somebody believed is not a baseline.
     drawdown semantics      drawdown@2
     Formal Core             v1 — 89 theorems, 57 guards
 
-The schema is at **@5**, not @3. It moved twice during the strategy-family
-work: `@4` added `reserve_policy`, `bucket_policy` and a `leverage_multiplier`
-qualifier; `@5` added `asset_location`. Both were bumps because the *content*
-changed, which is the rule that keeps two runs from looking comparable when
-they are not.
+The schema is at **@6**, not @3. It moved three times: `@4` added
+`reserve_policy`, `bucket_policy` and a `leverage_multiplier` qualifier; `@5`
+added `asset_location`; `@6` added `selection_rule` and `holding_period`. Each
+was a bump because the *content* changed, which is the rule that keeps two runs
+from looking comparable when they are not.
+
+## The schema moved after this baseline was frozen
+
+Recorded rather than rewritten. `@5` was the version frozen here; `@6` came
+after, and a baseline that quietly renumbered itself would destroy the
+before/after point it exists to provide.
+
+    frozen at               quantify-discovery-schema@5/ca8f3b7785ff5d70
+    now                     quantify-discovery-schema@6/eb01a824e4f43d02
+    moved by                the strategy evaluation benchmark, before any
+                            pilot evidence
+
+The benchmark found `momentum-rotation` executing as buy-and-hold: "hold
+whichever performed best" produced a plan with two holdings and a monthly
+cadence, the selection silently gone. Closing it needed a dimension that could
+*represent* the selection so Mission could refuse it by name — `selection_rule`
+— and `holding_period` alongside it, because the same investigation found "hold
+VTI for 200 days" and "buy VTI below its 200-day moving average" compiling to
+the identical plan.
+
+This is the authored corpus doing the job it was kept for. The pilot has not
+started; the change is attributable to the benchmark and to nothing else, and
+that attribution is the reason to write it down here rather than edit a line.
 
 ## What is settled
 

@@ -2,108 +2,12 @@
   "schema": "quantify-benchmark-findings@1",
   "prompts": 103,
   "correct": {
-    "CORRECT_EXECUTION": 30,
-    "CORRECT_REFUSAL": 37,
-    "CORRECT_CLARIFICATION": 8
+    "CORRECT_EXECUTION": 31,
+    "CORRECT_REFUSAL": 45,
+    "CORRECT_CLARIFICATION": 6
   },
-  "dangerous_instances": 12,
+  "dangerous_instances": 2,
   "queue": [
-    {
-      "kind": "SILENT_REDUCTION",
-      "layer": "Mission",
-      "area": "momentum-rotation",
-      "instances": 3,
-      "examples": [
-        {
-          "prompt": "each month hold whichever of VTI and BND performed best",
-          "detail": "unsupported and executed anyway; read ['assets', 'cadence', 'objective']"
-        },
-        {
-          "prompt": "rotate monthly into the stronger of VTI and BND",
-          "detail": "unsupported and executed anyway; read ['assets', 'cadence', 'objective']"
-        },
-        {
-          "prompt": "monthly, buy the better performer of VTI or BND",
-          "detail": "unsupported and executed anyway; read ['assets', 'cadence', 'objective']"
-        }
-      ]
-    },
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "area": "swr-fixed-amount",
-      "instances": 2,
-      "examples": [
-        {
-          "prompt": "an annual $40,000 withdrawal",
-          "detail": "refused ['objective'], expected one of ['sell_action']"
-        },
-        {
-          "prompt": "draw $40,000 per year",
-          "detail": "refused ['objective'], expected one of ['sell_action']"
-        }
-      ]
-    },
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "area": "rebalance-annual",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "annually rebalance to a 60/40 target",
-          "detail": "refused ['allocation_method', 'stated_weights'], expected one of ['periodic_rebalancing']"
-        }
-      ]
-    },
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "area": "glidepath",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "reduce the equity share by 1% annually",
-          "detail": "refused ['sell_action'], expected one of ['periodic_rebalancing']"
-        }
-      ]
-    },
-    {
-      "kind": "SILENT_REDUCTION",
-      "layer": "Mission",
-      "area": "factor-tilt",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "overweight small cap value by 20%",
-          "detail": "unsupported and executed anyway; read ['assets']"
-        }
-      ]
-    },
-    {
-      "kind": "UNSTABLE_EXECUTION",
-      "layer": "Fusion",
-      "area": "momentum-rotation",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "each month hold whichever of VTI and BND performed best",
-          "detail": "2 different compiled plans across 3 phrasings of one strategy"
-        }
-      ]
-    },
-    {
-      "kind": "WRONG_EXECUTABLE_MEANING",
-      "layer": "Fusion",
-      "area": "moving average versus a holding period",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "buy VTI below its 200-day moving average",
-          "detail": "compiles identically to 'hold VTI for 200 days' — one is a threshold, the other a duration"
-        }
-      ]
-    },
     {
       "kind": "UNSTABLE_EXECUTION",
       "layer": "Fusion",
@@ -129,17 +33,29 @@
       ]
     },
     {
-      "kind": "UNNECESSARY_QUESTION",
+      "kind": "INCOMPLETE_REFUSAL",
       "layer": "Discovery",
-      "area": "ma-cross-below",
+      "area": "rebalance-annual",
       "instances": 2,
       "examples": [
         {
-          "prompt": "whenever VTI crosses under the 200 DMA, invest $1,000",
-          "detail": "asked about ['assets']"
+          "prompt": "rebalance back to 60/40 every year",
+          "detail": "refused ['stated_weights'] and never mentioned ['periodic_rebalancing'], which the sentence also asks for"
         },
         {
-          "prompt": "if VTI moves from above its 200-day MA to below it, buy $1,000",
+          "prompt": "annually rebalance to a 60/40 target",
+          "detail": "refused ['allocation_method', 'stated_weights'] and never mentioned ['periodic_rebalancing'], which the sentence also asks for"
+        }
+      ]
+    },
+    {
+      "kind": "UNNECESSARY_QUESTION",
+      "layer": "Discovery",
+      "area": "ma-cross-below",
+      "instances": 1,
+      "examples": [
+        {
+          "prompt": "whenever VTI crosses under the 200 DMA, invest $1,000",
           "detail": "asked about ['assets']"
         }
       ]
@@ -154,81 +70,18 @@
       "detail": "asked about ['assets']"
     },
     {
-      "kind": "UNNECESSARY_QUESTION",
+      "kind": "INCOMPLETE_REFUSAL",
       "layer": "Discovery",
-      "class": "ma-cross-below",
-      "prompt": "if VTI moves from above its 200-day MA to below it, buy $1,000",
-      "detail": "asked about ['assets']"
+      "class": "rebalance-annual",
+      "prompt": "rebalance back to 60/40 every year",
+      "detail": "refused ['stated_weights'] and never mentioned ['periodic_rebalancing'], which the sentence also asks for"
     },
     {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
+      "kind": "INCOMPLETE_REFUSAL",
+      "layer": "Discovery",
       "class": "rebalance-annual",
       "prompt": "annually rebalance to a 60/40 target",
-      "detail": "refused ['allocation_method', 'stated_weights'], expected one of ['periodic_rebalancing']"
-    },
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "class": "swr-fixed-amount",
-      "prompt": "an annual $40,000 withdrawal",
-      "detail": "refused ['objective'], expected one of ['sell_action']"
-    },
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "class": "swr-fixed-amount",
-      "prompt": "draw $40,000 per year",
-      "detail": "refused ['objective'], expected one of ['sell_action']"
-    },
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "class": "glidepath",
-      "prompt": "reduce the equity share by 1% annually",
-      "detail": "refused ['sell_action'], expected one of ['periodic_rebalancing']"
-    },
-    {
-      "kind": "SILENT_REDUCTION",
-      "layer": "Mission",
-      "class": "factor-tilt",
-      "prompt": "overweight small cap value by 20%",
-      "detail": "unsupported and executed anyway; read ['assets']"
-    },
-    {
-      "kind": "SILENT_REDUCTION",
-      "layer": "Mission",
-      "class": "momentum-rotation",
-      "prompt": "each month hold whichever of VTI and BND performed best",
-      "detail": "unsupported and executed anyway; read ['assets', 'cadence', 'objective']"
-    },
-    {
-      "kind": "SILENT_REDUCTION",
-      "layer": "Mission",
-      "class": "momentum-rotation",
-      "prompt": "rotate monthly into the stronger of VTI and BND",
-      "detail": "unsupported and executed anyway; read ['assets', 'cadence', 'objective']"
-    },
-    {
-      "kind": "SILENT_REDUCTION",
-      "layer": "Mission",
-      "class": "momentum-rotation",
-      "prompt": "monthly, buy the better performer of VTI or BND",
-      "detail": "unsupported and executed anyway; read ['assets', 'cadence', 'objective']"
-    },
-    {
-      "kind": "UNSTABLE_EXECUTION",
-      "layer": "Fusion",
-      "class": "momentum-rotation",
-      "prompt": "each month hold whichever of VTI and BND performed best",
-      "detail": "2 different compiled plans across 3 phrasings of one strategy"
-    },
-    {
-      "kind": "WRONG_EXECUTABLE_MEANING",
-      "layer": "Fusion",
-      "class": "moving average versus a holding period",
-      "prompt": "buy VTI below its 200-day moving average",
-      "detail": "compiles identically to 'hold VTI for 200 days' — one is a threshold, the other a duration"
+      "detail": "refused ['allocation_method', 'stated_weights'] and never mentioned ['periodic_rebalancing'], which the sentence also asks for"
     },
     {
       "kind": "UNSTABLE_EXECUTION",
@@ -252,8 +105,7 @@
       "settled": {
         "allocation_method": "inverse_volatility",
         "amount": "$1,000",
-        "cadence": "monthly",
-        "objective": "plan_contributions"
+        "cadence": "monthly"
       },
       "open": [],
       "questions": [
@@ -289,9 +141,10 @@
     "$1,000 into VTI each time it breaks below its 200 day moving average": {
       "text": "$1,000 into VTI each time it breaks below its 200 day moving average",
       "settled": {
-        "amount": "1000",
+        "amount": "$1,000",
         "assets": "VTI",
         "moving_average_window": "200",
+        "objective": "evaluate_investment_strategy",
         "trigger_semantics": "crossing_event"
       },
       "open": [],
@@ -305,7 +158,7 @@
     "$1,000 into VTI on every day it stays below the 200-day average": {
       "text": "$1,000 into VTI on every day it stays below the 200-day average",
       "settled": {
-        "amount": "$1,000",
+        "amount": "1000",
         "assets": "VTI",
         "moving_average_window": "200",
         "objective": "plan_contributions",
@@ -359,7 +212,7 @@
     "$500/month into VTI": {
       "text": "$500/month into VTI",
       "settled": {
-        "amount": "$500",
+        "amount": "500",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -375,7 +228,7 @@
     "I want to add $500 to VTI every month": {
       "text": "I want to add $500 to VTI every month",
       "settled": {
-        "amount": "500",
+        "amount": "$500",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -391,7 +244,7 @@
     "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI": {
       "text": "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI",
       "settled": {
-        "amount": "500",
+        "amount": "$500",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -407,7 +260,7 @@
     "Invest $500 monthly into VTI.": {
       "text": "Invest $500 monthly into VTI.",
       "settled": {
-        "amount": "500",
+        "amount": "$500",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -422,15 +275,17 @@
     },
     "a 20% allocation tilted to small-cap value": {
       "text": "a 20% allocation tilted to small-cap value",
-      "settled": {
-        "assets": "small-cap value"
-      },
+      "settled": {},
       "open": [],
-      "questions": [],
+      "questions": [
+        "assets"
+      ],
       "refusals": [
         "portfolio_sleeves"
       ],
-      "needs_input": [],
+      "needs_input": [
+        "assets"
+      ],
       "sealed": true,
       "executable": false,
       "plan": null
@@ -442,6 +297,7 @@
         "amount": "$1,000",
         "assets": "VTI and BND",
         "cadence": "monthly",
+        "objective": "plan_contributions",
         "stated_weights": "60/40"
       },
       "open": [],
@@ -477,8 +333,7 @@
       "settled": {
         "amount": "$10,000",
         "assets": "VTI",
-        "cadence": "once",
-        "objective": "plan_contributions"
+        "cadence": "once"
       },
       "open": [],
       "questions": [],
@@ -510,16 +365,18 @@
     "an annual $40,000 withdrawal": {
       "text": "an annual $40,000 withdrawal",
       "settled": {
-        "amount": "$40,000",
+        "amount": "40000",
         "cadence": "annual",
-        "objective": "assess_withdrawal"
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw $40,000 annually"
       },
       "open": [],
       "questions": [
         "assets"
       ],
       "refusals": [
-        "objective"
+        "objective",
+        "sell_action"
       ],
       "needs_input": [
         "assets"
@@ -533,7 +390,7 @@
       "settled": {
         "cadence": "annual",
         "objective": "assess_withdrawal",
-        "sell_action": "withdrawal of four percent"
+        "sell_action": "withdraw four percent"
       },
       "open": [],
       "questions": [
@@ -596,7 +453,7 @@
     "bring it back to target when drift exceeds five percentage points": {
       "text": "bring it back to target when drift exceeds five percentage points",
       "settled": {
-        "periodic_rebalancing": "rebalance when drift exceeds five percentage points",
+        "periodic_rebalancing": "rebalance to target when drift exceeds 5 percentage points",
         "trigger_semantics": "crossing_event"
       },
       "open": [],
@@ -619,7 +476,6 @@
         "amount": "$1,000",
         "assets": "VTI",
         "moving_average_window": "200",
-        "objective": "evaluate_investment_strategy",
         "trigger_semantics": "crossing_event"
       },
       "open": [],
@@ -653,6 +509,7 @@
         "amount": "$1,000",
         "assets": "VTI",
         "moving_average_window": "200",
+        "objective": "evaluate_investment_strategy",
         "trigger_semantics": "persistent_condition"
       },
       "open": [],
@@ -682,7 +539,7 @@
     "buy $100 of VTI every week": {
       "text": "buy $100 of VTI every week",
       "settled": {
-        "amount": "100",
+        "amount": "$100",
         "assets": "VTI",
         "cadence": "weekly",
         "objective": "plan_contributions"
@@ -729,7 +586,8 @@
       "settled": {
         "assets": "VTI",
         "moving_average_window": "200",
-        "objective": "evaluate_investment_strategy"
+        "objective": "evaluate_investment_strategy",
+        "trigger_semantics": "persistent_condition"
       },
       "open": [],
       "questions": [],
@@ -737,7 +595,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "918ab2aba9038f5f"
+      "plan": "a9037e81135494b2"
     },
     "contribute $1,000 monthly": {
       "text": "contribute $1,000 monthly",
@@ -761,7 +619,7 @@
     "contribute $500 a month to VTI": {
       "text": "contribute $500 a month to VTI",
       "settled": {
-        "amount": "$500",
+        "amount": "500",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -851,14 +709,16 @@
       "settled": {
         "amount": "$40,000",
         "cadence": "annual",
-        "objective": "assess_withdrawal"
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw $40,000 per year"
       },
       "open": [],
       "questions": [
         "assets"
       ],
       "refusals": [
-        "objective"
+        "objective",
+        "sell_action"
       ],
       "needs_input": [
         "assets"
@@ -872,7 +732,7 @@
       "settled": {
         "cadence": "annual",
         "objective": "assess_withdrawal",
-        "sell_action": "draw down 4% annually"
+        "sell_action": "withdraw 4% annually"
       },
       "open": [],
       "questions": [
@@ -893,22 +753,22 @@
       "text": "each month hold whichever of VTI and BND performed best",
       "settled": {
         "assets": "VTI and BND",
-        "cadence": "monthly",
-        "objective": "evaluate_investment_strategy"
+        "selection_rule": "each month hold whichever of VTI and BND performed best"
       },
       "open": [],
       "questions": [],
-      "refusals": [],
+      "refusals": [
+        "selection_rule"
+      ],
       "needs_input": [],
       "sealed": true,
-      "executable": true,
-      "plan": "c8639ff4cb0bdf5b"
+      "executable": false,
+      "plan": null
     },
     "each year, bring the portfolio back to 60/40": {
       "text": "each year, bring the portfolio back to 60/40",
       "settled": {
-        "allocation_method": "stated_weights",
-        "periodic_rebalancing": "annual, back to 60/40",
+        "periodic_rebalancing": "annually",
         "stated_weights": "60/40"
       },
       "open": [],
@@ -916,7 +776,6 @@
         "assets"
       ],
       "refusals": [
-        "allocation_method",
         "periodic_rebalancing",
         "stated_weights"
       ],
@@ -930,7 +789,8 @@
     "harvest losses whenever a position falls 10% below its cost basis": {
       "text": "harvest losses whenever a position falls 10% below its cost basis",
       "settled": {
-        "sell_action": "harvest losses whenever a position falls 10% below its cost basis"
+        "sell_action": "harvest losses when a position falls 10% below its cost basis",
+        "trigger_semantics": "persistent_condition"
       },
       "open": [],
       "questions": [
@@ -966,20 +826,23 @@
     "hold VTI for 200 days": {
       "text": "hold VTI for 200 days",
       "settled": {
-        "assets": "VTI"
+        "assets": "VTI",
+        "holding_period": "200 days"
       },
       "open": [],
       "questions": [],
-      "refusals": [],
+      "refusals": [
+        "holding_period"
+      ],
       "needs_input": [],
       "sealed": true,
-      "executable": true,
-      "plan": "918ab2aba9038f5f"
+      "executable": false,
+      "plan": null
     },
     "hold the bonds in the IRA and the stocks in the taxable account": {
       "text": "hold the bonds in the IRA and the stocks in the taxable account",
       "settled": {
-        "objective": "other"
+        "objective": "evaluate_investment_strategy"
       },
       "open": [],
       "questions": [
@@ -997,7 +860,9 @@
     },
     "hold three years of spending in cash, invest the remainder": {
       "text": "hold three years of spending in cash, invest the remainder",
-      "settled": {},
+      "settled": {
+        "objective": "evaluate_investment_strategy"
+      },
       "open": [],
       "questions": [
         "assets"
@@ -1016,22 +881,18 @@
       "text": "if VTI moves from above its 200-day MA to below it, buy $1,000",
       "settled": {
         "amount": "$1,000",
+        "assets": "VTI",
         "moving_average_window": "200",
-        "objective": "plan_contributions",
-        "observed_assets": "VTI",
+        "objective": "evaluate_investment_strategy",
         "trigger_semantics": "crossing_event"
       },
       "open": [],
-      "questions": [
-        "assets"
-      ],
+      "questions": [],
       "refusals": [],
-      "needs_input": [
-        "assets"
-      ],
+      "needs_input": [],
       "sealed": true,
-      "executable": false,
-      "plan": null
+      "executable": true,
+      "plan": "0e125db01ba108e4"
     },
     "invest $1,000 in VTI on any day it sits under the 200 DMA": {
       "text": "invest $1,000 in VTI on any day it sits under the 200 DMA",
@@ -1039,7 +900,7 @@
         "amount": "$1,000",
         "assets": "VTI",
         "moving_average_window": "200",
-        "objective": "evaluate_investment_strategy",
+        "objective": "plan_contributions",
         "trigger_semantics": "persistent_condition"
       },
       "open": [],
@@ -1070,7 +931,7 @@
     "invest $1,000 monthly into VTI": {
       "text": "invest $1,000 monthly into VTI",
       "settled": {
-        "amount": "$1,000",
+        "amount": "1000",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -1121,8 +982,8 @@
       "text": "invest $1,000 monthly, 40% VTI and 60% BND",
       "settled": {
         "allocation_method": "stated_weights",
-        "amount": "$1,000",
-        "assets": "VTI and BND",
+        "amount": "1000",
+        "assets": "VTI, BND",
         "cadence": "monthly",
         "objective": "plan_contributions",
         "stated_weights": "40/60"
@@ -1142,8 +1003,8 @@
       "text": "invest $1,000 monthly, 60% VTI and 40% BND",
       "settled": {
         "allocation_method": "stated_weights",
-        "amount": "$1,000",
-        "assets": "VTI and BND",
+        "amount": "1000",
+        "assets": "VTI, BND",
         "cadence": "monthly",
         "objective": "plan_contributions",
         "stated_weights": "60/40"
@@ -1232,7 +1093,7 @@
         "amount": "$500",
         "assets": "BND",
         "cadence": "monthly",
-        "objective": "plan_contributions"
+        "objective": "evaluate_investment_strategy"
       },
       "open": [],
       "questions": [],
@@ -1261,7 +1122,7 @@
     "invest $500 weekly into VTI": {
       "text": "invest $500 weekly into VTI",
       "settled": {
-        "amount": "$500",
+        "amount": "500",
         "assets": "VTI",
         "cadence": "weekly",
         "objective": "plan_contributions"
@@ -1276,7 +1137,9 @@
     },
     "keep bonds in my IRA, equities in taxable": {
       "text": "keep bonds in my IRA, equities in taxable",
-      "settled": {},
+      "settled": {
+        "objective": "other"
+      },
       "open": [],
       "questions": [
         "assets"
@@ -1329,10 +1192,9 @@
       "text": "monthly $1,000 weighted 60/40 across VTI and BND",
       "settled": {
         "allocation_method": "stated_weights",
-        "amount": "$1,000",
+        "amount": "1000",
         "assets": "VTI and BND",
         "cadence": "monthly",
-        "objective": "plan_contributions",
         "stated_weights": "60/40"
       },
       "open": [],
@@ -1351,7 +1213,8 @@
       "settled": {
         "amount": "500",
         "assets": "VTI",
-        "cadence": "monthly"
+        "cadence": "monthly",
+        "objective": "plan_contributions"
       },
       "open": [],
       "questions": [],
@@ -1364,17 +1227,20 @@
     "monthly, buy the better performer of VTI or BND": {
       "text": "monthly, buy the better performer of VTI or BND",
       "settled": {
-        "assets": "VTI or BND",
+        "assets": "VTI, BND",
         "cadence": "monthly",
-        "objective": "evaluate_investment_strategy"
+        "objective": "evaluate_investment_strategy",
+        "selection_rule": "buy the better performer of VTI or BND"
       },
       "open": [],
       "questions": [],
-      "refusals": [],
+      "refusals": [
+        "selection_rule"
+      ],
       "needs_input": [],
       "sealed": true,
-      "executable": true,
-      "plan": "abc13efaa1a150a4"
+      "executable": false,
+      "plan": null
     },
     "move $30,000 a year from my traditional IRA into a Roth": {
       "text": "move $30,000 a year from my traditional IRA into a Roth",
@@ -1401,14 +1267,17 @@
     "move one percent a year out of equities into fixed income": {
       "text": "move one percent a year out of equities into fixed income",
       "settled": {
-        "amount": "1%",
-        "cadence": "annual"
+        "amount": "one percent",
+        "cadence": "annual",
+        "sell_action": "move out of equities into fixed income"
       },
       "open": [],
       "questions": [
         "assets"
       ],
-      "refusals": [],
+      "refusals": [
+        "sell_action"
+      ],
       "needs_input": [
         "assets"
       ],
@@ -1433,16 +1302,20 @@
     },
     "overweight small cap value by 20%": {
       "text": "overweight small cap value by 20%",
-      "settled": {
-        "assets": "small cap value"
-      },
+      "settled": {},
       "open": [],
-      "questions": [],
-      "refusals": [],
-      "needs_input": [],
+      "questions": [
+        "assets"
+      ],
+      "refusals": [
+        "portfolio_sleeves"
+      ],
+      "needs_input": [
+        "assets"
+      ],
       "sealed": true,
-      "executable": true,
-      "plan": "7728c2fec298d356"
+      "executable": false,
+      "plan": null
     },
     "pay off the mortgage instead of investing": {
       "text": "pay off the mortgage instead of investing",
@@ -1483,10 +1356,9 @@
     "put $10,000 into VTI as a lump sum": {
       "text": "put $10,000 into VTI as a lump sum",
       "settled": {
-        "amount": "10000",
+        "amount": "$10,000",
         "assets": "VTI",
-        "cadence": "once",
-        "objective": "plan_contributions"
+        "cadence": "once"
       },
       "open": [],
       "questions": [],
@@ -1499,7 +1371,7 @@
     "put $100 a week into VTI": {
       "text": "put $100 a week into VTI",
       "settled": {
-        "amount": "$100",
+        "amount": "100",
         "assets": "VTI",
         "cadence": "weekly",
         "objective": "plan_contributions"
@@ -1515,7 +1387,7 @@
     "put $500 into VTI every month": {
       "text": "put $500 into VTI every month",
       "settled": {
-        "amount": "$500",
+        "amount": "500",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -1534,7 +1406,7 @@
         "amount": "1000",
         "assets": "VTI",
         "moving_average_window": "200",
-        "objective": "evaluate_investment_strategy",
+        "objective": "plan_contributions",
         "trigger_semantics": "crossing_event"
       },
       "open": [],
@@ -1600,15 +1472,16 @@
     "rebalance back to 60/40 every year": {
       "text": "rebalance back to 60/40 every year",
       "settled": {
-        "periodic_rebalancing": "annual",
         "stated_weights": "60/40"
       },
-      "open": [],
+      "open": [
+        "periodic_rebalancing"
+      ],
       "questions": [
-        "assets"
+        "assets",
+        "periodic_rebalancing"
       ],
       "refusals": [
-        "periodic_rebalancing",
         "stated_weights"
       ],
       "needs_input": [
@@ -1621,7 +1494,8 @@
     "rebalance if any holding moves 5% away from its target": {
       "text": "rebalance if any holding moves 5% away from its target",
       "settled": {
-        "periodic_rebalancing": "rebalance when any holding drifts 5% from target"
+        "periodic_rebalancing": "rebalance when any holding drifts 5% from its target weight",
+        "trigger_semantics": "crossing_event"
       },
       "open": [],
       "questions": [
@@ -1640,7 +1514,7 @@
     "rebalance whenever an allocation drifts more than 5 points": {
       "text": "rebalance whenever an allocation drifts more than 5 points",
       "settled": {
-        "periodic_rebalancing": "rebalance when an allocation drifts more than 5 points",
+        "periodic_rebalancing": "whenever an allocation drifts more than 5 points",
         "trigger_semantics": "persistent_condition"
       },
       "open": [],
@@ -1661,7 +1535,7 @@
       "text": "reduce the equity share by 1% annually",
       "settled": {
         "cadence": "annual",
-        "sell_action": "reduce the equity share by 1%"
+        "sell_action": "reduce equity share by 1%"
       },
       "open": [],
       "questions": [
@@ -1682,15 +1556,18 @@
       "settled": {
         "assets": "VTI and BND",
         "cadence": "monthly",
-        "objective": "evaluate_investment_strategy"
+        "objective": "evaluate_investment_strategy",
+        "selection_rule": "hold whichever of VTI and BND is stronger, re-evaluated monthly"
       },
       "open": [],
       "questions": [],
-      "refusals": [],
+      "refusals": [
+        "selection_rule"
+      ],
       "needs_input": [],
       "sealed": true,
-      "executable": true,
-      "plan": "c8639ff4cb0bdf5b"
+      "executable": false,
+      "plan": null
     },
     "run it at a 10% volatility target": {
       "text": "run it at a 10% volatility target",
@@ -1747,8 +1624,7 @@
     "sell losers that are down 10% from what I paid": {
       "text": "sell losers that are down 10% from what I paid",
       "settled": {
-        "objective": "evaluate_investment_strategy",
-        "sell_action": "sell losers that are down 10% from what I paid"
+        "sell_action": "sell holdings that are down 10% from the price paid"
       },
       "open": [],
       "questions": [
@@ -1767,7 +1643,7 @@
     "set aside $500 for VTI monthly": {
       "text": "set aside $500 for VTI monthly",
       "settled": {
-        "amount": "$500",
+        "amount": "500",
         "assets": "VTI",
         "cadence": "monthly",
         "objective": "plan_contributions"
@@ -1783,11 +1659,7 @@
     "shift 1% from stocks to bonds every year as I get older": {
       "text": "shift 1% from stocks to bonds every year as I get older",
       "settled": {
-        "amount": "1%",
-        "assets": "bonds",
-        "cadence": "annual",
-        "objective": "evaluate_investment_strategy",
-        "sell_action": "shift 1% from stocks to bonds"
+        "cadence": "annual"
       },
       "open": [
         "stated_weights"
@@ -1843,7 +1715,8 @@
       "text": "spend 4% of the balance every year",
       "settled": {
         "cadence": "annual",
-        "objective": "assess_withdrawal"
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw 4% of the balance"
       },
       "open": [
         "stated_weights"
@@ -1863,7 +1736,7 @@
         "amount": "$40,000",
         "cadence": "annual",
         "objective": "assess_withdrawal",
-        "sell_action": "take $40,000 out each year"
+        "sell_action": "withdraw $40,000"
       },
       "open": [],
       "questions": [
@@ -1884,7 +1757,8 @@
       "text": "take out 4% a year",
       "settled": {
         "cadence": "annual",
-        "objective": "assess_withdrawal"
+        "objective": "assess_withdrawal",
+        "sell_action": "take out 4% a year"
       },
       "open": [
         "stated_weights"
@@ -1920,7 +1794,7 @@
     "tax-loss harvest positions 10% underwater": {
       "text": "tax-loss harvest positions 10% underwater",
       "settled": {
-        "sell_action": "tax-loss harvest positions 10% underwater"
+        "sell_action": "tax-loss harvest positions that are 10% underwater"
       },
       "open": [],
       "questions": [
@@ -1938,17 +1812,15 @@
     },
     "tilt 20% toward small cap value": {
       "text": "tilt 20% toward small cap value",
-      "settled": {},
+      "settled": {
+        "assets": "small cap value"
+      },
       "open": [],
-      "questions": [
-        "assets"
-      ],
+      "questions": [],
       "refusals": [
         "portfolio_sleeves"
       ],
-      "needs_input": [
-        "assets"
-      ],
+      "needs_input": [],
       "sealed": true,
       "executable": false,
       "plan": null
@@ -1975,7 +1847,8 @@
         "amount": "$1,000",
         "moving_average_window": "200",
         "objective": "evaluate_investment_strategy",
-        "observed_assets": "VTI"
+        "observed_assets": "VTI",
+        "trigger_semantics": "crossing_event"
       },
       "open": [],
       "questions": [
@@ -2011,17 +1884,21 @@
       "settled": {
         "amount": "$1,000",
         "cadence": "monthly",
-        "objective": "assess_withdrawal"
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw $1,000"
       },
-      "open": [
-        "sell_action"
-      ],
+      "open": [],
       "questions": [
+        "assets"
+      ],
+      "refusals": [
+        "objective",
         "sell_action"
       ],
-      "refusals": [],
-      "needs_input": [],
-      "sealed": false,
+      "needs_input": [
+        "assets"
+      ],
+      "sealed": true,
       "executable": false,
       "plan": null
     },
@@ -2030,17 +1907,21 @@
       "settled": {
         "amount": "40000",
         "cadence": "annual",
-        "objective": "assess_withdrawal"
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw $40,000 a year"
       },
-      "open": [
-        "sell_action"
-      ],
+      "open": [],
       "questions": [
+        "assets"
+      ],
+      "refusals": [
+        "objective",
         "sell_action"
       ],
-      "refusals": [],
-      "needs_input": [],
-      "sealed": false,
+      "needs_input": [
+        "assets"
+      ],
+      "sealed": true,
       "executable": false,
       "plan": null
     },
@@ -2048,14 +1929,13 @@
       "text": "withdraw 4% of the portfolio each year",
       "settled": {
         "cadence": "annual",
-        "objective": "assess_withdrawal"
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw 4% of the portfolio each year"
       },
       "open": [
-        "sell_action",
         "stated_weights"
       ],
       "questions": [
-        "sell_action",
         "stated_weights"
       ],
       "refusals": [],
@@ -2069,7 +1949,7 @@
       "settled": {
         "allocation_method": "stated_weights",
         "assets": "stocks and bonds",
-        "periodic_rebalancing": "yearly",
+        "periodic_rebalancing": "annual",
         "stated_weights": "60/40"
       },
       "open": [],

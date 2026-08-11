@@ -22,6 +22,17 @@ from __future__ import annotations
 
 from .reader import Dimension, RelationSpec, Schema
 
+# @6: `selection_rule` and `holding_period`. The benchmark found "each month
+# hold whichever of VTI and BND performed best" reading as two holdings and a
+# monthly cadence, and *executing* — the selection, and the selling a rotation
+# implies, were gone. Adding `rotate` and `whichever` to the syntax guard's
+# lemma list would have been treating the witnesses as the semantic; the
+# missing thing was a concept for Discovery to put the selection in.
+#
+# `holding_period` is the same shape, found by the same pair: "hold VTI for 200
+# days" compiled identically to "buy VTI below its 200-day moving average",
+# because neither the duration nor the lookback had anywhere to go.
+#
 # @5: `asset_location`. The last schema gap the strategy sweep left standing.
 # `account_type` *was* read from "hold the bonds in the IRA and the stocks in
 # the taxable account" — it returned TAXABLE — so the family scored as
@@ -42,7 +53,7 @@ from .reader import Dimension, RelationSpec, Schema
 # the same rule `READER_VERSION` and `quantify-compiler@2` already follow.
 # The shadow matrices were built under @2 and are stale; `corpus/shadow/STALE.md`
 # says so and `test_phase3_exit_gate` checks that the declaration is current.
-QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@5", dimensions=(
+QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@6", dimensions=(
 
     Dimension(
         name="objective",
@@ -148,6 +159,27 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@5", dimensions=(
         describes=("Whether holdings are brought back to target, and how "
                    "often or on what drift."),
         examples=("rebalance quarterly", "when it drifts more than 5 points")),
+
+    Dimension(
+        name="selection_rule",
+        describes=(
+            "Choosing which holdings to own from a candidate set, "
+            "periodically, by ranking them. Momentum, relative strength, "
+            "'whichever performed best', 'the stronger of'. The candidates are "
+            "in `assets`; this is the rule that picks among them."),
+        examples=("hold whichever of VTI and BND performed best each month",
+                  "rotate monthly into the stronger of the two",
+                  "buy the top two by trailing 12-month return")),
+
+    Dimension(
+        name="holding_period",
+        describes=(
+            "A stated length of time a position is kept, as written. Distinct "
+            "from `moving_average_window`, which is a lookback the market is "
+            "measured over — one is how long you hold, the other is how far "
+            "back you look."),
+        examples=("hold for 200 days", "keep it for at least a year",
+                  "hold the bonus shares for 90 days")),
 
     Dimension(
         name="sell_action",

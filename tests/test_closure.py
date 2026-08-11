@@ -79,13 +79,23 @@ class TestAgreementIsNotAssumed:
     #: the 1st rolled off a holiday — a different day and a different figure.
     #: Rewriting the case would make the corpus assert whatever the reader last
     #: said, which is the one thing a regression corpus must not do.
-    MODEL_IS_WRONG = {
-        "sema-timing-day_rule-001":
-            "read calendar_first_rolled_forward for 'the first trading day of "
-            "the month', which names a session, not the 1st rolled forward",
-        # `-002` was listed here too, on the assumption the same confusion
-        # applied to the last trading day. It does not, and the staleness
-        # check above caught the guess immediately.
+    MODEL_IS_WRONG: dict = {
+        # Empty, and reached that way in the direction that is allowed.
+        #
+        # `-001` was listed here: the model read `calendar_first_rolled_forward`
+        # for "the first trading day of the month", which names a session and
+        # not the 1st rolled off a holiday. The expectation was never edited to
+        # match it. On the re-recording under schema `@6` the model reads
+        # `first_session_of_period` — the value the case has asserted all along
+        # — and the staleness check demanded the entry come out.
+        #
+        # `-002` was listed too, on the assumption the same confusion applied to
+        # the last trading day. It did not, and the staleness check caught that
+        # guess immediately as well.
+        #
+        # An empty list is not a claim that the model is never wrong. It is a
+        # claim that nothing is currently being tolerated silently, which is the
+        # only property this list can honestly carry.
     }
 
     def test_no_agreement_is_recorded_with_the_wrong_value(self):

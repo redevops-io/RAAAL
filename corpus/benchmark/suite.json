@@ -6,6 +6,7 @@
       "family": "accumulation",
       "disposition": "EXECUTES",
       "refuses": [],
+      "states": [],
       "note": "",
       "phrasings": [
         "invest $500 monthly into VTI",
@@ -23,6 +24,7 @@
       "family": "accumulation",
       "disposition": "EXECUTES",
       "refuses": [],
+      "states": [],
       "note": "",
       "phrasings": [
         "invest $100 weekly into VTI",
@@ -37,6 +39,7 @@
       "family": "accumulation",
       "disposition": "EXECUTES",
       "refuses": [],
+      "states": [],
       "note": "",
       "phrasings": [
         "invest $10,000 in VTI once",
@@ -51,6 +54,7 @@
       "family": "conditional",
       "disposition": "EXECUTES",
       "refuses": [],
+      "states": [],
       "note": "a crossing, not a state",
       "phrasings": [
         "buy $1,000 of VTI when it crosses below its 200-day moving average",
@@ -66,6 +70,7 @@
       "family": "conditional",
       "disposition": "EXECUTES",
       "refuses": [],
+      "states": [],
       "note": "a state, not a crossing",
       "phrasings": [
         "buy $1,000 of VTI whenever it is below its 200-day moving average",
@@ -79,6 +84,7 @@
       "family": "allocation",
       "disposition": "EXECUTES",
       "refuses": [],
+      "states": [],
       "note": "",
       "phrasings": [
         "invest $1,000 monthly split equally between VTI and BND",
@@ -94,6 +100,7 @@
       "refuses": [
         "stated_weights"
       ],
+      "states": [],
       "note": "this build divides each purchase equally",
       "phrasings": [
         "invest $1,000 monthly, 60% VTI and 40% BND",
@@ -109,6 +116,7 @@
       "refuses": [
         "allocation_method"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "allocate $1,000 monthly by inverse volatility across VTI and BND",
@@ -121,9 +129,15 @@
       "family": "rebalancing",
       "disposition": "REFUSES",
       "refuses": [
-        "periodic_rebalancing"
+        "periodic_rebalancing",
+        "stated_weights",
+        "allocation_method"
       ],
-      "note": "",
+      "states": [
+        "periodic_rebalancing",
+        "stated_weights"
+      ],
+      "note": "two unsupported things in one sentence",
       "phrasings": [
         "rebalance back to 60/40 every year",
         "annually rebalance to a 60/40 target",
@@ -138,6 +152,7 @@
       "refuses": [
         "periodic_rebalancing"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "rebalance whenever an allocation drifts more than 5 points",
@@ -152,6 +167,7 @@
       "refuses": [
         "sell_action"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "withdraw 4% of the portfolio each year",
@@ -168,6 +184,7 @@
       "refuses": [
         "sell_action"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "withdraw $40,000 a year from the portfolio",
@@ -183,6 +200,7 @@
       "refuses": [
         "sell_action"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "harvest losses whenever a position falls 10% below its cost basis",
@@ -198,6 +216,7 @@
         "sell_action",
         "objective"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "convert $30,000 from the traditional IRA to the Roth each year",
@@ -212,6 +231,7 @@
       "refuses": [
         "asset_location"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "hold the bonds in the IRA and the stocks in the taxable account",
@@ -227,6 +247,7 @@
         "reserve_policy",
         "bucket_policy"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "keep three years of expenses in cash and the rest in stocks",
@@ -239,9 +260,11 @@
       "family": "retirement",
       "disposition": "REFUSES",
       "refuses": [
-        "periodic_rebalancing"
+        "periodic_rebalancing",
+        "sell_action"
       ],
-      "note": "",
+      "states": [],
+      "note": "moving money out of equities is selling, and refusing on that is as correct as refusing on the rebalancing",
       "phrasings": [
         "shift 1% from stocks to bonds every year as I get older",
         "move one percent a year out of equities into fixed income",
@@ -255,6 +278,7 @@
       "refuses": [
         "allocation_method"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "run it at a 10% volatility target",
@@ -269,6 +293,7 @@
       "refuses": [
         "portfolio_sleeves"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "hold 2x leverage on the equity sleeve",
@@ -284,6 +309,7 @@
         "portfolio_sleeves",
         "stated_weights"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "tilt 20% toward small cap value",
@@ -296,9 +322,11 @@
       "family": "rotation",
       "disposition": "REFUSES",
       "refuses": [
+        "selection_rule",
         "sell_action"
       ],
-      "note": "",
+      "states": [],
+      "note": "the selection is the strategy; `selection_rule` was added after this family executed as a plain purchase of every candidate",
       "phrasings": [
         "each month hold whichever of VTI and BND performed best",
         "rotate monthly into the stronger of VTI and BND",
@@ -312,6 +340,7 @@
       "refuses": [
         "objective"
       ],
+      "states": [],
       "note": "",
       "phrasings": [
         "pay off the mortgage instead of investing",
