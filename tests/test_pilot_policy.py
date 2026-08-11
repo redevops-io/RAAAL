@@ -209,7 +209,7 @@ class TestTheLiveRouteIsGated:
         monkeypatch.setattr(policy_module, "authorise", refuse)
         assert routes._prices() is None
 
-    def test_an_approved_snapshot_does_yield_prices(self, monkeypatch):
+    def test_an_approved_snapshot_does_yield_prices(self, monkeypatch, requires_the_vendor_snapshot):
         import src.workspace.routes as routes
 
         monkeypatch.setenv(POLICY_VARIABLE,

@@ -283,7 +283,7 @@ class TestTheVendorSnapshotIsActuallyServable:
     run come back holding prices.
     """
 
-    def test_a_run_under_the_approved_policy_receives_prices(self, monkeypatch):
+    def test_a_run_under_the_approved_policy_receives_prices(self, monkeypatch, requires_the_vendor_snapshot):
         from src.market_data.provenance import AccessDecision
 
         monkeypatch.setenv(POLICY, "market-data-egress/pilot-vendor-approved@1")
@@ -292,7 +292,7 @@ class TestTheVendorSnapshotIsActuallyServable:
         assert provenance.status is ProvenanceStatus.RECORDED
         assert provenance.access_decision is AccessDecision.PILOT_VENDOR_APPROVED
 
-    def test_the_prices_are_the_snapshot_the_provenance_names(self, monkeypatch):
+    def test_the_prices_are_the_snapshot_the_provenance_names(self, monkeypatch, requires_the_vendor_snapshot):
         """Otherwise the record is true about a snapshot and the figure came
         from somewhere else."""
         from src.market_data.access import approved_snapshot
