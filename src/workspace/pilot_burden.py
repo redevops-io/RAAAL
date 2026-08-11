@@ -65,56 +65,85 @@ def summarise(rows) -> Mapping[str, Any]:
     ten-person cohort produces denominators too small for a percentage to mean
     what a percentage looks like it means.
     """
-    asked: dict = {}
+    # Per participant, then tallied. The unit is a *dimension*, counted once
+    # per person however many times they were shown the question — otherwise a
+    # participant who reloaded the page five times would look like five people
+    # who could not answer.
+    asked_per: dict = {}
+    answered_per: dict = {}
     never_asked: dict = {}
     restated: dict = {}
-    sealed, sessions_with_questions, questions_total = 0, 0, 0
+    sealed = 0
     participants = set()
 
     for row in rows:
-        detail = row["detail"]
-        if row["participant"]:
-            participants.add(row["participant"])
+        detail, who = row["detail"], row["participant"]
+        if who:
+            participants.add(who)
 
         if row["kind"] == DISCOVERY_ASKED:
-            for dimension in detail.get("dimensions", ()):
-                asked[dimension] = asked.get(dimension, 0) + 1
-            count = int(detail.get("question_count") or 0)
-            questions_total += count
-            if count:
-                sessions_with_questions += 1
+            asked_per.setdefault(who, set()).update(
+                detail.get("dimensions", ()))
             for dimension in detail.get(NOT_ASKED_ABOUT, ()):
                 never_asked[dimension] = never_asked.get(dimension, 0) + 1
+
+        elif row["kind"] == DISCOVERY_ANSWERED:
+            # One event per unresolved -> answered transition, emitted by
+            # whichever route performed it. `dimension` is singular for that
+            # reason; the plural key is read too so recordings made before the
+            # semantics were settled are not silently skipped.
+            if detail.get("dimension"):
+                answered_per.setdefault(who, set()).add(detail["dimension"])
+            answered_per.setdefault(who, set()).update(
+                detail.get("dimensions", ()))
 
         elif row["kind"] == INTENT_SEALED:
             sealed += 1
 
         elif row["kind"] == PLAN_RESUBMITTED:
-            # The unnecessary-question proxy, already recorded by
-            # `observe_resubmission`: dimensions whose answer was sitting in
-            # the sentence the person had already typed.
             for dimension in detail.get("repeated_from_prompt", ()):
                 restated[dimension] = restated.get(dimension, 0) + 1
 
     def ranked(tally):
         return dict(sorted(tally.items(), key=lambda kv: -kv[1]))
 
+    def by_dimension(per):
+        tally: dict = {}
+        for dimensions in per.values():
+            for dimension in dimensions:
+                tally[dimension] = tally.get(dimension, 0) + 1
+        return tally
+
+    asked = by_dimension(asked_per)
+    answered = by_dimension(answered_per)
+
+    # Asked and never settled. Not a failure on its own — somebody may have
+    # abandoned the session, which is itself worth seeing — but it is the
+    # difference between a question that did its job and one that stopped
+    # somebody.
+    unanswered = {d: asked[d] - answered.get(d, 0) for d in asked
+                  if asked[d] > answered.get(d, 0)}
+
     return {
-        "schema": "quantify-follow-up-burden@1",
+        "schema": "quantify-follow-up-burden@2",
         "participants": len(participants),
         "sealed_intents": sealed,
-        "sessions_that_were_asked_something": sessions_with_questions,
-        "questions_asked": questions_total,
+        "people_who_were_asked_something": len(asked_per),
+        "questions_asked": sum(len(d) for d in asked_per.values()),
+        "answers_supplied": sum(len(d) for d in answered_per.values()),
         "asked_by_dimension": ranked(asked),
+        "answered_by_dimension": ranked(answered),
+        "asked_and_never_settled": ranked(unanswered),
         "answer_was_already_in_the_prompt": ranked(restated),
         "never_asked_by_dimension": ranked(never_asked),
         "reading_note": (
-            "Three separate questions. `asked_by_dimension` is the burden; "
-            "`answer_was_already_in_the_prompt` is a proxy for burden that was "
-            "avoidable, and it is a proxy — a person may restate something the "
-            "runtime was right to be unsure about; `never_asked_by_dimension` "
-            "is the opposite failure, where somebody was refused for a fact "
-            "nobody asked them for."),
+            "The unit is a dimension per participant, not a form submission. "
+            "`asked_by_dimension` is the burden; `answered_by_dimension` is "
+            "what the asking bought; `answer_was_already_in_the_prompt` is a "
+            "proxy for burden that was avoidable, and it is a proxy — a person "
+            "may restate something the runtime was right to be unsure about; "
+            "`never_asked_by_dimension` is the opposite failure, where "
+            "somebody was refused for a fact nobody asked them for."),
         "denominator_note": (
             "No rates. A ten-person cohort makes a percentage look like a "
             "measurement and behave like one participant's afternoon."),
@@ -128,7 +157,7 @@ def report() -> Mapping[str, Any]:
         # Named rather than swallowed. An empty report and an unreachable
         # table look identical, and one of them means the pilot is running
         # fine while its instrumentation is not.
-        return {"schema": "quantify-follow-up-burden@1",
+        return {"schema": "quantify-follow-up-burden@2",
                 "unavailable": f"{type(failure).__name__}: {failure}"}
 
 

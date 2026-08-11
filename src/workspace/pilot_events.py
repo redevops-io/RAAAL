@@ -268,6 +268,74 @@ def observe(reading, *, plan_id: str = "", participant: str = "",
 NOT_ASKED_ABOUT = "not_asked_about"
 
 
+def _dimensions_seen(participant: str, kind: str) -> set:
+    """Dimensions this participant has already had recorded under `kind`.
+
+    Read back out of the events table rather than held in a session. The
+    events *are* the record, so a transition cannot be emitted twice however
+    many routes call the emitter, and no new state has to be kept correct.
+    """
+    if not participant:
+        return set()
+    try:
+        connection = _connect()
+    except Exception:                                          # noqa: BLE001
+        return set()
+    try:
+        rows = connection.execute(
+            "SELECT detail FROM pilot_events WHERE participant = ? AND kind = ?",
+            (participant, kind)).fetchall()
+    except Exception:                                          # noqa: BLE001
+        return set()
+    finally:
+        connection.close()
+
+    seen: set = set()
+    for (detail,) in rows:
+        payload = json.loads(detail or "{}")
+        if payload.get("dimension"):
+            seen.add(payload["dimension"])
+        seen.update(payload.get("dimensions", ()))
+    return seen
+
+
+def observe_answers(reading, *, participant: str = "") -> None:
+    """One event per dimension that went from unresolved to answered.
+
+    Tied to a state transition, not to a UI action. That is the whole design:
+
+        /pilot/answer resolves X          -> discovery_answered(X)
+        /pilot/save   resolves X and Y    -> discovery_answered(X), (Y)
+        X already answered                -> nothing
+
+    The previous version emitted from `observe_resubmission`, which made the
+    count a property of which route the participant used — `/pilot/save`
+    accepts `answer_<dimension>` fields and never called it, so anybody who
+    supplied the missing holding and saved in one step was recorded as having
+    answered nothing. Emitting from the save route as well would have
+    double-counted anyone who answered and then saved. Neither is a defect in
+    the emitter; both come from counting form submissions and calling them
+    answers.
+
+    Being a transition makes this idempotent, and idempotence is what lets it
+    be called from anywhere a reading exists without anybody having to reason
+    about overlap.
+
+    A dimension only counts if it was *asked about* first. Something the
+    sentence supplied on the first attempt was never a follow-up and must not
+    inflate the burden the runtime is being measured on.
+    """
+    asked = _dimensions_seen(participant, DISCOVERY_ASKED)
+    if not asked:
+        return
+    already = _dimensions_seen(participant, DISCOVERY_ANSWERED)
+    settled = {f.field for f in reading.settled if f.value is not None}
+
+    for dimension in sorted((asked & settled) - already):
+        record(DISCOVERY_ANSWERED, participant=participant,
+               dimension=dimension)
+
+
 def observe_discovery(reading, *, plan_id: str = "",
                       participant: str = "") -> None:
     """What Discovery asked, what it sealed, and what it should have asked.
@@ -300,6 +368,11 @@ def observe_discovery(reading, *, plan_id: str = "",
         record(INTENT_SEALED, plan_id=plan_id, participant=participant,
                settled_count=len(list(reading.settled)),
                questions_before_sealing=len(questions))
+
+    # After the questions above are on record, so a dimension asked and
+    # answered within one request is still seen as a transition rather than
+    # falling between the two calls.
+    observe_answers(reading, participant=participant)
 
 
 def answers_already_in_the_prompt(prompt: str,
@@ -351,18 +424,11 @@ def observe_resubmission(*, attempt: int, changed: Optional[bool],
            text_changed=changed, answered_field_count=len(answered),
            repeated_from_prompt=list(repeated))
 
-    # The other half of the burden pair. Questions asked cannot on their own
-    # tell a runtime that asked once and got what it needed from one that asked
-    # three times and was ignored, and this is where the answer arrives — a
-    # resubmission carrying dimensions that were open before it.
-    #
-    # Emitted here rather than declared beside the other kinds because
-    # `test_all_seven_appear` refuses an event constant no journey produces.
-    # It caught this one: the kind existed and nothing recorded it, which is
-    # the shape of a manifest entry that reads as a permanent zero.
-    if answered:
-        record(DISCOVERY_ANSWERED, participant=participant, attempt=attempt,
-               dimensions=sorted(answered), answered_count=len(answered))
+    # No `discovery_answered` here. It used to be emitted from this function,
+    # which made it an event about an HTTP route rather than about anything
+    # that happened to the intent — and `/pilot/save` accepts answers without
+    # passing through here at all, so the count depended on which button
+    # somebody pressed. See `observe_answers`.
 
 
 def observe_departure(path: str, *, participant: str = "") -> None:
@@ -387,6 +453,13 @@ def observe_save(reading, plan_id: str, participant: str = "") -> None:
            executable=bool(reading.executable),
            settled_field_count=len(reading.settled),
            open_question_count=len(reading.questions))
+
+    # `/pilot/save` accepts `answer_<dimension>` fields, so a participant can
+    # supply the missing holding and save in one step. That used to record no
+    # answer at all. It is safe to call here *and* from `observe_discovery`
+    # because the event is a state transition: whichever route gets there
+    # first emits it, and the other finds it already recorded.
+    observe_answers(reading, participant=participant)
 
 
 def every_event() -> Sequence[Mapping[str, Any]]:

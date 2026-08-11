@@ -83,33 +83,45 @@ class TestEveryProducerIsReachableFromTheRealJourney:
     The count was in the name of this test and went stale twice. It is gone.
     """
 
-    def test_answering_while_saving_is_a_known_blind_spot(self, client):
-        """A gap this test surface found and which is deliberately not closed
-        here.
+    def test_answering_while_saving_is_recorded_too(self, client):
+        """The blind spot, closed — and it was closed by changing what the
+        event *means* rather than by adding a second emit.
 
-        `/pilot/save` accepts `answer_<dimension>` fields and calls only
-        `observe_save`. So a participant who supplies the missing holding *and*
-        saves in one step has answered a question, and no `discovery_answered`
-        is recorded for it — the follow-up burden report will undercount
-        answers by exactly the people who did the efficient thing.
-
-        Recorded rather than fixed because the fix has a choice in it: emitting
-        from the save route double-counts anyone who answers and then saves,
-        and picking between those is a decision about what the metric means
-        rather than a bug to patch quietly before a cohort runs.
+        `discovery_answered` is now one event per dimension that went from
+        unresolved to answered, emitted by whichever route performed the
+        transition. Tying it to a state change instead of to a form submission
+        is what makes undercounting and double-counting both impossible: the
+        save route records the answer it resolved, and a participant who
+        answered first finds it already on record.
         """
         from src.workspace.pilot_events import DISCOVERY_ANSWERED, every_event
 
         client.get(NEW, params={"describe": SENTENCE})
-        before = sum(1 for e in every_event() if e["kind"] == DISCOVERY_ANSWERED)
         client.post("/pilot/save",
                     data={"describe": SENTENCE, "answer_assets": "VTI"},
                     follow_redirects=False)
-        after = sum(1 for e in every_event() if e["kind"] == DISCOVERY_ANSWERED)
-        assert after == before, (
-            "the save route now records an answer; the blind spot this test "
-            "documents is closed, so update docs/PilotObservations.md and "
-            "delete this test rather than leaving it asserting the old shape")
+
+        answered = [e for e in every_event() if e["kind"] == DISCOVERY_ANSWERED]
+        assert [e.get("dimension") for e in answered] == ["assets"]
+
+    def test_and_answering_twice_records_one_transition(self, client):
+        """Idempotence, which is the property that lets the emitter be called
+        from every route without anybody reasoning about overlap."""
+        from src.workspace.pilot_events import DISCOVERY_ANSWERED, every_event
+
+        client.get(NEW, params={"describe": SENTENCE})
+        client.post("/pilot/answer",
+                    data={"describe": SENTENCE, "answer_assets": "VTI"})
+        client.post("/pilot/save",
+                    data={"describe": SENTENCE, "answer_assets": "VTI"},
+                    follow_redirects=False)
+
+        answered = [e for e in every_event()
+                    if e["kind"] == DISCOVERY_ANSWERED
+                    and e.get("dimension") == "assets"]
+        assert len(answered) == 1, (
+            f"{len(answered)} answer events for one transition; the count is "
+            "back to being a property of which buttons were pressed")
 
     def test_every_kind_appears(self, client):
         _everything_a_participant_can_do(client)

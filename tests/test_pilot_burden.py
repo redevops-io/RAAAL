@@ -23,10 +23,21 @@ def asked(dimensions, participant="p1", **extra):
 
 
 class TestTheThreeQuestionsAreSeparate:
-    def test_questions_asked_are_counted_by_dimension(self):
+    def test_one_person_asked_twice_about_one_thing_counts_once(self):
+        """The unit is a dimension per participant, not a form submission.
+        Someone who reloads the page five times is one person who has not
+        answered, not five people who could not."""
         out = summarise([asked(["assets"]), asked(["assets", "amount"])])
-        assert out["asked_by_dimension"] == {"assets": 2, "amount": 1}
-        assert out["questions_asked"] == 3
+        assert out["asked_by_dimension"] == {"assets": 1, "amount": 1}
+        assert out["questions_asked"] == 2
+
+    def test_two_people_asked_about_one_thing_count_twice(self):
+        """The discriminating half: the collapse is per participant, not
+        global, or the tally would read as one no matter the cohort size."""
+        out = summarise([asked(["assets"], participant="p1"),
+                         asked(["assets"], participant="p2")])
+        assert out["asked_by_dimension"] == {"assets": 2}
+        assert out["participants"] == 2
 
     def test_a_question_whose_answer_was_already_typed_is_separated(self):
         """A proxy, and named as one. It is burden that need not have been
@@ -97,3 +108,77 @@ class TestTheContextStaysCountable:
             assert dimension in names, (
                 f"{dimension!r} is not a schema dimension; the burden report "
                 "is carrying something that came from a person's words")
+
+
+class TestAnswersAreStateTransitionsNotFormSubmissions:
+    """The semantics settled before the cohort, because a metric whose meaning
+    changes once real data exists cannot be compared to anything."""
+
+    def test_only_a_dimension_that_was_asked_about_can_be_answered(self):
+        """Something the first sentence already supplied was never a follow-up.
+        Counting it would inflate the burden the runtime is measured on with
+        work it never asked anyone to do."""
+        from src.workspace.pilot_events import observe_answers
+
+        recorded = []
+        _run(observe_answers, recorded, settled=["assets", "amount"],
+             asked=set(), already=set())
+        assert recorded == []
+
+    def test_an_asked_and_settled_dimension_transitions_once(self):
+        from src.workspace.pilot_events import observe_answers
+
+        recorded = []
+        _run(observe_answers, recorded, settled=["assets", "amount"],
+             asked={"assets"}, already=set())
+        assert [d["dimension"] for d in recorded] == ["assets"]
+
+    def test_a_dimension_already_answered_does_not_transition_again(self):
+        """Idempotence. This is what makes the emitter safe to call from every
+        route rather than exactly one."""
+        from src.workspace.pilot_events import observe_answers
+
+        recorded = []
+        _run(observe_answers, recorded, settled=["assets"],
+             asked={"assets"}, already={"assets"})
+        assert recorded == []
+
+    def test_a_dimension_asked_and_still_open_does_not_transition(self):
+        from src.workspace.pilot_events import observe_answers
+
+        recorded = []
+        _run(observe_answers, recorded, settled=["amount"],
+             asked={"assets"}, already=set())
+        assert recorded == []
+
+
+def _run(observe_answers, recorded, *, settled, asked, already):
+    """Drives `observe_answers` against stated prior state.
+
+    The prior state is injected rather than built by replaying HTTP, because
+    the property under test is the transition rule itself. `test_pilot_events`
+    covers the same rule through the real routes, which is where a wiring
+    mistake would show.
+    """
+    from dataclasses import dataclass
+    from typing import Any
+
+    import src.workspace.pilot_events as events
+
+    @dataclass
+    class Field:
+        field: str
+        value: Any = "x"
+
+    class Reading:
+        def __init__(self, names):
+            self.settled = [Field(n) for n in names]
+
+    original_seen, original_record = events._dimensions_seen, events.record
+    events._dimensions_seen = lambda who, kind: (
+        asked if kind == events.DISCOVERY_ASKED else already)
+    events.record = lambda kind, **detail: recorded.append(detail)
+    try:
+        observe_answers(Reading(settled), participant="p1")
+    finally:
+        events._dimensions_seen, events.record = original_seen, original_record

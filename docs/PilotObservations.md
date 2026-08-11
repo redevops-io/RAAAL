@@ -286,10 +286,28 @@ So the interaction is captured, not only the outcome:
     sealed intent               intent_sealed
     disposition and result      the plan events already recorded
 
+`discovery_answered` is **one event per dimension that goes from unresolved to
+answered**, emitted by whichever route performed the transition:
+
+    /pilot/answer resolves X          ->  discovery_answered(X)
+    /pilot/save   resolves X and Y    ->  discovery_answered(X), (Y)
+    X already answered                ->  nothing
+
+Tying it to a state change rather than a UI action is what makes undercounting
+and double-counting both impossible, and it makes the emitter idempotent — so
+it can be called from anywhere a reading exists without anyone reasoning about
+overlap. A dimension only counts if it was asked about first: something the
+first sentence already supplied was never a follow-up, and counting it would
+inflate the burden the runtime is measured on with work it never asked for.
+
 `src/workspace/pilot_burden.py` joins them into three questions that are
 deliberately not one question:
 
-**How many follow-ups were needed.** `asked_by_dimension`.
+**How many follow-ups were needed.** `asked_by_dimension` — distinct material
+dimensions raised, counted once per participant however many times the question
+was shown. Someone who reloads five times is one person who has not answered,
+not five who could not. `answered_by_dimension` is what the asking bought, and
+`asked_and_never_settled` is the difference.
 
 **Which were unnecessary.** `answer_was_already_in_the_prompt` — dimensions the
 participant answered with something their original sentence already contained.
@@ -306,15 +324,14 @@ the end having never been given the chance to supply what was missing.
 No rates. A ten-person cohort makes a percentage look like a measurement and
 behave like one participant's afternoon.
 
-### A known blind spot, recorded rather than patched
+### The blind spot that shaped the semantics
 
-`/pilot/save` accepts `answer_<dimension>` fields and records no answer event,
-so a participant who supplies the missing holding *and* saves in one step is
-not counted as having answered. The burden report undercounts answers by
-exactly the people who did the efficient thing.
+`/pilot/save` accepts `answer_<dimension>` fields and recorded no answer event,
+so anybody who supplied the missing holding *and* saved in one step counted as
+having answered nothing. Emitting from the save route as well would have
+double-counted anyone who answered and then saved.
 
-It is left open because closing it involves a choice rather than a fix:
-emitting from the save route double-counts anyone who answers and then saves,
-and deciding between those is a decision about what the metric means. Pinned by
-`test_answering_while_saving_is_a_known_blind_spot`, which fails if the
-behaviour changes without this note changing with it.
+Neither is a defect in the emitter. Both come from counting form submissions
+and calling them answers, which is why this was settled as a definition rather
+than patched — and why the metric now means the same thing regardless of which
+buttons somebody presses.
