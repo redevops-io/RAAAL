@@ -91,5 +91,55 @@ theorem contributions_do_not_reduce_cash
              List.map_nil, List.foldl_nil, Int.sub_zero, Int.add_zero]
   exact Int.le_add_of_nonneg_right hc
 
+/-! ## Portfolio valuation
+
+    What the portfolio is worth: cash, plus each holding at its price. Stated
+    here rather than in its own module because it is a view of the same
+    `LedgerState` the conservation theorems are about, and a valuation computed
+    from somewhere else could disagree with the ledger it claims to value.
+-/
+
+/-- One holding's worth, in minor units.
+
+    Shares are micro-units and prices are minor units per share, so the product
+    is scaled by `sharesScale`. Integer division truncates, which is a rounding
+    policy and is stated rather than hidden: a valuation that rounded the other
+    way would differ by a cent per holding, and the theorems below are about
+    exactly this arithmetic. -/
+def holdingValue (shares : Shares) (price : Price) : Money :=
+  shares * price / sharesScale
+
+/-- Cash plus every named holding at its price. -/
+def portfolioValue (cash : Money) (shares : AssetId → Shares)
+    (price : AssetId → Price) : List AssetId → Money
+  | []          => cash
+  | a :: rest   => holdingValue (shares a) (price a)
+                     + portfolioValue cash shares price rest
+
+/-- **A portfolio holding nothing is worth its cash.** The degenerate case,
+    stated because a valuation that added a phantom holding would satisfy every
+    other theorem here. -/
+theorem empty_portfolio_is_its_cash
+    (cash : Money) (shares : AssetId → Shares) (price : AssetId → Price) :
+    portfolioValue cash shares price [] = cash := rfl
+
+/-- **Valuation is the cash plus the sum of the holdings**, so adding an asset
+    adds exactly that asset's worth and nothing else. -/
+theorem valuing_one_more_asset
+    (cash : Money) (shares : AssetId → Shares) (price : AssetId → Price)
+    (a : AssetId) (rest : List AssetId) :
+    portfolioValue cash shares price (a :: rest)
+      = holdingValue (shares a) (price a)
+          + portfolioValue cash shares price rest := rfl
+
+/-- **A holding worth nothing contributes nothing.** Rules out a valuation that
+    counted positions rather than value. -/
+theorem a_zero_position_adds_nothing
+    (cash : Money) (shares : AssetId → Shares) (price : AssetId → Price)
+    (a : AssetId) (rest : List AssetId) (h : shares a = 0) :
+    portfolioValue cash shares price (a :: rest)
+      = portfolioValue cash shares price rest := by
+  simp [portfolioValue, holdingValue, h]
+
 end LedgerState
 end Quantify

@@ -108,6 +108,25 @@ def oversold : LedgerState :=
 
 #guard oversold.endingShares "VTI" == -2000000
 
+/-! ## Valuation
+
+The `roundTrip` ledger, priced. Two hundred shares of VTI at 25, plus the cash
+the ledger closed at — so the valuation reads the same state the conservation
+theorems are about rather than a parallel copy of it.
+-/
+
+-- $25, in minor units, matching the prices on the fills above.
+private def priced (_ : AssetId) : Price := 2500
+
+private def held : AssetId → Shares
+  | "VTI" => 2000000
+  | _     => 0
+
+#guard holdingValue (held "VTI") (priced "VTI") == 5000
+#guard portfolioValue roundTrip.endingCash held priced ["VTI"] == 59400
+#guard portfolioValue roundTrip.endingCash held priced [] == 54400
+#guard portfolioValue roundTrip.endingCash held priced ["BND"] == 54400
+
 /-! ## Cadence
 
 The historical case, as a fixture rather than only as a theorem. The theorem
