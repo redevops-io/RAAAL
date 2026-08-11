@@ -1,6 +1,8 @@
 """P5: the objective_compare mission graph (3 selection branches, no averaging, approval gate)."""
 from __future__ import annotations
 
+import pytest
+
 import numpy as np
 import pandas as pd
 
@@ -54,6 +56,19 @@ def test_mission_has_three_selection_branches_no_averaging_and_a_gate():
 
 
 def test_context_bundle_ties_reps_to_snapshot():
+    # `representation_plans()` guards its import of `agentic_os.planner.domains`
+    # and returns `{}` when the vendored runtime is absent. The bundle is then
+    # built with no plans, and this test failed with `assert (None)` — an
+    # uninformative failure for a missing directory, on master as well as here.
+    #
+    # A guarded import that degrades to an empty result is the silent-reduction
+    # shape: nothing is missing as far as any caller can see, there is just less
+    # of it. Naming the dependency turns the failure back into a statement.
+    pytest.importorskip(
+        "agentic_os.planner.domains",
+        reason="the vendored agentic_os runtime is absent, so "
+               "representation_plans() returns {} and this asserts on an "
+               "empty bundle; run scripts/vendor_agentic_os.sh")
     compare = _compare().to_dict()
     m = build_objective_compare_mission(compare)
     cb = m["context_bundle"]

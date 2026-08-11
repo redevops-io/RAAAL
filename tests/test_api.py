@@ -9,7 +9,19 @@ from __future__ import annotations
 import os
 import tempfile
 
+import pytest
+
 os.environ["RAAAL_STATE_DIR"] = tempfile.mkdtemp(prefix="raaal_state_")
+
+# The app imports the vendored `agentic_os` runtime, which `.gitignore`
+# excludes because `scripts/vendor_agentic_os.sh` produces it. Same treatment
+# as `tests/test_discovery.py`: without the guard this raised at import time,
+# and a collection error takes the whole run down rather than these three
+# tests. The condition is the module being absent and nothing else.
+pytest.importorskip(
+    "agentic_os.discovery",
+    reason="the vendored agentic_os runtime is absent; run "
+           "scripts/vendor_agentic_os.sh to exercise these tests")
 
 from fastapi.testclient import TestClient  # noqa: E402
 

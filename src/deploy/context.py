@@ -494,6 +494,21 @@ class DeploymentContext:
     """The `BuildManifest`, which already resolves itself from the environment
     and is carried here so nothing re-reads it."""
 
+    state_directory: str = "reports/state"
+    """Where the agentic runtime keeps its three authoritative state records.
+
+    An operational identity by this module's own test: two components holding
+    different views about where state lives is the silent-divergence case the
+    resolver exists to prevent — one writes the manifest, another reads an
+    older one, and nothing says they disagreed.
+
+    It arrived here when master merged. `src/agentic/state_store.py` read
+    `RAAAL_STATE_DIR` directly, and `test_no_undeclared_reader` caught it the
+    moment the two codebases met — which is the test doing exactly its job on
+    code written without knowledge of the rule. Declaring it a non-identity
+    would have been cheaper and wrong: a storage location is precisely what a
+    second component can disagree about."""
+
     @property
     def is_production(self) -> bool:
         return self.profile is Profile.PRODUCTION
@@ -553,6 +568,10 @@ def current() -> DeploymentContext:
     return _BOUND["context"] or resolve()
 
 
+#: Where the agentic runtime's state records live. Read here and nowhere else.
+STATE_DIRECTORY_VAR = "RAAAL_STATE_DIR"
+
+
 def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
     """Read the environment. The only place that does, for these identities."""
     from ..db.engine import (
@@ -605,4 +624,6 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
             retain_transcripts=_affirmative(source.get(TRANSCRIPTS_VAR)),
             retention_days=_retention(source.get(TRANSCRIPT_RETENTION_VAR),
                                       default=30)),
+        state_directory=source.get(STATE_DIRECTORY_VAR,
+                                   "reports/state") or "reports/state",
         build=read_manifest(source))
