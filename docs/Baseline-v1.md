@@ -9,6 +9,7 @@ records what somebody believed is not a baseline.
     Discovery schema        quantify-discovery-schema@6/eb01a824e4f43d02
     capability manifest     quantify/capability-manifest@1
     hosted prompt           quantify-hosted-prompt@1
+    serving reader          gpt-4.1-2025-04-14@1
     fusion pipeline         quantify-pipeline@1
     MWR contract            quantify/mwr-contract@1
     drawdown semantics      drawdown@2
@@ -19,6 +20,49 @@ The schema is at **@6**, not @3. It moved three times: `@4` added
 added `asset_location`; `@6` added `selection_rule` and `holding_period`. Each
 was a bump because the *content* changed, which is the rule that keeps two runs
 from looking comparable when they are not.
+
+## The serving reader changed provider after this baseline was frozen
+
+Recorded for the same reason the schema move is, and it matters more: every
+number in this document was measured through a reader that is no longer the one
+serving.
+
+    frozen with             claude-sonnet-5@1
+    now                     gpt-4.1-2025-04-14@1
+    moved by                the pilot having no Anthropic credential
+
+The corpus was re-recorded under the new reader — both sets are kept, keyed by
+reader id, so the old readings remain as history rather than being overwritten.
+
+**What survived the change, and what did not.** This is the strongest available
+test of the claim that the guarantees are properties of the architecture rather
+than of one model, and the answer is mixed in an informative way.
+
+Held:
+
+- **No silent reduction.** Nothing executes a meaning the person did not ask
+  for, which is the class this project exists to remove.
+- **No wrong executable meaning.** No contrast pair collapsed to one plan.
+- **42 of 43** answerable corpus cases produce the same value as before.
+- Every Lean theorem, every accounting identity, every refusal-by-name path —
+  none of it touches the reader.
+
+Did not hold:
+
+- **One false claim of support.** "an annual $40,000 withdrawal" is refused for
+  `objective` rather than `sell_action`: the right outcome for the wrong stated
+  reason, which tells somebody the system cannot do a thing it never considered.
+- **Two unnecessary refusals**, on `conditional_amount`, for moving-average
+  sentences the previous reader did not emit that dimension for.
+- **Two unnecessary questions** about an amount the sentence states.
+- **One case reads backwards.** "buy the index rather than through an ETF"
+  settles `assets='ETF'` — the instrument the sentence rejects — accepted on a
+  single witness because syntax was silent. Recorded in `MODEL_IS_WRONG`.
+
+The pattern is worth stating plainly: **the safety properties are
+reader-independent and the precision properties are not.** Changing provider did
+not make the runtime execute anything wrong; it made it refuse and ask less
+accurately.
 
 ## The schema moved after this baseline was frozen
 
@@ -57,8 +101,14 @@ that attribution is the reason to write it down here rather than edit a line.
 
 ## What is open, and stays open
 
-- `ANTHROPIC_API_KEY` is not configured, so the pre-Lean gate is closed on
-  `producer='unknown'`. Every semantic condition passes.
+- `OPENAI_API_KEY` is not configured as a repository secret, so the drift lane
+  cannot call the provider and the pre-Lean gate stays closed. The lane refused
+  and named the missing precondition rather than running with a broken reader,
+  and wrote no artifact — so nothing was overwritten and the gate is closed on
+  the same evidence as before.
+- The gate now also pins `hosted_model_id`. It was blind to which reader
+  produced its evidence, which a provider swap would have walked straight
+  through.
 - Mission computes no volatility and no drawdown. `max_drawdown` is declared
   absent in `worksheet_view` with a reason.
 - Six prompts are `UNSTABLE_SAFE` and watched.

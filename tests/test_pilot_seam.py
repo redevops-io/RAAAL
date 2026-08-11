@@ -209,7 +209,9 @@ class TestTheStoredArtifactCarriesItsProvenance:
     def test_it_names_the_reader_and_the_compiler(self):
         done = answer(read(SIMPLE, READER), {"assets": "VTI"})
         stored = done.to_json()
-        assert stored["reader_id"] == "claude-sonnet-5@1"
+        # The reader that ran. `READER` is the recorded one, so this asserts
+        # the artifact carries *its* id rather than a provider's name.
+        assert stored["reader_id"] == READER.id
         assert stored["derivation"]["compiled_by"] == "quantify-mission@1"
 
     def test_the_plan_names_the_intent_it_came_from(self):

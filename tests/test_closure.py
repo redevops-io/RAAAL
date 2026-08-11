@@ -80,7 +80,18 @@ class TestAgreementIsNotAssumed:
     #: Rewriting the case would make the corpus assert whatever the reader last
     #: said, which is the one thing a regression corpus must not do.
     MODEL_IS_WRONG: dict = {
-        # Empty, and reached that way in the direction that is allowed.
+        "sema-negation-changes_the_value-002":
+            "read `ETF` for 'buy the index rather than through an ETF' — the "
+            "instrument the sentence explicitly rejects. Dropping the negation "
+            "reverses which holding the plan buys. Appeared when the serving "
+            "reader moved to gpt-4.1-2025-04-14; claude-sonnet-5 read it "
+            "correctly. Worth more than the value being wrong: fusion recorded "
+            "MODEL_ONLY_ACCEPTED, so a single witness settled a holding with "
+            "no second reader to disagree — syntax was silent on this sentence "
+            "and had nothing to contribute. The architecture's protection here "
+            "is the corpus, not the fusion policy.",
+        # The `day_rule` entries that used to be here are gone, and the
+        # history is kept because it is the shape this list is for.
         #
         # `-001` was listed here: the model read `calendar_first_rolled_forward`
         # for "the first trading day of the month", which names a session and
@@ -93,9 +104,10 @@ class TestAgreementIsNotAssumed:
         # the last trading day. It did not, and the staleness check caught that
         # guess immediately as well.
         #
-        # An empty list is not a claim that the model is never wrong. It is a
-        # claim that nothing is currently being tolerated silently, which is the
-        # only property this list can honestly carry.
+        # The list is not a claim about how often a model is wrong. It is a
+        # claim that nothing is currently being tolerated silently, which is
+        # the only property it can honestly carry — and it went from empty to
+        # one entry by changing provider, not by changing any code here.
     }
 
     def test_no_agreement_is_recorded_with_the_wrong_value(self):
@@ -154,14 +166,40 @@ class TestBothDirectionsOfTheAsymmetry:
         for row in accepted:
             assert row["witnesses"] == ["model"]
 
+    #: Said out loud, as this test's own message demanded.
+    #:
+    #: Under claude-sonnet-5 the corpus contained cases where syntax spoke and
+    #: the model did not, so the reciprocal branch of the fusion policy was
+    #: exercised by real evidence. Under gpt-4.1-2025-04-14 it is not: the
+    #: reader answers everything syntax answers, and `SYNTAX_ONLY_UNRESOLVED`
+    #: has no live witness.
+    #:
+    #: That is a fact about the reader, not an improvement. The branch still
+    #: has to be right — a future reader, a longer sentence or a provider
+    #: outage puts cases back into it — and it is now covered only by the
+    #: synthetic tests in `tests/test_fusion.py`. Declared here so the gap is
+    #: visible in the file that measures coverage rather than inferred from a
+    #: count of zero.
+    SYNTAX_ONLY_HAS_NO_LIVE_WITNESS = "gpt-4.1-2025-04-14@1"
+
     def test_syntax_alone_cannot(self):
         """The reciprocal, and the one that was being mislabelled. It was
         reported as MODEL_ONLY_UNRESOLVED — the count was right and the label
         named the wrong witness, which is worse than either alone."""
         alone = [r for r in ROWS if r["state"] == "SYNTAX_ONLY_UNRESOLVED"]
-        assert alone, (
-            "no syntax-only witness in the corpus. The policy is then only "
-            "exercised synthetically, and that should be said out loud")
+        if not alone:
+            import json as _json
+            from pathlib import Path as _Path
+
+            recorded = _json.loads(
+                (_Path(__file__).resolve().parent.parent / "corpus" / "parser"
+                 / "hosted.json").read_text())["recorded_with"]["reader_id"]
+            assert recorded == self.SYNTAX_ONLY_HAS_NO_LIVE_WITNESS, (
+                "no syntax-only witness in the corpus, and the reader is not "
+                f"the one declared to have that property ({recorded!r} vs "
+                f"{self.SYNTAX_ONLY_HAS_NO_LIVE_WITNESS!r}). The policy is "
+                "only exercised synthetically and nothing says why")
+            return
         for row in alone:
             assert row["witnesses"] == ["syntax"]
             assert row["value"] is None, "an unresolved field carries no value"

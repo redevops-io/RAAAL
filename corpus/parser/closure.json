@@ -1,7 +1,7 @@
 {
   "schema": "quantify-parser-closure@2",
   "cases": 52,
-  "pending": 2,
+  "pending": 1,
   "excluded_from_pending": {
     "state": "INTERMEDIATE_SEMANTIC",
     "count": 6,
@@ -18,15 +18,16 @@
     "why": "They assert semantics this pipeline computes and the contract does not carry. Counting them as pending measured the wrong boundary; the history is recorded here so the change is visible rather than quiet."
   },
   "by_state": {
-    "AGREE": 12,
+    "AGREE": 13,
     "MODEL_ONLY_ACCEPTED": 30,
-    "SYNTAX_ONLY_UNRESOLVED": 1,
     "DISAGREE": 1,
     "INTERMEDIATE_SEMANTIC": 6,
     "SCHEMA_GAP": 2
   },
   "agreed_and_correct": 42,
-  "agreed_but_wrong_value": [],
+  "agreed_but_wrong_value": [
+    "sema-negation-changes_the_value-002"
+  ],
   "by_property": {
     "assets.stay_as_written": {
       "MODEL_ONLY_ACCEPTED": 3
@@ -65,7 +66,7 @@
     },
     "trigger.semantics": {
       "AGREE": 2,
-      "SYNTAX_ONLY_UNRESOLVED": 1,
+      "DISAGREE": 1,
       "MODEL_ONLY_ACCEPTED": 2
     },
     "weighting.method": {
@@ -84,9 +85,8 @@
       "INTERMEDIATE_SEMANTIC": 2
     },
     "window.moving_average": {
-      "AGREE": 1,
-      "MODEL_ONLY_ACCEPTED": 1,
-      "DISAGREE": 1
+      "AGREE": 2,
+      "MODEL_ONLY_ACCEPTED": 1
     }
   },
   "owner": {
@@ -221,7 +221,7 @@
         "model",
         "syntax"
       ],
-      "value": "500",
+      "value": "$500",
       "expected": "500",
       "compared_as": "NUMBER",
       "matches_expected": true
@@ -346,10 +346,11 @@
       "property": "trigger.semantics",
       "text": "whenever SPY drops under the 200-day",
       "language": "en",
-      "state": "SYNTAX_ONLY_UNRESOLVED",
-      "reason": "only syntax proposed a value, and syntax is evidence rather than authority",
+      "state": "DISAGREE",
+      "reason": "the model read 'persistent_condition'; syntax argues otherwise ('crossing_event' scored +1). Not resolved by score: a parser can be confident and wrong",
       "field": "trigger_semantics",
       "witnesses": [
+        "model",
         "syntax"
       ],
       "value": null,
@@ -540,17 +541,17 @@
       "property": "window.moving_average",
       "text": "add when it trades beneath the 12-month moving average",
       "language": "en",
-      "state": "DISAGREE",
-      "reason": "the model read '252'; syntax argues otherwise (12 scored +1). Not resolved by score: a parser can be confident and wrong",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
       "field": "moving_average_window",
       "witnesses": [
         "model",
         "syntax"
       ],
-      "value": null,
+      "value": "12m",
       "expected": "12",
       "compared_as": "NUMBER",
-      "matches_expected": false
+      "matches_expected": true
     },
     {
       "id": "sema-window-holding_period-001",
@@ -589,7 +590,7 @@
       "witnesses": [
         "model"
       ],
-      "value": "an ETF",
+      "value": "ETF",
       "expected": "an ETF",
       "compared_as": "SET",
       "matches_expected": true
@@ -605,10 +606,10 @@
       "witnesses": [
         "model"
       ],
-      "value": "the index",
+      "value": "ETF",
       "expected": "the index",
       "compared_as": "SET",
-      "matches_expected": true
+      "matches_expected": false
     },
     {
       "id": "sema-funding-amount_kind-001",
@@ -818,7 +819,7 @@
       "witnesses": [
         "model"
       ],
-      "value": "a core index fund",
+      "value": "core index fund",
       "expected": "a core index fund",
       "compared_as": "SET",
       "matches_expected": true

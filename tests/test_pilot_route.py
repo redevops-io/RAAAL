@@ -25,6 +25,8 @@ from __future__ import annotations
 import os
 
 import pytest
+
+from src.discovery.hosted_recording import RecordedHostedReader
 from fastapi.testclient import TestClient
 
 SENTENCE = "invest $500 monthly"
@@ -77,7 +79,10 @@ class TestTheRuntimeIsReached:
 
         # Evidence in the response, not in the import graph.
         assert "quantify-mission@1" in body or "compiled by" in body
-        assert "claude-sonnet-5@1" in body
+        # The reader that actually ran, not a literal. The property is that
+        # the page names its reader; pinning a provider here made a test about
+        # provenance fail when the provenance changed, which is backwards.
+        assert RecordedHostedReader().id in body
 
     def test_the_saved_artifact_names_the_intent_it_was_compiled_from(
             self, pilot_client, monkeypatch, tmp_path):
@@ -338,7 +343,7 @@ class TestNewIsTheEntryPoint:
         page = pilot_client.get(NEW, params={"describe": SENTENCE})
         assert page.status_code == 200
         assert "MODEL_ONLY_ACCEPTED" in page.text
-        assert "claude-sonnet-5@1" in page.text
+        assert RecordedHostedReader().id in page.text
 
     def test_and_the_artifact_it_saves_records_the_witness_profile(
             self, pilot_client, monkeypatch):

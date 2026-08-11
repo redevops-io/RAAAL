@@ -296,10 +296,28 @@ class TestTheAssetLocationGapIsClosed:
         reading = RecordedHostedReader().read(
             "hold the bonds in the IRA and the stocks in the taxable account",
             QUANTIFY_SCHEMA)
+        from src.discovery.fusion import same_value
+
         pairs = [dict((role, subject) for role, subject, *_ in r.members)
                  for r in reading.relations if r.kind == "asset_location"]
         assert len(pairs) == 2, f"expected two placements, got {pairs}"
-        assert {p["holding"] for p in pairs} == {"bonds", "stocks"}
+
+        # Compared by the schema's own SET rule, which ignores a leading
+        # article. `gpt-4.1-2025-04-14` returns "the bonds" where
+        # claude-sonnet-5 returned "bonds", and this file had pinned the bare
+        # noun — so a test about whether the *pairing* survives was failing on
+        # a determiner. `same_value` already encodes that decision for SET
+        # dimensions; re-deciding it here by hand is how two layers end up
+        # disagreeing about what a holding is.
+        holdings = ", ".join(p["holding"] for p in pairs)
+        assert same_value(holdings, "bonds, stocks", "SET"), holdings
+
+        # The property the family exists for: each holding keeps *its own*
+        # account. Two placements naming one account between them would pass
+        # the check above and have lost the mapping, which is the entire
+        # request.
+        accounts = {p.get("account") for p in pairs}
+        assert len(accounts) == 2, f"the pairing collapsed: {pairs}"
 
     def test_no_case_is_a_schema_gap_any_more(self, serving):
         assert serving["by_state"].get("SCHEMA_GAP", 0) == 0
