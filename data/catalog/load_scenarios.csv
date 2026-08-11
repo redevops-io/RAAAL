@@ -1,0 +1,9 @@
+scenario_id,virtual_users,concurrent_requests,variants_per_user,purpose,execution_backend,latency_or_exit_target
+L01,10,1,1,Small smoke test,Direct Python/Go,<100 ms p95 harness excluding model
+L02,50,2,2,Interactive beta,Direct + buffered events,<150 ms p95 deterministic acceptance
+L03,100,4,5,Moderate simultaneous users,Hybrid,<250 ms p95 request overhead
+L04,250,8,10,Heavy pilot burst,Hybrid + Polars async,<500 ms p95 request overhead
+L05,500,16,20,Sustained heavy load,Polars batch workers,<1 s p95 request overhead
+L06,1000,32,50,Peak synthetic load,Polars + queue + partitioned Parquet,"<2 s p95, no dropped events"
+L07,2500,64,100,Stress to saturation,Polars + distributed queue,"Measure saturation, backpressure"
+L08,5000,128,250,Failure-mode load,Polars/Spark decision point,Graceful degradation

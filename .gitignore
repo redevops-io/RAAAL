@@ -50,6 +50,12 @@ data/*
 # must be negated explicitly the day it is written.
 !data/instruments/
 
+# The load-test catalog, for the same reason and found the same way: nothing
+# writes `strategy_catalog.csv` — `src/loadtest/catalog.py` only reads it — and
+# `tests/test_load_corpus.py` and `tests/test_stability.py` cannot even be
+# collected without it. Two more authored files that `data/*` had hidden.
+!data/catalog/
+
 # Dataset manifests are committed even though the datasets are not. They carry
 # the snapshot identity, version and hash, so a result can name the input it was
 # computed against without the licensed bytes ever entering the repository.
