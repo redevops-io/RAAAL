@@ -132,7 +132,11 @@
     <tr><td>Final value</td><td class="num">${{ "{:,.0f}".format(run.result.final_value) }}</td><td class="small muted">what it would be worth</td></tr>
     <tr><td>Money-weighted return</td>{# `or 0` rendered a missing return as +0.00%, which reads as "broke even" for a series that has no defensible rate at all. The status is shown instead. #}
       <td class="num">{% if run.result.money_weighted.rate is not none %}{{ "%+.2f%%"|format(run.result.money_weighted.rate * 100) }}{% else %}<span class="muted">no rate: {{ run.result.money_weighted.status.value }}</span>{% endif %}</td><td class="small muted">how you did, given when your money arrived</td></tr>
-    <tr><td>Time-weighted return</td><td class="num">{{ "%+.2f%%"|format((run.result.time_weighted_annualized or 0) * 100) }}</td><td class="small muted">whether the strategy is good, independent of timing</td></tr>
+    <tr><td>Time-weighted return</td><td class="num">{# `or 0` rendered an undefined return as +0.00%. `None` here means the
+         series was empty or the portfolio reached zero, and "broke even" is
+         the one thing that did not happen. Same defect as the money-weighted
+         column beside it. #}
+      {% if run.result.time_weighted_annualized is not none %}{{ "%+.2f%%"|format(run.result.time_weighted_annualized * 100) }}{% else %}<span class="muted">not defined</span>{% endif %}</td><td class="small muted">whether the strategy is good, independent of timing</td></tr>
   </table></div>
   <p class="small muted" style="margin:12px 0 0">
     {{ run.result.to_json()["return_basis_note"] }}
