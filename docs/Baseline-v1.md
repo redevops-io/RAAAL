@@ -57,13 +57,19 @@ to build them.
 
 ## The corpora, and which one now matters more
 
-    authored / synthetic     good for known failure classes
-    real pilot prompts       good for product truth
+    authored / synthetic     the regression laboratory
+    real pilot prompts       the evidence for what deserves investment
 
-Both are kept. The authored corpus found the accumulation bias, the crossing
-defect and the off-by-one — none of which a small cohort would have produced.
-It cannot tell you what people actually want, and from here the pilot prompts
-gradually become the primary set.
+The authored corpus becomes secondary in **product prioritisation**, not in
+**correctness**. It stays the adversarial and rare-case suite, and nothing
+below it may be thinned because a cohort did not happen to type those
+sentences.
+
+It found the accumulation bias, the crossing-versus-persistent defect, the
+moving-average off-by-one, the MWR two-root case and the drawdown opening-level
+gap. Ten people would have produced none of them. What it cannot do is say what
+anyone wants, which is the only thing the pilot prompts are better at — so they
+become primary for deciding what to build, and for nothing else.
 
 ## What no amount of this proves
 
