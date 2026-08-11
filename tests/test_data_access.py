@@ -191,7 +191,7 @@ class TestTheGateIsTheOnlyWayIn:
         monkeypatch.setattr(policy_module, "authorise", refuse)
         assert web._prices() is None
 
-    def test_the_approved_policy_does_reach_prices(self, monkeypatch):
+    def test_the_approved_policy_does_reach_prices(self, monkeypatch, requires_the_vendor_snapshot):
         """The other half. Without it, the test above passes just as well on a
         build where the vendor path is broken in some entirely different way,
         which is how it passed while the manifest was unreadable."""
