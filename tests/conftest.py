@@ -226,3 +226,42 @@ def submit_rendered_confirmation(client, description, *, title="Test plan",
     plan_id = (response.headers["location"].rsplit("/", 1)[-1]
                if response.status_code == 303 else None)
     return response, plan_id
+
+
+@pytest.fixture
+def requires_the_vendor_snapshot():
+    """Skip when the licensed price file is genuinely absent, and only then.
+
+    The vendor parquet is deliberately not in the repository: it is not
+    redistributable, and a repository under a public licence is redistribution.
+    So a clean clone cannot run the handful of tests that ask whether a run
+    comes back *holding prices*.
+
+    Those tests are not decoration — they exist because every other check on
+    the vendor snapshot once passed while no run could use it, and they are the
+    only ones that ask the end-to-end question. Deleting them to get a green
+    clone would remove the guard that caught that. Failing on a clone is no
+    better: it reports a licensing constraint as a defect, and a suite whose
+    red is expected is a suite nobody reads.
+
+    So: skip, narrowly. The condition is the file being missing and nothing
+    else, so on any machine or runner that has fetched the snapshot these tests
+    run exactly as before. The message names the file, because "skipped" with
+    no reason is how a permanently unverified property hides.
+    """
+    from pathlib import Path
+
+    import pytest
+
+    from src.market_data.access import approved_snapshot
+
+    snapshot = approved_snapshot()
+    if snapshot is None:
+        return
+    uri = getattr(snapshot, "uri", "")
+    path = Path(__file__).resolve().parent.parent / uri
+    if not path.exists():
+        pytest.skip(
+            f"the licensed vendor snapshot is absent ({uri}). It is not "
+            "redistributable, so this property is unverified in this "
+            "checkout — fetch the snapshot to run it")

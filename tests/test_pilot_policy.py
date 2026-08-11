@@ -196,6 +196,13 @@ class TestTheLiveRouteIsGated:
         # approved policy denies it — and nothing is substituted.
         assert routes._prices() is None
 
+    def test_an_approved_snapshot_does_yield_prices(self, monkeypatch, requires_the_vendor_snapshot):
+        import src.workspace.routes as routes
+
+        monkeypatch.setenv(POLICY_VARIABLE,
+                           "market-data-egress/pilot-vendor-approved@1")
+        assert routes._prices() is not None
+
 
 class TestTheLicensingExitGate:
 

@@ -232,6 +232,85 @@ class TestNoDataMeansNoRecordedProvenance:
         assert provenance.status is ProvenanceStatus.NOT_RECORDED
         assert "could not be loaded" in provenance.access_decision_reason
 
+    def test_a_refused_snapshot_is_recorded_rather_than_absent(self, monkeypatch):
+        """The distinction this class is easy to flatten: no frame is not one
+        state. A snapshot nobody could resolve leaves nothing to record. A
+        snapshot that resolved and was then refused leaves a decision, and a
+        decision that records itself as an absence is a refusal nobody can
+        later find.
+
+        This branch used to be reached by accident — the vendor policy resolved
+        no snapshot at all, so the test above landed here and asserted the
+        wrong half. Reached deliberately now.
+        """
+        from src.market_data.provenance import AccessDecision
+        import src.market_data.pilot_policy as pilot_policy
+        from src.market_data.pilot_policy import PilotDataDenied
+
+        monkeypatch.setenv(POLICY, "market-data-egress/pilot-vendor-approved@1")
+
+        def refuse(snapshot, **kwargs):
+            raise PilotDataDenied("refused for this test")
+
+        monkeypatch.setattr(pilot_policy, "authorise", refuse)
+        frame, provenance = resolve(context="a run", accessed_at=AT)
+        assert frame is None
+        assert provenance.status is ProvenanceStatus.RECORDED
+        assert provenance.access_decision is AccessDecision.DENIED
+        assert provenance.snapshot_id
+
+
+class TestTheVendorSnapshotIsActuallyServable:
+    """Every check on the vendor snapshot passed while no run could use it.
+
+    `approved_snapshot()` returned it, the licensing record verified, and the
+    disclosure rendered the attribution — three green checks around a snapshot
+    whose manifest said `license_review_status: RESOLVED`, a word the loader
+    does not know. `review_complete` was therefore False, the approved policy
+    denied every run, and `egress_policy` was keyed by names no `Egress` value
+    matches so every route took the DENY default.
+
+    Both failures were closed-direction and silent. What none of the checks
+    asked was the only question that decides whether the work is done: does a
+    run come back holding prices.
+    """
+
+    def test_a_run_under_the_approved_policy_receives_prices(self, monkeypatch, requires_the_vendor_snapshot):
+        from src.market_data.provenance import AccessDecision
+
+        monkeypatch.setenv(POLICY, "market-data-egress/pilot-vendor-approved@1")
+        frame, provenance = resolve(context="a run", accessed_at=AT)
+        assert frame is not None and not frame.empty
+        assert provenance.status is ProvenanceStatus.RECORDED
+        assert provenance.access_decision is AccessDecision.PILOT_VENDOR_APPROVED
+
+    def test_the_prices_are_the_snapshot_the_provenance_names(self, monkeypatch, requires_the_vendor_snapshot):
+        """Otherwise the record is true about a snapshot and the figure came
+        from somewhere else."""
+        from src.market_data.access import approved_snapshot
+
+        monkeypatch.setenv(POLICY, "market-data-egress/pilot-vendor-approved@1")
+        frame, provenance = resolve(context="a run", accessed_at=AT)
+        snapshot = approved_snapshot()
+        assert provenance.snapshot_id == snapshot.snapshot_id
+        assert len(frame) == int(snapshot.raw["sessions"])
+        assert len(frame.columns) == int(snapshot.raw["assets"])
+
+    def test_customer_results_are_permitted_and_exports_are_not(self, monkeypatch):
+        """The egress block, read the way the code reads it. With the invented
+        keys it had, every one of these was DENY — including the route the
+        licensing record explicitly permits."""
+        from src.market_data.access import approved_snapshot
+        from src.market_data.loader import Decision, Egress
+
+        monkeypatch.setenv(POLICY, "market-data-egress/pilot-vendor-approved@1")
+        snapshot = approved_snapshot()
+        assert snapshot.decision_for(Egress.CUSTOMER_RESULT) is Decision.ALLOW
+        assert snapshot.decision_for(Egress.PUBLIC_EXPORT) is Decision.DENY
+        assert snapshot.decision_for(Egress.CASE_BUNDLE) is Decision.DENY
+        # "no automated path" in the record: the permission is for a person.
+        assert snapshot.decision_for(Egress.MODEL_PROVIDER_UPLOAD) is Decision.DENY
+
 
 class TestTheDataAndItsProvenanceComeTogether:
     def test_resolve_returns_one_object_carrying_both(self, monkeypatch):
