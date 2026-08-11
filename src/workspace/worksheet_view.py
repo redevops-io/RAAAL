@@ -200,17 +200,19 @@ def _payload(block: Block, scenario: Mapping[str, Any],
         # Symmetric rows. The user's strategy is one row among the benchmarks
         # rather than the row the others are measured against, because a layout
         # that centres one series has already made an argument.
-        path = result.get("path") or {}
+        # `result["path"]["contributed"]` — a second key the engine does not
+        # emit. `MissionResult.to_json` flattens the path and puts
+        # `contributed` at the top level, so this column was blank too.
         return {
             "rows": [{
                 "name": "Your strategy",
                 "final_value": result.get("final_value"),
-                "contributed": path.get("contributed"),
+                "contributed": result.get("contributed"),
                 "time_weighted_annualized": result.get("time_weighted_annualized"),
-                # `money_weighted` — a key nothing has ever produced. The
-                # serialised name is `money_weighted_annualized`, so this
-                # column has been blank since it was written and
-                # `both_bases_present` below has always been False.
+                # Was `money_weighted`, which nothing emits. Three columns in
+                # this block read keys the engine never produced; `dict.get`
+                # returned None for each and an empty cell looks exactly like a
+                # metric that did not compute.
                 "money_weighted": result.get("money_weighted_annualized"),
                 "money_weighted_status": result.get("money_weighted_status"),
                 "max_drawdown": result.get("max_drawdown"),
