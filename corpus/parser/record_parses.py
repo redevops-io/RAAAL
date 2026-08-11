@@ -47,6 +47,13 @@ def main(languages: list) -> int:
         extra += [(c["text"], "en")
                   for c in _json.loads(families.read_text())["cases"]]
 
+    # The strategy evaluation benchmark. Its prompts go through the fused
+    # serving path, so a missing parse would silently drop it to one witness
+    # and report a single-reader result as though it were fused.
+    suite = Path(__file__).resolve().parent.parent / "benchmark" / "suite.json"
+    if suite.exists():
+        extra += [(p, "en") for p in _json.loads(suite.read_text())["prompts"]]
+
     wanted = sorted({c.language for c in cases}
                     if not languages else set(languages))
 

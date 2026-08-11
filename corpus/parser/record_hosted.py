@@ -74,9 +74,24 @@ def strategy_family_sentences() -> list:
     return [c["text"] for c in json.loads(path.read_text())["cases"]]
 
 
+def benchmark_sentences() -> list:
+    """The strategy evaluation benchmark, recorded alongside the rest.
+
+    One recording store and one drift lane. The benchmark asks whether
+    equivalent phrasings agree, which is a question about the model's answer —
+    worthless without recordings, because the answer would change under us
+    between runs with nothing saying it had.
+    """
+    path = (Path(__file__).resolve().parent.parent / "benchmark" / "suite.json")
+    if not path.exists():
+        return []
+    return list(json.loads(path.read_text())["prompts"])
+
+
 def wanted() -> list:
     texts = [c.text for c in load() if c.tier == "semantics" and c.language == "en"]
-    return sorted(set(texts) | set(ACCEPTANCE) | set(strategy_family_sentences()))
+    return sorted(set(texts) | set(ACCEPTANCE) | set(strategy_family_sentences())
+                  | set(benchmark_sentences()))
 
 
 def main(argv: list) -> int:

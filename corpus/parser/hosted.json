@@ -7,9 +7,402 @@
     "schema_version": "quantify-discovery-schema@5",
     "max_tokens": 8000
   },
-  "count": 90,
+  "count": 180,
   "note": "Replayed by the corpus. A recording is not an answer — fusion decides whether the model's proposal proceeds, exactly as it would for a live reply.",
   "readings": [
+    {
+      "text": "$1,000 a month weighted by inverse volatility",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.5",
+          "source_span": "$1,000 a month weighted by inverse volatility",
+          "note": "Sentence describes a recurring contribution plan; no explicit verb like 'evaluate' or 'should I', so objective is inferred from context."
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "Per-contribution amount stated directly."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "a month",
+          "note": "Recurs each month; no specific day named."
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "inverse_volatility",
+          "confidence": "0.9",
+          "source_span": "weighted by inverse volatility",
+          "note": "Directly matches listed allocation method."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "$1,000 a month, equal weight across VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "$1,000 a month, equal weight across VTI and BND",
+          "note": "describes a recurring contribution plan with an allocation method"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "a month",
+          "note": "recurring monthly contribution"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000 a month",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.9",
+          "source_span": "VTI and BND",
+          "note": "as written, not resolved further"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "equal_weight_at_purchase",
+          "confidence": "0.85",
+          "source_span": "equal weight",
+          "note": "money split evenly between VTI and BND at purchase"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "$1,000 into VTI each time it breaks below its 200 day moving average",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "amount",
+          "value": "1000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "Dollar amount per contribution event."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "Asset purchased, as written."
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "0.6",
+          "source_span": "breaks below",
+          "note": "'breaks below' describes the moment the price first falls under the average, i.e. a crossing event, though 'each time' could theoretically be read as repeated crossings rather than a persistent state."
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.9",
+          "source_span": "200 day moving average",
+          "note": "Length of the moving average in sessions/days as stated."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "$1,000 into VTI on every day it stays below the 200-day average",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.5",
+          "source_span": "$1,000 into VTI on every day it stays below the 200-day average",
+          "note": "Describes a rule for contributing money conditionally; no explicit evaluation request."
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "Stated per-contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "Asset purchased, as written."
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "persistent_condition",
+          "confidence": "0.85",
+          "source_span": "stays below",
+          "note": "'stays below' indicates the condition holding true every day, not a single crossing."
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.9",
+          "source_span": "200-day average",
+          "note": "Length of moving average named."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "$1,000 monthly, sixty percent VTI, forty percent BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "$1,000 monthly, sixty percent VTI, forty percent BND",
+          "note": "whole sentence describes a recurring contribution plan with allocation, no explicit verb stating the goal"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": ""
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": ""
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.9",
+          "source_span": "VTI",
+          "note": ""
+        },
+        {
+          "dimension": "assets",
+          "value": "BND",
+          "confidence": "0.9",
+          "source_span": "BND",
+          "note": ""
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.9",
+          "source_span": "sixty percent VTI, forty percent BND",
+          "note": ""
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.9",
+          "source_span": "sixty percent VTI, forty percent BND",
+          "note": ""
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "$100 into VTI each week",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "$100 into VTI each week",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "amount",
+          "value": "$100",
+          "confidence": "0.95",
+          "source_span": "$100",
+          "note": "explicit per-contribution amount"
+        },
+        {
+          "dimension": "cadence",
+          "value": "weekly",
+          "confidence": "0.9",
+          "source_span": "each week",
+          "note": "recurring interval stated as weekly"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "instrument as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "$500/month into VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "$500/month into VTI",
+          "note": "describes a recurring contribution amount and target asset"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "$500/month",
+          "note": "explicit monthly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "0.95",
+          "source_span": "$500",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
     {
       "text": "70% stocks, 20% bonds, 10% cash",
       "reader_id": "claude-sonnet-5@1",
@@ -128,6 +521,178 @@
       ]
     },
     {
+      "text": "I want to add $500 to VTI every month",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "I want to add $500 to VTI every month",
+          "note": "Describes a recurring contribution plan"
+        },
+        {
+          "dimension": "amount",
+          "value": "500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": "Explicit dollar amount per contribution"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "every month",
+          "note": "Recurring monthly contribution"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "Ticker as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "invest $500 monthly into VTI",
+          "note": "Describes a recurring contribution plan."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "monthly",
+          "note": "Explicit monthly cadence stated."
+        },
+        {
+          "dimension": "amount",
+          "value": "500",
+          "confidence": "0.9",
+          "source_span": "$500",
+          "note": "Per-contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.9",
+          "source_span": "VTI",
+          "note": "Ticker as written, not resolved further."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "day_rule",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "Invest $500 monthly into VTI.",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "Invest $500 monthly into VTI",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit recurring interval"
+        },
+        {
+          "dimension": "amount",
+          "value": "500",
+          "confidence": "0.95",
+          "source_span": "$500",
+          "note": "per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "a 20% allocation tilted to small-cap value",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "small-cap value",
+          "confidence": "0.7",
+          "source_span": "small-cap value",
+          "note": "the asset being allocated to, as written"
+        }
+      ],
+      "relations": [
+        {
+          "kind": "portfolio_sleeves",
+          "members": [
+            {
+              "role": "satellite",
+              "subject": "small-cap value",
+              "qualifiers": {
+                "allocation": "20%"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "a 20% allocation tilted to small-cap value"
+        }
+      ],
+      "unread": []
+    },
+    {
       "text": "a 60/40 portfolio",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -165,6 +730,170 @@
         "observed_assets",
         "periodic_rebalancing",
         "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "a 60/40 split of $1,000 a month between VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "a month",
+          "note": "recurring monthly contribution implied by 'a month'"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000 a month",
+          "note": "per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.95",
+          "source_span": "VTI and BND",
+          "note": "as written, not resolved further"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.9",
+          "source_span": "60/40 split",
+          "note": "explicit percentage split given"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.95",
+          "source_span": "60/40",
+          "note": "order corresponds to VTI then BND as named"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "a cash bucket covering three years, equities for the rest",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [],
+      "relations": [
+        {
+          "kind": "bucket_policy",
+          "members": [
+            {
+              "role": "bucket",
+              "subject": "cash",
+              "qualifiers": {
+                "horizon": "three years",
+                "holding": "cash"
+              }
+            },
+            {
+              "role": "bucket",
+              "subject": "equities",
+              "qualifiers": {
+                "horizon": "remainder",
+                "holding": "equities"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "a cash bucket covering three years, equities for the rest"
+        }
+      ],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "a single $10,000 purchase of VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.5",
+          "source_span": "a single $10,000 purchase of VTI",
+          "note": "describes a one-time contribution to a plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "once",
+          "confidence": "0.9",
+          "source_span": "a single",
+          "note": "explicitly a one-time purchase"
+        },
+        {
+          "dimension": "amount",
+          "value": "$10,000",
+          "confidence": "0.95",
+          "source_span": "$10,000",
+          "note": "explicit dollar amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
         "trigger_semantics"
       ]
     },
@@ -338,6 +1067,65 @@
       ]
     },
     {
+      "text": "allocate $1,000 monthly by inverse volatility across VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "allocate $1,000 monthly",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit monthly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "inverse_volatility",
+          "confidence": "0.95",
+          "source_span": "by inverse volatility",
+          "note": "explicit allocation rule"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.9",
+          "source_span": "VTI and BND",
+          "note": "the two instruments named, reported as written"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "allocate by inverse volatility",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -369,6 +1157,197 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "an annual $40,000 withdrawal",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.7",
+          "source_span": "withdrawal",
+          "note": "sentence describes a withdrawal plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "an annual",
+          "note": "withdrawal occurs once per year"
+        },
+        {
+          "dimension": "amount",
+          "value": "$40,000",
+          "confidence": "0.95",
+          "source_span": "$40,000",
+          "note": "explicit per-withdrawal amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "assets",
+        "day_rule",
+        "evaluation_period",
+        "execution_timing",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "an annual withdrawal of four percent",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.9",
+          "source_span": "an annual withdrawal of four percent",
+          "note": "Sentence describes a withdrawal plan to be assessed."
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "annual",
+          "note": "Withdrawal occurs once per year."
+        },
+        {
+          "dimension": "sell_action",
+          "value": "withdrawal of four percent",
+          "confidence": "0.85",
+          "source_span": "an annual withdrawal of four percent",
+          "note": "Describes a periodic withdrawal sized as a percentage."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "annually convert $30,000 of traditional IRA to Roth",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_conversion",
+          "confidence": "0.9",
+          "source_span": "convert $30,000 of traditional IRA to Roth",
+          "note": "The sentence describes a Roth conversion plan."
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "annually",
+          "note": "Conversion happens once per year."
+        },
+        {
+          "dimension": "amount",
+          "value": "$30,000",
+          "confidence": "0.95",
+          "source_span": "$30,000",
+          "note": "Explicit per-conversion amount."
+        }
+      ],
+      "relations": [
+        {
+          "kind": "account_transition",
+          "members": [
+            {
+              "role": "from",
+              "subject": "traditional IRA",
+              "qualifiers": {}
+            },
+            {
+              "role": "to",
+              "subject": "Roth",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {
+            "action": "convert"
+          },
+          "source_span": "convert $30,000 of traditional IRA to Roth"
+        }
+      ],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "annually rebalance to a 60/40 target",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "annually rebalance to a 60/40 target",
+          "note": "rebalancing frequency stated as annual"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.85",
+          "source_span": "60/40 target",
+          "note": "explicit target weights given, not a named allocation rule"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.9",
+          "source_span": "60/40 target",
+          "note": "explicit weight split; holdings not named"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "cadence",
+        "evaluation_period",
+        "objective",
         "trigger_semantics"
       ]
     },
@@ -452,6 +1431,363 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
+      ]
+    },
+    {
+      "text": "bring it back to target when drift exceeds five percentage points",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "rebalance when drift exceeds five percentage points",
+          "confidence": "0.9",
+          "source_span": "bring it back to target when drift exceeds five percentage points",
+          "note": "Describes a drift-based rebalancing rule rather than a fixed calendar cadence."
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "0.6",
+          "source_span": "when drift exceeds",
+          "note": "'when' suggests the action fires the day the threshold is first crossed, not every day it stays exceeded."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "buy $1,000 of VTI when it crosses below its 200 DMA",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "buy $1,000 of VTI when it crosses below its 200 DMA",
+          "note": "sentence describes a rule-based purchase plan, closest fit to evaluating a strategy"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "explicit dollar amount per purchase"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "the instrument to be bought"
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "0.85",
+          "source_span": "when it crosses below",
+          "note": "explicit crossing language, not a persistent condition"
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.9",
+          "source_span": "200 DMA",
+          "note": "200-day moving average, in sessions"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "buy $1,000 of VTI when it crosses below its 200-day moving average",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "buy $1,000 of VTI when it crosses below its 200-day moving average",
+          "note": "sentence describes a rule-based buying strategy; no explicit objective verb given"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "buy $1,000",
+          "note": ""
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "of VTI",
+          "note": ""
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "0.9",
+          "source_span": "when it crosses below",
+          "note": ""
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.9",
+          "source_span": "200-day moving average",
+          "note": ""
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "buy $1,000 of VTI whenever it is below its 200-day moving average",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "1",
+          "source_span": "$1,000",
+          "note": "Fixed per-purchase amount stated directly."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "Asset to be purchased, as written."
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "persistent_condition",
+          "confidence": "0.9",
+          "source_span": "whenever it is below its 200-day moving average",
+          "note": "'whenever it is below' matches the persistent_condition pattern, implying every day the condition holds, not just the first."
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.9",
+          "source_span": "200-day moving average",
+          "note": "Length of the moving average named, taken as 200 sessions."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "buy $10,000 of VTI, just once",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "buy $10,000 of VTI, just once",
+          "note": "describes a single contribution action"
+        },
+        {
+          "dimension": "cadence",
+          "value": "once",
+          "confidence": "0.9",
+          "source_span": "just once",
+          "note": "explicitly one-time"
+        },
+        {
+          "dimension": "amount",
+          "value": "$10,000",
+          "confidence": "0.9",
+          "source_span": "$10,000",
+          "note": ""
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.9",
+          "source_span": "VTI",
+          "note": ""
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "buy $100 of VTI every week",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "buy $100 of VTI every week",
+          "note": "Describes a recurring contribution plan."
+        },
+        {
+          "dimension": "amount",
+          "value": "100",
+          "confidence": "1",
+          "source_span": "$100",
+          "note": "Dollar amount per contribution."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "Reported exactly as written."
+        },
+        {
+          "dimension": "cadence",
+          "value": "weekly",
+          "confidence": "1",
+          "source_span": "every week",
+          "note": "Recurring weekly cadence."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "periodic_rebalancing"
+      ]
+    },
+    {
+      "text": "buy $500 of VTI each month",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "buy $500 of VTI each month",
+          "note": "Describes a recurring purchase plan rather than an evaluation or comparison."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "each month",
+          "note": "Recurring monthly contribution."
+        },
+        {
+          "dimension": "amount",
+          "value": "500",
+          "confidence": "0.95",
+          "source_span": "$500",
+          "note": "Dollar amount per contribution."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "Asset as written, not resolved or substituted."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
@@ -564,6 +1900,88 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
+      ]
+    },
+    {
+      "text": "buy VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.9",
+          "source_span": "buy VTI and BND",
+          "note": "Two assets named as written, no ticker substitution."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "buy VTI below its 200-day moving average",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "buy VTI below its 200-day moving average",
+          "note": "sentence describes a rule for a strategy, no explicit objective stated"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "buy VTI",
+          "note": "instrument as written"
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "1",
+          "source_span": "200-day moving average",
+          "note": "length in sessions as stated"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
@@ -865,6 +2283,91 @@
       ]
     },
     {
+      "text": "contribute $1,000 monthly",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.9",
+          "source_span": "contribute $1,000 monthly",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit calendar cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "explicit per-contribution amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "contribute $500 a month to VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.9",
+          "source_span": "contribute $500 a month to VTI",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": "explicit per-contribution amount"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "a month",
+          "note": "recurring monthly contribution"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "periodic_rebalancing"
+      ]
+    },
+    {
       "text": "contribute $500 monthly to my Roth IRA",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -1032,6 +2535,126 @@
         "assets",
         "day_rule",
         "evaluation_period"
+      ]
+    },
+    {
+      "text": "convert $30,000 from the Roth to the traditional IRA",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_conversion",
+          "confidence": "0.8",
+          "source_span": "convert $30,000 from the Roth to the traditional IRA",
+          "note": "sentence describes a conversion between accounts"
+        },
+        {
+          "dimension": "amount",
+          "value": "$30,000",
+          "confidence": "1",
+          "source_span": "$30,000",
+          "note": "stated conversion amount"
+        }
+      ],
+      "relations": [
+        {
+          "kind": "account_transition",
+          "members": [
+            {
+              "role": "from",
+              "subject": "Roth",
+              "qualifiers": {}
+            },
+            {
+              "role": "to",
+              "subject": "traditional IRA",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {
+            "action": "convert"
+          },
+          "source_span": "convert $30,000 from the Roth to the traditional IRA"
+        }
+      ],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "convert $30,000 from the traditional IRA to the Roth",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_conversion",
+          "confidence": "0.9",
+          "source_span": "convert $30,000 from the traditional IRA to the Roth",
+          "note": "the person is describing a Roth conversion action"
+        },
+        {
+          "dimension": "amount",
+          "value": "$30,000",
+          "confidence": "1",
+          "source_span": "$30,000",
+          "note": "explicit dollar amount to convert"
+        }
+      ],
+      "relations": [
+        {
+          "kind": "account_transition",
+          "members": [
+            {
+              "role": "from",
+              "subject": "traditional IRA",
+              "qualifiers": {}
+            },
+            {
+              "role": "to",
+              "subject": "Roth",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {
+            "action": "convert"
+          },
+          "source_span": "convert $30,000 from the traditional IRA to the Roth"
+        }
+      ],
+      "unread": [
+        "allocation_method",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
@@ -1269,6 +2892,68 @@
       ]
     },
     {
+      "text": "double leverage on the stock sleeve",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [],
+      "relations": [
+        {
+          "kind": "portfolio_sleeves",
+          "members": [
+            {
+              "role": "satellite",
+              "subject": "stock sleeve",
+              "qualifiers": {
+                "leverage_multiplier": "2"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "double leverage on the stock sleeve"
+        }
+      ],
+      "unread": []
+    },
+    {
+      "text": "draw $40,000 per year",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.8",
+          "source_span": "draw $40,000 per year",
+          "note": "describes a withdrawal plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "per year",
+          "note": "withdrawal recurs yearly"
+        },
+        {
+          "dimension": "amount",
+          "value": "$40,000",
+          "confidence": "0.95",
+          "source_span": "$40,000",
+          "note": "per-withdrawal amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "assets",
+        "day_rule",
+        "evaluation_period"
+      ]
+    },
+    {
       "text": "draw down 3% a year in retirement",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -1300,6 +2985,138 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "draw down 4% annually",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.9",
+          "source_span": "draw down 4% annually",
+          "note": "describes a withdrawal plan from an investment"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.85",
+          "source_span": "annually",
+          "note": "withdrawal occurs once per year"
+        },
+        {
+          "dimension": "sell_action",
+          "value": "draw down 4% annually",
+          "confidence": "0.8",
+          "source_span": "draw down 4% annually",
+          "note": "a withdrawal of 4% per year, likely of portfolio value though not stated"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "day_rule",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "each month hold whichever of VTI and BND performed best",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "each month hold whichever of VTI and BND performed best",
+          "note": "Sentence describes a rotation strategy; no explicit question is asked, so this is the best-fit default."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "each month",
+          "note": "Contribution/rebalancing check occurs on a monthly cadence."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.8",
+          "source_span": "VTI and BND",
+          "note": "The two candidates between which the holding is chosen each month; only one is held at a time based on performance, not a combined holding."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "each year, bring the portfolio back to 60/40",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "annual, back to 60/40",
+          "confidence": "0.9",
+          "source_span": "each year, bring the portfolio back to 60/40",
+          "note": "annual rebalancing to stated target weights"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.9",
+          "source_span": "60/40",
+          "note": "target weights for rebalancing, holdings not named"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.7",
+          "source_span": "60/40",
+          "note": "explicit ratio implies stated weights rather than a computed method"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "sell_action",
         "trigger_semantics"
       ]
     },
@@ -1510,6 +3327,24 @@
       "unread": []
     },
     {
+      "text": "hold VTI for 200 days",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.9",
+          "source_span": "VTI",
+          "note": "explicit asset named"
+        }
+      ],
+      "relations": [],
+      "unread": []
+    },
+    {
       "text": "hold my age in bonds",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -1663,6 +3498,724 @@
       ]
     },
     {
+      "text": "hold three years of spending in cash, invest the remainder",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [],
+      "relations": [
+        {
+          "kind": "bucket_policy",
+          "members": [
+            {
+              "role": "bucket",
+              "subject": "spending",
+              "qualifiers": {
+                "horizon": "three years",
+                "holding": "cash"
+              }
+            },
+            {
+              "role": "bucket",
+              "subject": "remainder",
+              "qualifiers": {
+                "horizon": "remainder",
+                "holding": "invested"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "hold three years of spending in cash, invest the remainder"
+        }
+      ],
+      "unread": [
+        "account_type",
+        "assets",
+        "cadence",
+        "evaluation_period",
+        "objective"
+      ]
+    },
+    {
+      "text": "if VTI moves from above its 200-day MA to below it, buy $1,000",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "buy $1,000",
+          "note": "describes a rule for when to make a purchase"
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "0.9",
+          "source_span": "moves from above its 200-day MA to below it",
+          "note": "phrase describes a transition, not a sustained state"
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.95",
+          "source_span": "200-day MA",
+          "note": "explicit moving average length in days, treated as sessions"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "buy $1,000",
+          "note": "explicit contribution amount"
+        },
+        {
+          "dimension": "observed_assets",
+          "value": "VTI",
+          "confidence": "0.9",
+          "source_span": "VTI moves from above its 200-day MA to below it",
+          "note": "VTI is what the condition is watching"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "invest $1,000 in VTI on any day it sits under the 200 DMA",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "invest $1,000 in VTI on any day it sits under the 200 DMA",
+          "note": "describes a conditional buying rule, treated as a strategy to evaluate"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "1",
+          "source_span": "invest $1,000",
+          "note": ""
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "in VTI",
+          "note": ""
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "persistent_condition",
+          "confidence": "0.8",
+          "source_span": "on any day it sits under the 200 DMA",
+          "note": "'sits under' describes an ongoing state, not a crossing moment"
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.9",
+          "source_span": "200 DMA",
+          "note": ""
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "invest $1,000 in VTI the day it drops beneath the 200-day average",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "invest $1,000 in VTI the day it drops beneath the 200-day average",
+          "note": "sentence describes a conditional investment plan; no explicit question stated"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.9",
+          "source_span": "$1,000",
+          "note": "per-trigger contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "instrument as written, not resolved further"
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "0.75",
+          "source_span": "the day it drops beneath",
+          "note": "'the day it drops' names the first day the condition becomes true, not every day it remains true"
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.9",
+          "source_span": "200-day average",
+          "note": "length of the moving average in sessions"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "invest $1,000 monthly into VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "invest $1,000 monthly into VTI",
+          "note": "Describes a recurring contribution plan."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "Explicit recurring interval."
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "Explicit per-contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "Ticker as written, not resolved or substituted."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $1,000 monthly split equally between BND and VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "invest $1,000 monthly split equally between BND and VTI",
+          "note": "describes an ongoing contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit calendar cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "BND and VTI",
+          "confidence": "0.9",
+          "source_span": "BND and VTI",
+          "note": "as written, not resolved further"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "equal_weight_at_purchase",
+          "confidence": "0.85",
+          "source_span": "split equally between",
+          "note": "equal split at each purchase"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $1,000 monthly split equally between VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "invest $1,000 monthly",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit monthly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "equal_weight_at_purchase",
+          "confidence": "0.9",
+          "source_span": "split equally between",
+          "note": "explicit equal division of each contribution"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.95",
+          "source_span": "VTI and BND",
+          "note": "assets as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $1,000 monthly, 40% VTI and 60% BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "invest $1,000 monthly",
+          "note": "Describes a recurring contribution plan rather than an evaluation question."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "Explicit recurring cadence."
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "Per-contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.9",
+          "source_span": "40% VTI and 60% BND",
+          "note": "Two named instruments, reported as written."
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "40/60",
+          "confidence": "0.9",
+          "source_span": "40% VTI and 60% BND",
+          "note": "Weights given in the order the holdings were named: VTI then BND."
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.85",
+          "source_span": "40% VTI and 60% BND",
+          "note": "Explicit percentages given per holding, matching the stated_weights method."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $1,000 monthly, 60% VTI and 40% BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "invest $1,000 monthly",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "monthly",
+          "note": ""
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "1",
+          "source_span": "$1,000",
+          "note": "per contribution"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "1",
+          "source_span": "VTI and BND",
+          "note": "as written, not resolved further"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.9",
+          "source_span": "60% VTI and 40% BND",
+          "note": "explicit percentages given per holding"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "1",
+          "source_span": "60% VTI and 40% BND",
+          "note": "order follows holdings as named: VTI then BND"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $1,000 monthly, volatility-weighted across VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "invest $1,000 monthly",
+          "note": "describes a recurring investment plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit calendar cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "inverse_volatility",
+          "confidence": "0.6",
+          "source_span": "volatility-weighted",
+          "note": "closest listed method matching 'volatility-weighted'; sentence does not specify direction of weighting explicitly"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.9",
+          "source_span": "VTI and BND",
+          "note": "assets as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $10,000 in VTI once",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "invest $10,000 in VTI once",
+          "note": "describes a single contribution action"
+        },
+        {
+          "dimension": "cadence",
+          "value": "once",
+          "confidence": "0.9",
+          "source_span": "once",
+          "note": "single lump-sum contribution"
+        },
+        {
+          "dimension": "amount",
+          "value": "$10,000",
+          "confidence": "0.95",
+          "source_span": "$10,000",
+          "note": "explicit dollar amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $100 weekly into VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "invest $100 weekly into VTI",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "weekly",
+          "confidence": "1",
+          "source_span": "weekly",
+          "note": "explicit cadence stated"
+        },
+        {
+          "dimension": "amount",
+          "value": "$100",
+          "confidence": "1",
+          "source_span": "$100",
+          "note": "explicit per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "invest $1k monthly into VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "invest $1k monthly into VTI",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit monthly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1k",
+          "confidence": "0.95",
+          "source_span": "$1k",
+          "note": "stated per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "invest $500 monthly",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -1699,6 +4252,53 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
+      ]
+    },
+    {
+      "text": "invest $500 monthly into BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "invest $500 monthly into BND",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit monthly cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "0.95",
+          "source_span": "$500",
+          "note": "explicit per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "BND",
+          "confidence": "0.95",
+          "source_span": "BND",
+          "note": "instrument as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "trigger_semantics"
       ]
     },
     {
@@ -1744,6 +4344,52 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
+      ]
+    },
+    {
+      "text": "invest $500 weekly into VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "invest $500 weekly into VTI",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "weekly",
+          "confidence": "1",
+          "source_span": "weekly",
+          "note": ""
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": ""
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "reported as written, not resolved"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "periodic_rebalancing"
       ]
     },
     {
@@ -1862,6 +4508,57 @@
         "assets",
         "day_rule",
         "dividend_policy"
+      ]
+    },
+    {
+      "text": "keep bonds in my IRA, equities in taxable",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [],
+      "relations": [
+        {
+          "kind": "asset_location",
+          "members": [
+            {
+              "role": "holding",
+              "subject": "bonds",
+              "qualifiers": {}
+            },
+            {
+              "role": "account",
+              "subject": "IRA",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {},
+          "source_span": "keep bonds in my IRA"
+        },
+        {
+          "kind": "asset_location",
+          "members": [
+            {
+              "role": "holding",
+              "subject": "equities",
+              "qualifiers": {}
+            },
+            {
+              "role": "account",
+              "subject": "taxable",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {},
+          "source_span": "equities in taxable"
+        }
+      ],
+      "unread": [
+        "allocation_method",
+        "amount",
+        "cadence",
+        "evaluation_period",
+        "objective"
       ]
     },
     {
@@ -2269,6 +4966,330 @@
       ]
     },
     {
+      "text": "monthly $1,000 divided equally between VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "monthly $1,000 divided equally between VTI and BND",
+          "note": "Describes a recurring contribution plan, not a comparison or evaluation of an existing strategy."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "monthly",
+          "note": "Explicit cadence word."
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "Stated per-contribution amount."
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "equal_weight_at_purchase",
+          "confidence": "0.85",
+          "source_span": "divided equally",
+          "note": "Explicit equal split between the two named holdings."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.9",
+          "source_span": "VTI and BND",
+          "note": "Assets as written, not resolved further."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "monthly $1,000 weighted 60/40 across VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "monthly $1,000 weighted 60/40 across VTI and BND",
+          "note": "Sentence describes a recurring contribution amount and allocation, consistent with planning contributions rather than evaluating an existing strategy."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": ""
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": ""
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.9",
+          "source_span": "weighted 60/40",
+          "note": "Explicit split given rather than a rule like inverse volatility."
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.9",
+          "source_span": "60/40",
+          "note": "Order corresponds to VTI then BND as named."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.95",
+          "source_span": "VTI and BND",
+          "note": ""
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "monthly $500 purchase of VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "explicit periodic cadence"
+        },
+        {
+          "dimension": "amount",
+          "value": "500",
+          "confidence": "0.95",
+          "source_span": "$500",
+          "note": "explicit per-purchase amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "monthly, buy the better performer of VTI or BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "buy the better performer of VTI or BND",
+          "note": "describes a strategy rule; no explicit question asked"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "monthly",
+          "note": ""
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI or BND",
+          "confidence": "0.7",
+          "source_span": "VTI or BND",
+          "note": "the person names both instruments as written; selection is between them, not a combined holding"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "move $30,000 a year from my traditional IRA into a Roth",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_conversion",
+          "confidence": "0.8",
+          "source_span": "move $30,000 a year from my traditional IRA into a Roth",
+          "note": "describes moving funds from traditional IRA to Roth, i.e., a conversion"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "a year",
+          "note": "recurring yearly movement"
+        },
+        {
+          "dimension": "amount",
+          "value": "$30,000",
+          "confidence": "0.95",
+          "source_span": "$30,000",
+          "note": "explicit per-period amount"
+        }
+      ],
+      "relations": [
+        {
+          "kind": "account_transition",
+          "members": [
+            {
+              "role": "from",
+              "subject": "traditional IRA",
+              "qualifiers": {}
+            },
+            {
+              "role": "to",
+              "subject": "Roth",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {
+            "action": "convert"
+          },
+          "source_span": "from my traditional IRA into a Roth"
+        }
+      ],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "move one percent a year out of equities into fixed income",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "a year",
+          "note": "the shift happens once per year"
+        },
+        {
+          "dimension": "amount",
+          "value": "1%",
+          "confidence": "0.75",
+          "source_span": "one percent",
+          "note": "a percentage of the portfolio shifted each year, not a dollar contribution amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "on the first trading day of the month",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -2296,6 +5317,81 @@
         "amount",
         "assets",
         "objective"
+      ]
+    },
+    {
+      "text": "one-off $10,000 investment in VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "cadence",
+          "value": "once",
+          "confidence": "0.9",
+          "source_span": "one-off",
+          "note": "single lump-sum contribution, not recurring"
+        },
+        {
+          "dimension": "amount",
+          "value": "10000",
+          "confidence": "0.95",
+          "source_span": "$10,000",
+          "note": "amount of the single investment"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved or expanded"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "overweight small cap value by 20%",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "small cap value",
+          "confidence": "0.8",
+          "source_span": "small cap value",
+          "note": "Named holding to be overweighted; no ticker or fund given."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
+        "day_rule",
+        "evaluation_period",
+        "execution_timing",
+        "objective",
+        "trigger_semantics"
       ]
     },
     {
@@ -2387,6 +5483,160 @@
       ]
     },
     {
+      "text": "put $1,000 monthly into VTI and BND, evenly",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "put $1,000 monthly into VTI and BND, evenly",
+          "note": "Describes a recurring contribution plan into two funds."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.95",
+          "source_span": "monthly",
+          "note": "Explicit calendar cadence."
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "Stated per-contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.95",
+          "source_span": "VTI and BND",
+          "note": "Assets as written, not resolved further."
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "equal_weight_at_purchase",
+          "confidence": "0.75",
+          "source_span": "evenly",
+          "note": "'Evenly' implies equal split between the two named funds at each purchase."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "put $10,000 into VTI as a lump sum",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "put $10,000 into VTI as a lump sum",
+          "note": "Describes a one-time contribution action."
+        },
+        {
+          "dimension": "cadence",
+          "value": "once",
+          "confidence": "0.9",
+          "source_span": "as a lump sum",
+          "note": "Explicitly a single, one-time contribution."
+        },
+        {
+          "dimension": "amount",
+          "value": "10000",
+          "confidence": "0.95",
+          "source_span": "$10,000",
+          "note": "Stated contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "Asset as written, not resolved further."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "put $100 a week into VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "put $100 a week into VTI",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "weekly",
+          "confidence": "0.9",
+          "source_span": "a week",
+          "note": "money contributed every week"
+        },
+        {
+          "dimension": "amount",
+          "value": "$100",
+          "confidence": "0.95",
+          "source_span": "$100",
+          "note": "per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.95",
+          "source_span": "VTI",
+          "note": "ticker as written"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "periodic_rebalancing"
+      ]
+    },
+    {
       "text": "put $250 into the index fund every two weeks",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -2431,6 +5681,118 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
+      ]
+    },
+    {
+      "text": "put $500 into VTI every month",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "put $500 into VTI every month",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": "per-contribution amount"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "every month",
+          "note": "recurring monthly cadence"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "asset purchased, as written"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "put a grand into VTI on the day it falls through its 200-day average",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "put a grand into VTI on the day it falls through its 200-day average",
+          "note": "Describes a specific investment rule to be evaluated."
+        },
+        {
+          "dimension": "amount",
+          "value": "1000",
+          "confidence": "0.9",
+          "source_span": "a grand",
+          "note": "Colloquial for $1000."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "Instrument as written."
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "0.85",
+          "source_span": "on the day it falls through",
+          "note": "Names the day the condition first becomes true, not an ongoing state."
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.95",
+          "source_span": "200-day average",
+          "note": "Length of moving average in sessions."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
       ]
     },
     {
@@ -2536,6 +5898,102 @@
       ]
     },
     {
+      "text": "put the fixed income in the IRA and the shares in the brokerage",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [],
+      "relations": [
+        {
+          "kind": "asset_location",
+          "members": [
+            {
+              "role": "holding",
+              "subject": "fixed income",
+              "qualifiers": {}
+            },
+            {
+              "role": "account",
+              "subject": "IRA",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {},
+          "source_span": "put the fixed income in the IRA"
+        },
+        {
+          "kind": "asset_location",
+          "members": [
+            {
+              "role": "holding",
+              "subject": "shares",
+              "qualifiers": {}
+            },
+            {
+              "role": "account",
+              "subject": "brokerage",
+              "qualifiers": {}
+            }
+          ],
+          "attributes": {},
+          "source_span": "the shares in the brokerage"
+        }
+      ],
+      "unread": [
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "put the money into the mortgage instead of the market",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_debt_repayment",
+          "confidence": "0.8",
+          "source_span": "put the money into the mortgage instead of the market",
+          "note": "Choosing to pay down mortgage rather than invest in the market."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "rather than through an ETF",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@2",
@@ -2558,6 +6016,47 @@
         "objective",
         "observed_assets",
         "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "rebalance VTI and BND monthly",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.95",
+          "source_span": "VTI and BND",
+          "note": "Two holdings named as written, not resolved further."
+        },
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "rebalance VTI and BND monthly",
+          "note": "States rebalancing occurs on a monthly cadence; no drift threshold given."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
         "sell_action",
         "stated_weights",
         "trigger_semantics"
@@ -2601,6 +6100,41 @@
         "objective",
         "observed_assets",
         "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "rebalance if any holding moves 5% away from its target",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "rebalance when any holding drifts 5% from target",
+          "confidence": "0.9",
+          "source_span": "rebalance if any holding moves 5% away from its target",
+          "note": "Drift-based rebalancing rule; no fixed schedule given, threshold triggers the action."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "sell_action",
+        "stated_weights",
         "trigger_semantics"
       ]
     },
@@ -2721,6 +6255,45 @@
       ]
     },
     {
+      "text": "reduce the equity share by 1% annually",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "annually",
+          "note": "Adjustment happens once per year."
+        },
+        {
+          "dimension": "sell_action",
+          "value": "reduce the equity share by 1%",
+          "confidence": "0.7",
+          "source_span": "reduce the equity share by 1% annually",
+          "note": "Describes a periodic reduction in equity allocation, implying selling or reallocating equity holdings; the sentence does not specify what the freed allocation moves into."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "refill the cash bucket from stocks after a good year",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -2798,6 +6371,53 @@
       ]
     },
     {
+      "text": "rotate monthly into the stronger of VTI and BND",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.5",
+          "source_span": "rotate monthly into the stronger of VTI and BND",
+          "note": "Describes a rotation strategy to be assessed; no explicit question asked, but framing implies evaluation."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "monthly",
+          "note": "Rebalancing/rotation check occurs each month."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.9",
+          "source_span": "VTI and BND",
+          "note": "Only one of the two is held at a time, whichever is 'stronger'; not a simultaneous holding split."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "run it at a 10% volatility target",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -2815,6 +6435,49 @@
       "relations": [],
       "unread": [
         "account_type",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "run the equity portion at two times leverage",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [],
+      "relations": [
+        {
+          "kind": "portfolio_sleeves",
+          "members": [
+            {
+              "role": "core",
+              "subject": "equity portion",
+              "qualifiers": {
+                "leverage_multiplier": "2"
+              }
+            }
+          ],
+          "attributes": {},
+          "source_span": "run the equity portion at two times leverage"
+        }
+      ],
+      "unread": [
+        "account_type",
+        "allocation_method",
         "amount",
         "assets",
         "cadence",
@@ -2905,6 +6568,47 @@
         "dividend_policy",
         "evaluation_period",
         "objective"
+      ]
+    },
+    {
+      "text": "sell losers that are down 10% from what I paid",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "sell losers that are down 10% from what I paid",
+          "note": "single rule from a larger investment plan being described"
+        },
+        {
+          "dimension": "sell_action",
+          "value": "sell losers that are down 10% from what I paid",
+          "confidence": "0.9",
+          "source_span": "sell losers that are down 10% from what I paid",
+          "note": "selling positions whose loss from cost basis reaches 10%"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
@@ -3002,6 +6706,48 @@
       ]
     },
     {
+      "text": "set aside $500 for VTI monthly",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.8",
+          "source_span": "set aside $500 for VTI monthly",
+          "note": "Describes a recurring contribution plan."
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": "Explicit per-contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "Instrument as written, not resolved further."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "monthly",
+          "note": "Recurring interval stated directly."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "day_rule"
+      ]
+    },
+    {
       "text": "shift 1% from stocks to bonds every year as I get older",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -3068,6 +6814,30 @@
       ]
     },
     {
+      "text": "should I overpay the mortgage rather than invest",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_debt_repayment",
+          "confidence": "0.9",
+          "source_span": "should I overpay the mortgage rather than invest",
+          "note": "Comparing paying down mortgage debt versus investing"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "cadence",
+        "evaluation_period"
+      ]
+    },
+    {
       "text": "since January 2020",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -3098,6 +6868,81 @@
         "observed_assets",
         "periodic_rebalancing",
         "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "size positions for 10% vol",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "allocation_method",
+          "value": "volatility_target",
+          "confidence": "0.8",
+          "source_span": "size positions for 10% vol",
+          "note": "Position sizing targeting a 10% volatility level implies a volatility_target allocation method."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "spend 4% of the balance every year",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.9",
+          "source_span": "spend 4% of the balance every year",
+          "note": "describes a withdrawal/spending rule against a balance"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "every year",
+          "note": "spending occurs on a yearly cadence"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
         "stated_weights",
         "trigger_semantics"
       ]
@@ -3246,6 +7091,58 @@
       ]
     },
     {
+      "text": "take $40,000 out each year",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.9",
+          "source_span": "take $40,000 out each year",
+          "note": "describes a recurring withdrawal plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "each year",
+          "note": "withdrawal recurs yearly"
+        },
+        {
+          "dimension": "amount",
+          "value": "$40,000",
+          "confidence": "0.95",
+          "source_span": "$40,000",
+          "note": "fixed withdrawal amount per period"
+        },
+        {
+          "dimension": "sell_action",
+          "value": "take $40,000 out each year",
+          "confidence": "0.85",
+          "source_span": "take $40,000 out each year",
+          "note": "explicit withdrawal action"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "take from bonds in a down year and from stocks otherwise",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -3293,6 +7190,38 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
+      ]
+    },
+    {
+      "text": "take out 4% a year",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.8",
+          "source_span": "take out 4% a year",
+          "note": "describes a withdrawal plan from an investment"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.85",
+          "source_span": "a year",
+          "note": "withdrawal recurs once per year"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period"
       ]
     },
     {
@@ -3357,6 +7286,76 @@
         "account_type",
         "amount",
         "cadence"
+      ]
+    },
+    {
+      "text": "target 10% annualised volatility",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "allocation_method",
+          "value": "volatility_target",
+          "confidence": "0.85",
+          "source_span": "target 10% annualised volatility",
+          "note": "The 10% figure specifies the target volatility level for a volatility_target allocation method; no dimension exists to record the numeric target itself."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "tax-loss harvest positions 10% underwater",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "sell_action",
+          "value": "tax-loss harvest positions 10% underwater",
+          "confidence": "0.9",
+          "source_span": "tax-loss harvest positions 10% underwater",
+          "note": "Describes a harvesting rule triggered when a position is down 10%, but does not specify which account, which assets, or whether it's a one-time crossing event or an ongoing condition."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "amount",
+        "assets",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
@@ -3451,6 +7450,55 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "weekly $100 contribution to VTI",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.7",
+          "source_span": "weekly $100 contribution to VTI",
+          "note": "describes a recurring contribution plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "weekly",
+          "confidence": "1",
+          "source_span": "weekly",
+          "note": "explicit cadence word"
+        },
+        {
+          "dimension": "amount",
+          "value": "100",
+          "confidence": "1",
+          "source_span": "$100",
+          "note": "per-contribution amount"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "1",
+          "source_span": "VTI",
+          "note": "asset as written, not resolved further"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "sell_action",
         "trigger_semantics"
       ]
     },
@@ -3584,6 +7632,57 @@
       ]
     },
     {
+      "text": "whenever VTI crosses under the 200 DMA, invest $1,000",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "0.4",
+          "source_span": "invest $1,000",
+          "note": "Sentence describes an investment plan/rule; no explicit question stated, inferred from framing as a strategy."
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.9",
+          "source_span": "invest $1,000",
+          "note": "Per-trigger contribution amount."
+        },
+        {
+          "dimension": "observed_assets",
+          "value": "VTI",
+          "confidence": "0.9",
+          "source_span": "VTI crosses under the 200 DMA",
+          "note": "VTI is the asset whose price relative to its moving average is watched."
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.8",
+          "source_span": "200 DMA",
+          "note": "200-day moving average, assumed sessions as is standard for 'DMA'."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
       "text": "while SPY stays below its average",
       "reader_id": "claude-sonnet-5@1",
       "schema_version": "quantify-discovery-schema@5",
@@ -3622,6 +7721,176 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
+      ]
+    },
+    {
+      "text": "while VTI is beneath its 200-day average, put in $1,000",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.6",
+          "source_span": "put in $1,000",
+          "note": "describes a contribution rule triggered by a condition"
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "persistent_condition",
+          "confidence": "0.9",
+          "source_span": "while VTI is beneath its 200-day average",
+          "note": "'while' indicates ongoing condition, not a single crossing"
+        },
+        {
+          "dimension": "moving_average_window",
+          "value": "200",
+          "confidence": "0.95",
+          "source_span": "200-day average",
+          "note": "explicit moving average length in sessions"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI",
+          "confidence": "0.9",
+          "source_span": "VTI",
+          "note": "asset bought and observed"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "explicit contribution amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "periodic_rebalancing",
+        "sell_action",
+        "stated_weights"
+      ]
+    },
+    {
+      "text": "withdraw $1,000 monthly",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.8",
+          "source_span": "withdraw $1,000 monthly",
+          "note": "sentence describes a withdrawal plan to be assessed"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.9",
+          "source_span": "monthly",
+          "note": "withdrawal recurs each month"
+        },
+        {
+          "dimension": "amount",
+          "value": "$1,000",
+          "confidence": "0.95",
+          "source_span": "$1,000",
+          "note": "explicit per-withdrawal amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "assets",
+        "day_rule",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "withdraw $40,000 a year from the portfolio",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.9",
+          "source_span": "withdraw $40,000 a year from the portfolio",
+          "note": "sentence describes a withdrawal plan"
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.85",
+          "source_span": "a year",
+          "note": "withdrawal recurs once per year"
+        },
+        {
+          "dimension": "amount",
+          "value": "40000",
+          "confidence": "0.95",
+          "source_span": "$40,000",
+          "note": "stated per-withdrawal amount"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "assets",
+        "day_rule",
+        "evaluation_period"
+      ]
+    },
+    {
+      "text": "withdraw 4% of the portfolio each year",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "assess_withdrawal",
+          "confidence": "0.9",
+          "source_span": "withdraw 4% of the portfolio each year",
+          "note": "Sentence describes a withdrawal plan from a portfolio."
+        },
+        {
+          "dimension": "cadence",
+          "value": "annual",
+          "confidence": "0.9",
+          "source_span": "each year",
+          "note": "Withdrawal happens once per year."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "assets",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "periodic_rebalancing",
+        "stated_weights",
+        "trigger_semantics"
       ]
     },
     {
@@ -3667,6 +7936,58 @@
         "observed_assets",
         "periodic_rebalancing",
         "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "yearly rebalancing to 60% stocks and 40% bonds",
+      "reader_id": "claude-sonnet-5@1",
+      "schema_version": "quantify-discovery-schema@5",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "periodic_rebalancing",
+          "value": "yearly",
+          "confidence": "0.9",
+          "source_span": "yearly rebalancing",
+          "note": "rebalancing cadence stated as yearly"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.9",
+          "source_span": "60% stocks and 40% bonds",
+          "note": "explicit percentage split given"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.9",
+          "source_span": "60% stocks and 40% bonds",
+          "note": "order matches stocks then bonds as named"
+        },
+        {
+          "dimension": "assets",
+          "value": "stocks and bonds",
+          "confidence": "0.7",
+          "source_span": "60% stocks and 40% bonds",
+          "note": "generic asset classes named, not specific instruments"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "amount",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "moving_average_window",
+        "objective",
+        "observed_assets",
         "trigger_semantics"
       ]
     }
