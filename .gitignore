@@ -159,3 +159,6 @@ evidence/restore-drill-*.md
 
 # Lean build output. The proofs are source; the oleans are not.
 formal/.lake/
+
+# vendored shared runtime (see scripts/vendor_agentic_os.sh)
+/agentic_os/
