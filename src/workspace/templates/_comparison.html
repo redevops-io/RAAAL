@@ -11,8 +11,13 @@
       <td>{{ b.name }}<div class="small muted">{{ b.description }}</div></td>
       {% if b.comparable %}
         <td class="num">${{ "{:,.0f}".format(b.result.final_value) }}</td>
-        <td class="num">{{ "%+.2f%%"|format((b.result.money_weighted or 0) * 100) }}</td>
-        <td class="num">{{ "%+.2f%%"|format((b.result.time_weighted_annualized or 0) * 100) }}</td>
+        {# `or 0` rendered a missing return as +0.00%, which reads as "broke even" for a series that has no defensible rate at all. The status is shown instead. #}
+      <td class="num">{% if b.result.money_weighted.rate is not none %}{{ "%+.2f%%"|format(b.result.money_weighted.rate * 100) }}{% else %}<span class="muted">{{ b.result.money_weighted.status.value }}</span>{% endif %}</td>
+        <td class="num">{# `or 0` rendered an undefined return as +0.00%. `None` here means the
+         series was empty or the portfolio reached zero, and "broke even" is
+         the one thing that did not happen. Same defect as the money-weighted
+         column beside it. #}
+      {% if b.result.time_weighted_annualized is not none %}{{ "%+.2f%%"|format(b.result.time_weighted_annualized * 100) }}{% else %}<span class="muted">not defined</span>{% endif %}</td>
         <td></td>
       {% else %}
         <td colspan="3" class="small muted">{{ b.mismatch.why }}</td>

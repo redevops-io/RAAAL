@@ -173,7 +173,13 @@ class TestAPI:
     def test_agpl_source_offer_is_served(self, client):
         """AGPL §13 obliges offering source to network users."""
         body = client.get("/info").json()
-        assert body["license"]["license"] == "AGPL-3.0-or-later"
+        assert body["license"]["license"] == \
+            "AGPL-3.0-or-later WITH Commons-Clause"
+        # The entitlement itself, not just the label. The Commons Clause
+        # withholds the right to sell and leaves §13 untouched, so a change
+        # that dropped the source offer while renaming the licence would be
+        # the one this test exists to catch.
+        assert "corresponding source" in body["license"]["notice"]
         assert body["license"]["source"].startswith("https://")
 
     def test_latest_and_pinned_resolution(self, client):

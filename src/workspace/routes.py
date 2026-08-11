@@ -54,11 +54,27 @@ from ..mission.scenario import UNSIMULATED
 from ..mission.spec import ScenarioAmendment
 from ..mission.templates import RSU_TEMPLATE
 from ..mission.templates import TEMPLATES as LIFE_EVENT_TEMPLATES
-from . import historical_lots
+from . import draft, historical_lots
 from .chain import SCENARIO_CHAIN_ORDER, build_scenario_chain
 from .confirmation import build as build_confirmation
 from .comparability_record import as_payload as comparability_payload
 from .environment import pins_for
+
+# Execution lives in `run_boundary`, and this file consumes it. The
+# dependency runs one way — routes depend on execution, never the
+# reverse — which is what makes "the runtime artifact is authoritative
+# and execution is a downstream service" true in the code rather than
+# only in the document.
+from .run_boundary import (  # noqa: F401
+    STRATEGY_NOT_EXECUTED,
+    declare_unsimulated,
+    _benchmark_specs,
+    _flows_from,
+    _funding_events,
+    _market_data,
+    _resolve_window,
+    _run,
+)
 from .comparability_record import record as comparability_records
 from .generate import generate as generate_worksheet
 from .generate import new_plan_id
@@ -90,18 +106,57 @@ BENCHMARK_RULE = "benchmark-policy/public-default@1"
 #: fixture is deliberately shaped like market data so the evaluation stack has
 #: something realistic to run on, which is exactly why the disclosure is needed.
 def _data_notice():
+    """What to say about the data behind a figure, read from the snapshot.
+
+    Was a hardcoded synthetic disclosure and a `None` for everything else. The
+    moment real prices arrived that sentence — "the series are invented ...
+    calibrated to no real security" — became a false statement printed beside
+    every number, and the alternative branch said nothing at all where an
+    attribution is required.
+
+    So the notice comes from the snapshot the run actually used. A disclosure
+    written next to the data it describes can go stale when the data changes;
+    one derived from it cannot.
+    """
     from ..deploy.context import current
     from ..market_data.pilot_policy import PilotDataPolicy
 
     policy = current().market_data.policy
-    if policy is not PilotDataPolicy.SYNTHETIC_ONLY:
-        return None
+    if policy is PilotDataPolicy.SYNTHETIC_ONLY:
+        return {
+            "headline": "Pilot mode uses synthetic market data.",
+            "detail": ("Results are for product evaluation only and are not "
+                       "based on licensed live market data. The series are "
+                       "invented, shaped like market data so the engine has "
+                       "something realistic to run on, and calibrated to no "
+                       "real security."),
+        }
+
+    from ..market_data.access import approved_snapshot
+
+    snapshot = approved_snapshot()
+    if snapshot is None:
+        # No authorised snapshot means no figures either, so this is the
+        # honest thing to say rather than nothing.
+        return {
+            "headline": "No approved market data is configured.",
+            "detail": ("This deployment has no snapshot whose licensing "
+                       "record is complete, so no result can be produced."),
+        }
+
+    attribution = (snapshot.raw or {}).get("attribution") or {}
+    source = attribution.get("source") or (snapshot.raw or {}).get("provider")
+    acknowledgement = attribution.get("acknowledgement") or ""
+    coverage = (snapshot.raw or {}).get("coverage") or {}
     return {
-        "headline": "Pilot mode uses synthetic market data.",
-        "detail": ("Results are for product evaluation only and are not based "
-                   "on licensed live market data. The series are invented, "
-                   "shaped like market data so the engine has something "
-                   "realistic to run on, and calibrated to no real security."),
+        "headline": f"Market data: {source} — {acknowledgement}.".replace(
+            " — .", "."),
+        "detail": (
+            f"Prices are historical daily closes from {source}, covering "
+            f"{coverage.get('start')} to {coverage.get('end')}. "
+            f"{acknowledgement.capitalize()}. Past performance does not "
+            f"predict future results, and a backtest is not an outcome you "
+            f"would have achieved."),
     }
 
 
@@ -338,24 +393,6 @@ def _prices() -> Optional[pd.DataFrame]:
     return resolve(context="pilot scenario run").frame
 
 
-def _market_data(context: str, *, plan_id: str = "", scenario=None,
-                 ran_at: str = ""):
-    """The frame, its provenance and the record of this delivery, together.
-
-    The run identity is computed *before* the data is resolved, wherever the
-    caller knows what it will store. That is what lets the delivery name the
-    execution it was made for, without a second write to connect them later —
-    and a chain with a second write has a half-connected state that a crash can
-    find. `run_id_for` is deterministic over exactly these three inputs, so
-    this is the same identity `generate` will derive, not a guess at it.
-    """
-    from ..market_data.access import resolve
-    from .generate import run_id_for
-
-    run_id = (run_id_for(plan_id, scenario.content_hash, ran_at)
-              if plan_id and scenario is not None and ran_at else None)
-    return resolve(context=context, run_id=run_id,
-                   request_id=f"{context}:{plan_id or 'anonymous'}")
 
 
 def _approved_snapshot():
@@ -368,55 +405,15 @@ def _approved_snapshot():
         return None
 
 
-def _flows_from(schedule, sessions: pd.DatetimeIndex) -> List[CashFlow]:
-    """Turn a declared schedule into dated contributions.
-
-    The day rule is applied here rather than assumed, because "monthly" does not
-    name a day and the day moves the money-weighted return.
-    """
-    if schedule.amount <= 0:
-        return ([CashFlow(sessions[0], schedule.starting_capital, "starting capital")]
-                if schedule.starting_capital > 0 else [])
-
-    series = sessions.to_series()
-    if schedule.cadence == "monthly":
-        groups = series.groupby([sessions.year, sessions.month])
-    elif schedule.cadence == "weekly":
-        iso = sessions.isocalendar()
-        groups = series.groupby([iso.year.values, iso.week.values])
-    elif schedule.cadence == "biweekly":
-        iso = sessions.isocalendar()
-        groups = series.groupby([iso.year.values, (iso.week.values // 2)])
-    else:
-        return [CashFlow(sessions[0], schedule.amount, "one-off")]
-
-    dates = (groups.max() if schedule.day_rule == "last_session_of_period"
-             else groups.min())
-    return [CashFlow(d, schedule.amount, "contribution") for d in dates]
+#: Re-exported so existing callers and tests keep one name for this failure.
+#: The expansion itself moved to `mission.schedule`, because the capability
+#: manifest must derive the executable cadence set from the executor and cannot
+#: import a web module.
+from ..mission.schedule import UnsupportedCadence  # noqa: E402,F401
 
 
-def _benchmark_specs(prices: pd.DataFrame, assets) -> List[Dict[str, Any]]:
-    """The set, declared before anything runs and generated by a named rule.
 
-    Cash is always present. It is the comparison nobody asks for and the one that
-    answers "was any of this worth doing?".
-    """
-    universe = [a for a in assets if a in prices.columns]
-    specs: List[Dict[str, Any]] = []
-    if universe:
-        specs.append({"name": "Your basket, bought and held",
-                      "tickers": universe, "program": buy_and_hold(universe),
-                      "description": "the same instruments, with no timing rule"})
-    for ticker, label in (("SPY", "S&P 500"), ("QQQ", "Nasdaq 100"),
-                          ("AGG", "Aggregate bonds")):
-        specs.append({
-            "name": f"Contribute to {label}", "tickers": [ticker],
-            "program": buy_and_hold([ticker]),
-            "description": f"the same contributions into {ticker}",
-        })
-    specs.append({"name": "Hold cash", "tickers": [], "program": hold_cash(),
-                  "description": "contribute and never invest"})
-    return specs
+
 
 
 def _now() -> str:
@@ -520,60 +517,8 @@ def migration_for(plan_id: str, stored: Dict[str, Any], compiled):
 #: refusal to record a run and the invalidation of an existing run all say the
 #: same thing — three wordings of one fact is how a caveat gets softened in the
 #: place nobody is reading.
-STRATEGY_NOT_EXECUTED = (
-    "This result is unavailable. The plan contains a conditional purchase "
-    "rule, but this version of Quantify did not execute that rule. No strategy "
-    "result is shown. Your description and clarifications remain saved."
-)
 
 
-def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
-                        ) -> Dict[str, Any]:
-    """Add every declared-but-unsimulated behaviour to the modelling scope.
-
-    Derived from the scenario rather than hardcoded, so a behaviour that becomes
-    simulatable stops being disclosed by deleting one entry in `UNSIMULATED`,
-    and one that is added starts being disclosed without anyone remembering to
-    edit this function.
-    """
-    scope = dict(scope or {})
-    declared = {
-        "dividend_policy": scenario.holdings_policy.dividend_policy,
-    }
-    # The event program was absent from this dict while the docstring above
-    # claimed the disclosure was derived rather than hardcoded. It was derived
-    # — from a dict with one entry — so a plan whose entire strategy went
-    # unexecuted rendered an empty NOT MODELLED column. The claim to be
-    # exhaustive is what made the omission dangerous rather than merely
-    # incomplete.
-    if scenario.event_program:
-        declared["event_program"] = f"{len(scenario.event_program)} step(s)"
-    not_modelled = {
-        field: {"declared": value, "why": UNSIMULATED[field]}
-        for field, value in declared.items() if field in UNSIMULATED
-    }
-    if not_modelled:
-        scope["declared_but_not_simulated"] = not_modelled
-        # And in the shape the page reads.
-        #
-        # `declared_but_not_simulated` is the machine-readable record and was
-        # the only thing written. `_scope.html` renders `scope.not_modelled`,
-        # so this disclosure has never appeared on a page in its life: computed
-        # correctly, attached to the result, stored, and displayed by a
-        # template reading a different key. Both columns of "What this
-        # simulation models" were empty on the plan that prompted this work.
-        #
-        # Kept as two keys rather than renamed. The stored form is a record
-        # older results already carry, and the rendered form is a list a
-        # template can iterate; collapsing them would either break the archive
-        # or put presentation into the artifact.
-        rendered = list(scope.get("not_modelled") or ())
-        rendered.extend(
-            {"reason": entry["why"], "declared": entry["declared"],
-             "field": field}
-            for field, entry in sorted(not_modelled.items()))
-        scope["not_modelled"] = rendered
-    return scope
 
 
 def _legacy_provenance(stored) -> bool:
@@ -640,271 +585,10 @@ def _timeline_chart(scenario, prices, ledger, *, width=720, height=180):
             "average": polyline(average), "marks": marks}
 
 
-def _funding_events(scenario, prices, sessions):
-    """Contributions from the scenario's funding policy, or a reason it cannot.
-
-    Returns `(events, signals, unexecutable, error)`. `events is None` means the
-    plan is not event-funded and the existing schedule expansion applies —
-    which keeps `Scheduled` exactly what it was rather than reimplementing a
-    cadence a second time.
-    """
-    if not scenario.is_event_funded:
-        return None, (), (), None
-
-    from ..mission.funding import contribution_events, unexecutable_signals
-    from ..mission.signals import UnsupportedSignal
-
-    from ..mission.funding import UnsupportedFunding
-
-    try:
-        signals = scenario.funding.trigger.signals(prices)
-        events = contribution_events(scenario.funding, frame=prices,
-                                     sessions=sessions)
-        skipped = unexecutable_signals(scenario.funding, frame=prices,
-                                       sessions=sessions)
-    except (UnsupportedSignal, UnsupportedFunding) as refused:
-        # Refused with its own reason, not the generic one. "There is no price
-        # history for SPY" and "this build does not compute exponential
-        # averages" send a reader to different places, and the generic message
-        # would send them to neither.
-        return None, (), (), str(refused)
-
-    if not events:
-        # Zero crossings is a legitimate answer and a very misleading figure:
-        # the plan contributes nothing, holds nothing, and would report a 0%
-        # return that reads as the strategy having performed.
-        return None, signals, skipped, (
-            "The condition never occurred over the available history, so no "
-            "purchase was ever triggered and there is no result to report. "
-            f"{len(signals)} signal(s) were detected.")
-    return events, signals, skipped, None
 
 
-def _run(scenario, access, scope: Optional[Dict[str, Any]] = None
-         ) -> Dict[str, Any]:
-    """Simulate a scenario and its benchmarks under identical conditions.
 
-    Takes the `MarketDataAccess` rather than a bare frame, so the record of
-    which data produced the figures travels with the data that produced them.
-    A caller attaching provenance to the result afterwards is a caller that can
-    forget, and the run it forgot on looks exactly like one it did not.
-    """
-    from ..market_data.access import MarketDataAccess
 
-    if not isinstance(access, MarketDataAccess):
-        raise TypeError(
-            "_run needs the MarketDataAccess the frame came from, not the "
-            "frame alone; the provenance is not reconstructable afterwards")
-    prices = access.frame
-    sessions = prices.index
-    policy = CashPolicy.idle()
-    assets = list(scenario.allocation_rule.assets)
-    tradeable = [a for a in assets if a in prices.columns]
-
-    # One funding policy, one set of dated contributions, and the benchmarks
-    # receive exactly those. That is what makes "every dimension outside the
-    # rule was held identical" true rather than aspirational: the schedule is
-    # not merely equivalent between plan and benchmark, it is the same object.
-    events, ledger_signals, unexecutable, funding_error = _funding_events(
-        scenario, prices, sessions)
-    if funding_error is not None:
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None, "strategy_not_executed": True,
-                "unavailable": funding_error}
-    flows = (tuple(CashFlow(date=event.session, amount=float(event.amount))
-                   for event in events)
-             if events is not None
-             else _flows_from(scenario.flow_schedule, sessions))
-
-    # A declared conditional rule that this engine does not execute produces no
-    # figure at all.
-    #
-    # `simulate` is called with `program=buy_and_hold(tradeable)` regardless of
-    # what the scenario declares, and nothing converts `event_program` into an
-    # `EventProgram`. A plan reading "buy $1,000 every time SPY crosses below
-    # its 200-day average" was therefore replayed as a single purchase held to
-    # the end — and returned a figure identical to the buy-and-hold benchmark
-    # beside a disclosure saying the difference was attributable to the rule.
-    #
-    # A caveat under the number is not enough, and this is the one place that
-    # can be certain of it: people remember $5,160 and forget the sentence
-    # beneath it. So the number is not produced.
-    # Before the price-history check, and unconditionally. Ordered the other
-    # way, a plan naming an instrument we cannot price reported the data gap —
-    # so the user corrects the ticker, the gap closes, and the reward for
-    # fixing it is a figure for a rule that still never ran. The same ordering
-    # argument as `historical_lots.detect`: the unconditional refusal goes
-    # first, because the conditional one reads as the whole problem.
-    if scenario.event_program and not scenario.is_event_funded:
-        # A rule this build still cannot execute. The guard stays for exactly
-        # that case rather than being deleted along with the defect it caught:
-        # the next unsupported condition must refuse rather than silently
-        # replay buy-and-hold, which is what happened last time.
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None,
-                "strategy_not_executed": True,
-                "unavailable": STRATEGY_NOT_EXECUTED}
-
-    if not tradeable or not flows:
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None,
-                "unavailable": (
-                    "No price history for "
-                    f"{', '.join(assets) or 'the instruments named'} over this "
-                    "period, so the scenario cannot be replayed. This is a data "
-                    "gap, not a result."
-                )}
-
-    # Every declared behaviour the engine cannot honour must reach the result's
-    # modelling scope. Representing `dividend_policy` without saying it is not
-    # simulated would move the defect one layer up rather than closing it: the
-    # scenario would look enforced and the figure would silently ignore it.
-    scope = declare_unsimulated(scenario, scope)
-
-    # Pin what this run actually used, before it runs. Left empty, the
-    # classifier compares two absences — and before classifier@2 reported them
-    # equal, so a stored verdict claimed the account treatment was checked when
-    # nothing was. An unpinnable runtime becomes a declared limitation on the
-    # result rather than a blank, which is why this must happen before the scope
-    # is handed to `simulate` rather than after.
-    snapshot = f"prices@{sessions[-1].date()}"
-    pins = pins_for(scenario, snapshot=snapshot)
-    if pins.unpinned:
-        scope = {**scope, "unpinned_runtimes": pins.limitations()}
-
-    # What the engine was actually given, digested at the moment it is given.
-    #
-    # The delivery digest proves the resolver returned these rows. It cannot
-    # prove that nothing between here and `simulate` dropped, reordered,
-    # mutated or substituted them — so this closes the remaining span by
-    # digesting the frame at the call itself:
-    #
-    #     resolved_frame_digest -> execution_input_digest -> result
-    #
-    # Equal digests mean the transformation was the identity. They are equal
-    # today because `simulate` receives the delivered frame unchanged and the
-    # instrument selection travels in `program` rather than in the data. If a
-    # future path slices or adjusts the frame, this records that it did, and
-    # the difference must then name a declared, versioned transformation rather
-    # than pass unnoticed.
-    from ..market_data.access_event import frame_digest
-
-    execution_input = frame_digest(prices)
-    result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
-                      cash_policy=policy, modelling_scope=scope)
-
-    # The ledger, and then the check that it and the result agree.
-    #
-    # Built from the funding policy and the fills; the totals come from the
-    # portfolio path. Two independent descriptions of one run, and a
-    # disagreement means one of them is wrong — which is the state that shipped
-    # undetected, because nothing performed this comparison. A user noticed the
-    # arithmetic instead.
-    execution_ledger = reconciliation = None
-    if events is not None:
-        from ..mission import ledger as ledger_module
-
-        execution_ledger = ledger_module.build(
-            events=events, fills=result.path.fills,
-            signals=ledger_signals, unexecutable=unexecutable,
-            ending_cash=float(result.path.cash.iloc[-1])
-            if len(result.path.cash) else 0.0)
-        reconciliation = ledger_module.reconcile(execution_ledger, result)
-        if not reconciliation.agrees:
-            # No figure rather than a figure with a warning. The reconciliation
-            # exists to catch the engine doing something other than the plan,
-            # and a result shown beside "these do not agree" is a result people
-            # will quote.
-            return {"result": None, "benchmarks": [], "payload": None,
-                    "comparability": None, "strategy_not_executed": True,
-                    "ledger": execution_ledger, "reconciliation": reconciliation,
-                    "unavailable": (
-                        "This result is unavailable. The executed purchases "
-                        "and the reported totals do not agree, so no figure is "
-                        "shown. " + "; ".join(
-                            reconciliation.detail[name]
-                            for name in reconciliation.failures()))}
-    if access.access_event is not None:
-        scope = {**scope, "execution_input_digest": execution_input,
-                 "execution_input_matches_delivery":
-                     execution_input == access.access_event.frame_digest}
-        result = dataclasses_replace(result, modelling_scope=scope)
-    # Attached here rather than by each caller. `_run` is the only place that
-    # knows which access produced these figures, and a caller that has to
-    # remember to attach it is a caller that can forget — which is how the live
-    # path stored unattributable runs while the provenance sat one frame away.
-    result = dataclasses_replace(result, market_data=access.provenance)
-    if execution_ledger is not None:
-        # On the result, so a stored run carries the evidence for its own
-        # figure. A ledger held only in the response would make a saved run
-        # unverifiable the moment the page closed — the same reason a run
-        # records its market-data provenance rather than the caller attaching
-        # it afterwards.
-        scope = {**scope,
-                 "rule_events": len(execution_ledger.rows),
-                 "execution_ledger": execution_ledger.to_json(),
-                 "reconciliation": reconciliation.to_json()}
-        result = dataclasses_replace(result, modelling_scope=scope)
-    specs = _benchmark_specs(prices, tradeable)
-    benchmarks = compare(prices, flows=flows, cash_policy=policy, benchmarks=specs)
-
-    conditions = RunConditions(
-        **pins.as_conditions(),
-        flow_schedule_hash=scenario.flow_schedule.schedule_hash,
-        starting_capital=scenario.flow_schedule.starting_capital,
-        cash_policy_rate=policy.annual_rate,
-        tax_treatment=scenario.tax_treatment,
-        cost_bps=10.0, execution_lag=1,
-        period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
-        allocation_rule_hash=scenario.rule_hash,
-        data_snapshot=snapshot,
-        # `None` rather than `True`: this engine executes no event program at
-        # all, so a plan with no rule has nothing unexecuted, and one with a
-        # rule no longer reaches here. Stating `True` would be the engine
-        # certifying its own behaviour — exactly the claim the classifier
-        # exists to stop resting on assertion.
-        # Reaching this line *is* the evidence. A failing reconciliation
-        # returns above with no result at all, so `agrees` cannot be false
-        # here — and the earlier version tested it anyway, which read like a
-        # control and could not fail. A mutation asserting `True`
-        # unconditionally passed every test, which is what an unfalsifiable
-        # guard looks like from the outside.
-        #
-        # The enforcement is the early return. Restating it here would be a
-        # second control that can drift from the first, and the one nobody
-        # reaches is the one that rots.
-        declared_rule_executed=(True if scenario.event_program else None),
-    )
-    # One verdict per benchmark, computed here and stored with the run. The
-    # worksheet reads them; it never recomputes. Every benchmark shares the
-    # strategy's flows, period and account treatment by construction — `compare`
-    # runs them under identical conditions — so only the allocation rule differs.
-    benchmark_conditions = {
-        spec["name"]: RunConditions(
-            **{k: v for k, v in conditions.__dict__.items()
-               if k != "allocation_rule_hash"},
-            allocation_rule_hash=f"benchmark:{spec['name']}")
-        for spec in specs
-    }
-    verdicts = comparability_records(conditions, benchmark_conditions)
-
-    return {
-        "result": result,
-        "benchmarks": benchmarks,
-        "comparability": classify(conditions, conditions),
-        "comparability_records": comparability_payload(verdicts),
-        "payload": comparison_payload(
-            result, benchmarks,
-            declared_order=[s["name"] for s in specs],
-            rendered_text="",
-            user_originated_rule=True,
-            platform_generated_action=False,
-            portfolio_selection_performed=False,
-        ),
-        "ledger": execution_ledger,
-        "reconciliation": reconciliation,
-        "unavailable": None,
-    }
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -989,6 +673,19 @@ def new_plan(request: Request, describe: str = ""):
     trace. Everything after that point is one, so the recorder is constructed
     here and the drafting work happens under it.
     """
+    # One URL, two declared implementations. The deployment decides which
+    # interpreter serves a description; the route does not read an environment
+    # and does not choose for itself.
+    #
+    # Branching here rather than mounting a second entry point is a product
+    # decision: a separate `/pilot` URL would leave the legacy path as the
+    # default experience, and an experiment about whether the runtime improves
+    # this workspace cannot be run on a surface people do not arrive at.
+    from .pilot_routes import deployment_uses_the_runtime, draft as pilot_draft
+
+    if deployment_uses_the_runtime():
+        return pilot_draft(request, describe)
+
     if not describe.strip():
         return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
 
@@ -1019,21 +716,23 @@ def _draft(request: Request, describe: str, *, recorder):
             _record_questions(recorder, fields=(), outcome="TEMPLATE_DISPATCH")
             return _template_confirmation(request, describe, stage1)
 
-        access = _market_data("draft scenario preview")
-        _columns = getattr(access.frame, "columns", None)
-        priceable = tuple(_columns) if _columns is not None else ()
-        compiled = compile_scenario(describe, name="draft", version=1,
-                                    benchmark_rule=BENCHMARK_RULE,
-                                    parsed=stage1.parsed,
-                                    priceable=priceable)
-        run = (_run(compiled.scenario, access)
-               if compiled.can_simulate and access.usable else None)
-
-        from .feasibility import assess, blockers, classify
-
-        feasibility = assess(compiled.scenario, access.frame)
-        open_items = classify(compiled.scenario.provenance.unresolved,
-                              executable=feasibility.can_execute)
+        # Through `_builder_context`, which is what every other entry point
+        # uses. This function used to assemble the page itself, and the copy
+        # drifted in three ways at once: no `progress`, no draft token, and
+        # `_run` called without `stated_text` — so the declared-to-executed
+        # coverage gate was applied on the re-render and not on the screen
+        # where a user first meets a figure. That is the same defect class as
+        # F11, one page earlier, and it is why the equivalence gate found it.
+        #
+        # `stage1` is passed rather than re-derived: the parse happened above,
+        # on this request, and letting `_pinned_or_parse` replay it would
+        # record `PINNED_REPLAY` provenance for a model call that did happen.
+        context = _builder_context(request, describe=describe, title="",
+                                   parse="", stage1=stage1)
+        compiled = context["result"]
+        run = context["run"]
+        feasibility = context["feasibility"]
+        open_items = context["open_items"]
 
         # Everything the screen asks about, which is both kinds of question.
         # Recording only `unresolved` named three of the five controls on the
@@ -1050,38 +749,50 @@ def _draft(request: Request, describe: str, *, recorder):
             recorder, fields=asked,
             outcome="QUESTIONS_PRESENTED" if asked else "READY_TO_SAVE")
 
-    return TEMPLATES.TemplateResponse(
-        request, "new.html",
-        {
-            "describe": describe,
-            "result": compiled,
-            "feasibility": feasibility,
-            "open_items": open_items,
-            "blockers": blockers(compiled.scenario,
-                                 executable=feasibility.can_execute,
-                                 stated_text=describe),
-            "confirmation": compiled.confirmation(),
-            "view": build_confirmation(compiled, text=describe,
-                                       priceable=priceable),
-            "suggested_title": _suggested_title(describe),
-            "parse": json.dumps(stage1.parsed.to_json()),
-            "parse_provenance": stage1.provenance,
-            "chain": build_scenario_chain(
-                subject="draft", scenario=compiled.scenario,
-                result=run["result"] if run else None,
-                benchmarks=run["benchmarks"] if run else (),
-                comparability=run["comparability"] if run else None,
-            ),
-            "run": run,
-            "chain_order": SCENARIO_CHAIN_ORDER,
-        },
-    )
+    return TEMPLATES.TemplateResponse(request, "new.html", context)
 
+
+
+def _pinned_or_parse(describe: str, parse: str):
+    """The stored reading of this description, or a new one if there is none.
+
+    A journey parses once. The token the form carries is re-verified against
+    the description on the way in — `parse_from_stored` refuses a parse that
+    does not match the text — so replaying it is not trusting the client, it is
+    trusting a check that already ran.
+
+    `_builder_context` has always taken `parse` and always ignored it, calling
+    the model again on every round trip. Two consequences, both observed in a
+    recorded journey: each submission cost a provider call, and the reading
+    drifted — the model reworded its own account of an unplaceable phrase, and
+    with the field id built from that wording, the same question returned six
+    times under six different ids.
+    """
+    from ..deploy.context import current as _deployment
+    from ..mission.parse_model import ParseProvenance, VerifiedParse
+
+    if parse and parse.strip():
+        try:
+            stored = parse_from_stored(json.loads(parse), describe)
+        except (ValueError, json.JSONDecodeError):
+            stored = None       # mismatched or malformed; re-read the words
+        if stored is not None:
+            # The provenance says the reading was replayed rather than
+            # re-derived. Reporting the live parser's identity here would
+            # attribute this compile to a model call that did not happen.
+            return VerifiedParse(
+                parsed=stored,
+                provenance=ParseProvenance(
+                    mode="PINNED_REPLAY", model=None, model_available=False,
+                    model_error=""))
+
+    return parse_with_model(describe, mode=_deployment().model.mode.value,
+                            client=_parser_client())
 
 
 def _builder_context(request, *, describe, title, parse, amendments=(),
-                     exclusions=()):
-    """The plan-builder page context, built once for both entry points.
+                     exclusions=(), stage1=None):
+    """The plan-builder page context, built once for every entry point.
 
     The GET and the re-render assembled this separately at first and the
     second was missing `chain`, `run`, `parse_provenance` and `chain_order` —
@@ -1092,8 +803,21 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
     from ..deploy.context import current as _deployment
     from .feasibility import assess, blockers, classify
 
-    stage1 = parse_with_model(describe, mode=_deployment().model.mode.value,
-                              client=_parser_client())
+    # The pinned parse, not a fresh one.
+    #
+    # This function has always taken `parse` and always ignored it, calling the
+    # model again on every round trip. Two consequences, both observed: each
+    # submission cost a provider call, and the parse drifted — questions
+    # appeared and vanished between rounds for reasons the user had not caused,
+    # and the model's wording of an unplaceable phrase changed under them.
+    #
+    # Stage 1 runs once, on the first GET. Everything after it is the
+    # deterministic compile applied to that same reading plus the answers.
+    # A caller that has already parsed on this request supplies its own
+    # `stage1`, so the provenance keeps saying a model call happened. Deriving
+    # it here from a token this function had just been handed would record
+    # `PINNED_REPLAY` for a reading that was not replayed.
+    stage1 = stage1 if stage1 is not None else _pinned_or_parse(describe, parse)
     # What the deployment can price, resolved before compiling: identity
     # candidates are filtered to it, so the page never offers a fund that
     # would replace one dead end with a politer one.
@@ -1102,13 +826,17 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
     # the same trap appeared in the corporate-action bridge earlier today.
     _columns = getattr(access.frame, "columns", None)
     priceable = tuple(_columns) if _columns is not None else ()
-    compiled = compile_scenario(describe, name="draft", version=1,
-                                benchmark_rule=BENCHMARK_RULE,
-                                parsed=stage1.parsed,
-                                amendments=tuple(amendments),
-                                exclusions=tuple(exclusions),
-                                priceable=priceable)
-    run = (_run(compiled.scenario, access)
+    # Through `compile_draft`, not `compile_scenario`. The save path compiled
+    # the same description with a different argument set and the page showed a
+    # plan the store could not run — see `draft`. `priceable` above is still
+    # needed for the confirmation view, which filters identity candidates to
+    # it; it is no longer this function's decision what the compiler receives.
+    compiled = draft.compile_draft(describe, name="draft", version=1,
+                                   parsed=stage1.parsed,
+                                   amendments=tuple(amendments),
+                                   exclusions=tuple(exclusions),
+                                   context="draft scenario preview")
+    run = (_run(compiled.scenario, access, stated_text=describe)
            if compiled.can_simulate and access.usable else None)
     feasibility = assess(compiled.scenario, access.frame)
     open_items = classify(compiled.scenario.provenance.unresolved,
@@ -1128,6 +856,15 @@ def _builder_context(request, *, describe, title, parse, amendments=(),
         "suggested_title": title or _suggested_title(describe),
         "parse": json.dumps(stage1.parsed.to_json()),
         "parse_provenance": stage1.provenance,
+        # What this page rendered, and what it compiled to render it, so the
+        # save can replay the second and prove it reaches the first. Neither
+        # is ever read back as a stored value.
+        "draft_token": draft.token_for(
+            compiled.scenario, describe, parsed=stage1.parsed,
+            amendments=tuple(amendments), exclusions=tuple(exclusions)),
+        "draft_inputs": draft.DraftInputs.of(
+            amendments=tuple(amendments),
+            exclusions=tuple(exclusions)).encode(),
         "chain": build_scenario_chain(
             subject="draft", scenario=compiled.scenario,
             result=run["result"] if run else None,
@@ -1291,16 +1028,25 @@ async def _save(request: Request, *, describe: str, title: str, parse: str,
     # agreement as a statement would credit the user with saying something the
     # system suggested; recording a correction as a confirmed inference would
     # credit the system with proposing what the user supplied.
-    compiled = compile_scenario(describe, name=title or "plan", version=1,
-                                benchmark_rule=BENCHMARK_RULE, parsed=parsed,
-                                amendments=amendments)
+    # Compiled through `draft.compile_draft`, the same function the preview
+    # uses. This route used to call `compile_scenario` itself and omitted
+    # `priceable`, so `_funding_policy` could find no subject and every saved
+    # plan was written with `funding=None`: the page showed a working plan and
+    # the stored artifact could never execute. The production plan that
+    # started this work has exactly that shape. Passing the argument at three
+    # call sites would have fixed the instance; there is one call now, so
+    # there is no second argument list to keep in step.
+    def _compile(these_amendments, these_exclusions=()):
+        return draft.compile_draft(
+            describe, name=title or "plan", version=1, parsed=parsed,
+            amendments=these_amendments, exclusions=these_exclusions,
+            context="compiling a scenario to save")
+
+    compiled = _compile(amendments)
 
     exclusions = _permitted_exclusions(compiled, acknowledged, answered_at)
     if exclusions:
-        compiled = compile_scenario(describe, name=title or "plan", version=1,
-                                    benchmark_rule=BENCHMARK_RULE,
-                                    parsed=parsed, amendments=amendments,
-                                    exclusions=exclusions)
+        compiled = _compile(amendments, exclusions)
 
     proposed = {one.field: one.value for one in compiled.scenario.provenance.inferred}
     corrections = tuple(
@@ -1310,10 +1056,30 @@ async def _save(request: Request, *, describe: str, title: str, parse: str,
         if field in proposed and value != proposed[field])
     if corrections:
         amendments = amendments + corrections
-        compiled = compile_scenario(describe, name=title or "plan", version=1,
-                                    benchmark_rule=BENCHMARK_RULE,
-                                    parsed=parsed, amendments=amendments,
-                                    exclusions=exclusions)
+        compiled = _compile(amendments, exclusions)
+
+    # Does this path still compile what the page showed? Asked by replaying
+    # the preview's own stated inputs *here*, in the save context, rather than
+    # by comparing the stored scenario with the rendered one — those differ
+    # legitimately, because the decisions made on that screen arrive in this
+    # same POST.
+    #
+    # Before anything is written. A refusal that still stored the plan would
+    # be worse than no gate: it would report divergence and persist the wrong
+    # version anyway. `NOT_COMPARED` is a distinct outcome carrying its
+    # reason, so a save that was never examined cannot read as one that
+    # agreed.
+    equivalence = draft.check(
+        str(form.get("draft") or ""), str(form.get("draft_inputs") or ""),
+        describe, parsed=parsed, name=title or "plan", at=answered_at,
+        context="compiling a scenario to save")
+    span.set(draft_check=equivalence.state)
+    if equivalence.diverged:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"{draft.DRAFT_DIVERGED}: {equivalence.reason}. Nothing "
+                    "was saved. Reload the plan builder and confirm the plan "
+                    "it shows before saving."))
 
     agreed = {field for field, value in decisions.items()
               if proposed.get(field) == value}
@@ -1462,24 +1228,31 @@ def _with_decisions(scenario, agreed):
     An inference nobody acted on stays unconfirmed and the store refuses the
     plan: silence is not agreement, which is the rule the whole confirmation
     screen exists to enforce.
-    """
-    from ..mission.scenario import ScenarioSpecification
-    from ..mission.spec import Inference, Provenance
 
+    **Replaced, not rebuilt.** This constructed a new `Provenance` naming five
+    of its eight fields, so confirming an inference silently discarded
+    `excluded`, `asset_resolutions` and `time_window` — the three added after
+    this function was written. Every plan on the deployment whose owner
+    confirmed anything was stored without its time window, without the record
+    of which fund they chose, and without what they agreed not to model.
+
+    That is the same defect as `Provenance.to_json` before `3eaa5eb`, in a
+    second place, found the same way: by asking a stored plan what it has
+    rather than asking the code what it writes. A rebuild that lists fields by
+    hand is correct only until the next field is added, and nothing fails when
+    it stops being correct. `replace` carries whatever exists, so a ninth
+    field needs no edit here.
+    """
     if not agreed:
         return scenario
     source = scenario.provenance
-    return ScenarioSpecification(**{
-        **scenario.__dict__,
-        "provenance": Provenance(
-            stated=source.stated,
-            inferred=tuple(
-                Inference(one.field, one.value, one.why,
-                          confirmed=one.field in agreed)
-                for one in source.inferred),
-            contradictions=source.contradictions,
-            unresolved=source.unresolved,
-            amended=source.amended)})
+    return dataclasses_replace(
+        scenario,
+        provenance=dataclasses_replace(
+            source,
+            inferred=tuple(dataclasses_replace(one,
+                                               confirmed=one.field in agreed)
+                           for one in source.inferred)))
 
 
 @router.get("/plans/{plan_id}", response_class=HTMLResponse)
@@ -1504,7 +1277,8 @@ def plan_detail(request: Request, plan_id: str):
     access = _market_data("opening a saved plan")
     scope = (TEMPLATES_BY_HINT[compiled.template_hint].modelling_scope()
              if compiled.template_hint in TEMPLATES_BY_HINT else None)
-    run = (_run(scenario_from_stored(stored, compiled.scenario), access, scope)
+    run = (_run(scenario_from_stored(stored, compiled.scenario), access, scope,
+                stated_text=record["stated_text"])
            if access.usable else None)
 
     return TEMPLATES.TemplateResponse(

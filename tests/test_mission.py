@@ -25,6 +25,7 @@ from src.mission import (
     compare,
     comparison_payload,
     hold_cash,
+    MWRStatus,
     money_weighted_return,
     simulate,
     time_weighted_returns,
@@ -65,7 +66,7 @@ class TestTheTwoReturnsAnswerDifferentQuestions:
         )
 
         twr = result.time_weighted_annualized
-        mwr = result.money_weighted
+        mwr = result.money_weighted.rate
 
         assert abs(twr) < 0.02, (
             "the market ended where it began; a time-weighted return should say so"
@@ -103,18 +104,22 @@ class TestTheTwoReturnsAnswerDifferentQuestions:
 
         assert abs(lump.time_weighted_annualized
                    - dca.time_weighted_annualized) < 0.03
-        assert dca.money_weighted > lump.money_weighted + 0.05
+        assert dca.money_weighted.rate > lump.money_weighted.rate + 0.05
 
     def test_an_irr_is_undefined_rather_than_zero_without_contributions(self):
         idx = pd.bdate_range("2020-01-01", periods=100)
-        assert money_weighted_return(pd.Series(0.0, index=idx), 500.0) is None
+        result = money_weighted_return(pd.Series(0.0, index=idx), 500.0)
+        assert result.status is MWRStatus.INSUFFICIENT_CASH_FLOWS
+        assert result.rate is None
 
     def test_a_single_doubling_contribution_recovers_its_rate(self):
         idx = pd.bdate_range("2020-01-01", periods=253)
         flows = pd.Series(0.0, index=idx)
         flows.iloc[0] = 100.0
 
-        assert money_weighted_return(flows, 200.0) == pytest.approx(1.0, abs=1e-4)
+        result = money_weighted_return(flows, 200.0)
+        assert result.status is MWRStatus.RATE
+        assert result.rate == pytest.approx(1.0, abs=1e-4)
 
     def test_elapsed_time_is_measured_in_sessions_not_flow_count(self):
         """Two contributions months apart are not two days apart."""
@@ -125,8 +130,8 @@ class TestTheTwoReturnsAnswerDifferentQuestions:
         near = pd.Series(0.0, index=idx)
         near.iloc[0], near.iloc[1] = 100.0, 100.0
 
-        assert money_weighted_return(far, 250.0) != pytest.approx(
-            money_weighted_return(near, 250.0), abs=1e-3
+        assert money_weighted_return(far, 250.0).rate != pytest.approx(
+            money_weighted_return(near, 250.0).rate, abs=1e-3
         )
 
 
@@ -251,7 +256,7 @@ class TestBenchmarksReceiveTheSameMoney:
         )
 
         assert cash_result.result.final_value == pytest.approx(5000.0)
-        assert cash_result.result.money_weighted == pytest.approx(0.0, abs=1e-6)
+        assert cash_result.result.money_weighted.rate == pytest.approx(0.0, abs=1e-6)
 
     def test_an_unfundable_benchmark_is_reported_not_dropped(self):
         prices = v_shaped(30)

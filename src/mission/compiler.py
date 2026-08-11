@@ -37,6 +37,7 @@ from .defaults import DEFAULT_SET, DefaultSet
 from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpecification
 from .representation import representation_gaps
 from . import asset_identity, time_window, vocabulary
+from .funding import ExecutionTiming
 from .spec import AssetResolution, Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
 
 
@@ -76,6 +77,21 @@ class ParsedUtterance:
     """Names that map to more than one instrument. Every entry is a key of
     `AMBIGUOUS_NAMES`, so the question can offer the actual choices."""
 
+    observed: Sequence[str] = ()
+    """Instruments the sentence *watches*, as distinct from those it buys.
+
+    Two roles, and they can be the same instrument or different ones:
+
+        buy $1,000 of SPY whenever it crosses below   SPY is both
+        buy VOO whenever SPY crosses below            VOO held, SPY watched
+        notify me whenever SPY crosses below          SPY watched, nothing held
+
+    Derived here and consumed by `_funding_policy`, which previously took the
+    watched series to be whichever instrument the plan held — so a plan buying
+    VOO on an SPY signal evaluated the condition on VOO, and the two do not
+    cross their averages on the same days.
+    """
+
     unclear: Sequence[str] = ()
     """Phrases stage 1 could not place at all. Free text, and deliberately kept
     apart from `unrecognized`: "which share class?" offers options, "I could not
@@ -103,6 +119,7 @@ class ParsedUtterance:
             "text": self.text,
             "recognitions": [r.to_json() for r in self.recognitions],
             "assets": list(self.assets),
+            "observed": list(self.observed),
             "unrecognized": list(self.unrecognized),
             "unclear": list(self.unclear),
             "template_hint": self.template_hint,
@@ -116,12 +133,134 @@ class ParsedUtterance:
 # separate — which is exactly where a fluent model is most likely to smooth over
 # the difference, because both readings sound like the same sentence.
 
+#: An event verb applied to the level. "Crosses below" names a transition and
+#: fires once per drawdown.
+_CROSSING_LANGUAGE = re.compile(
+    r"\bcross(?:es|ed|ing)?\b[^.]{0,24}?\b(?:below|above|under|over)\b"
+    r"|\b(?:only )?on the day\b[^.]*\bcross(?:es|ed|ing)?\b",
+    re.IGNORECASE)
+
+#: State language. "Is below", "stays below", "every day it is below" name a
+#: condition that holds, and fire on each session it holds.
+#:
+#: `below|above` and deliberately not `under|over`: "trades under" is left
+#: unrecognised so it is asked about, which is the existing behaviour and the
+#: right one — it reads as either to a person.
+_PERSISTENT_LANGUAGE = re.compile(
+    r"\bwhile\b[^.]*\b(?:below|above)\b"
+    r"|\b(?:stays?|staying|stayed|remains?|remaining|remained|sits?|sitting)\b"
+    r"[^.]{0,24}?\b(?:below|above)\b"
+    r"|\b(?:every|each|any)\s+(?:day|session)\b[^.]*\b(?:below|above)\b"
+    r"|\b(?:is|are|was|were|trades?|trading|closes?|closing)\b"
+    r"[^.]{0,16}?\b(?:below|above)\b",
+    re.IGNORECASE)
+
+
+#: The closed set this field may take, declared once.
+#:
+#: `parse_model.VOCABULARY` is derived from `_RULES`, so lifting
+#: `trigger_semantics` out of that table silently removed both values from what
+#: the model is permitted to propose — and the model layer exists precisely to
+#: recognise phrasings the regexes miss. Six tests caught it. Declared here and
+#: imported there, so the resolver and the vocabulary cannot disagree.
+TRIGGER_SEMANTICS_VALUES = ("crossing_event", "persistent_condition")
+
+
+def trigger_semantics_ambiguous(text: str) -> bool:
+    """Whether the sentence states both readings at once.
+
+    `trigger_semantics` returns None for two different reasons and the caller
+    cannot tell them apart: nothing matched, or *both* matched. Those mean
+    opposite things. Nothing matched is an absence the model should fill —
+    that is what the model layer is for. Both matched is a determination that
+    the sentence is ambiguous, and filling it is overriding a decision.
+
+    Left conflated, "whenever it crosses below and stays below" produced no
+    deterministic recognition, the model proposed `crossing_event` unopposed,
+    `merge` accepted it as new information, and a sentence the compiler had
+    judged ambiguous executed on one reader's opinion with no question asked.
+    Caught by a production check written to prove the opposite.
+
+    The same absent-versus-empty shape as `provenance@1`: a missing value and
+    a value known to be nothing look identical to code that tests only for
+    presence.
+    """
+    return bool(_CROSSING_LANGUAGE.search(text)
+                and _PERSISTENT_LANGUAGE.search(text))
+
+
+def trigger_semantics(text: str) -> Optional[str]:
+    """Crossing, persistent, or neither — by precedence, not by list order.
+
+    These are two different rules with materially different results: "every
+    time it crosses below" fires once per drawdown, "every day it is below"
+    fires on each of them, and over five years that is not a rounding
+    difference.
+
+    **An explicit event verb may never be overwritten by a broader
+    persistent-condition pattern.** That is the invariant, and it is expressed
+    here as precedence rather than as a narrower regex, because a regex
+    tightened against one phrase leaves the same hole open for the next
+    overlapping matcher someone adds.
+
+    The defect this replaces: the persistent pattern was
+    `\\bwhenever\\b[^.]*\\b(?:is |trades |closes )?(?:below|above)\\b` with the
+    qualifier optional, so it matched "whenever … below" whatever verb sat
+    between them. "I buy $1,000 of SPY whenever it crosses below its 200-day
+    moving average" resolved to the persistent reading, silently, and nothing
+    was asked — while "when it crosses below" resolved to crossing. One word
+    changed a financial rule, and the word the user wrote to say which rule
+    they meant was the one discarded. A browser agent found it by reading the
+    page back: the plan was rendered as "buys on every day the condition
+    holds" for a sentence that says *crosses*.
+
+    Returns None when both readings are present or neither is, so the caller
+    raises `trigger_semantics` as a question. Silence is the correct output
+    for an ambiguous sentence; a default here is a guess about money.
+    """
+    crossing = _CROSSING_LANGUAGE.search(text)
+    persistent = _PERSISTENT_LANGUAGE.search(text)
+    if crossing and persistent:
+        return None         # "crosses below and stays below" — genuinely both
+    crossing_value, persistent_value = TRIGGER_SEMANTICS_VALUES
+    if crossing:
+        return crossing_value
+    if persistent:
+        return persistent_value
+    return None
+
+
 _RULES: Sequence[Tuple[str, str, str]] = (
     # (field, canonical value, pattern)
-    ("trigger_semantics", "crossing_event",
-     r"\b(only )?on the day\b[^.]*\bcross(?:es|ing|ed)?\b|\bwhen\b[^.]*\bcrosses (?:below|above)\b"),
-    ("trigger_semantics", "persistent_condition",
-     r"\bwhenever\b[^.]*\b(?:is |trades |closes )?(?:below|above)\b|\bwhile\b[^.]*\b(?:below|above)\b"),
+    #
+    # `trigger_semantics` is deliberately absent: it is resolved by
+    # `trigger_semantics()` above, which applies precedence between two
+    # overlapping vocabularies. A flat first-match-wins table cannot express
+    # "an explicit crossing verb outranks a broader state pattern", and
+    # expressing it by ordering alone is what failed — the crossing entry was
+    # already first, and lost because its pattern did not match at all.
+
+    # When the order fills, when the user says so.
+    #
+    # There was no rule for this field at all, so "I buy $1,000 of SPY *at the
+    # same day's close* whenever it crosses below" was never recognised: the
+    # default `next_session_open` was applied and recorded as an *inference*,
+    # and the page offered it back as the system's own assumption to confirm.
+    # A value the user stated, overwritten, and relabelled as our choice.
+    #
+    # `settle()` was already correct — stated wins — and never saw a stated
+    # value to prefer. `SUPPORTED_TIMING` was already correct too, and refuses
+    # same-session close because acting on the close that produced the signal
+    # reads one bar into the future. It could not fire either, because the
+    # policy always carried the default. Two correct mechanisms, and the input
+    # class that needed them never existed.
+    ("execution_timing", "same_session_close",
+     r"\b(?:at|on)\s+(?:the\s+)?same[- ](?:day|session)'?s?\s+close\b"
+     r"|\bsame[- ]day\s+close\b|\bthat\s+(?:day|session)'?s?\s+close\b"
+     r"|\bon\s+the\s+close\s+(?:of\s+)?(?:that|the\s+same)\s+(?:day|session)\b"),
+    ("execution_timing", "next_session_open",
+     r"\bnext\s+(?:session|day|morning)'?s?\s+open\b|\bnext\s+open\b"
+     r"|\bopen\s+of\s+the\s+next\s+(?:session|day)\b"),
 
     ("weighting", "equal_weight_maintained",
      r"\brebalanc\w+\b[^.]*\bequal\b|\bequal\b[^.]*\bweights?\b[^.]*\b(?:maintain|keep|rebalanc)\w*|\bkeep (?:them|the portfolio) equal\b"),
@@ -151,7 +290,26 @@ _RULES: Sequence[Tuple[str, str, str]] = (
     ("contribution_day_rule", "calendar_first_rolled_forward",
      r"\bfirst calendar day\b|\bon the 1st\b|\bthe first of (?:the |each |every )?month\b"),
     ("contribution_day_rule", "first_session_of_period",
-     r"\bfirst trading (?:day|session)\b|\bfirst market day\b"),
+     r"\bfirst trading (?:day|session)\b|\bfirst market day\b|\bfirst session\b"),
+
+    # The other half of a field that only had one. `_flows_from` has always
+    # honoured `last_session_of_period` — it takes the group maximum instead of
+    # the minimum — and nothing could ever set it, so "$2,000 *last session*
+    # every month" and "$2,000 *first session* every month" compiled to the
+    # same plan and returned the same figure to the cent. Two descriptions a
+    # user would reasonably expect to differ, answered with one number, and
+    # neither reading flagged.
+    #
+    # Deliberately narrow: only phrasings that name a *session*. "month end"
+    # and "quarter end" are not here, because "rebalance quarter end" is a
+    # sentence about rebalancing, and reading a rebalancing clause as a
+    # contribution setting is precisely the defect that turned a single
+    # $100,000 allocation into $6,100,000 of monthly contributions. That
+    # wording needs the same context guard `cadence` has, and adding it to a
+    # flat first-match table without one would reintroduce the known failure.
+    ("contribution_day_rule", "last_session_of_period",
+     r"\blast trading (?:day|session)\b|\blast market day\b|\blast session\b"
+     r"|\bfinal (?:trading )?session\b"),
 
     # Account type. `tax_treatment` has always been on the scenario and in the
     # content hash, and nothing ever set it — so every plan compiled from prose
@@ -192,7 +350,137 @@ _CADENCE = (
     ("once", r"\blump sum\b|\ball at once\b|\bone ?-?off\b"),
 )
 
+#: A frequency belonging to rebalancing, not to contributions.
+#:
+#: "Allocate $100,000 across VTI, BND and GLD by inverse volatility,
+#: rebalanced monthly, past 5 years" read `monthly` as a contribution cadence,
+#: so a single $100,000 allocation was executed as $100,000 *every month* —
+#: $6,100,000 contributed against $100,000 stated, and coverage reported
+#: everything declared as executed.
+#:
+#: The comment on `annual` above records the same defect one word over: a bare
+#: adjective matched "annual rebalance" in a benchmark clause. That was fixed
+#: by deleting the bare form, which works for an adjective and not for
+#: "monthly", a word people genuinely use for contributions. So the context is
+#: read instead of the vocabulary being narrowed.
+#:
+#: How often a portfolio is rebalanced and how often money arrives are
+#: different dimensions, and one may not be read out of the other's words.
+_REBALANCING_NEARBY = re.compile(r"\brebalanc\w*\b|\brebalance[ds]?\b",
+                                 re.IGNORECASE)
+
+#: How far back to look. Long enough for "rebalanced monthly" and "rebalance
+#: the portfolio quarterly", short enough that a rebalancing clause earlier in
+#: a different sentence does not silence a real contribution cadence.
+_REBALANCING_REACH = 34
+
+
+def _belongs_to_rebalancing(text: str, start: int) -> bool:
+    """Whether the frequency word at `start` is describing a rebalance."""
+    window = text[max(0, start - _REBALANCING_REACH):start]
+    return bool(_REBALANCING_NEARBY.search(window))
+
+
+def cadence_span_is_rebalancing(text: str, span: str) -> bool:
+    """Whether a proposed cadence quotes a rebalancing phrase as its evidence.
+
+    Checked against the model's own span. Having stopped the deterministic
+    reader taking "rebalanced monthly" as a contribution cadence, the model
+    proposed exactly that — `{"field": "cadence", "value": "monthly", "span":
+    "rebalanced monthly"}` — and `merge` accepted it, because a reader that has
+    *declined* to read a field looks identical to one that simply did not see
+    it. So the plan contributed $100,000 every month again, from the other
+    reader.
+
+    Third instance of the shape: silence as a verdict, read as silence as a
+    gap. The span makes this one cheap to answer — the model is required to
+    quote the words it relied on, so the same context rule can be applied to
+    the quotation.
+    """
+    if not text or not span:
+        return False
+    at = text.lower().find(span.strip().lower())
+    if at < 0:
+        return False
+    # The frequency word inside the span, not the span's own start: "rebalanced
+    # monthly" begins with the disqualifying word, so measuring from the start
+    # would look backwards past it.
+    inner = re.search(r"\b(?:month|week|quarter|year|day)\w*\b|\bmonthly\b"
+                      r"|\bweekly\b|\bquarterly\b|\bannually\b|\bdaily\b",
+                      span, re.IGNORECASE)
+    offset = at + (inner.start() if inner else len(span))
+    return _belongs_to_rebalancing(text, offset)
+
+
 _AMOUNT = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)")
+
+_PERCENT = re.compile(r"([0-9]{1,3}(?:\.[0-9]+)?)\s*(?:%|percent\b)",
+                      re.IGNORECASE)
+
+#: The same allocation written as a ratio. "60/40" and "60% / 40%" are one
+#: semantic object in two notations, and the catalogue uses the second — so
+#: the percentage-only reading left "holding 60/40" executing 50/50 with a
+#: figure published, which is the defect it was meant to close.
+_RATIO_WEIGHTS = re.compile(r"\b(\d{1,3}(?:\s*/\s*\d{1,3}){1,3})\b")
+
+#: How far the stated percentages may be from 100 and still read as an
+#: allocation. Two thresholds in a sentence — "falls more than 20%" — do not
+#: sum to a portfolio, and that is what keeps this from firing on them.
+_ALLOCATION_TOLERANCE = 1.0
+
+
+def stated_weights(text: str):
+    """Per-asset weights the user wrote, or empty.
+
+    "I hold 60% VTI and 40% BND" was compiled to `equal_weight_at_purchase`
+    and executed 50/50, with a figure published. `AllocationRule` has no
+    per-asset weights field at all, so the numbers had nowhere to go — and
+    over five years the difference between a 60/40 and a 50/50 equity/bond
+    split is not a rounding error.
+
+    Recognised as an allocation only when the percentages *sum to about 100*.
+    A percentage in a sentence is usually a threshold — "after the market
+    falls more than 20%" — and thresholds do not add up to a portfolio.
+    """
+    found = [float(one) for one in _PERCENT.findall(text or "")]
+    if len(found) < 2:
+        # Ratio notation, when percentages were not used. Tried second so a
+        # sentence writing both does not count its weights twice.
+        for match in _RATIO_WEIGHTS.finditer(text or ""):
+            parts = [float(one) for one in re.split(r"\s*/\s*", match.group(1))]
+            if len(parts) >= 2 and abs(sum(parts) - 100.0) <= _ALLOCATION_TOLERANCE:
+                return tuple(parts)
+        return ()
+    if abs(sum(found) - 100.0) > _ALLOCATION_TOLERANCE:
+        return ()
+    return tuple(found)
+
+
+def weights_are_equal(weights, asset_count: Optional[int] = None) -> bool:
+    """Whether stated weights say exactly what `equal_weight_at_purchase` says.
+
+    "50% VTI and 50% BND" is not an unsupported allocation; it is the
+    supported one, written as numbers. Blocking it because numbers were used
+    would refuse a plan the engine executes correctly — the over-reach this
+    area has walked back twice.
+
+    **Zeros are a claim about a holding, not padding.** "100/0" naming one
+    instrument means all of it, which is what equal-weighting one holding
+    does. "100/0" naming two means all of the first and none of the second,
+    which is not. So the non-zero weights must be equal *and* there must be
+    one of them per asset; without the asset count this cannot be decided, and
+    the safe answer is that it is not equivalent.
+    """
+    if not weights:
+        return False
+    positive = [one for one in weights if one > 0]
+    if not positive:
+        return False
+    if max(positive) - min(positive) > _ALLOCATION_TOLERANCE:
+        return False
+    if asset_count is None:
+        return len(positive) == len(weights)
+    return len(positive) == asset_count
 
 #: Whether the description implies a market signal at all. Without one there is
 #: no trigger, and asking how a trigger should behave invents a condition the
@@ -255,6 +543,29 @@ def parse(text: str) -> ParsedUtterance:
     recognitions: List[Recognition] = []
     claimed: set = set()
 
+    # Before the flat table, because this one is decided by precedence between
+    # two vocabularies rather than by whichever pattern is listed first.
+    # Equal percentages *are* the supported weighting, written as numbers.
+    # Recorded as a recognition so it is STATED rather than inferred: the user
+    # said it, and describing their words as the compiler's own assumption is
+    # the authority inversion this codebase keeps finding.
+    weights = stated_weights(text)
+    if weights and weights_are_equal(weights):
+        found_span = _PERCENT.search(text)
+        recognitions.append(Recognition(
+            field="weighting", value="equal_weight_at_purchase",
+            span=found_span.group(0) if found_span else ""))
+        claimed.add("weighting")
+
+    semantics = trigger_semantics(text)
+    if semantics is not None:
+        source = (_CROSSING_LANGUAGE if semantics == "crossing_event"
+                  else _PERSISTENT_LANGUAGE).search(text)
+        recognitions.append(Recognition(
+            field="trigger_semantics", value=semantics,
+            span=source.group(0).strip() if source else ""))
+        claimed.add("trigger_semantics")
+
     for field_name, value, pattern in _RULES:
         if field_name in claimed:
             continue
@@ -266,11 +577,18 @@ def parse(text: str) -> ParsedUtterance:
             claimed.add(field_name)
 
     for cadence, pattern in _CADENCE:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match and "cadence" not in claimed:
+        if "cadence" in claimed:
+            break
+        # Every occurrence, not just the first: a plan may rebalance monthly
+        # and contribute monthly in one sentence, and taking the first match
+        # would let the rebalancing clause consume the contribution's word.
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            if _belongs_to_rebalancing(text, match.start()):
+                continue
             recognitions.append(
                 Recognition("cadence", cadence, match.group(0).strip()))
             claimed.add("cadence")
+            break
 
     amount = _AMOUNT.search(text)
     if amount:
@@ -286,15 +604,30 @@ def parse(text: str) -> ParsedUtterance:
     # made that compile to no assets at all. The model read it correctly and the
     # rules did not; the fix belongs in the rules.
     reserved = {"DMA", "EMA", "SMA", "RSU", "ESPP", "IRA"}
-    # Reserved only where it is the *reference in a signal* — "whenever SPY is
-    # below its 200 day average" names a condition, not a holding. Written as a
-    # signal test rather than a list of purchase verbs: the first attempt
-    # enumerated buy/put/invest and missed "goes into", which the stability
-    # benchmark caught within one run.
-    if re.search(r"\bSPY\b[^.]{0,60}?(?:below|above|cross\w*|moving average|DMA|SMA|EMA)"
-                 r"|(?:below|above|cross\w*|moving average)[^.]{0,60}?\bSPY\b",
-                 text, re.IGNORECASE):
-        reserved = reserved | {"SPY"}
+
+    # An instrument can be watched *and* bought, and the reservation used to
+    # deny it.
+    #
+    # "whenever SPY is below its 200 day average" names a condition, not a
+    # holding — correct, and implemented by reserving SPY away from the asset
+    # list whenever it appeared near signal language. In the sentence that does
+    # both:
+    #
+    #     I buy $1,000 of SPY whenever it crosses below its 200-day average
+    #
+    # the reservation consumed it entirely. The plan held nothing, no funding
+    # policy could be built, and the most natural phrasing of the strategy was
+    # the one shape that could not run — while the message said the rule had
+    # not been executed.
+    #
+    # The distinction is not proximity to signal language. It is whether the
+    # sentence gives an action that acquires the instrument:
+    #
+    #     mentioned only as the thing observed  -> signal subject only
+    #     also the object of a buy              -> subject and holding
+    observed = _observed_in_signal(text)
+    acquired = _acquired_instruments(text)
+    reserved = reserved | (observed - acquired)
     assets = [t for t in _TICKER.findall(text) if t not in reserved and len(t) >= 2]
 
     hint = next((name for name, pattern in _TEMPLATE_HINTS
@@ -302,6 +635,7 @@ def parse(text: str) -> ParsedUtterance:
 
     return ParsedUtterance(text=text, recognitions=tuple(recognitions),
                            assets=tuple(dict.fromkeys(assets)),
+                           observed=tuple(sorted(observed)),
                            unrecognized=tuple(unrecognized),
                            template_hint=hint)
 
@@ -468,6 +802,88 @@ def _as_amount(raw: Optional[str]) -> Optional[float]:
 #: names is *also* being asked or confirmed on the same page, so nothing is
 #: lost by a match — the user answers the structured control instead. A missed
 #: match costs an extra acknowledgement, which is the safe direction.
+#: Ticker-shaped tokens. Uppercase only: a lowercase word is prose.
+_TOKEN = re.compile(r"\b([A-Z][A-Z0-9.\-]{1,4})\b")
+
+_SIGNAL_PHRASE = re.compile(
+    r"\b(?:cross(?:es|ing|ed)?|below|above|moving average|DMA|SMA|EMA)\b",
+    re.IGNORECASE)
+
+_ACQUIRING_VERB = re.compile(
+    r"\b(?:buy|buys|buying|bought|purchase[sd]?|acquire[sd]?|invest(?:ing|ed)?|"
+    r"put(?:ting)?|add(?:ing)?|contribut(?:e|es|ing))\b",
+    re.IGNORECASE)
+
+#: How far a role marker reaches. A sentence puts the verb and its object, or
+#: the subject and its condition, close together; sixty characters spans a
+#: clause and not the sentence.
+_ROLE_REACH = 60
+
+
+def _sentence_bounds(text: str, position: int) -> tuple:
+    """The sentence containing `position`.
+
+    A role never spans a full stop. Rendering a plan back to English produces
+    two sentences —
+
+        I put $500 into VTI, every month, buying equal dollars at each
+        purchase. Whenever SPY is below its 200 day average I buy more of VTI.
+
+    — and a reach measured in characters let "buying" at the end of the first
+    claim SPY at the start of the second. The plan came back holding SPY, and
+    its rule hash drifted on every round trip.
+    """
+    start = max((text.rfind(mark, 0, position) for mark in ".!?"), default=-1)
+    ends = [e for e in (text.find(mark, position) for mark in ".!?") if e != -1]
+    return start + 1, (min(ends) if ends else len(text))
+
+
+def _nearest_token_before(text: str, position: int) -> Optional[str]:
+    start, _ = _sentence_bounds(text, position)
+    candidates = [m for m in _TOKEN.finditer(text, start, position)
+                  if position - m.end() <= _ROLE_REACH]
+    return candidates[-1].group(1) if candidates else None
+
+
+def _nearest_token_after(text: str, position: int) -> Optional[str]:
+    _, end = _sentence_bounds(text, position)
+    for match in _TOKEN.finditer(text, position, end):
+        if match.start() - position <= _ROLE_REACH:
+            return match.group(1)
+    return None
+
+
+def _acquired_instruments(text: str) -> set:
+    """Tickers the sentence says are bought.
+
+    Anchored to the verb and taking the nearest token after it. A proximity
+    test over the whole clause read "Buy VOO whenever SPY crosses below" as
+    acquiring both, because SPY sits a few words from "Buy".
+    """
+    found = set()
+    for verb in _ACQUIRING_VERB.finditer(text):
+        token = _nearest_token_after(text, verb.end())
+        if token and len(token) >= 2 and token.isalpha():
+            found.add(token)
+    return found
+
+
+def _observed_in_signal(text: str) -> set:
+    """Tickers the sentence says are watched.
+
+    Anchored to the signal phrase and taking the nearest token *before* it —
+    the subject of "crosses below" is what precedes it. Scanning outward from
+    the ticker instead made every instrument in the clause observed, so
+    "Buy VOO whenever SPY crosses below" watched VOO.
+    """
+    found = set()
+    for phrase in _SIGNAL_PHRASE.finditer(text):
+        token = _nearest_token_before(text, phrase.start())
+        if token and len(token) >= 2 and token.isalpha():
+            found.add(token)
+    return found
+
+
 _CONCEPT_MARKERS = {
     "moving_average_kind": ("simple or exponential", "exponential moving average",
                             "type of moving average", "simple vs exponential"),
@@ -482,26 +898,135 @@ _CONCEPT_MARKERS = {
     "starting_capital": ("starting capital", "initial balance"),
     "dividends": ("dividend treatment", "dividends are reinvested"),
     "execution_timing": ("when orders execute", "execution timing"),
+    # Concepts the compiler settles *without* asking, which the parser still
+    # reports uncertainty about. "five year period mentioned" and "no
+    # recurring cadence specified" both describe decisions already made: the
+    # window was detected, and cadence does not apply to event funding.
+    "time_window": ("year period", "years period", "period mentioned",
+                    "lookback", "backtest period", "time period",
+                    "evaluation period", "timeframe", "date range"),
+    "cadence_inapplicable": ("recurring cadence", "no cadence", "cadence "
+                             "specified", "recurring schedule", "no schedule",
+                             "frequency specified", "no frequency"),
 }
 
 
-def _covered_by(phrase: str, raised: set) -> Optional[str]:
-    """The structured field this phrase is describing, if it is already asked.
+def _covered_by(phrase: str, raised: set,
+                settled: Optional[Mapping[str, Any]] = None) -> Optional[str]:
+    """The structured fact this phrase is describing, if the compiler has it.
 
-    Returns the field name only when that field is genuinely on the page.
-    Matching a marker for a field nobody asked about would silently drop a
-    question the user never gets to answer.
+    Two ways a phrase stops being unclear, and only the first was implemented.
+
+    **The field is still being asked.** The phrase describes a question already
+    on the page, so filing it separately would ask twice.
+
+    **The compiler already has the value.** The parser may report uncertainty
+    about something the deterministic stages went on to resolve — and it does:
+    a description stating "$1,000" and "200-day" produced
+
+        unclear: 1,000 purchase amount per trigger
+        unclear: 200-day period length for moving average
+
+    while the compiler had recognised the amount and extracted the window and
+    used both. The parser's uncertainty outlived the compiler's certainty, and
+    the user was asked to dismiss facts their plan had actually modelled.
+
+    The parser says a phrase *may* be unclear. Whether it is still unclear —
+    after recognitions, inferences and amendments — is the compiler's call.
+
+    The numeric test is the general one. Markers are a hand-kept list of the
+    ways a model might phrase a concept, and the two phrases above matched none
+    of them; a figure the compiler holds is a fact, however the phrase around
+    it is worded.
     """
+    import re as _re
+
     lowered = phrase.lower()
     for field, markers in _CONCEPT_MARKERS.items():
         if field in raised and any(marker in lowered for marker in markers):
             return field
+
+    numbers = {n.replace(",", "") for n in _re.findall(r"[\d,]*\d", lowered)}
+    if numbers and settled:
+        for field, value in settled.items():
+            if value is None:
+                continue
+            held = str(value).replace(",", "")
+            held = held[:-2] if held.endswith(".0") else held
+            if held and held in numbers:
+                return field
     return None
 
 
 
+def canonical_key(prefix: str, phrase: str) -> str:
+    """A field id that survives the model rewording its own explanation.
+
+    The clarification loop could not converge. `unclear` entries carry the
+    model's commentary — "SP500 ETF (company/product name, not a literal
+    ticker symbol)" — and the field id was built from the whole string, so six
+    rounds produced six ids for one question:
+
+        asset_identity:SP500 ETF (company/product name, not a literal ticker…)
+        asset_identity:SP500 ETF (ticker symbol not specified)
+        asset_identity:SP500 ETF (fund name given, not a literal ticker symbol)
+
+    An answer to the first did not match the second, so the question returned,
+    reworded, forever. Five of nine recorded journeys never settled.
+
+    **The invariant is semantic, not punctuational:**
+
+        The persistent key is derived from the stable observed subject, never
+        from explanatory model prose.
+
+    Dropping parentheses is how that is achieved for the wording seen; it is
+    not the rule. Prose that arrives as a dash clause, a trailing comma or a
+    second sentence is the same defect in different punctuation, and the
+    normalisation below is expected to grow to cover it. What must not change
+    is where the key comes from: the subject the user named, and nothing the
+    model said about it.
+
+    The model may report the observed phrase, why it is ambiguous, and the
+    candidates. The commentary stays in the question text, where changing
+    wording costs nothing.
+
+    A digest is the fallback rather than the rule. `unclear:#<hash>` is
+    unreadable in a form field and in a log, and readability is worth having
+    wherever the phrase itself is safe to keep.
+    """
+    import hashlib
+    import re as _re
+
+    # Cut at the first *explanatory boundary*, whatever punctuation carries it.
+    #
+    # The first version stripped parentheses and dash clauses, because those
+    # were the forms the live model had produced. Three other forms of the same
+    # sentence walked straight through it:
+    #
+    #     SP500 ETF. A ticker symbol was not provided.
+    #     SP500 ETF: fund name rather than a ticker
+    #     SP500 ETF, which is a product name not a ticker
+    #
+    # each yielding a different key for one subject. Matching the punctuation
+    # seen is implementing the example; the invariant is that the key stops
+    # where the subject stops.
+    base = _re.sub(r"\s*[\(\[].*?(?:[\)\]]|$)", " ", phrase or "")
+    base = _re.split(r"\s+[-—–]\s+|[.:;]\s|[.:;]$", base)[0]
+    # A comma only ends the subject when a clause follows it. "SPDR S&P 500
+    # ETF Trust, Inc" is one name; "SP500 ETF, which is a product name" is a
+    # subject and a remark.
+    base = _re.split(
+        r",\s+(?:which|that|this|it|a|an|the|not|no|but|rather|meaning|"
+        r"referring|referenced|i\.e\.|e\.g\.)\b",
+        base, flags=_re.IGNORECASE)[0]
+    slug = _re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")
+    if not slug:
+        slug = "x" + hashlib.sha256((phrase or "").encode()).hexdigest()[:10]
+    return f"{prefix}:{slug[:60]}"
+
+
 def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
-                    assets, window=None, priceable=()):
+                    assets, window=None, priceable=(), execution_timing=None):
     """The single authority on how money arrives.
 
     Built here and nowhere else, because two builders of a funding policy would
@@ -531,8 +1056,14 @@ def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
         # instrument it resolved to — and evaluating a moving average on a
         # ticker with no price history would refuse a plan that is perfectly
         # runnable on the instrument it actually holds.
-        priceable_assets = [a for a in assets if a in set(priceable)]
-        subject = next(iter(priceable_assets), "")
+        # The watched series, when the sentence names one this deployment can
+        # price. Falling straight through to the held instrument made a plan
+        # buying VOO on an SPY signal evaluate the condition on VOO — a
+        # different rule, silently.
+        priceable_set = set(priceable)
+        watched = [a for a in (parsed.observed or ()) if a in priceable_set]
+        priceable_assets = [a for a in assets if a in priceable_set]
+        subject = next(iter(watched), "") or next(iter(priceable_assets), "")
         if not subject or window is None:
             # No policy rather than a guessed one. An unstated window is an
             # unresolved field, and the plan is blocked on it like any other.
@@ -550,7 +1081,15 @@ def _funding_policy(*, trigger, parsed, amount, cadence, day_rule,
                 kind=(SignalKind.CROSSED_BELOW_MOVING_AVERAGE
                       if trigger == "crossing_event"
                       else SignalKind.BELOW_MOVING_AVERAGE)),
-            amount=Decimal(str(amount)))
+            amount=Decimal(str(amount)),
+            # Consumed, not merely settled. The field was recognised, resolved
+            # by `settle` and then dropped here, so the policy always carried
+            # the default and `SUPPORTED_TIMING` — which exists to refuse
+            # same-session close — never saw a value to refuse. Recognised,
+            # settled, and no consumption site: the same shape as an amendment
+            # that reaches nothing.
+            **({"execution_timing": ExecutionTiming(execution_timing)}
+               if execution_timing else {}))
 
     return Scheduled(cadence=cadence or "once", amount=Decimal(str(amount)),
                      day_rule=day_rule or "first_session_of_period")
@@ -662,20 +1201,33 @@ def compile_scenario(
     # nobody mentioned is noise at best, and at worst it blocks a complete plan
     # on an ambiguity that does not exist in it.
     has_signal = bool(_MENTIONS_SIGNAL.search(text))
+    execution_timing_value = None
     trigger = settle("trigger_semantics") if has_signal else None
     average_window = moving_average_window(text) if has_signal else None
     if has_signal and _MENTIONS_AVERAGE.search(text):
         settle("moving_average_kind")
         if average_window is None:
-            unresolved.append(Unresolved(
-                "moving_average_window",
-                "How many sessions does the average cover?",
-                "A 50-session and a 200-session average cross on different "
-                "days, so they are different rules producing different "
-                "purchases. Assuming one would answer a question you did not "
-                "ask."))
+            # The answer, consumed. The question was raised, a control was
+            # rendered for it, the reply was recorded as an amendment — and
+            # nothing read it, so the question came back every round.
+            #
+            # The same family as the asset-identity defect and a different
+            # stage of it: that key was unstable so the answer could not
+            # match; this key is stable, the answer matches, and the compiler
+            # never asked for it. A settle site is not implied by a stable id.
+            chosen = answered("moving_average_window")
+            if chosen and str(chosen).strip().isdigit():
+                average_window = int(str(chosen).strip())
+            else:
+                unresolved.append(Unresolved(
+                    "moving_average_window",
+                    "How many sessions does the average cover?",
+                    "A 50-session and a 200-session average cross on different "
+                    "days, so they are different rules producing different "
+                    "purchases. Assuming one would answer a question you did "
+                    "not ask."))
     if has_signal:
-        settle("execution_timing")
+        execution_timing_value = settle("execution_timing")
 
     # "Equally" only means something across more than one holding — so the
     # question is not *asked* for a single recognised asset. But a weighting the
@@ -713,12 +1265,13 @@ def compile_scenario(
         # An answer settles it. Without this the question was raised, an input
         # was rendered for it, the reply was recorded as an amendment, and the
         # same question came back — the field had no settle site at all.
-        chosen = answered(f"asset_identity:{ambiguous}")
+        key = canonical_key("asset_identity", ambiguous)
+        chosen = answered(key)
         if chosen:
             identified.append(chosen)
             continue
         unresolved.append(Unresolved(
-            field=f"asset_identity:{ambiguous}",
+            field=key,
             question=(f"{question} You wrote '{ambiguous}' — "
                       f"{' or '.join(options)}?" if options
                       else f"{question} You wrote '{ambiguous}'."),
@@ -745,7 +1298,7 @@ def compile_scenario(
         if not found.candidates:
             _still_unclear.append(phrase)
             continue
-        field = f"asset_identity:{phrase}"
+        field = canonical_key("asset_identity", phrase)
         chosen = answered(field)
         # Recorded whether or not it has been answered yet. The alternatives a
         # user was shown are part of what happened, and a plan that stores
@@ -807,7 +1360,8 @@ def compile_scenario(
     funding_policy = _funding_policy(
         trigger=trigger, parsed=parsed, amount=amount_value,
         cadence=cadence_value, day_rule=day_rule,
-        assets=held, window=average_window, priceable=priceable)
+        assets=held, window=average_window, priceable=priceable,
+        execution_timing=execution_timing_value)
 
     # How money arrives is one question with two policies, and a trigger is one
     # of them.
@@ -920,6 +1474,7 @@ def compile_scenario(
         for conflict in scenario.self_conflicts()
     ]
 
+
     # Phrases stage 1 could not place. Raised last, once every structured
     # question and inference exists, because most of them are not unplaceable
     # at all — they are the model describing, in prose, a field the compiler
@@ -938,14 +1493,38 @@ def compile_scenario(
     # the acknowledgement is the honest control.
     _raised = {one.field for one in unresolved} | {one.field for one in inferred}
 
+    # What the compiler ended up holding, for the numeric test above. Built
+    # from the values it will actually run with, not from what was recognised
+    # — an amount that was recognised and then overridden by an amendment is
+    # settled at the amended value.
+    _settled_values = {
+        "amount": amount_value,
+        "moving_average_window": average_window,
+        "starting_capital": getattr(flows, "starting_capital", None),
+    }
+    # Concepts the compiler has decided without raising a question. A phrase
+    # describing one of these is not unplaceable prose — it is the parser
+    # remarking on a decision that has already been made, and asking the user
+    # to dismiss it would record them proceeding without something the plan
+    # did use.
+    _settled_concepts = set()
+    if window is not None:
+        _settled_concepts.add("time_window")
+    if event_funded:
+        # Cadence is not merely unanswered here; it does not apply. The
+        # builder deliberately stops asking it once funding is event-driven,
+        # and a phrase noting its absence must not become a blocker.
+        _settled_concepts.add("cadence_inapplicable")
+
     for phrase in _still_unclear:
-        covered = _covered_by(phrase, _raised)
+        covered = _covered_by(phrase, _raised | _settled_concepts,
+                              _settled_values)
         if covered:
             stated.append(
                 f"{covered}: asked directly rather than as unplaceable prose")
             continue
         unresolved.append(Unresolved(
-            field=f"unclear:{phrase}",
+            field=canonical_key("unclear", phrase),
             question=f"What did you mean by '{phrase}'?",
             why_it_matters=(
                 "This part of your description did not map onto anything the "

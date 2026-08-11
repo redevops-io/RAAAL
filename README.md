@@ -165,6 +165,12 @@ repository secrets.
 
 ## Licence
 
-AGPL-3.0. §13 extends copyleft to **network use**: serving users over a network
-with this code obliges offering them the corresponding source of the combined
-work. See [LICENSE.md](LICENSE.md).
+**Source-available, not open source.** AGPL-3.0-or-later plus the Commons
+Clause condition.
+
+AGPL §13 extends copyleft to **network use**: serving users over a network with
+this code obliges offering them the corresponding source of the combined work.
+The Commons Clause additionally removes the right to *sell* the software,
+including hosting it for a fee — which AGPL on its own permits.
+
+See [LICENSE.md](LICENSE.md) and [LICENSE-COMMONS-CLAUSE](LICENSE-COMMONS-CLAUSE).

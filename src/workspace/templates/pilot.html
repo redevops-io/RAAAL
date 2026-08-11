@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Plan</h1>
+
+{# `/workspace/new`, not `/pilot`. A participant who enters at the workspace's
+   own URL and edits their sentence was being moved to the diagnostic alias by
+   this form — a different URL for the second attempt than the first, which is
+   the one interaction the study most needs to observe cleanly. #}
+<form method="get" action="/workspace/new">
+  <label for="describe">What do you want to work out?</label>
+  <textarea id="describe" name="describe" rows="3"
+            placeholder="invest $500 a month into VTI">{{ text or "" }}</textarea>
+  <button type="submit">Read it</button>
+</form>
+
+{% if unavailable %}
+  {# A refusal, not a degraded reading. The deployment declares one
+     interpreter; serving the other silently would hand two users different
+     products under one name. #}
+  <section class="refusal">
+    <h2>This cannot be read right now</h2>
+    <p>{{ unavailable }}</p>
+    <p>Nothing was saved and nothing was guessed.</p>
+  </section>
+{% endif %}
+
+{% if reading %}
+
+  {% if reopened %}
+    <p class="note">Reopened from the saved plan. The sentence was not read
+    again — this is compiled from the intent you confirmed.</p>
+  {% endif %}
+
+  <section>
+    <h2>What was understood</h2>
+    {% if understood %}
+      <table>
+        <thead><tr><th>field</th><th>value</th><th>how</th></tr></thead>
+        <tbody>
+        {% for field in understood %}
+          <tr>
+            <td>{{ field.field }}</td>
+            <td>{{ field.value }}</td>
+            <td>
+              {# The provenance is shown, not summarised. MODEL_ONLY_ACCEPTED
+                 is not AGREE, and a pilot that displayed "agreed" while
+                 running one reader would be claiming corroboration it never
+                 had. #}
+              {{ field.provenance }}
+              {% if field.witnesses %}({{ field.witnesses | join(", ") }}){% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Nothing yet.</p>
+    {% endif %}
+  </section>
+
+  {% if questions %}
+    <section>
+      <h2>This needs an answer before it can run</h2>
+      <form method="post" action="{% if reopened %}/pilot/answer{% else %}/pilot/save{% endif %}">
+        <input type="hidden" name="describe" value="{{ text }}">
+        {% for field in questions %}
+          <label for="answer_{{ field }}">{{ field }}</label>
+          <input id="answer_{{ field }}" name="answer_{{ field }}" type="text">
+        {% endfor %}
+        <button type="submit">Answer and save</button>
+      </form>
+    </section>
+  {% else %}
+    <form method="post" action="/pilot/save">
+      <input type="hidden" name="describe" value="{{ text }}">
+      <button type="submit">Save this plan</button>
+    </form>
+  {% endif %}
+
+  {% if figure is not none %}
+    <section class="result">
+      <h2>Result</h2>
+      <p class="figure">{{ figure }}</p>
+      {% if gain is not none %}<p class="quiet">gain {{ "%.2f"|format(gain) }}</p>{% endif %}
+      <p class="quiet">
+        This figure was produced from the plan you confirmed. Reopening it
+        recompiles from that same plan and does not read your sentence again.
+      </p>
+    </section>
+  {% elif strategy_not_executed %}
+    {# A refusal is a result. The figure is absent and the reason is the
+       engine's own, never a generic one. #}
+    <section class="refusal">
+      <h2>This did not produce a figure</h2>
+      <p>{{ unavailable or "the engine refused to execute this plan" }}</p>
+    </section>
+  {% endif %}
+
+  {% if refusals %}
+    <section class="refusal">
+      <h2>What this will not do</h2>
+      <ul>
+      {% for refusal in refusals %}
+        {# Refused by name. Never the nearest runnable thing — that is the
+           whole boundary. #}
+        <li><strong>{{ refusal.dimension }}</strong>: {{ refusal.detail }}</li>
+      {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if applied_defaults %}
+    <section>
+      <h2>What the engine chose, because you did not say</h2>
+      <ul>{% for name in applied_defaults %}<li>{{ name }}</li>{% endfor %}</ul>
+    </section>
+  {% endif %}
+
+  {% if absent %}
+    <section class="quiet">
+      <h2>Not mentioned, and not needed</h2>
+      <p>{{ absent | join(", ") }}</p>
+    </section>
+  {% endif %}
+
+  <section class="evidence">
+    <h2>Where this came from</h2>
+    <dl>
+      <dt>read by</dt><dd>{{ reader_id }}</dd>
+      <dt>interpreter</dt><dd>{{ interpreter }}</dd>
+      <dt>witnesses</dt>
+      <dd>
+        {{ witnesses.available | join(", ") }}
+        {% if witnesses.single_witness %}
+          — one reader only. {{ witnesses.reason }}
+        {% endif %}
+      </dd>
+      <dt>intent</dt><dd><code>{{ intent_hash }}</code>{% if sealed %} (sealed){% endif %}</dd>
+      {% if derivation.compiled_by %}
+        <dt>compiled by</dt><dd>{{ derivation.compiled_by }}</dd>
+        <dt>compiled from</dt><dd><code>{{ derivation.compiled_from }}</code></dd>
+      {% endif %}
+    </dl>
+  </section>
+
+{% endif %}
+
+{% endblock %}

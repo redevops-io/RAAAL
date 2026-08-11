@@ -1,0 +1,120 @@
+# What Discovery may send to a model provider, and what it may never send.
+#
+# A different authorisation from the market-data licensing record, and
+# deliberately a separate file. That record governs *prices*: who may see them,
+# whether they may be redistributed, what derived figures may be shown. This one
+# governs *the user's own language* and the structured reading of it. Merging
+# them would mean one review decided two unrelated questions, and the answer to
+# "may a hosted model read a customer's sentence" is not implied by any answer
+# about Yahoo's terms.
+#
+# The boundary this exists to make explicit:
+#
+#     hosted provider    sees  the user's own words, and a schema
+#     Mission/execution  sees  verified structured intent, and financial data
+#
+# Written before Phase 3 ships to a user, not after.
+
+policy_version: discovery-egress/hosted-reader@1
+applies_to: discovery-runtime
+decided_on: "2026-08-08"
+reviewer: "Alex Mats"
+
+reader:
+  provider: anthropic
+  model: claude-sonnet-5
+  hosted: true
+  # Chosen for the Phase 3 evaluation because it is a known-good semantic reader
+  # on this exact job: on the "crosses below" defect the model read
+  # `trigger_semantics = crossing_event` with the span "crosses below" while the
+  # deterministic parser read it as a persistent state and was wrong. Phase 3
+  # measures whether the runtime boundary preserves meaning, so the reader must
+  # not be the variable under test.
+  #
+  # Not permanent, and not special. The adapter is provider-neutral from the
+  # first commit; a local model, a challenger and a router are all later
+  # experiments run against the adjudicated Discovery corpus rather than
+  # arguments settled now.
+  rationale_ref: "docs/Migration.md#63-which-model-and-where-it-runs"
+  # A field rather than a comment, because the first version of this said so in
+  # a comment and the test that checks it does not read comments — which is the
+  # whole difference between a commitment and a note.
+  binding: >-
+    provider-neutral: the adapter is written to a reader interface from the
+    first commit, and this model is not permanent and not special. A local
+    model, a challenger provider and a router are later experiments run against
+    the adjudicated Discovery corpus, not arguments settled here.
+
+# ── what may leave the system ────────────────────────────────────────────
+may_send:
+  user_utterance:
+    permitted: true
+    detail: >-
+      The sentence the user typed, verbatim. This is the thing being read, so
+      withholding it would leave nothing to read.
+  intent_schema:
+    permitted: true
+    detail: >-
+      The shape of a VerifiedIntent — the names and types of semantic
+      dimensions. Not which values this engine executes; see
+      capability_manifest below.
+  interpretation_instructions:
+    permitted: true
+    detail: "The prompt itself: how to read, what evidence to return."
+
+may_not_send:
+  price_series:
+    permitted: false
+    detail: >-
+      No market data, of any length. The market-data record permits
+      operator-initiated snippets for debugging and explicitly records that no
+      automated path exists; an automated Discovery call would be exactly such
+      a path, and is refused here as well as there.
+  simulation_output:
+    permitted: false
+    detail: "Figures, ledgers, worksheets, benchmark results."
+  portfolio_state:
+    permitted: false
+    detail: "Holdings, balances, account identifiers, transaction history."
+  retrieved_financial_history:
+    permitted: false
+    detail: >-
+      Anything Context Runtime or a RAG layer might later assemble. Named now
+      because the temptation arrives with the component, not before it.
+  other_users_data:
+    permitted: false
+    detail: "No cross-tenant context of any kind, including for few-shot examples."
+
+  capability_manifest:
+    permitted: false
+    detail: >-
+      Not a privacy rule — a correctness one, and the reason it sits in this
+      list rather than in a design note. Telling the reader which values this
+      engine executes does not make it refuse the others; it makes it render
+      them as the nearest thing it can say, so "by inverse volatility" comes
+      back as an equal split. Discovery must stay able to produce a value
+      Mission will refuse. The manifest may reach a *surface* that offers
+      choices; it may not reach the reader.
+
+# ── what comes back, and what is kept ────────────────────────────────────
+retention:
+  reader_output: >-
+    Preserved and pinned as DecisionEvidence on the intent, including readings
+    that lost. A shadow phase whose disagreements are not recorded measures
+    nothing.
+  provider_retention: "governed by the provider's own terms; not relied upon"
+
+# ── conditions ───────────────────────────────────────────────────────────
+conditions:
+  - "Discovery only. No other runtime may call a hosted model under this policy."
+  - >-
+    Phase 3 runs in shadow: the hosted reading is recorded and compared, and the
+    existing deterministic reader remains authoritative until cutover.
+  - >-
+    A user must be told that their description is read by a hosted model before
+    it is. This policy authorises the egress; it does not authorise doing it
+    silently.
+  - >-
+    Revisit before any of: a second provider, a local model, Context Runtime
+    assembling context for Discovery, or any path that would carry financial
+    data into a prompt.

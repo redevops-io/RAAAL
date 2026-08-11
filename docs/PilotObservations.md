@@ -266,3 +266,72 @@ artifacts rather than a list of plan ids someone read off a page.
 **Deployment 2** executes the rule and reports a timeline — which is also the
 independent witness that it ran, because one purchase and $1,000 total cannot
 support a repeating rule and would be visible as such.
+
+
+## Follow-up burden (added before the cohort)
+
+The harvested corpus changed what the pilot should watch. 16 of 29 attested
+strategy statements never reach a plan — they stop at a question about
+holdings, because real financial intent is routinely incomplete on first
+utterance. Instrumentation built only on plan events would record those
+sessions as near-silence and could not say whether the runtime asked well or
+badly.
+
+So the interaction is captured, not only the outcome:
+
+    original utterance          pilot_transcripts, under a declaration
+    unresolved dimensions       discovery_asked
+    questions asked             discovery_asked, by dimension
+    the answer supplied         discovery_answered, by dimension
+    sealed intent               intent_sealed
+    disposition and result      the plan events already recorded
+
+`discovery_answered` is **one event per dimension that goes from unresolved to
+answered**, emitted by whichever route performed the transition:
+
+    /pilot/answer resolves X          ->  discovery_answered(X)
+    /pilot/save   resolves X and Y    ->  discovery_answered(X), (Y)
+    X already answered                ->  nothing
+
+Tying it to a state change rather than a UI action is what makes undercounting
+and double-counting both impossible, and it makes the emitter idempotent — so
+it can be called from anywhere a reading exists without anyone reasoning about
+overlap. A dimension only counts if it was asked about first: something the
+first sentence already supplied was never a follow-up, and counting it would
+inflate the burden the runtime is measured on with work it never asked for.
+
+`src/workspace/pilot_burden.py` joins them into three questions that are
+deliberately not one question:
+
+**How many follow-ups were needed.** `asked_by_dimension` — distinct material
+dimensions raised, counted once per participant however many times the question
+was shown. Someone who reloads five times is one person who has not answered,
+not five who could not. `answered_by_dimension` is what the asking bought, and
+`asked_and_never_settled` is the difference.
+
+**Which were unnecessary.** `answer_was_already_in_the_prompt` — dimensions the
+participant answered with something their original sentence already contained.
+A proxy, and named for what it measures: somebody may restate a thing the
+runtime was right to be unsure about.
+
+**Which missing material facts were never asked about.**
+`never_asked_by_dimension`, computed as a dimension Mission refuses as
+`UNRESOLVED_INPUT` that Discovery never raised. This is the one a question
+count cannot reach: a runtime that asks nothing scores perfectly on burden and
+may be failing worse than one that asks twice, because the person is refused at
+the end having never been given the chance to supply what was missing.
+
+No rates. A ten-person cohort makes a percentage look like a measurement and
+behave like one participant's afternoon.
+
+### The blind spot that shaped the semantics
+
+`/pilot/save` accepts `answer_<dimension>` fields and recorded no answer event,
+so anybody who supplied the missing holding *and* saved in one step counted as
+having answered nothing. Emitting from the save route as well would have
+double-counted anyone who answered and then saved.
+
+Neither is a defect in the emitter. Both come from counting form submissions
+and calling them answers, which is why this was settled as a definition rather
+than patched — and why the metric now means the same thing regardless of which
+buttons somebody presses.

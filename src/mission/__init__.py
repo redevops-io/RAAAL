@@ -13,6 +13,8 @@ from .accounting import (
     Fill,
     Order,
     PortfolioPath,
+    MWRResult,
+    MWRStatus,
     money_weighted_return,
     time_weighted_returns,
 )
@@ -215,6 +217,8 @@ __all__ = [
     "compare",
     "comparison_payload",
     "hold_cash",
+    "MWRResult",
+    "MWRStatus",
     "money_weighted_return",
     "simulate",
     "time_weighted_returns",

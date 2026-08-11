@@ -32,6 +32,19 @@ class PolicyRegistry:
 
     def _load_file(self, path: Path) -> StatisticalPolicy:
         payload = yaml.safe_load(path.read_text()) or {}
+        # `policies/` is loaded wholesale by filename shape, so any YAML dropped
+        # here that happens to be called `something@1.yaml` is read as a policy.
+        # One was, and the bare `KeyError: 'name'` surfaced as a 500 on every
+        # page with no indication of which file caused it. Skipping silently
+        # would be worse — a real policy with a typo would vanish and results
+        # would be judged under a registry that quietly lost a member — so this
+        # still fails, but says what it was reading and what was missing.
+        missing = [key for key in ("name", "version") if key not in payload]
+        if missing:
+            raise ValueError(
+                f"{path}: not a statistical policy — missing {', '.join(missing)}. "
+                "Only statistical policies belong in the policy registry."
+            )
         requirements = tuple(
             Requirement(
                 code=r["code"],

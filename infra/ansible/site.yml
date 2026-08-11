@@ -47,22 +47,68 @@
         fail_msg: >-
           Pin the image by digest. A tag is not a deployment identity.
 
-    - name: Refuse to deploy anything but synthetic data
+    - name: Refuse a market-data policy the application does not recognise
+      # Was `== "SYNTHETIC_ONLY"`, with "until all six vendor licensing
+      # questions are resolved and recorded" as the reason. They are now, so
+      # the literal no longer says what it meant — it would refuse the
+      # condition it was waiting for.
+      #
+      # An unrecognised value is the one that must not reach a host: the
+      # application resolves it to no policy at all, and a deployment with no
+      # policy serves no figures. That is a safe failure and an expensive one
+      # to diagnose from here.
       ansible.builtin.assert:
         that:
-          - quantify_data_policy == "SYNTHETIC_ONLY"
+          - quantify_data_policy in ["SYNTHETIC_ONLY",
+                                     "market-data-egress/pilot-vendor-approved@1"]
         fail_msg: >-
-          The pilot is synthetic-only until all six vendor licensing questions
-          are resolved and recorded.
+          quantify_data_policy={{ quantify_data_policy | default('unset') }}
+          is not a policy the application recognises.
+
+    - name: Require the licensing record when vendor data is requested
+      # Presence, not completeness. Completeness is checked by the application
+      # on every resolve — `approved_snapshot()` re-reads all six questions and
+      # their eight fields and returns nothing if one is missing — and a
+      # weaker second copy of that check here would be a second thing to
+      # disagree with it.
+      #
+      # What this catches is the case the runtime check reports too quietly: a
+      # deployment asking for vendor data whose authorising record was never
+      # shipped. The pages then read "No approved market data is configured"
+      # and no figure is produced, which is correct and is not something anyone
+      # wants to discover from a user.
+      when: quantify_data_policy != "SYNTHETIC_ONLY"
+      ansible.builtin.assert:
+        that:
+          - (playbook_dir + '/../../data/licensing/market-data-licensing@1.yaml')
+            is exists
+        fail_msg: >-
+          quantify_data_policy requests vendor data but the licensing record is
+          not in this tree. The deployment would start, serve no figures, and
+          say the snapshot is unauthorised.
 
   roles:
     - quantify
 
   post_tasks:
     - name: What to do next
+      # The journey line reports what happened rather than asserting success.
+      # It read "both journeys completed" unconditionally, and printed exactly
+      # that on a run where the workspace was not empty and neither journey
+      # had run — so the closing summary of a deployment claimed a check that
+      # had been skipped for a stated reason two tasks earlier.
+      #
+      # That is the same defect the product was being fixed for: a report
+      # naming an outcome it did not observe. It costs more here, because the
+      # deployment summary is the artifact a reader sees first and the one
+      # that ends up quoted in the acceptance record.
       ansible.builtin.debug:
         msg:
-          - "The application is serving and both journeys completed."
+          - "The application is serving."
+          - >-
+            journeys: {{ 'completed'
+            if (quantify_workspace_empty | default('false') | bool)
+            else 'skipped — workspace not empty, verify by hand' }}
           - "Still to do, from your machine:"
           - "  python deploy/acceptance.py https://{{ quantify_domain }} --record evidence/acceptance.json"
           - "  aws logs tail {{ quantify_log_group }} --since 15m | grep 'deployment proof' > evidence/startup-proof.txt"

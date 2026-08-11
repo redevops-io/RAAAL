@@ -1,0 +1,1874 @@
+[
+ {
+  "ref": "WM-0001",
+  "family": "Broad index allocation",
+  "variant": "US total market",
+  "complexity": 1,
+  "declares": {
+   "assets": "VTI",
+   "rule": "100/0",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into VTI in a taxable brokerage account, holding 100/0, over the past 5 years."
+ },
+ {
+  "ref": "WM-0002",
+  "family": "Broad index allocation",
+  "variant": "Global equity",
+  "complexity": 1,
+  "declares": {
+   "assets": "VT",
+   "rule": "100/0",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into VT in a taxable brokerage account, holding 100/0, over the past 5 years."
+ },
+ {
+  "ref": "WM-0003",
+  "family": "Broad index allocation",
+  "variant": "60/40 US",
+  "complexity": 1,
+  "declares": {
+   "assets": "VTI+BND",
+   "rule": "60/40",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into VTI and BND in a taxable brokerage account, holding 60/40, over the past 5 years."
+ },
+ {
+  "ref": "WM-0004",
+  "family": "Broad index allocation",
+  "variant": "80/20 US",
+  "complexity": 1,
+  "declares": {
+   "assets": "VTI+BND",
+   "rule": "80/20",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into VTI and BND in a taxable brokerage account, holding 80/20, over the past 5 years."
+ },
+ {
+  "ref": "WM-0005",
+  "family": "Broad index allocation",
+  "variant": "40/60 conservative",
+  "complexity": 1,
+  "declares": {
+   "assets": "VTI+BND",
+   "rule": "40/60",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into VTI and BND in a taxable brokerage account, holding 40/60, over the past 5 years."
+ },
+ {
+  "ref": "WM-0006",
+  "family": "Broad index allocation",
+  "variant": "Three-fund",
+  "complexity": 1,
+  "declares": {
+   "assets": "VTI+VXUS+BND",
+   "rule": "55/35/10",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into VTI and VXUS and BND in a taxable brokerage account, holding 55/35/10, over the past 5 years."
+ },
+ {
+  "ref": "WM-0007",
+  "family": "Broad index allocation",
+  "variant": "Global 70/30",
+  "complexity": 1,
+  "declares": {
+   "assets": "VT+BNDW",
+   "rule": "70/30",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into VT and BNDW in a taxable brokerage account, holding 70/30, over the past 5 years."
+ },
+ {
+  "ref": "WM-0008",
+  "family": "Broad index allocation",
+  "variant": "Equal regional equity",
+  "complexity": 1,
+  "declares": {
+   "assets": "US+Developed+EM",
+   "rule": "34/33/33",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I put $1,000 every year into US and Developed and EM in a taxable brokerage account, holding 34/33/33, over the past 5 years."
+ },
+ {
+  "ref": "WM-0009",
+  "family": "Dollar-cost averaging",
+  "variant": "Weekly",
+  "complexity": 1,
+  "declares": {
+   "assets": "SPY",
+   "rule": "$250 weekly",
+   "cadence": "weekly",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $250 weekly into SPY in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0010",
+  "family": "Dollar-cost averaging",
+  "variant": "Biweekly payroll",
+  "complexity": 1,
+  "declares": {
+   "assets": "VTI",
+   "rule": "$500 biweekly",
+   "cadence": "biweekly",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $500 biweekly into VTI in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0011",
+  "family": "Dollar-cost averaging",
+  "variant": "Month start",
+  "complexity": 1,
+  "declares": {
+   "assets": "VT",
+   "rule": "$2000 first session",
+   "cadence": "monthly",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $2000 first session every month into VT in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0012",
+  "family": "Dollar-cost averaging",
+  "variant": "Month end",
+  "complexity": 1,
+  "declares": {
+   "assets": "VT",
+   "rule": "$2000 last session",
+   "cadence": "monthly",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $2000 last session every month into VT in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0013",
+  "family": "Dollar-cost averaging",
+  "variant": "Quarterly bonus",
+  "complexity": 1,
+  "declares": {
+   "assets": "60/40",
+   "rule": "$6000 quarter end",
+   "cadence": "quarterly",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $6000 quarter end every quarter into a 60/40 stock and bond split in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0014",
+  "family": "Dollar-cost averaging",
+  "variant": "Annual year-end",
+  "complexity": 1,
+  "declares": {
+   "assets": "60/40",
+   "rule": "$24000 Dec",
+   "cadence": "annual",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $24000 Dec every year into a 60/40 stock and bond split in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0015",
+  "family": "Dollar-cost averaging",
+  "variant": "Market-down-day contribution",
+  "complexity": 1,
+  "declares": {
+   "assets": "VTI",
+   "rule": "$2000 on first negative month",
+   "cadence": "conditional",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $2000 on first negative month into VTI in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0016",
+  "family": "Dollar-cost averaging",
+  "variant": "Contribution plus match",
+  "complexity": 1,
+  "declares": {
+   "assets": "TDF",
+   "rule": "6% salary + 3% match",
+   "cadence": "payroll",
+   "account": "taxable|401k|ira|roth"
+  },
+  "prompt": "I invest $1,000 out of every paycheck into TDF in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0017",
+  "family": "Rebalancing",
+  "variant": "Annual",
+  "complexity": 2,
+  "declares": {
+   "assets": "60/40",
+   "rule": "calendar Jan",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a 60/40 stock and bond split in a taxable brokerage account and rebalance calendar Jan, over the past 5 years."
+ },
+ {
+  "ref": "WM-0018",
+  "family": "Rebalancing",
+  "variant": "Quarterly",
+  "complexity": 2,
+  "declares": {
+   "assets": "60/40",
+   "rule": "quarter end",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a 60/40 stock and bond split in a taxable brokerage account and rebalance quarter end, over the past 5 years."
+ },
+ {
+  "ref": "WM-0019",
+  "family": "Rebalancing",
+  "variant": "Monthly",
+  "complexity": 2,
+  "declares": {
+   "assets": "risk parity",
+   "rule": "month end",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold risk parity in a taxable brokerage account and rebalance month end, over the past 5 years."
+ },
+ {
+  "ref": "WM-0020",
+  "family": "Rebalancing",
+  "variant": "5% absolute band",
+  "complexity": 2,
+  "declares": {
+   "assets": "60/40",
+   "rule": "drift >5pp",
+   "cadence": "threshold",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a 60/40 stock and bond split in a taxable brokerage account and rebalance drift >5pp, over the past 5 years."
+ },
+ {
+  "ref": "WM-0021",
+  "family": "Rebalancing",
+  "variant": "20% relative band",
+  "complexity": 2,
+  "declares": {
+   "assets": "80/20",
+   "rule": "relative drift >20%",
+   "cadence": "threshold",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a 80/20 stock and bond split in a taxable brokerage account and rebalance relative drift >20%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0022",
+  "family": "Rebalancing",
+  "variant": "Cash-flow rebalance",
+  "complexity": 2,
+  "declares": {
+   "assets": "three-fund",
+   "rule": "new money only",
+   "cadence": "event",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold three-fund in a taxable brokerage account and rebalance new money only, over the past 5 years."
+ },
+ {
+  "ref": "WM-0023",
+  "family": "Rebalancing",
+  "variant": "Tax-aware rebalance",
+  "complexity": 2,
+  "declares": {
+   "assets": "three-fund",
+   "rule": "prefer sheltered accounts",
+   "cadence": "threshold",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold three-fund in a taxable brokerage account and rebalance prefer sheltered accounts, over the past 5 years."
+ },
+ {
+  "ref": "WM-0024",
+  "family": "Rebalancing",
+  "variant": "No-sell rebalance",
+  "complexity": 2,
+  "declares": {
+   "assets": "equity basket",
+   "rule": "new contributions only",
+   "cadence": "event",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold equity basket in a taxable brokerage account and rebalance new contributions only, over the past 5 years."
+ },
+ {
+  "ref": "WM-0025",
+  "family": "Factor tilts",
+  "variant": "Value tilt",
+  "complexity": 3,
+  "declares": {
+   "assets": "US value ETF",
+   "rule": "30% satellite",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt 30% satellite into US value ETF in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0026",
+  "family": "Factor tilts",
+  "variant": "Small value",
+  "complexity": 3,
+  "declares": {
+   "assets": "US small value",
+   "rule": "20% satellite",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt 20% satellite into US small value in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0027",
+  "family": "Factor tilts",
+  "variant": "Quality",
+  "complexity": 3,
+  "declares": {
+   "assets": "quality ETF",
+   "rule": "30% satellite",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt 30% satellite into quality ETF in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0028",
+  "family": "Factor tilts",
+  "variant": "Momentum",
+  "complexity": 3,
+  "declares": {
+   "assets": "momentum ETF",
+   "rule": "30% satellite",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt 30% satellite into momentum ETF in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0029",
+  "family": "Factor tilts",
+  "variant": "Low volatility",
+  "complexity": 3,
+  "declares": {
+   "assets": "min-vol ETF",
+   "rule": "40% satellite",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt 40% satellite into min-vol ETF in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0030",
+  "family": "Factor tilts",
+  "variant": "Dividend growth",
+  "complexity": 3,
+  "declares": {
+   "assets": "dividend growth ETF",
+   "rule": "40% satellite",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt 40% satellite into dividend growth ETF in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0031",
+  "family": "Factor tilts",
+  "variant": "Multi-factor",
+  "complexity": 3,
+  "declares": {
+   "assets": "value+quality+momentum",
+   "rule": "equal factor sleeves",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt equal factor sleeves into value and quality and momentum in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0032",
+  "family": "Factor tilts",
+  "variant": "Equal weight",
+  "complexity": 3,
+  "declares": {
+   "assets": "S&P 500 equal weight",
+   "rule": "100%",
+   "cadence": "quarterly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold a core index fund and tilt 100% into S&P 500 equal weight in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0033",
+  "family": "Risk-based allocation",
+  "variant": "Inverse volatility",
+  "complexity": 4,
+  "declares": {
+   "assets": "stocks+bonds+gold",
+   "rule": "63d vol",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across stocks and bonds and gold by inverse volatility using 63d vol, over the past 5 years."
+ },
+ {
+  "ref": "WM-0034",
+  "family": "Risk-based allocation",
+  "variant": "Risk parity",
+  "complexity": 4,
+  "declares": {
+   "assets": "stocks+bonds+gold+commodities",
+   "rule": "126d cov",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across stocks and bonds and gold and commodities by risk parity using 126d cov, over the past 5 years."
+ },
+ {
+  "ref": "WM-0035",
+  "family": "Risk-based allocation",
+  "variant": "Hierarchical risk parity",
+  "complexity": 4,
+  "declares": {
+   "assets": "multi-asset ETF set",
+   "rule": "252d cov",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across multi-asset ETF set by hierarchical risk parity using 252d cov, over the past 5 years."
+ },
+ {
+  "ref": "WM-0036",
+  "family": "Risk-based allocation",
+  "variant": "Minimum variance",
+  "complexity": 4,
+  "declares": {
+   "assets": "multi-asset ETF set",
+   "rule": "252d sample cov",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across multi-asset ETF set by minimum variance using 252d sample cov, over the past 5 years."
+ },
+ {
+  "ref": "WM-0037",
+  "family": "Risk-based allocation",
+  "variant": "EWMA minimum variance",
+  "complexity": 4,
+  "declares": {
+   "assets": "multi-asset ETF set",
+   "rule": "halflife 63",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across multi-asset ETF set by ewma minimum variance using halflife 63, over the past 5 years."
+ },
+ {
+  "ref": "WM-0038",
+  "family": "Risk-based allocation",
+  "variant": "Max diversification",
+  "complexity": 4,
+  "declares": {
+   "assets": "multi-asset ETF set",
+   "rule": "252d",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across multi-asset ETF set by max diversification using 252d, over the past 5 years."
+ },
+ {
+  "ref": "WM-0039",
+  "family": "Risk-based allocation",
+  "variant": "Volatility target 10%",
+  "complexity": 4,
+  "declares": {
+   "assets": "60/40 + cash",
+   "rule": "target 10%",
+   "cadence": "weekly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across 60/40 and cash by volatility target 10% using target 10%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0040",
+  "family": "Risk-based allocation",
+  "variant": "Drawdown-aware risk budget",
+  "complexity": 4,
+  "declares": {
+   "assets": "multi-asset",
+   "rule": "reduce after 10% DD",
+   "cadence": "weekly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I allocate $100,000 across multi-asset by drawdown-aware risk budget using reduce after 10% DD, over the past 5 years."
+ },
+ {
+  "ref": "WM-0041",
+  "family": "Trend and moving-average",
+  "variant": "SPY below 200DMA basket buy",
+  "complexity": 3,
+  "declares": {
+   "assets": "AMZN+META+GOOGL+ORCL+AAPL+NVDA",
+   "rule": "buy when SPY<200SMA",
+   "cadence": "daily",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of AMZN and META and GOOGL and ORCL and AAPL and NVDA when SPY<200SMA, over the past 5 years."
+ },
+ {
+  "ref": "WM-0042",
+  "family": "Trend and moving-average",
+  "variant": "Cross below 200DMA only",
+  "complexity": 3,
+  "declares": {
+   "assets": "same basket",
+   "rule": "cross event",
+   "cadence": "daily",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of same basket when cross event, over the past 5 years."
+ },
+ {
+  "ref": "WM-0043",
+  "family": "Trend and moving-average",
+  "variant": "10-month SMA switch",
+  "complexity": 3,
+  "declares": {
+   "assets": "SPY/T-Bills",
+   "rule": "month end",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of SPY and T-Bills when month end, over the past 5 years."
+ },
+ {
+  "ref": "WM-0044",
+  "family": "Trend and moving-average",
+  "variant": "Dual momentum",
+  "complexity": 3,
+  "declares": {
+   "assets": "US vs ex-US vs bonds",
+   "rule": "12m lookback",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of US vs ex-US vs bonds when 12m lookback, over the past 5 years."
+ },
+ {
+  "ref": "WM-0045",
+  "family": "Trend and moving-average",
+  "variant": "50/200 crossover",
+  "complexity": 3,
+  "declares": {
+   "assets": "SPY/cash",
+   "rule": "golden/death cross",
+   "cadence": "daily",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of SPY and cash when golden/death cross, over the past 5 years."
+ },
+ {
+  "ref": "WM-0046",
+  "family": "Trend and moving-average",
+  "variant": "Trend-filtered DCA",
+  "complexity": 3,
+  "declares": {
+   "assets": "VTI",
+   "rule": "DCA only above 200DMA",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of VTI when DCA only above 200DMA, over the past 5 years."
+ },
+ {
+  "ref": "WM-0047",
+  "family": "Trend and moving-average",
+  "variant": "Crash accelerator",
+  "complexity": 3,
+  "declares": {
+   "assets": "VTI",
+   "rule": "double contribution after -20%",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of VTI when double contribution after -20%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0048",
+  "family": "Trend and moving-average",
+  "variant": "Volatility trend",
+  "complexity": 3,
+  "declares": {
+   "assets": "SPY/cash",
+   "rule": "trend + vol filter",
+   "cadence": "weekly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I buy $1,000 of SPY and cash when trend + vol filter, over the past 5 years."
+ },
+ {
+  "ref": "WM-0049",
+  "family": "Tax-loss harvesting",
+  "variant": "Monthly ETF pair",
+  "complexity": 5,
+  "declares": {
+   "assets": "VTI\u2194SCHB",
+   "rule": "loss >5%",
+   "cadence": "monthly",
+   "account": "taxable"
+  },
+  "prompt": "I hold VTI and SCHB in a taxable brokerage account and harvest losses when loss >5%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0050",
+  "family": "Tax-loss harvesting",
+  "variant": "Daily direct-index scan",
+  "complexity": 5,
+  "declares": {
+   "assets": "S&P 500 basket",
+   "rule": "loss >3%",
+   "cadence": "daily",
+   "account": "taxable"
+  },
+  "prompt": "I hold S&P 500 basket in a taxable brokerage account and harvest losses when loss >3%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0051",
+  "family": "Tax-loss harvesting",
+  "variant": "Quarterly harvest",
+  "complexity": 5,
+  "declares": {
+   "assets": "three-fund",
+   "rule": "net losses",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "I hold three-fund in a taxable brokerage account and harvest losses when net losses, over the past 5 years."
+ },
+ {
+  "ref": "WM-0052",
+  "family": "Tax-loss harvesting",
+  "variant": "Year-end harvest",
+  "complexity": 5,
+  "declares": {
+   "assets": "taxable portfolio",
+   "rule": "Nov-Dec",
+   "cadence": "annual",
+   "account": "taxable"
+  },
+  "prompt": "I hold taxable portfolio in a taxable brokerage account and harvest losses when Nov-Dec, over the past 5 years."
+ },
+ {
+  "ref": "WM-0053",
+  "family": "Tax-loss harvesting",
+  "variant": "Gain budget + losses",
+  "complexity": 5,
+  "declares": {
+   "assets": "direct index",
+   "rule": "gain budget 1%",
+   "cadence": "monthly",
+   "account": "taxable"
+  },
+  "prompt": "I hold direct index in a taxable brokerage account and harvest losses when gain budget 1%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0054",
+  "family": "Tax-loss harvesting",
+  "variant": "Short-term loss priority",
+  "complexity": 5,
+  "declares": {
+   "assets": "direct index",
+   "rule": "ST losses first",
+   "cadence": "daily",
+   "account": "taxable"
+  },
+  "prompt": "I hold direct index in a taxable brokerage account and harvest losses when ST losses first, over the past 5 years."
+ },
+ {
+  "ref": "WM-0055",
+  "family": "Tax-loss harvesting",
+  "variant": "Tracking-error constrained",
+  "complexity": 5,
+  "declares": {
+   "assets": "direct index",
+   "rule": "TE <=2%",
+   "cadence": "daily",
+   "account": "taxable"
+  },
+  "prompt": "I hold direct index in a taxable brokerage account and harvest losses when TE <=2%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0056",
+  "family": "Tax-loss harvesting",
+  "variant": "Charitable gain offset",
+  "complexity": 5,
+  "declares": {
+   "assets": "concentrated stock",
+   "rule": "donate gains + harvest losses",
+   "cadence": "annual",
+   "account": "taxable"
+  },
+  "prompt": "I hold concentrated stock in a taxable brokerage account and harvest losses when donate gains + harvest losses, over the past 5 years."
+ },
+ {
+  "ref": "WM-0057",
+  "family": "Direct indexing",
+  "variant": "S&P 500 representative",
+  "complexity": 5,
+  "declares": {
+   "assets": "100-stock sample",
+   "rule": "TE <=1%",
+   "cadence": "daily",
+   "account": "taxable"
+  },
+  "prompt": "I hold 100-stock sample directly in a taxable brokerage account tracking the index within TE <=1%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0058",
+  "family": "Direct indexing",
+  "variant": "Russell 1000 representative",
+  "complexity": 5,
+  "declares": {
+   "assets": "200-stock sample",
+   "rule": "TE <=1.5%",
+   "cadence": "daily",
+   "account": "taxable"
+  },
+  "prompt": "I hold 200-stock sample directly in a taxable brokerage account tracking the index within TE <=1.5%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0059",
+  "family": "Direct indexing",
+  "variant": "Exclude employer",
+  "complexity": 5,
+  "declares": {
+   "assets": "S&P 500 ex employer",
+   "rule": "sector constraints",
+   "cadence": "monthly",
+   "account": "taxable"
+  },
+  "prompt": "I hold S&P 500 ex employer directly in a taxable brokerage account tracking the index within sector constraints, over the past 5 years."
+ },
+ {
+  "ref": "WM-0060",
+  "family": "Direct indexing",
+  "variant": "ESG exclusions",
+  "complexity": 5,
+  "declares": {
+   "assets": "broad US ex screened names",
+   "rule": "TE <=2%",
+   "cadence": "monthly",
+   "account": "taxable"
+  },
+  "prompt": "I hold broad US ex screened names directly in a taxable brokerage account tracking the index within TE <=2%, over the past 5 years."
+ },
+ {
+  "ref": "WM-0061",
+  "family": "Direct indexing",
+  "variant": "Gain-budget transition",
+  "complexity": 5,
+  "declares": {
+   "assets": "legacy portfolio\u2192index",
+   "rule": "annual gain budget",
+   "cadence": "monthly",
+   "account": "taxable"
+  },
+  "prompt": "I hold legacy portfolio then index directly in a taxable brokerage account tracking the index within annual gain budget, over the past 5 years."
+ },
+ {
+  "ref": "WM-0062",
+  "family": "Direct indexing",
+  "variant": "Concentrated-stock completion",
+  "complexity": 5,
+  "declares": {
+   "assets": "index ex existing stock",
+   "rule": "complete exposure",
+   "cadence": "monthly",
+   "account": "taxable"
+  },
+  "prompt": "I hold index ex existing stock directly in a taxable brokerage account tracking the index within complete exposure, over the past 5 years."
+ },
+ {
+  "ref": "WM-0063",
+  "family": "Direct indexing",
+  "variant": "Tax-loss optimized",
+  "complexity": 5,
+  "declares": {
+   "assets": "broad US",
+   "rule": "daily harvesting",
+   "cadence": "daily",
+   "account": "taxable"
+  },
+  "prompt": "I hold broad US directly in a taxable brokerage account tracking the index within daily harvesting, over the past 5 years."
+ },
+ {
+  "ref": "WM-0064",
+  "family": "Direct indexing",
+  "variant": "Charitable-lot aware",
+  "complexity": 5,
+  "declares": {
+   "assets": "broad US",
+   "rule": "reserve appreciated lots",
+   "cadence": "monthly",
+   "account": "taxable"
+  },
+  "prompt": "I hold broad US directly in a taxable brokerage account tracking the index within reserve appreciated lots, over the past 5 years."
+ },
+ {
+  "ref": "WM-0065",
+  "family": "Asset location",
+  "variant": "Bonds traditional",
+  "complexity": 5,
+  "declares": {
+   "assets": "stocks taxable/Roth; bonds traditional",
+   "rule": "balanced",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold stocks taxable and Roth; bonds traditional, placing them by tax treatment on a balanced split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0066",
+  "family": "Asset location",
+  "variant": "High-growth Roth",
+  "complexity": 5,
+  "declares": {
+   "assets": "small/value/Roth",
+   "rule": "growth priority",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold small and value and Roth, placing them by tax treatment on a growth priority split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0067",
+  "family": "Asset location",
+  "variant": "Municipals taxable",
+  "complexity": 5,
+  "declares": {
+   "assets": "munis taxable; taxable bonds sheltered",
+   "rule": "tax-aware fixed income",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold munis taxable; taxable bonds sheltered, placing them by tax treatment on a tax-aware fixed income split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0068",
+  "family": "Asset location",
+  "variant": "High-turnover sheltered",
+  "complexity": 5,
+  "declares": {
+   "assets": "momentum in IRA",
+   "rule": "turnover-aware",
+   "cadence": "quarterly",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold momentum in IRA, placing them by tax treatment on a turnover-aware split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0069",
+  "family": "Asset location",
+  "variant": "Dividend assets sheltered",
+  "complexity": 5,
+  "declares": {
+   "assets": "REIT/dividend in IRA",
+   "rule": "income-aware",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold REIT and dividend in IRA, placing them by tax treatment on a income-aware split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0070",
+  "family": "Asset location",
+  "variant": "Three-account optimizer",
+  "complexity": 5,
+  "declares": {
+   "assets": "taxable+traditional+Roth",
+   "rule": "maximize after-tax wealth",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold taxable and traditional and Roth, placing them by tax treatment on a maximize after-tax wealth split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0071",
+  "family": "Asset location",
+  "variant": "Withdrawal-aware location",
+  "complexity": 5,
+  "declares": {
+   "assets": "location + planned draws",
+   "rule": "retirement",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold location and planned draws, placing them by tax treatment on a retirement split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0072",
+  "family": "Asset location",
+  "variant": "Heir-aware location",
+  "complexity": 5,
+  "declares": {
+   "assets": "Roth legacy priority",
+   "rule": "estate horizon",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I hold Roth legacy priority, placing them by tax treatment on a estate horizon split, over the past 5 years."
+ },
+ {
+  "ref": "WM-0073",
+  "family": "Roth conversion",
+  "variant": "Fill 12% bracket",
+  "complexity": 6,
+  "declares": {
+   "assets": "traditional\u2192Roth",
+   "rule": "annual bracket fill",
+   "cadence": "annual",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from traditional then Roth each year, annual bracket fill, over the past 5 years."
+ },
+ {
+  "ref": "WM-0074",
+  "family": "Roth conversion",
+  "variant": "Fill 22% bracket",
+  "complexity": 6,
+  "declares": {
+   "assets": "traditional\u2192Roth",
+   "rule": "annual bracket fill",
+   "cadence": "annual",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from traditional then Roth each year, annual bracket fill, over the past 5 years."
+ },
+ {
+  "ref": "WM-0075",
+  "family": "Roth conversion",
+  "variant": "Pre-RMD conversion",
+  "complexity": 6,
+  "declares": {
+   "assets": "age 60-72",
+   "rule": "annual",
+   "cadence": "annual",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from age 60-72 each year, annual, over the past 5 years."
+ },
+ {
+  "ref": "WM-0076",
+  "family": "Roth conversion",
+  "variant": "Market-down conversion",
+  "complexity": 6,
+  "declares": {
+   "assets": "convert after -20%",
+   "rule": "conditional",
+   "cadence": "event",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from convert after -20% each year, conditional, over the past 5 years."
+ },
+ {
+  "ref": "WM-0077",
+  "family": "Roth conversion",
+  "variant": "Partial annual conversion",
+  "complexity": 6,
+  "declares": {
+   "assets": "5% balance",
+   "rule": "annual",
+   "cadence": "annual",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from 5% balance each year, annual, over the past 5 years."
+ },
+ {
+  "ref": "WM-0078",
+  "family": "Roth conversion",
+  "variant": "Medicare-threshold aware",
+  "complexity": 6,
+  "declares": {
+   "assets": "cap MAGI",
+   "rule": "annual",
+   "cadence": "annual",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from cap MAGI each year, annual, over the past 5 years."
+ },
+ {
+  "ref": "WM-0079",
+  "family": "Roth conversion",
+  "variant": "Charitable-bunching year",
+  "complexity": 6,
+  "declares": {
+   "assets": "conversion + DAF",
+   "rule": "selected year",
+   "cadence": "annual",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from conversion and DAF each year, selected year, over the past 5 years."
+ },
+ {
+  "ref": "WM-0080",
+  "family": "Roth conversion",
+  "variant": "Heir-tax aware",
+  "complexity": 6,
+  "declares": {
+   "assets": "maximize Roth legacy",
+   "rule": "estate objective",
+   "cadence": "annual",
+   "account": "traditional+roth+taxable"
+  },
+  "prompt": "I convert from maximize Roth legacy each year, estate objective, over the past 5 years."
+ },
+ {
+  "ref": "WM-0081",
+  "family": "Retirement withdrawal",
+  "variant": "4% inflation-adjusted",
+  "complexity": 6,
+  "declares": {
+   "assets": "60/40",
+   "rule": "annual CPI adjustment",
+   "cadence": "monthly",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from a 60/40 stock and bond split in a taxable brokerage account using 4% inflation-adjusted with annual CPI adjustment, over the past 5 years."
+ },
+ {
+  "ref": "WM-0082",
+  "family": "Retirement withdrawal",
+  "variant": "Guardrails",
+  "complexity": 6,
+  "declares": {
+   "assets": "60/40",
+   "rule": "raise/cut bands",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from a 60/40 stock and bond split in a taxable brokerage account using guardrails with raise/cut bands, over the past 5 years."
+ },
+ {
+  "ref": "WM-0083",
+  "family": "Retirement withdrawal",
+  "variant": "Floor and ceiling",
+  "complexity": 6,
+  "declares": {
+   "assets": "balanced",
+   "rule": "spending bounds",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from balanced in a taxable brokerage account using floor and ceiling with spending bounds, over the past 5 years."
+ },
+ {
+  "ref": "WM-0084",
+  "family": "Retirement withdrawal",
+  "variant": "Percentage of portfolio",
+  "complexity": 6,
+  "declares": {
+   "assets": "balanced",
+   "rule": "4% current balance",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from balanced in a taxable brokerage account using percentage of portfolio with 4% current balance, over the past 5 years."
+ },
+ {
+  "ref": "WM-0085",
+  "family": "Retirement withdrawal",
+  "variant": "Bucket 2/5/remaining",
+  "complexity": 6,
+  "declares": {
+   "assets": "cash+bonds+equity",
+   "rule": "refill annually",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from cash and bonds and equity in a taxable brokerage account using bucket 2/5/remaining with refill annually, over the past 5 years."
+ },
+ {
+  "ref": "WM-0086",
+  "family": "Retirement withdrawal",
+  "variant": "RMD-first tax-aware",
+  "complexity": 6,
+  "declares": {
+   "assets": "multi-account",
+   "rule": "RMD then taxable then Roth",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from multi-account in a taxable brokerage account using rmd-first tax-aware with RMD then taxable then Roth, over the past 5 years."
+ },
+ {
+  "ref": "WM-0087",
+  "family": "Retirement withdrawal",
+  "variant": "Blended tax-bracket",
+  "complexity": 6,
+  "declares": {
+   "assets": "multi-account",
+   "rule": "fill bracket",
+   "cadence": "monthly",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from multi-account in a taxable brokerage account using blended tax-bracket with fill bracket, over the past 5 years."
+ },
+ {
+  "ref": "WM-0088",
+  "family": "Retirement withdrawal",
+  "variant": "Dynamic spending + legacy floor",
+  "complexity": 6,
+  "declares": {
+   "assets": "multi-account",
+   "rule": "minimum bequest",
+   "cadence": "annual",
+   "account": "taxable+traditional+roth"
+  },
+  "prompt": "I withdraw from multi-account in a taxable brokerage account using dynamic spending + legacy floor with minimum bequest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0089",
+  "family": "Retirement contribution accounts",
+  "variant": "Match first",
+  "complexity": 5,
+  "declares": {
+   "assets": "401k to match then taxable",
+   "rule": "payroll",
+   "cadence": "payroll",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to 401k to match then taxable, payroll, over the past 5 years."
+ },
+ {
+  "ref": "WM-0090",
+  "family": "Retirement contribution accounts",
+  "variant": "Max traditional 401k",
+  "complexity": 5,
+  "declares": {
+   "assets": "$24,500 2026 cap",
+   "rule": "payroll",
+   "cadence": "payroll",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to $24,500 2026 cap, payroll, over the past 5 years."
+ },
+ {
+  "ref": "WM-0091",
+  "family": "Retirement contribution accounts",
+  "variant": "Max Roth 401k",
+  "complexity": 5,
+  "declares": {
+   "assets": "$24,500 2026 cap",
+   "rule": "payroll",
+   "cadence": "payroll",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to $24,500 2026 cap, payroll, over the past 5 years."
+ },
+ {
+  "ref": "WM-0092",
+  "family": "Retirement contribution accounts",
+  "variant": "401k + Roth IRA",
+  "complexity": 5,
+  "declares": {
+   "assets": "max both if eligible",
+   "rule": "monthly",
+   "cadence": "monthly",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to max both if eligible, monthly, over the past 5 years."
+ },
+ {
+  "ref": "WM-0093",
+  "family": "Retirement contribution accounts",
+  "variant": "Backdoor Roth flow",
+  "complexity": 5,
+  "declares": {
+   "assets": "nondeductible IRA\u2192Roth",
+   "rule": "annual",
+   "cadence": "annual",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to nondeductible IRA then Roth, annual, over the past 5 years."
+ },
+ {
+  "ref": "WM-0094",
+  "family": "Retirement contribution accounts",
+  "variant": "Age-50 catch-up",
+  "complexity": 5,
+  "declares": {
+   "assets": "base + $8,000",
+   "rule": "payroll",
+   "cadence": "payroll",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to base and $8,000, payroll, over the past 5 years."
+ },
+ {
+  "ref": "WM-0095",
+  "family": "Retirement contribution accounts",
+  "variant": "Age-60-63 catch-up",
+  "complexity": 5,
+  "declares": {
+   "assets": "base + $11,250",
+   "rule": "payroll",
+   "cadence": "payroll",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to base and $11,250, payroll, over the past 5 years."
+ },
+ {
+  "ref": "WM-0096",
+  "family": "Retirement contribution accounts",
+  "variant": "After-tax mega-backdoor",
+  "complexity": 5,
+  "declares": {
+   "assets": "to plan annual-addition limit",
+   "rule": "payroll",
+   "cadence": "payroll",
+   "account": "401k|roth401k|ira|rothira|taxable"
+  },
+  "prompt": "I contribute $1,000 to plan annual-addition limit, payroll, over the past 5 years."
+ },
+ {
+  "ref": "WM-0097",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "Owner RMD age 73",
+  "complexity": 6,
+  "declares": {
+   "assets": "traditional IRA",
+   "rule": "IRS factor",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from traditional IRA using IRS factor, over the past 5 years."
+ },
+ {
+  "ref": "WM-0098",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "Workplace still-working delay",
+  "complexity": 6,
+  "declares": {
+   "assets": "401k",
+   "rule": "retirement-triggered",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from 401k using retirement-triggered, over the past 5 years."
+ },
+ {
+  "ref": "WM-0099",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "Aggregate IRA RMD",
+  "complexity": 6,
+  "declares": {
+   "assets": "multiple IRAs",
+   "rule": "take from one account",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from multiple IRAs using take from one account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0100",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "Separate-plan RMD",
+  "complexity": 6,
+  "declares": {
+   "assets": "multiple 401k",
+   "rule": "each plan",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from multiple 401k using each plan, over the past 5 years."
+ },
+ {
+  "ref": "WM-0101",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "10-year inherited distribution",
+  "complexity": 6,
+  "declares": {
+   "assets": "inherited IRA",
+   "rule": "end-year 10",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from inherited IRA using end-year 10, over the past 5 years."
+ },
+ {
+  "ref": "WM-0102",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "Even inherited draw",
+  "complexity": 6,
+  "declares": {
+   "assets": "inherited IRA",
+   "rule": "10 equal annual",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from inherited IRA using 10 equal annual, over the past 5 years."
+ },
+ {
+  "ref": "WM-0103",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "Tax-bracket inherited draw",
+  "complexity": 6,
+  "declares": {
+   "assets": "inherited IRA",
+   "rule": "bracket-aware",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from inherited IRA using bracket-aware, over the past 5 years."
+ },
+ {
+  "ref": "WM-0104",
+  "family": "RMD and beneficiary withdrawals",
+  "variant": "Roth beneficiary schedule",
+  "complexity": 6,
+  "declares": {
+   "assets": "inherited Roth",
+   "rule": "10-year",
+   "cadence": "annual",
+   "account": "traditional ira|401k|inherited ira|roth beneficiary"
+  },
+  "prompt": "I take required minimum distributions from inherited Roth using 10-year, over the past 5 years."
+ },
+ {
+  "ref": "WM-0105",
+  "family": "RSU and concentrated stock",
+  "variant": "Immediate diversify",
+  "complexity": 6,
+  "declares": {
+   "assets": "vest\u2192sell\u2192index",
+   "rule": "first eligible day",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the first eligible day and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0106",
+  "family": "RSU and concentrated stock",
+  "variant": "Hold all",
+  "complexity": 6,
+  "declares": {
+   "assets": "vest\u2192hold",
+   "rule": "no sale",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the no sale and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0107",
+  "family": "RSU and concentrated stock",
+  "variant": "Sell 25%",
+  "complexity": 6,
+  "declares": {
+   "assets": "vest\u2192sell quarter",
+   "rule": "window",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the window and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0108",
+  "family": "RSU and concentrated stock",
+  "variant": "Sell 50%",
+  "complexity": 6,
+  "declares": {
+   "assets": "vest\u2192sell half",
+   "rule": "window",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the window and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0109",
+  "family": "RSU and concentrated stock",
+  "variant": "Blackout deferred",
+  "complexity": 6,
+  "declares": {
+   "assets": "sell after blackout",
+   "rule": "first eligible",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the first eligible and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0110",
+  "family": "RSU and concentrated stock",
+  "variant": "Target concentration 10%",
+  "complexity": 6,
+  "declares": {
+   "assets": "sell excess",
+   "rule": "quarterly",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the quarterly and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0111",
+  "family": "RSU and concentrated stock",
+  "variant": "Tax-lot aware unwind",
+  "complexity": 6,
+  "declares": {
+   "assets": "highest-basis first",
+   "rule": "window",
+   "cadence": "quarterly",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the window and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0112",
+  "family": "RSU and concentrated stock",
+  "variant": "Charitable appreciated shares",
+  "complexity": 6,
+  "declares": {
+   "assets": "donate selected lots",
+   "rule": "annual",
+   "cadence": "annual",
+   "account": "taxable"
+  },
+  "prompt": "My RSUs vest and I sell them on the annual and buy an index fund, over the past 5 years."
+ },
+ {
+  "ref": "WM-0113",
+  "family": "Debt payoff versus investing",
+  "variant": "Credit card first",
+  "complexity": 5,
+  "declares": {
+   "assets": "20% APR debt",
+   "rule": "all surplus",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put all surplus toward 20% APR debt before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0114",
+  "family": "Debt payoff versus investing",
+  "variant": "Mortgage prepay",
+  "complexity": 5,
+  "declares": {
+   "assets": "6.5% mortgage",
+   "rule": "extra principal",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put extra principal toward 6.5% mortgage before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0115",
+  "family": "Debt payoff versus investing",
+  "variant": "Invest instead",
+  "complexity": 5,
+  "declares": {
+   "assets": "broad index",
+   "rule": "same cash flow",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put same cash flow toward broad index before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0116",
+  "family": "Debt payoff versus investing",
+  "variant": "50/50 split",
+  "complexity": 5,
+  "declares": {
+   "assets": "debt + index",
+   "rule": "equal",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put equal toward debt and index before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0117",
+  "family": "Debt payoff versus investing",
+  "variant": "Match then debt",
+  "complexity": 5,
+  "declares": {
+   "assets": "401k match then mortgage",
+   "rule": "payroll",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put payroll toward 401k match then mortgage before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0118",
+  "family": "Debt payoff versus investing",
+  "variant": "Emergency fund then debt",
+  "complexity": 5,
+  "declares": {
+   "assets": "6-month reserve",
+   "rule": "waterfall",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put waterfall toward 6-month reserve before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0119",
+  "family": "Debt payoff versus investing",
+  "variant": "Tax-adjusted mortgage",
+  "complexity": 5,
+  "declares": {
+   "assets": "itemized deduction scenario",
+   "rule": "after-tax rate",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put after-tax rate toward itemized deduction scenario before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0120",
+  "family": "Debt payoff versus investing",
+  "variant": "Liquidity-constrained payoff",
+  "complexity": 5,
+  "declares": {
+   "assets": "retain cash floor",
+   "rule": "conditional",
+   "cadence": "monthly",
+   "account": "taxable|401k|cash"
+  },
+  "prompt": "I put conditional toward retain cash floor before investing anything, over the past 5 years."
+ },
+ {
+  "ref": "WM-0121",
+  "family": "Charitable and legacy",
+  "variant": "Annual cash giving",
+  "complexity": 6,
+  "declares": {
+   "assets": "cash",
+   "rule": "fixed amount",
+   "cadence": "annual",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give fixed amount of cash to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0122",
+  "family": "Charitable and legacy",
+  "variant": "Donate appreciated stock",
+  "complexity": 6,
+  "declares": {
+   "assets": "highest gain lots",
+   "rule": "annual",
+   "cadence": "annual",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give annual of highest gain lots to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0123",
+  "family": "Charitable and legacy",
+  "variant": "DAF bunching",
+  "complexity": 6,
+  "declares": {
+   "assets": "3 years gifts upfront",
+   "rule": "every 3 years",
+   "cadence": "event",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give every 3 years of 3 years gifts upfront to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0124",
+  "family": "Charitable and legacy",
+  "variant": "QCD after eligibility",
+  "complexity": 6,
+  "declares": {
+   "assets": "IRA to charity",
+   "rule": "RMD-linked",
+   "cadence": "annual",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give RMD-linked of IRA to charity to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0125",
+  "family": "Charitable and legacy",
+  "variant": "Legacy floor",
+  "complexity": 6,
+  "declares": {
+   "assets": "minimum bequest",
+   "rule": "withdrawal constraint",
+   "cadence": "annual",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give withdrawal constraint of minimum bequest to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0126",
+  "family": "Charitable and legacy",
+  "variant": "Roth legacy priority",
+  "complexity": 6,
+  "declares": {
+   "assets": "spend taxable/traditional first",
+   "rule": "estate objective",
+   "cadence": "annual",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give estate objective of spend taxable and traditional first to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0127",
+  "family": "Charitable and legacy",
+  "variant": "Equal heirs",
+  "complexity": 6,
+  "declares": {
+   "assets": "split residual estate",
+   "rule": "terminal",
+   "cadence": "event",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give terminal of split residual estate to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0128",
+  "family": "Charitable and legacy",
+  "variant": "Charity remainder target",
+  "complexity": 6,
+  "declares": {
+   "assets": "fixed estate percentage",
+   "rule": "terminal",
+   "cadence": "event",
+   "account": "taxable|ira|roth|daf"
+  },
+  "prompt": "I give terminal of fixed estate percentage to charity each year in a taxable brokerage account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0129",
+  "family": "Municipal and taxable fixed income",
+  "variant": "National muni taxable",
+  "complexity": 4,
+  "declares": {
+   "assets": "MUB",
+   "rule": "taxable account",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold MUB in a taxable brokerage account for the income, taxable account, over the past 5 years."
+ },
+ {
+  "ref": "WM-0130",
+  "family": "Municipal and taxable fixed income",
+  "variant": "State muni",
+  "complexity": 4,
+  "declares": {
+   "assets": "state-specific muni",
+   "rule": "taxable",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold state-specific muni in a taxable brokerage account for the income, taxable, over the past 5 years."
+ },
+ {
+  "ref": "WM-0131",
+  "family": "Municipal and taxable fixed income",
+  "variant": "Taxable aggregate sheltered",
+  "complexity": 4,
+  "declares": {
+   "assets": "BND",
+   "rule": "traditional",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold BND in a taxable brokerage account for the income, traditional, over the past 5 years."
+ },
+ {
+  "ref": "WM-0132",
+  "family": "Municipal and taxable fixed income",
+  "variant": "Short Treasury taxable",
+  "complexity": 4,
+  "declares": {
+   "assets": "SGOV",
+   "rule": "taxable",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold SGOV in a taxable brokerage account for the income, taxable, over the past 5 years."
+ },
+ {
+  "ref": "WM-0133",
+  "family": "Municipal and taxable fixed income",
+  "variant": "TIPS sheltered",
+  "complexity": 4,
+  "declares": {
+   "assets": "TIP",
+   "rule": "traditional",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold TIP in a taxable brokerage account for the income, traditional, over the past 5 years."
+ },
+ {
+  "ref": "WM-0134",
+  "family": "Municipal and taxable fixed income",
+  "variant": "Muni vs Treasury break-even",
+  "complexity": 4,
+  "declares": {
+   "assets": "muni/Treasury",
+   "rule": "marginal-rate test",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold muni and Treasury in a taxable brokerage account for the income, marginal-rate test, over the past 5 years."
+ },
+ {
+  "ref": "WM-0135",
+  "family": "Municipal and taxable fixed income",
+  "variant": "Duration ladder",
+  "complexity": 4,
+  "declares": {
+   "assets": "1-10y bonds",
+   "rule": "annual ladder",
+   "cadence": "annual",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold 1-10y bonds in a taxable brokerage account for the income, annual ladder, over the past 5 years."
+ },
+ {
+  "ref": "WM-0136",
+  "family": "Municipal and taxable fixed income",
+  "variant": "Cash-reserve ladder",
+  "complexity": 4,
+  "declares": {
+   "assets": "T-bills",
+   "rule": "12-month spending",
+   "cadence": "monthly",
+   "account": "taxable|traditional|roth"
+  },
+  "prompt": "I hold T-bills in a taxable brokerage account for the income, 12-month spending, over the past 5 years."
+ },
+ {
+  "ref": "WM-0137",
+  "family": "Liquidity and cash reserve",
+  "variant": "3-month reserve",
+  "complexity": 3,
+  "declares": {
+   "assets": "T-bills",
+   "rule": "expenses",
+   "cadence": "monthly",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a 3-month reserve in T-bills sized on expenses, and invest the rest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0138",
+  "family": "Liquidity and cash reserve",
+  "variant": "6-month reserve",
+  "complexity": 3,
+  "declares": {
+   "assets": "T-bills",
+   "rule": "expenses",
+   "cadence": "monthly",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a 6-month reserve in T-bills sized on expenses, and invest the rest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0139",
+  "family": "Liquidity and cash reserve",
+  "variant": "12-month retirement reserve",
+  "complexity": 3,
+  "declares": {
+   "assets": "cash",
+   "rule": "spending",
+   "cadence": "monthly",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a 12-month retirement reserve in cash sized on spending, and invest the rest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0140",
+  "family": "Liquidity and cash reserve",
+  "variant": "Two-year bucket",
+  "complexity": 3,
+  "declares": {
+   "assets": "cash+short bonds",
+   "rule": "retirement",
+   "cadence": "annual",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a two-year bucket in cash and short bonds sized on retirement, and invest the rest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0141",
+  "family": "Liquidity and cash reserve",
+  "variant": "Dynamic reserve after drawdown",
+  "complexity": 3,
+  "declares": {
+   "assets": "increase cash",
+   "rule": "conditional",
+   "cadence": "monthly",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a dynamic reserve after drawdown in increase cash sized on conditional, and invest the rest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0142",
+  "family": "Liquidity and cash reserve",
+  "variant": "Bonus reserve",
+  "complexity": 3,
+  "declares": {
+   "assets": "hold annual bonus 90 days",
+   "rule": "event",
+   "cadence": "annual",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a bonus reserve in hold annual bonus 90 days sized on event, and invest the rest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0143",
+  "family": "Liquidity and cash reserve",
+  "variant": "RSU tax reserve",
+  "complexity": 3,
+  "declares": {
+   "assets": "withholding gap reserve",
+   "rule": "quarterly",
+   "cadence": "quarterly",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a rsu tax reserve in withholding gap reserve sized on quarterly, and invest the rest, over the past 5 years."
+ },
+ {
+  "ref": "WM-0144",
+  "family": "Liquidity and cash reserve",
+  "variant": "Emergency-floor investing",
+  "complexity": 3,
+  "declares": {
+   "assets": "invest only above floor",
+   "rule": "monthly",
+   "cadence": "monthly",
+   "account": "cash|taxable|retirement"
+  },
+  "prompt": "I keep a emergency-floor investing in invest only above floor sized on monthly, and invest the rest, over the past 5 years."
+ }
+]

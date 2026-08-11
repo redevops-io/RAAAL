@@ -1,0 +1,170 @@
+{
+ "schema": "quantify-discovery-schema@2/103c025ac629946f",
+ "provenance": {
+  "schema_fingerprint": "quantify-discovery-schema@2/103c025ac629946f",
+  "prompt_count": 144,
+  "prompts_digest": "6594528f0311356f",
+  "readers": {
+   "quantify-compiler@2": {
+    "enabled": true
+   },
+   "claude-sonnet-5@1": {
+    "enabled": true,
+    "max_tokens": 8000,
+    "api_key_env": "ANTHROPIC_API_KEY"
+   }
+  },
+  "mode": "full",
+  "output_name": "shadow-catalogue.json",
+  "commit": "01b438e6bb57",
+  "tree_dirty": true,
+  "truncated": 0
+ },
+ "validity": {
+  "schema fingerprint fixed": true,
+  "hosted reader active": true,
+  "no truncation": true,
+  "no output-path collision": true,
+  "both readers contributed where expected": true,
+  "matrix includes fields and relations": true
+ },
+ "readers": [
+  "quantify-compiler@2",
+  "claude-sonnet-5@1"
+ ],
+ "matrix": {
+  "account_type": {
+   "both_agree": 80,
+   "both_contested": 4,
+   "quantify-compiler@2_only": 3,
+   "claude-sonnet-5@1_only": 6,
+   "neither": 51
+  },
+  "allocation_method": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 30,
+   "neither": 114
+  },
+  "amount": {
+   "both_agree": 40,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 103
+  },
+  "assets": {
+   "both_agree": 20,
+   "both_contested": 20,
+   "quantify-compiler@2_only": 12,
+   "claude-sonnet-5@1_only": 46,
+   "neither": 46
+  },
+  "cadence": {
+   "both_agree": 33,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 4,
+   "claude-sonnet-5@1_only": 16,
+   "neither": 91
+  },
+  "conditional_amount": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 6,
+   "neither": 138
+  },
+  "day_rule": {
+   "both_agree": 2,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 2,
+   "neither": 140
+  },
+  "dividend_policy": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 3,
+   "neither": 141
+  },
+  "evaluation_period": {
+   "both_agree": 128,
+   "both_contested": 16,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 0,
+   "neither": 0
+  },
+  "execution_timing": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 0,
+   "neither": 144
+  },
+  "moving_average_window": {
+   "both_agree": 2,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 141
+  },
+  "objective": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 114,
+   "neither": 30
+  },
+  "observed_assets": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 1,
+   "claude-sonnet-5@1_only": 1,
+   "neither": 142
+  },
+  "periodic_rebalancing": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 9,
+   "neither": 135
+  },
+  "sell_action": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 48,
+   "neither": 96
+  },
+  "stated_weights": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 18,
+   "neither": 126
+  },
+  "trigger_semantics": {
+   "both_agree": 2,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 6,
+   "neither": 136
+  },
+  "rel:account_transition": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 3,
+   "neither": 141
+  },
+  "rel:portfolio_sleeves": {
+   "both_agree": 0,
+   "both_contested": 0,
+   "quantify-compiler@2_only": 0,
+   "claude-sonnet-5@1_only": 12,
+   "neither": 132
+  }
+ }
+}

@@ -1,0 +1,89 @@
+{# The evidence a figure depends on, beside the figure.
+
+   The draft page showed Contributed, Final value and both returns and nothing
+   about what the rule actually did. That is the screen where a user first
+   meets a number, and it carried none of what makes the number checkable —
+   while the full ledger sat on the saved-plan page, one confirmation later.
+
+   It matters because the defects it would have exposed were all invisible in
+   the figures alone. A stated period that was never applied, a second funding
+   mode silently dropped, a sell leg discarded, a rule read as a persistent
+   condition rather than a crossing: every one shows up here as a session
+   count, a signal count or a contribution total that does not match what the
+   user wrote, and none of them changes the shape of a returns figure.
+
+   Compact on purpose. The full timeline stays on the saved plan — this is the
+   five measures that let a person check the figure beside it, not a second
+   copy of the ledger. Every value is read from `run`; the template performs
+   no arithmetic, because a number computed in two places is a number that can
+   disagree with itself. #}
+{% if ledger or resolved_window %}
+<div class="panel evidence-summary">
+  <h3 style="margin:0 0 8px">What produced this figure</h3>
+  <div class="scroll"><table>
+    <tr><th>Measure</th><th class="num">Value</th><th>What it answers</th></tr>
+
+    <tr>
+      <td>Period evaluated</td>
+      <td class="num mono">
+        {%- if resolved_window -%}
+          {{ resolved_window.start }} to {{ resolved_window.end }}
+        {%- else -%}
+          the whole snapshot
+        {%- endif -%}
+      </td>
+      {# Three cases, because the first version had two and printed a
+         falsehood. It branched on `warmup_start`, so a plan that stated a
+         period but needed no warm-up — a contested trigger builds no moving
+         average — rendered "you stated no period" directly beside the five
+         year range it had just printed. `warmup_start` is evidence about the
+         indicator, never about whether the user asked for a window. #}
+      <td class="small muted">
+        {% if not resolved_window %}
+          you stated no period, so nothing was narrowed
+        {% elif resolved_window.warmup_start %}
+          the average needs history before the first signal, so data from
+          {{ resolved_window.warmup_start }} is read and not reported on
+        {% else %}
+          the period you stated, applied in full
+        {% endif %}
+      </td>
+    </tr>
+
+    {% if ledger %}
+    <tr>
+      <td>Signals detected</td>
+      <td class="num mono">{{ ledger.summary().signals_detected }}</td>
+      <td class="small muted">times the condition you described occurred</td>
+    </tr>
+    <tr>
+      <td>Purchases executed</td>
+      <td class="num mono">{{ ledger.summary().purchases_executed }}</td>
+      <td class="small muted">times money arrived and bought something</td>
+    </tr>
+    <tr>
+      <td>Total contributed</td>
+      <td class="num mono">${{ "{:,.0f}".format(ledger.total_contributed) }}</td>
+      <td class="small muted">the sum of those purchases, not a separate figure</td>
+    </tr>
+    {% endif %}
+
+    <tr>
+      <td>Coverage</td>
+      <td class="num mono">
+        {%- if coverage -%}{{ coverage.ratio() }}{%- else -%}—{%- endif -%}
+      </td>
+      <td class="small muted">
+        {% if coverage and coverage.publishable %}
+          every element you declared was executed and evidenced
+        {% elif coverage %}
+          not executed:
+          {{ coverage.blocking | map(attribute="element_id") | join(", ") }}
+        {% else %}
+          not assessed for this draft
+        {% endif %}
+      </td>
+    </tr>
+  </table></div>
+</div>
+{% endif %}

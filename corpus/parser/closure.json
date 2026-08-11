@@ -1,0 +1,925 @@
+{
+  "schema": "quantify-parser-closure@2",
+  "cases": 52,
+  "pending": 2,
+  "excluded_from_pending": {
+    "state": "INTERMEDIATE_SEMANTIC",
+    "count": 6,
+    "ids": [
+      "sema-window-holding_period-001",
+      "sema-window-holding_period-002",
+      "sema-funding-amount_kind-001",
+      "sema-funding-amount_kind-002",
+      "sema-funding-amount_kind-003",
+      "sema-funding-amount_kind-004"
+    ],
+    "classification": "intentionally outside the contract boundary",
+    "previously_counted_by_awaiting_a_parser": true,
+    "why": "They assert semantics this pipeline computes and the contract does not carry. Counting them as pending measured the wrong boundary; the history is recorded here so the change is visible rather than quiet."
+  },
+  "by_state": {
+    "AGREE": 12,
+    "MODEL_ONLY_ACCEPTED": 30,
+    "SYNTAX_ONLY_UNRESOLVED": 1,
+    "DISAGREE": 1,
+    "INTERMEDIATE_SEMANTIC": 6,
+    "SCHEMA_GAP": 2
+  },
+  "agreed_and_correct": 42,
+  "agreed_but_wrong_value": [],
+  "by_property": {
+    "assets.stay_as_written": {
+      "MODEL_ONLY_ACCEPTED": 3
+    },
+    "dividends.policy": {
+      "MODEL_ONLY_ACCEPTED": 3
+    },
+    "funding.amount": {
+      "AGREE": 3
+    },
+    "funding.amount_kind": {
+      "INTERMEDIATE_SEMANTIC": 4
+    },
+    "funding.cadence": {
+      "AGREE": 5,
+      "MODEL_ONLY_ACCEPTED": 1
+    },
+    "negation.changes_the_value": {
+      "MODEL_ONLY_ACCEPTED": 2
+    },
+    "timing.day_rule": {
+      "MODEL_ONLY_ACCEPTED": 1,
+      "AGREE": 1
+    },
+    "timing.day_rule_not_in_the_vocabulary": {
+      "SCHEMA_GAP": 1
+    },
+    "timing.execution": {
+      "MODEL_ONLY_ACCEPTED": 4
+    },
+    "trigger.asset_held": {
+      "MODEL_ONLY_ACCEPTED": 3
+    },
+    "trigger.asset_observed": {
+      "MODEL_ONLY_ACCEPTED": 3
+    },
+    "trigger.semantics": {
+      "AGREE": 2,
+      "SYNTAX_ONLY_UNRESOLVED": 1,
+      "MODEL_ONLY_ACCEPTED": 2
+    },
+    "weighting.method": {
+      "MODEL_ONLY_ACCEPTED": 3
+    },
+    "weighting.method_not_in_the_vocabulary": {
+      "SCHEMA_GAP": 1
+    },
+    "weighting.stated_weights": {
+      "MODEL_ONLY_ACCEPTED": 1
+    },
+    "window.evaluation_period": {
+      "MODEL_ONLY_ACCEPTED": 3
+    },
+    "window.holding_period": {
+      "INTERMEDIATE_SEMANTIC": 2
+    },
+    "window.moving_average": {
+      "AGREE": 1,
+      "MODEL_ONLY_ACCEPTED": 1,
+      "DISAGREE": 1
+    }
+  },
+  "owner": {
+    "AGREE": "—",
+    "MODEL_ONLY_ACCEPTED": "— (one witness; a deterministic producer would make it two)",
+    "DISAGREE": "adjudication",
+    "MODEL_ONLY_UNRESOLVED": "adjudication",
+    "SYNTAX_ONLY_UNRESOLVED": "— (the asymmetry witness: syntax alone never carries a field)",
+    "AMBIGUOUS_BY_LANGUAGE": "the user, via clarification",
+    "INSUFFICIENT_RELATION": "binder or corpus",
+    "INTERMEDIATE_SEMANTIC": "tests/test_semantics.py — verified at the mapper boundary, not through fusion",
+    "NO_FIELD_MAPPING": "semantics.py — field derivation",
+    "NO_LITERAL": "neither witness reads this field",
+    "NO_PARSE_RECORDED": "deferred_multilingual.json — out of declared scope",
+    "NO_MODEL_RECORDING": "corpus/parser/record_hosted.py",
+    "SCHEMA_GAP": "the schema — a sayable reading it cannot hold",
+    "INTERMEDIATE_NOT_PRODUCED": "semantics.py — nothing computes it"
+  },
+  "ambiguity_note": "AMBIGUOUS_BY_LANGUAGE has no live instance in this corpus, and that is correct rather than a gap in fusion. The rebalance / reallocate ambiguity is about *what the action does*; it does not touch how often it happens or which session of the period it happens on, which are the fields these cases assert. The corpus has no case asserting the field the ambiguity actually affects. It is exercised synthetically in tests/test_fusion.py, and a real case would be a corpus addition, not a code change.",
+  "note": "NO_LITERAL and NO_FIELD_MAPPING are not defects of the deterministic layers, and they want opposite work: one needs the semantic reader, the other needs field derivation from structure already in hand. They were one state until the counts made the difference matter.",
+  "rows": [
+    {
+      "id": "sema-funding-cadence-001",
+      "property": "funding.cadence",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "cadence",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "monthly",
+      "expected": "monthly",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-cadence-002",
+      "property": "funding.cadence",
+      "text": "contribute $500 monthly, rebalanced annually",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "cadence",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "monthly",
+      "expected": "monthly",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-cadence-003",
+      "property": "funding.cadence",
+      "text": "add $250 every two weeks",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "cadence",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "biweekly",
+      "expected": "biweekly",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-cadence-004",
+      "property": "funding.cadence",
+      "text": "put in $1,000 each quarter",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "cadence",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "quarterly",
+      "expected": "quarterly",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-cadence-005",
+      "property": "funding.cadence",
+      "text": "deposit $100 a week",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "cadence",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "weekly",
+      "expected": "weekly",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-cadence-006",
+      "property": "funding.cadence",
+      "text": "make a one-off $10,000 investment",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "cadence",
+      "witnesses": [
+        "model"
+      ],
+      "value": "once",
+      "expected": "once",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-amount-001",
+      "property": "funding.amount",
+      "text": "invest $500 monthly",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "amount",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "500",
+      "expected": "500",
+      "compared_as": "NUMBER",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-amount-002",
+      "property": "funding.amount",
+      "text": "contribute £1k a month",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "amount",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "£1k",
+      "expected": "1000",
+      "compared_as": "NUMBER",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-amount-003",
+      "property": "funding.amount",
+      "text": "add $2.5k quarterly",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "amount",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "$2.5k",
+      "expected": "2500",
+      "compared_as": "NUMBER",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-weighting-stated_weights-001",
+      "property": "weighting.stated_weights",
+      "text": "a 60/40 portfolio",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "stated_weights",
+      "witnesses": [
+        "model"
+      ],
+      "value": "60/40",
+      "expected": "60/40",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-weighting-method-001",
+      "property": "weighting.method",
+      "text": "split it 70/30 between stocks and bonds",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "allocation_method",
+      "witnesses": [
+        "model"
+      ],
+      "value": "stated_weights",
+      "expected": "stated_weights",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-weighting-method-002",
+      "property": "weighting.method",
+      "text": "equal weight across the four",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "allocation_method",
+      "witnesses": [
+        "model"
+      ],
+      "value": "equal_weight_at_purchase",
+      "expected": "equal_weight_at_purchase",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-weighting-method-003",
+      "property": "weighting.method",
+      "text": "weight by inverse volatility",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "allocation_method",
+      "witnesses": [
+        "model"
+      ],
+      "value": "inverse_volatility",
+      "expected": "inverse_volatility",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-semantics-001",
+      "property": "trigger.semantics",
+      "text": "when SPY crosses below its 200-day average",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "trigger_semantics",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "crossing_event",
+      "expected": "crossing_event",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-semantics-002",
+      "property": "trigger.semantics",
+      "text": "whenever SPY drops under the 200-day",
+      "language": "en",
+      "state": "SYNTAX_ONLY_UNRESOLVED",
+      "reason": "only syntax proposed a value, and syntax is evidence rather than authority",
+      "field": "trigger_semantics",
+      "witnesses": [
+        "syntax"
+      ],
+      "value": null,
+      "expected": "crossing_event",
+      "compared_as": "TEXT",
+      "matches_expected": false
+    },
+    {
+      "id": "sema-trigger-semantics-003",
+      "property": "trigger.semantics",
+      "text": "while SPY stays below its average",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "trigger_semantics",
+      "witnesses": [
+        "model"
+      ],
+      "value": "persistent_condition",
+      "expected": "persistent_condition",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-semantics-004",
+      "property": "trigger.semantics",
+      "text": "as long as SPY is under trend",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "trigger_semantics",
+      "witnesses": [
+        "model"
+      ],
+      "value": "persistent_condition",
+      "expected": "persistent_condition",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-semantics-005",
+      "property": "trigger.semantics",
+      "text": "buy any time SPY is below the 200-day average",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "trigger_semantics",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "persistent_condition",
+      "expected": "persistent_condition",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_held-001",
+      "property": "trigger.asset_held",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "VOO",
+      "expected": "VOO",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_observed-001",
+      "property": "trigger.asset_observed",
+      "text": "buy VOO when SPY crosses below its average",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "observed_assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "SPY",
+      "expected": "SPY",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_held-002",
+      "property": "trigger.asset_held",
+      "text": "purchase VTI whenever QQQ drops 10%",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "VTI",
+      "expected": "VTI",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_observed-002",
+      "property": "trigger.asset_observed",
+      "text": "purchase VTI whenever QQQ drops 10%",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "observed_assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "QQQ",
+      "expected": "QQQ",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_held-003",
+      "property": "trigger.asset_held",
+      "text": "add to BND while TLT is under its 200-day",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "BND",
+      "expected": "BND",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-trigger-asset_observed-003",
+      "property": "trigger.asset_observed",
+      "text": "add to BND while TLT is under its 200-day",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "observed_assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "TLT",
+      "expected": "TLT",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-window-moving_average-011",
+      "property": "window.moving_average",
+      "text": "buy when it falls below the 200-day moving average",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "moving_average_window",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "200",
+      "expected": "200",
+      "compared_as": "NUMBER",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-window-moving_average-012",
+      "property": "window.moving_average",
+      "text": "sell when it drops under its 50-day average",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "moving_average_window",
+      "witnesses": [
+        "model"
+      ],
+      "value": "50",
+      "expected": "50",
+      "compared_as": "NUMBER",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-window-moving_average-013",
+      "property": "window.moving_average",
+      "text": "add when it trades beneath the 12-month moving average",
+      "language": "en",
+      "state": "DISAGREE",
+      "reason": "the model read '252'; syntax argues otherwise (12 scored +1). Not resolved by score: a parser can be confident and wrong",
+      "field": "moving_average_window",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": null,
+      "expected": "12",
+      "compared_as": "NUMBER",
+      "matches_expected": false
+    },
+    {
+      "id": "sema-window-holding_period-001",
+      "property": "window.holding_period",
+      "text": "hold the bonus for 90 days",
+      "language": "en",
+      "state": "INTERMEDIATE_SEMANTIC",
+      "field": "holding_period_days",
+      "value": "90",
+      "expected": "90",
+      "matches_expected": true,
+      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
+    },
+    {
+      "id": "sema-window-holding_period-002",
+      "property": "window.holding_period",
+      "text": "keep it for six months",
+      "language": "en",
+      "state": "INTERMEDIATE_SEMANTIC",
+      "field": "holding_period_days",
+      "value": "180",
+      "expected": "180",
+      "matches_expected": true,
+      "reason": "'holding_period_days' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
+    },
+    {
+      "id": "sema-negation-changes_the_value-001",
+      "property": "negation.changes_the_value",
+      "text": "buy through an ETF",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "an ETF",
+      "expected": "an ETF",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-negation-changes_the_value-002",
+      "property": "negation.changes_the_value",
+      "text": "buy the index rather than through an ETF",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "the index",
+      "expected": "the index",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-funding-amount_kind-001",
+      "property": "funding.amount_kind",
+      "text": "invest whatever is left over each month",
+      "language": "en",
+      "state": "INTERMEDIATE_SEMANTIC",
+      "field": "amount_kind",
+      "value": "residual",
+      "expected": "residual",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
+    },
+    {
+      "id": "sema-funding-amount_kind-002",
+      "property": "funding.amount_kind",
+      "text": "contribute a fixed $500",
+      "language": "en",
+      "state": "INTERMEDIATE_SEMANTIC",
+      "field": "amount_kind",
+      "value": "fixed",
+      "expected": "fixed",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
+    },
+    {
+      "id": "sema-funding-amount_kind-003",
+      "property": "funding.amount_kind",
+      "text": "invest 10% of my salary monthly",
+      "language": "en",
+      "state": "INTERMEDIATE_SEMANTIC",
+      "field": "amount_kind",
+      "value": "proportional",
+      "expected": "proportional",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
+    },
+    {
+      "id": "sema-funding-amount_kind-004",
+      "property": "funding.amount_kind",
+      "text": "put in half of any bonus",
+      "language": "en",
+      "state": "INTERMEDIATE_SEMANTIC",
+      "field": "amount_kind",
+      "value": "proportional",
+      "expected": "proportional",
+      "matches_expected": true,
+      "reason": "'amount_kind' is computed by this pipeline and is not a contract dimension; verified at the mapper boundary by tests/test_semantics.py",
+      "previously_counted_as_pending": true
+    },
+    {
+      "id": "sema-timing-execution-001",
+      "property": "timing.execution",
+      "text": "buy at the next open",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "execution_timing",
+      "witnesses": [
+        "model"
+      ],
+      "value": "next_session_open",
+      "expected": "next_session_open",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-timing-execution-002",
+      "property": "timing.execution",
+      "text": "execute at the close",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "execution_timing",
+      "witnesses": [
+        "model"
+      ],
+      "value": "same_session_close",
+      "expected": "same_session_close",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-timing-execution-003",
+      "property": "timing.execution",
+      "text": "trade at the following day's open",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "execution_timing",
+      "witnesses": [
+        "model"
+      ],
+      "value": "next_session_open",
+      "expected": "next_session_open",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-timing-execution-004",
+      "property": "timing.execution",
+      "text": "fill on the signal bar",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "execution_timing",
+      "witnesses": [
+        "model"
+      ],
+      "value": "same_session_close",
+      "expected": "same_session_close",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-timing-day_rule-001",
+      "property": "timing.day_rule",
+      "text": "on the first trading day of the month",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "day_rule",
+      "witnesses": [
+        "model"
+      ],
+      "value": "first_session_of_period",
+      "expected": "first_session_of_period",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-timing-day_rule-002",
+      "property": "timing.day_rule",
+      "text": "rebalance on the last session of each quarter",
+      "language": "en",
+      "state": "AGREE",
+      "reason": "syntax supports the reading",
+      "field": "day_rule",
+      "witnesses": [
+        "model",
+        "syntax"
+      ],
+      "value": "last_session_of_period",
+      "expected": "last_session_of_period",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-window-evaluation_period-001",
+      "property": "window.evaluation_period",
+      "text": "evaluate over the past five years",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "evaluation_period",
+      "witnesses": [
+        "model"
+      ],
+      "value": "trailing:5y",
+      "expected": "trailing:5y",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-window-evaluation_period-002",
+      "property": "window.evaluation_period",
+      "text": "measured across ten years",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "evaluation_period",
+      "witnesses": [
+        "model"
+      ],
+      "value": "trailing:10y",
+      "expected": "trailing:10y",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-window-evaluation_period-003",
+      "property": "window.evaluation_period",
+      "text": "since January 2020",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "evaluation_period",
+      "witnesses": [
+        "model"
+      ],
+      "value": "since:2020-01",
+      "expected": "since:2020-01",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-assets-stay_as_written-001",
+      "property": "assets.stay_as_written",
+      "text": "buy a core index fund monthly",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "a core index fund",
+      "expected": "a core index fund",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-assets-stay_as_written-002",
+      "property": "assets.stay_as_written",
+      "text": "invest in the S&P 500 tracker",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "S&P 500 tracker",
+      "expected": "S&P 500 tracker",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-assets-stay_as_written-003",
+      "property": "assets.stay_as_written",
+      "text": "put it into an SPX ETF",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "assets",
+      "witnesses": [
+        "model"
+      ],
+      "value": "SPX ETF",
+      "expected": "an SPX ETF",
+      "compared_as": "SET",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-dividends-policy-001",
+      "property": "dividends.policy",
+      "text": "reinvest the dividends",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "dividend_policy",
+      "witnesses": [
+        "model"
+      ],
+      "value": "reinvested",
+      "expected": "reinvested",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-dividends-policy-002",
+      "property": "dividends.policy",
+      "text": "take the dividends as cash",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "dividend_policy",
+      "witnesses": [
+        "model"
+      ],
+      "value": "held_as_cash",
+      "expected": "held_as_cash",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-dividends-policy-003",
+      "property": "dividends.policy",
+      "text": "do not reinvest",
+      "language": "en",
+      "state": "MODEL_ONLY_ACCEPTED",
+      "reason": "the model read it and syntax was silent",
+      "field": "dividend_policy",
+      "witnesses": [
+        "model"
+      ],
+      "value": "held_as_cash",
+      "expected": "held_as_cash",
+      "compared_as": "TEXT",
+      "matches_expected": true
+    },
+    {
+      "id": "sema-weighting-method_not_in_the_vocabulary-001",
+      "property": "weighting.method_not_in_the_vocabulary",
+      "text": "market-cap weighted",
+      "language": "en",
+      "state": "SCHEMA_GAP",
+      "field": "allocation_method",
+      "reason": "the sentence reads as 'market_cap' and 'allocation_method' has no such value"
+    },
+    {
+      "id": "sema-timing-day_rule_not_in_the_vocabulary-001",
+      "property": "timing.day_rule_not_in_the_vocabulary",
+      "text": "mid-month",
+      "language": "en",
+      "state": "SCHEMA_GAP",
+      "field": "day_rule",
+      "reason": "the sentence reads as 'mid_period' and 'day_rule' has no such value"
+    }
+  ]
+}

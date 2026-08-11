@@ -136,6 +136,65 @@ existing.
 | P3 | Ranking-policy versioning | the first dispute about instrument ordering |
 | P3 | Compiled registry artifact | the registry grows enough that compile time shows |
 | P3 | Compiler extraction | a second product duplicates compiler logic |
+| P3 | `ReaderDecision` — a reader reports `ACCEPTED`, `REJECTED` or `NOT_PRESENT` | a fourth field needs the distinction, or a `DISQUALIFIED_SPAN` entry is added for a third |
+| **P2** | Compiler-derived coverage inventory | **trigger met 2026-08-07** — five per-feature entries were added in one slice. Status: validated architectural debt. Implement when the next semantic dimension would otherwise need a sixth manual entry. |
 
 `docs/PilotObservations.md` holds the full observations; this table is the
 short form with the trigger made explicit.
+
+## Two architectural candidates, and why they are not being built
+
+Both are justified by repeated failure shapes. Neither is yet justified as a
+general abstraction, because every instance so far has come from the same two
+semantic dimensions and pilot usage has not yet said which others matter.
+
+**`ReaderDecision`.** Stage 1 has two independent readers and `merge` compares
+them. It can express "they disagree" and "only one has an opinion". It cannot
+express *why* the other is silent, and there are two opposite reasons:
+
+    NO_VALUE
+      ├── NOT_PRESENT      the reader saw nothing; a proposal may fill it
+      └── REJECTED         the reader saw the words and ruled them out
+
+Collapsing them let a second reader reintroduce an interpretation the first had
+just rejected. `rebalanced monthly` was refused as a contribution cadence by
+the regex; the model proposed `monthly` quoting that exact phrase; `merge` read
+the refusal as a gap and accepted it, and a $100,000 allocation became
+$6,100,000 again.
+
+Shipped instead: a span check, asking whether the words a proposal quotes are
+being used in the role it claims. Bounded, closes the live defect, and answers
+a different question from the fabrication check that already existed — *did the
+model see these words* versus *do those words mean this here*.
+
+**Compiler-derived coverage inventory — trigger met.** `coverage.assess`
+enumerates supported constructs: period, conditional purchase, second funding
+source, sell leg, conditional amount, allocation method, periodic rebalancing,
+stated weights. Each was added after a figure was published for a plan the
+compiler could not represent, and five of them arrived in a single slice on
+2026-08-07.
+
+That is enough. The status is no longer "possible abstraction" but **validated
+architectural debt**: the per-feature list is structurally wrong and the
+evidence is in the commit history, not in a prediction. It is still not
+pre-pilot work — the entries that exist are correct, and each blocks a figure
+by name. Implement when the next semantic dimension would otherwise require a
+sixth manual entry. The recurring failure is not a missing entry:
+
+> a semantic dimension exists, the compiler cannot represent it, and it
+> therefore disappears from the denominator
+
+The replacement would derive the inventory from the declared semantics and
+reconcile each against executed, excluded, unresolved or unsupported. Not built
+today because this area has been over-generalised twice on this branch and
+narrowed back both times — once counting every unanswered question as a
+declaration, which blocked the figure on nearly every first submission.
+
+**The design pressure to carry forward, in one line:**
+
+> Absence is not always ignorance. Sometimes it is a deliberate rejection, and
+> collapsing the two lets another reader reintroduce exactly what was rejected.
+
+That has now appeared four times: `provenance@1`'s missing keys against an
+empty list, an unstamped body asserting emptiness, an ambiguous sentence
+against an unrecognised one, and a refused cadence against an unseen one.

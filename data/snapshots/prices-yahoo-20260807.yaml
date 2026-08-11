@@ -1,0 +1,66 @@
+# Vendor prices, labelled as vendor prices.
+#
+# Deliberately not added to the synthetic fixture. The fixture's manifest says
+# "invented ... safe to redistribute", and putting real prices behind that
+# sentence would make every provenance record in the system a false statement
+# about where its numbers came from. The whole build rests on provenance being
+# true, so a second snapshot is the cheap answer and relabelling is not.
+#
+# Authorised by data/licensing/market-data-licensing@1.yaml — all six licensing
+# questions answered, reviewed and dated. Non-commercial testing only.
+
+dataset_id: market-data/prices
+snapshot_id: prices-yahoo-20260807
+kind: vendor
+uri: data/snapshots/prices-yahoo-20260807.parquet
+
+content_digest: "mdv1:787a23e023e11199a5cc3a5d1e6db36bb7b663486fb0c806e31665e019230eb0"
+file_sha256: "0d748c2e2f3b6a86309091ff001061dac15d7f01f78be968d7ff6d9f816b429d"          # informational; changes on an Arrow upgrade
+content_digest_version: mdv1
+
+schema_version: "1"
+calendar: calendar/nyse@1
+sessions: 2664
+assets: 44
+data_as_of: 2026-08-07
+coverage: {start: 2016-01-04, end: 2026-08-07}
+
+provider: yahoo-finance
+license_class: restricted
+redistributable: false
+# CONFIRMED, not RESOLVED. This field was first written as `RESOLVED`, which is
+# not a value the loader knows — `review_complete` tests for `CONFIRMED` — so
+# the snapshot read as a snapshot whose licence review is still open, and every
+# run under the approved policy was denied with that as the stated reason. The
+# vocabulary is CONFIRMED / UNCONFIRMED; there is no third word.
+license_review_status: CONFIRMED
+license_record: data/licensing/market-data-licensing@1.yaml
+
+# Attribution, as decided. Rendered wherever a figure is shown.
+attribution:
+  source: "Yahoo Finance"
+  acknowledgement: "non-commercial usage only"
+
+# One line per route out of the system, keyed by `Egress` and valued by
+# `Decision`. The first draft of this block invented its own key names and used
+# booleans; none of them matched, so every route silently fell through to the
+# DENY default and the snapshot was unusable while appearing configured.
+#
+# Each line below is the licensing record's answer to a question, restated in
+# the vocabulary the code reads.
+egress_policy:
+  # "may raw prices be redistributed: no"
+  public_export: DENY
+  # "no need identified; ask again before any export path is built" — DENY is
+  # the encoding of that, not of a refusal. Revisit the record, not this line.
+  case_bundle: DENY
+  # "small snippets during testing ... never the full series", recorded as
+  # operator-initiated with "no automated path". An automated upload route is
+  # exactly what that excludes, so the route the code can take is DENY. The
+  # permission is for a person, and this file governs code.
+  model_provider_upload: DENY
+  # "may derived results be shown to end users: yes, to the closed pilot
+  # cohort" — derived figures only, never the price series.
+  derived_aggregate: ALLOW
+  internal_benchmark: ALLOW
+  customer_result: ALLOW

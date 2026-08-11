@@ -215,10 +215,18 @@ class TestNoDataMeansNoRecordedProvenance:
         assert "policy" in provenance.access_decision_reason
 
     def test_an_unresolvable_snapshot_records_the_absence(self, monkeypatch):
+        """Was written when the approved policy had no snapshot to resolve, so
+        setting the policy was enough to reach this branch. A vendor snapshot
+        exists now and resolves, so the condition has to be made rather than
+        assumed — otherwise this test silently stops testing what it names."""
+        import src.market_data.access as access
+
         monkeypatch.setenv(POLICY, "market-data-egress/pilot-vendor-approved@1")
+        monkeypatch.setattr(access, "approved_snapshot", lambda: None)
         frame, provenance = resolve(context="a run", accessed_at=AT)
         assert frame is None
         assert provenance.status is ProvenanceStatus.NOT_RECORDED
+        assert "no snapshot" in provenance.access_decision_reason
 
     def test_an_unloadable_snapshot_records_the_absence(self, monkeypatch):
         import src.market_data.loader as loader
@@ -341,3 +349,80 @@ class TestTheDataAndItsProvenanceComeTogether:
 
         monkeypatch.setenv(POLICY, "SYNTHETIC_ONLY")
         assert resolve_prices(context="a page render") is not None
+
+
+class TestAManifestWrittenInAnUnknownVocabularyIsRejected:
+    """Both defects above were introduced by hand, in a file that looked
+    plausible, and neither produced a message. The manifest is the interface
+    between a licensing decision and the code that enforces it, and an
+    interface where a typo means "deny everything, quietly" cannot be
+    proofread into correctness.
+
+    These stay fatal rather than defaulting, because the two failure modes are
+    not symmetric: a rejected manifest stops a deploy, and an accepted one that
+    means nothing stops every run for a reason nobody can find.
+    """
+
+    def _manifest(self, tmp_path, **overrides):
+        import yaml
+        body = {
+            "dataset_id": "market-data/prices",
+            "snapshot_id": "s-1",
+            "kind": "vendor",
+            "schema_version": "1",
+            "license_review_status": "CONFIRMED",
+            "egress_policy": {"customer_result": "ALLOW"},
+        }
+        body.update(overrides)
+        path = tmp_path / "m.yaml"
+        path.write_text(yaml.safe_dump(body))
+        return path
+
+    def test_a_valid_manifest_still_loads(self, tmp_path):
+        """The discriminating half. A check that rejects everything proves
+        nothing about the check."""
+        from src.market_data.loader import load_manifest
+
+        snapshot = load_manifest(self._manifest(tmp_path))
+        assert snapshot.review_complete
+
+    def test_the_review_status_typo_is_named(self, tmp_path):
+        """`RESOLVED` — the word actually written, which read as an open
+        review and denied every run."""
+        from src.market_data.loader import load_manifest
+
+        with pytest.raises(ValueError) as raised:
+            load_manifest(self._manifest(tmp_path,
+                                         license_review_status="RESOLVED"))
+        assert "RESOLVED" in str(raised.value)
+        assert "CONFIRMED" in str(raised.value)
+
+    def test_an_invented_egress_route_is_named(self, tmp_path):
+        from src.market_data.loader import load_manifest
+
+        with pytest.raises(ValueError) as raised:
+            load_manifest(self._manifest(
+                tmp_path,
+                egress_policy={"derived_results_to_end_users": "ALLOW"}))
+        assert "derived_results_to_end_users" in str(raised.value)
+        assert "customer_result" in str(raised.value)
+
+    def test_a_boolean_where_a_decision_belongs_is_named(self, tmp_path):
+        """`derived_results_to_end_users: true` was meant to permit a route.
+        Read as a policy it is not a decision at all."""
+        from src.market_data.loader import load_manifest
+
+        with pytest.raises(ValueError) as raised:
+            load_manifest(self._manifest(
+                tmp_path, egress_policy={"customer_result": True}))
+        assert "customer_result" in str(raised.value)
+        assert "ALLOW" in str(raised.value)
+
+    def test_an_omitted_route_is_still_a_refusal_not_an_error(self, tmp_path):
+        """Silence must keep meaning DENY. If omission became an error, every
+        manifest would have to list every route, and a route added later would
+        break files that were never wrong."""
+        from src.market_data.loader import Decision, Egress, load_manifest
+
+        snapshot = load_manifest(self._manifest(tmp_path))
+        assert snapshot.decision_for(Egress.PUBLIC_EXPORT) is Decision.DENY

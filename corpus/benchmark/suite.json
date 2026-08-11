@@ -1,0 +1,586 @@
+{
+  "schema": "quantify-strategy-benchmark@1",
+  "classes": [
+    {
+      "id": "dca-monthly-fixed",
+      "family": "accumulation",
+      "disposition": "EXECUTES",
+      "refuses": [],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "invest $500 monthly into VTI",
+        "put $500 into VTI every month",
+        "buy $500 of VTI each month",
+        "contribute $500 a month to VTI",
+        "monthly $500 purchase of VTI",
+        "I want to add $500 to VTI every month",
+        "set aside $500 for VTI monthly",
+        "$500/month into VTI"
+      ]
+    },
+    {
+      "id": "dca-weekly",
+      "family": "accumulation",
+      "disposition": "EXECUTES",
+      "refuses": [],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "invest $100 weekly into VTI",
+        "put $100 a week into VTI",
+        "buy $100 of VTI every week",
+        "weekly $100 contribution to VTI",
+        "$100 into VTI each week"
+      ]
+    },
+    {
+      "id": "lump-sum",
+      "family": "accumulation",
+      "disposition": "EXECUTES",
+      "refuses": [],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "invest $10,000 in VTI once",
+        "a single $10,000 purchase of VTI",
+        "put $10,000 into VTI as a lump sum",
+        "one-off $10,000 investment in VTI",
+        "buy $10,000 of VTI, just once"
+      ]
+    },
+    {
+      "id": "ma-cross-below",
+      "family": "conditional",
+      "disposition": "EXECUTES",
+      "refuses": [],
+      "states": [],
+      "note": "a crossing, not a state",
+      "phrasings": [
+        "buy $1,000 of VTI when it crosses below its 200-day moving average",
+        "whenever VTI crosses under the 200 DMA, invest $1,000",
+        "put a grand into VTI on the day it falls through its 200-day average",
+        "if VTI moves from above its 200-day MA to below it, buy $1,000",
+        "invest $1,000 in VTI the day it drops beneath the 200-day average",
+        "$1,000 into VTI each time it breaks below its 200 day moving average"
+      ]
+    },
+    {
+      "id": "ma-persistent-below",
+      "family": "conditional",
+      "disposition": "EXECUTES",
+      "refuses": [],
+      "states": [],
+      "note": "a state, not a crossing",
+      "phrasings": [
+        "buy $1,000 of VTI whenever it is below its 200-day moving average",
+        "invest $1,000 in VTI on any day it sits under the 200 DMA",
+        "while VTI is beneath its 200-day average, put in $1,000",
+        "$1,000 into VTI on every day it stays below the 200-day average"
+      ]
+    },
+    {
+      "id": "equal-weight",
+      "family": "allocation",
+      "disposition": "EXECUTES",
+      "refuses": [],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "invest $1,000 monthly split equally between VTI and BND",
+        "$1,000 a month, equal weight across VTI and BND",
+        "put $1,000 monthly into VTI and BND, evenly",
+        "monthly $1,000 divided equally between VTI and BND"
+      ]
+    },
+    {
+      "id": "stated-weights",
+      "family": "allocation",
+      "disposition": "REFUSES",
+      "refuses": [
+        "stated_weights"
+      ],
+      "states": [],
+      "note": "this build divides each purchase equally",
+      "phrasings": [
+        "invest $1,000 monthly, 60% VTI and 40% BND",
+        "a 60/40 split of $1,000 a month between VTI and BND",
+        "$1,000 monthly, sixty percent VTI, forty percent BND",
+        "monthly $1,000 weighted 60/40 across VTI and BND"
+      ]
+    },
+    {
+      "id": "inverse-volatility",
+      "family": "allocation",
+      "disposition": "REFUSES",
+      "refuses": [
+        "allocation_method"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "allocate $1,000 monthly by inverse volatility across VTI and BND",
+        "$1,000 a month weighted by inverse volatility",
+        "invest $1,000 monthly, volatility-weighted across VTI and BND"
+      ]
+    },
+    {
+      "id": "rebalance-annual",
+      "family": "rebalancing",
+      "disposition": "REFUSES",
+      "refuses": [
+        "periodic_rebalancing",
+        "stated_weights",
+        "allocation_method"
+      ],
+      "states": [
+        "periodic_rebalancing",
+        "stated_weights"
+      ],
+      "note": "two unsupported things in one sentence",
+      "phrasings": [
+        "rebalance back to 60/40 every year",
+        "annually rebalance to a 60/40 target",
+        "each year, bring the portfolio back to 60/40",
+        "yearly rebalancing to 60% stocks and 40% bonds"
+      ]
+    },
+    {
+      "id": "rebalance-threshold",
+      "family": "rebalancing",
+      "disposition": "REFUSES",
+      "refuses": [
+        "periodic_rebalancing"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "rebalance whenever an allocation drifts more than 5 points",
+        "rebalance if any holding moves 5% away from its target",
+        "bring it back to target when drift exceeds five percentage points"
+      ]
+    },
+    {
+      "id": "swr-percentage",
+      "family": "withdrawal",
+      "disposition": "REFUSES",
+      "refuses": [
+        "sell_action"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "withdraw 4% of the portfolio each year",
+        "take out 4% a year",
+        "draw down 4% annually",
+        "an annual withdrawal of four percent",
+        "spend 4% of the balance every year"
+      ]
+    },
+    {
+      "id": "swr-fixed-amount",
+      "family": "withdrawal",
+      "disposition": "REFUSES",
+      "refuses": [
+        "sell_action"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "withdraw $40,000 a year from the portfolio",
+        "take $40,000 out each year",
+        "an annual $40,000 withdrawal",
+        "draw $40,000 per year"
+      ]
+    },
+    {
+      "id": "tax-loss-harvest",
+      "family": "tax",
+      "disposition": "REFUSES",
+      "refuses": [
+        "sell_action"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "harvest losses whenever a position falls 10% below its cost basis",
+        "sell losers that are down 10% from what I paid",
+        "tax-loss harvest positions 10% underwater"
+      ]
+    },
+    {
+      "id": "roth-conversion",
+      "family": "tax",
+      "disposition": "REFUSES",
+      "refuses": [
+        "sell_action",
+        "objective"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "convert $30,000 from the traditional IRA to the Roth each year",
+        "move $30,000 a year from my traditional IRA into a Roth",
+        "annually convert $30,000 of traditional IRA to Roth"
+      ]
+    },
+    {
+      "id": "asset-location",
+      "family": "tax",
+      "disposition": "REFUSES",
+      "refuses": [
+        "asset_location"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "hold the bonds in the IRA and the stocks in the taxable account",
+        "keep bonds in my IRA, equities in taxable",
+        "put the fixed income in the IRA and the shares in the brokerage"
+      ]
+    },
+    {
+      "id": "bucket-strategy",
+      "family": "retirement",
+      "disposition": "REFUSES",
+      "refuses": [
+        "reserve_policy",
+        "bucket_policy"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "keep three years of expenses in cash and the rest in stocks",
+        "hold three years of spending in cash, invest the remainder",
+        "a cash bucket covering three years, equities for the rest"
+      ]
+    },
+    {
+      "id": "glidepath",
+      "family": "retirement",
+      "disposition": "REFUSES",
+      "refuses": [
+        "periodic_rebalancing",
+        "sell_action"
+      ],
+      "states": [],
+      "note": "moving money out of equities is selling, and refusing on that is as correct as refusing on the rebalancing",
+      "phrasings": [
+        "shift 1% from stocks to bonds every year as I get older",
+        "move one percent a year out of equities into fixed income",
+        "reduce the equity share by 1% annually"
+      ]
+    },
+    {
+      "id": "volatility-target",
+      "family": "risk",
+      "disposition": "REFUSES",
+      "refuses": [
+        "allocation_method"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "run it at a 10% volatility target",
+        "target 10% annualised volatility",
+        "size positions for 10% vol"
+      ]
+    },
+    {
+      "id": "sleeve-leverage",
+      "family": "leverage",
+      "disposition": "REFUSES",
+      "refuses": [
+        "portfolio_sleeves"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "hold 2x leverage on the equity sleeve",
+        "run the equity portion at two times leverage",
+        "double leverage on the stock sleeve"
+      ]
+    },
+    {
+      "id": "factor-tilt",
+      "family": "factor",
+      "disposition": "REFUSES",
+      "refuses": [
+        "portfolio_sleeves",
+        "stated_weights"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "tilt 20% toward small cap value",
+        "a 20% allocation tilted to small-cap value",
+        "overweight small cap value by 20%"
+      ]
+    },
+    {
+      "id": "momentum-rotation",
+      "family": "rotation",
+      "disposition": "REFUSES",
+      "refuses": [
+        "selection_rule",
+        "sell_action"
+      ],
+      "states": [],
+      "note": "the selection is the strategy; `selection_rule` was added after this family executed as a plain purchase of every candidate",
+      "phrasings": [
+        "each month hold whichever of VTI and BND performed best",
+        "rotate monthly into the stronger of VTI and BND",
+        "monthly, buy the better performer of VTI or BND"
+      ]
+    },
+    {
+      "id": "mortgage-versus-investing",
+      "family": "comparison",
+      "disposition": "REFUSES",
+      "refuses": [
+        "objective"
+      ],
+      "states": [],
+      "note": "",
+      "phrasings": [
+        "pay off the mortgage instead of investing",
+        "should I overpay the mortgage rather than invest",
+        "put the money into the mortgage instead of the market"
+      ]
+    }
+  ],
+  "contrasts": [
+    {
+      "name": "contribute monthly versus rebalance monthly",
+      "left": "invest $500 monthly into VTI",
+      "right": "rebalance VTI and BND monthly",
+      "why": "one funds, one rearranges; the second is refused"
+    },
+    {
+      "name": "crossing versus state",
+      "left": "buy $1,000 of VTI when it crosses below its 200-day moving average",
+      "right": "buy $1,000 of VTI whenever it is below its 200-day moving average",
+      "why": "a transition fires once per episode, a state fires every session"
+    },
+    {
+      "name": "sell-and-buy versus buy-both",
+      "left": "sell VTI and buy BND",
+      "right": "buy VTI and BND",
+      "why": "the first disposes of something and must be refused"
+    },
+    {
+      "name": "withdraw versus contribute",
+      "left": "withdraw $1,000 monthly",
+      "right": "contribute $1,000 monthly",
+      "why": "opposite directions of money"
+    },
+    {
+      "name": "conversion direction",
+      "left": "convert $30,000 from the traditional IRA to the Roth",
+      "right": "convert $30,000 from the Roth to the traditional IRA",
+      "why": "direction is the meaning of a transition"
+    },
+    {
+      "name": "moving average versus a holding period",
+      "left": "buy VTI below its 200-day moving average",
+      "right": "hold VTI for 200 days",
+      "why": "one is a threshold, the other a duration"
+    },
+    {
+      "name": "weights reversed",
+      "left": "invest $1,000 monthly, 60% VTI and 40% BND",
+      "right": "invest $1,000 monthly, 40% VTI and 60% BND",
+      "why": "different portfolios; both refused, and the stated weights differ"
+    },
+    {
+      "name": "equal weight versus stated weight",
+      "left": "invest $1,000 monthly split equally between VTI and BND",
+      "right": "invest $1,000 monthly, 60% VTI and 40% BND",
+      "why": "the first executes, the second is refused"
+    }
+  ],
+  "metamorphic": [
+    {
+      "name": "irrelevant autobiography",
+      "relation": "SAME",
+      "from": "invest $500 monthly into VTI",
+      "to": "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI"
+    },
+    {
+      "name": "thousands shorthand",
+      "relation": "SAME",
+      "from": "invest $1,000 monthly into VTI",
+      "to": "invest $1k monthly into VTI"
+    },
+    {
+      "name": "moving-average abbreviation",
+      "relation": "SAME",
+      "from": "buy $1,000 of VTI when it crosses below its 200-day moving average",
+      "to": "buy $1,000 of VTI when it crosses below its 200 DMA"
+    },
+    {
+      "name": "holding order, equal weight",
+      "relation": "SAME",
+      "from": "invest $1,000 monthly split equally between VTI and BND",
+      "to": "invest $1,000 monthly split equally between BND and VTI"
+    },
+    {
+      "name": "trailing punctuation",
+      "relation": "SAME",
+      "from": "invest $500 monthly into VTI",
+      "to": "Invest $500 monthly into VTI."
+    },
+    {
+      "name": "doubled contribution",
+      "relation": "DIFFER",
+      "from": "invest $500 monthly into VTI",
+      "to": "invest $1,000 monthly into VTI"
+    },
+    {
+      "name": "changed cadence",
+      "relation": "DIFFER",
+      "from": "invest $500 monthly into VTI",
+      "to": "invest $500 weekly into VTI"
+    },
+    {
+      "name": "changed holding",
+      "relation": "DIFFER",
+      "from": "invest $500 monthly into VTI",
+      "to": "invest $500 monthly into BND"
+    },
+    {
+      "name": "reversed weights",
+      "relation": "DIFFER",
+      "from": "invest $1,000 monthly, 60% VTI and 40% BND",
+      "to": "invest $1,000 monthly, 40% VTI and 60% BND"
+    }
+  ],
+  "counts": {
+    "classes": 22,
+    "phrasings": 85,
+    "contrast_pairs": 8,
+    "metamorphic_relations": 9,
+    "distinct_prompts": 103,
+    "by_family": {
+      "accumulation": 18,
+      "conditional": 10,
+      "allocation": 11,
+      "rebalancing": 7,
+      "withdrawal": 9,
+      "tax": 9,
+      "retirement": 6,
+      "risk": 3,
+      "leverage": 3,
+      "factor": 3,
+      "rotation": 3,
+      "comparison": 3
+    }
+  },
+  "provenance_note": "Authored, and marked as such. Not attested phrasings — `real_phrasings.json` is the attested pack. Authored sentences are admissible here because the properties under test are agreement between phrasings, disagreement between contrasts, and invariance under transformation, none of which depends on somebody having really typed the sentence.",
+  "scoring_note": "There is no pass rate. An unsupported strategy refused by name is a pass; a benchmark that scored executions would reward the silent reduction this project spent months removing.",
+  "prompts": [
+    "$1,000 a month weighted by inverse volatility",
+    "$1,000 a month, equal weight across VTI and BND",
+    "$1,000 into VTI each time it breaks below its 200 day moving average",
+    "$1,000 into VTI on every day it stays below the 200-day average",
+    "$1,000 monthly, sixty percent VTI, forty percent BND",
+    "$100 into VTI each week",
+    "$500/month into VTI",
+    "I want to add $500 to VTI every month",
+    "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI",
+    "Invest $500 monthly into VTI.",
+    "a 20% allocation tilted to small-cap value",
+    "a 60/40 split of $1,000 a month between VTI and BND",
+    "a cash bucket covering three years, equities for the rest",
+    "a single $10,000 purchase of VTI",
+    "allocate $1,000 monthly by inverse volatility across VTI and BND",
+    "an annual $40,000 withdrawal",
+    "an annual withdrawal of four percent",
+    "annually convert $30,000 of traditional IRA to Roth",
+    "annually rebalance to a 60/40 target",
+    "bring it back to target when drift exceeds five percentage points",
+    "buy $1,000 of VTI when it crosses below its 200 DMA",
+    "buy $1,000 of VTI when it crosses below its 200-day moving average",
+    "buy $1,000 of VTI whenever it is below its 200-day moving average",
+    "buy $10,000 of VTI, just once",
+    "buy $100 of VTI every week",
+    "buy $500 of VTI each month",
+    "buy VTI and BND",
+    "buy VTI below its 200-day moving average",
+    "contribute $1,000 monthly",
+    "contribute $500 a month to VTI",
+    "convert $30,000 from the Roth to the traditional IRA",
+    "convert $30,000 from the traditional IRA to the Roth",
+    "convert $30,000 from the traditional IRA to the Roth each year",
+    "double leverage on the stock sleeve",
+    "draw $40,000 per year",
+    "draw down 4% annually",
+    "each month hold whichever of VTI and BND performed best",
+    "each year, bring the portfolio back to 60/40",
+    "harvest losses whenever a position falls 10% below its cost basis",
+    "hold 2x leverage on the equity sleeve",
+    "hold VTI for 200 days",
+    "hold the bonds in the IRA and the stocks in the taxable account",
+    "hold three years of spending in cash, invest the remainder",
+    "if VTI moves from above its 200-day MA to below it, buy $1,000",
+    "invest $1,000 in VTI on any day it sits under the 200 DMA",
+    "invest $1,000 in VTI the day it drops beneath the 200-day average",
+    "invest $1,000 monthly into VTI",
+    "invest $1,000 monthly split equally between BND and VTI",
+    "invest $1,000 monthly split equally between VTI and BND",
+    "invest $1,000 monthly, 40% VTI and 60% BND",
+    "invest $1,000 monthly, 60% VTI and 40% BND",
+    "invest $1,000 monthly, volatility-weighted across VTI and BND",
+    "invest $10,000 in VTI once",
+    "invest $100 weekly into VTI",
+    "invest $1k monthly into VTI",
+    "invest $500 monthly into BND",
+    "invest $500 monthly into VTI",
+    "invest $500 weekly into VTI",
+    "keep bonds in my IRA, equities in taxable",
+    "keep three years of expenses in cash and the rest in stocks",
+    "monthly $1,000 divided equally between VTI and BND",
+    "monthly $1,000 weighted 60/40 across VTI and BND",
+    "monthly $500 purchase of VTI",
+    "monthly, buy the better performer of VTI or BND",
+    "move $30,000 a year from my traditional IRA into a Roth",
+    "move one percent a year out of equities into fixed income",
+    "one-off $10,000 investment in VTI",
+    "overweight small cap value by 20%",
+    "pay off the mortgage instead of investing",
+    "put $1,000 monthly into VTI and BND, evenly",
+    "put $10,000 into VTI as a lump sum",
+    "put $100 a week into VTI",
+    "put $500 into VTI every month",
+    "put a grand into VTI on the day it falls through its 200-day average",
+    "put the fixed income in the IRA and the shares in the brokerage",
+    "put the money into the mortgage instead of the market",
+    "rebalance VTI and BND monthly",
+    "rebalance back to 60/40 every year",
+    "rebalance if any holding moves 5% away from its target",
+    "rebalance whenever an allocation drifts more than 5 points",
+    "reduce the equity share by 1% annually",
+    "rotate monthly into the stronger of VTI and BND",
+    "run it at a 10% volatility target",
+    "run the equity portion at two times leverage",
+    "sell VTI and buy BND",
+    "sell losers that are down 10% from what I paid",
+    "set aside $500 for VTI monthly",
+    "shift 1% from stocks to bonds every year as I get older",
+    "should I overpay the mortgage rather than invest",
+    "size positions for 10% vol",
+    "spend 4% of the balance every year",
+    "take $40,000 out each year",
+    "take out 4% a year",
+    "target 10% annualised volatility",
+    "tax-loss harvest positions 10% underwater",
+    "tilt 20% toward small cap value",
+    "weekly $100 contribution to VTI",
+    "whenever VTI crosses under the 200 DMA, invest $1,000",
+    "while VTI is beneath its 200-day average, put in $1,000",
+    "withdraw $1,000 monthly",
+    "withdraw $40,000 a year from the portfolio",
+    "withdraw 4% of the portfolio each year",
+    "yearly rebalancing to 60% stocks and 40% bonds"
+  ]
+}

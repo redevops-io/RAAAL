@@ -215,21 +215,35 @@ def build(*, events: Sequence[ContributionEvent], fills: Sequence[Any],
     ordered_fills = sorted(fills, key=lambda f: pd.Timestamp(f.date))
     ordered_events = sorted(events, key=lambda e: pd.Timestamp(e.session))
 
+    # Paired by session group, not by a date boundary.
+    #
+    # The boundary version assigned each event the fills dated before the next
+    # event's session. With a *daily* condition that window is empty for every
+    # event: cash arrives on session N, the order fills on N+1, and N+1 is also
+    # the next contribution's session — so every fill was pushed forward and
+    # the rows reported nothing bought. Nine of sixty on the control journey,
+    # caught by the reconciliation rather than shown.
+    #
+    # Grouping by session first keeps the multi-instrument case correct — one
+    # contribution buying three things is one group of three fills — while the
+    # k-th group belonging to the k-th contribution follows from both being in
+    # execution order.
+    groups: List[List[Any]] = []
+    for fill in ordered_fills:
+        session = pd.Timestamp(fill.date)
+        if groups and pd.Timestamp(groups[-1][0].date) == session:
+            groups[-1].append(fill)
+        else:
+            groups.append([fill])
+
     rows: List[LedgerRow] = []
-    index = 0
     for position, event in enumerate(ordered_events):
-        boundary = (pd.Timestamp(ordered_events[position + 1].session)
-                    if position + 1 < len(ordered_events) else None)
-        matched = []
-        while index < len(ordered_fills):
-            fill_date = pd.Timestamp(ordered_fills[index].date)
-            if fill_date < pd.Timestamp(event.session):
-                index += 1          # predates this contribution; not its doing
-                continue
-            if boundary is not None and fill_date >= boundary:
-                break               # belongs to the next contribution
-            matched.append(ordered_fills[index])
-            index += 1
+        matched = groups[position] if position < len(groups) else []
+        # The fill cannot precede the money. If it does, the pairing has
+        # slipped and the row would credit a purchase to a contribution that
+        # had not arrived — reported rather than silently accepted.
+        if matched and pd.Timestamp(matched[0].date) < pd.Timestamp(event.session):
+            matched = []
 
         shares = sum((Decimal(str(f.shares)) for f in matched), Decimal("0"))
         notional = sum((Decimal(str(f.notional)) for f in matched), Decimal("0"))
@@ -243,14 +257,10 @@ def build(*, events: Sequence[ContributionEvent], fills: Sequence[Any],
             subject=(matched[0].ticker if matched
                      else (event.signal.subject if event.signal else "")),
             contribution=event.amount,
-            # Unrounded. Quantizing here made thirty rows drift past the
-            # share check by accumulated rounding — the reconciliation failing
-            # on the ledger's own presentation rather than on anything the
-            # engine did. Rounding belongs in `to_json`, where it is a display
-            # decision and cannot reach a comparison.
             shares=shares,
             price=price,
             reason=event.reason))
+
     return ExecutionLedger(
         rows=tuple(rows), signals=tuple(signals),
         unexecutable=tuple(unexecutable),

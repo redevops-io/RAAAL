@@ -188,12 +188,25 @@ class TestTheLiveRouteIsGated:
 
     def test_a_denied_snapshot_yields_no_prices_rather_than_other_data(
             self, monkeypatch):
+        """The comment here used to read "the vendor snapshot's review is still
+        UNCONFIRMED, so even the approved policy denies it". That was true, and
+        it made the denial a property of the fixtures rather than of the gate:
+        the moment a snapshot passed review, the test stopped testing anything
+        and would have failed rather than told anyone why.
+
+        The denial is now caused directly, so the assertion is about the
+        absence of a fallback and nothing else.
+        """
+        import src.market_data.pilot_policy as policy_module
         import src.workspace.routes as routes
 
         monkeypatch.setenv(POLICY_VARIABLE,
                            "market-data-egress/pilot-vendor-approved@1")
-        # The vendor snapshot's review is still UNCONFIRMED, so even the
-        # approved policy denies it — and nothing is substituted.
+
+        def refuse(snapshot, **kwargs):
+            raise policy_module.PilotDataDenied("refused for this test")
+
+        monkeypatch.setattr(policy_module, "authorise", refuse)
         assert routes._prices() is None
 
     def test_an_approved_snapshot_does_yield_prices(self, monkeypatch, requires_the_vendor_snapshot):

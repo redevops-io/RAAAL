@@ -43,11 +43,18 @@ SOURCE_URL = "https://github.com/redevops-io/RAAAL"
 #: offered its source. Serving it from the API root is how that offer is made
 #: visible rather than merely satisfied in the repository.
 LICENSE_NOTICE = {
-    "license": "AGPL-3.0-or-later",
+    # The §13 entitlement is unchanged by the Commons Clause — that condition
+    # removes the right to *sell*, and says nothing about offering source. Both
+    # are named because naming only the first would now be inaccurate, and this
+    # object is the machine-readable statement of what the service is.
+    "license": "AGPL-3.0-or-later WITH Commons-Clause",
+    "spdx": "LicenseRef-AGPL-3.0-or-later-with-Commons-Clause",
     "source": SOURCE_URL,
     "notice": (
-        "This service is AGPL-3.0-or-later. You are entitled to the complete "
-        "corresponding source of the version running here."
+        "This service is AGPL-3.0-or-later with the Commons Clause condition. "
+        "You are entitled to the complete corresponding source of the version "
+        "running here. The Commons Clause additionally withholds the right to "
+        "sell this software."
     ),
 }
 
@@ -179,6 +186,40 @@ def create_app() -> FastAPI:
     # an operator is actually reading.
     log = logging.getLogger("uvicorn.error")
 
+    # And the same for everything else under `src`, not just this module.
+    #
+    # Borrowing uvicorn's logger by hand fixed the one line whose absence was
+    # noticed. Every other module still called `getLogger(__name__)` into a
+    # logger with nowhere to send anything, so `parse_model`'s "stage1
+    # provider call" — written, with a comment saying so, expressly to be
+    # counted against a live server — was never emitted by one. Three reopens
+    # of a saved plan logged zero provider calls, and a fresh draft that
+    # certainly made one logged zero as well. The measurement said what we
+    # wanted to hear because it could not say anything else.
+    #
+    # Attached at the package so a module needs to do nothing to be heard.
+    # The per-module alternative is a convention, and this is what happened to
+    # the convention.
+    package = logging.getLogger(__package__ or "src")
+    if not package.handlers:
+        source = log
+        while source and not source.handlers:
+            source = source.parent
+        package.handlers = list(source.handlers) if source else []
+    package.setLevel(logging.INFO)
+    package.propagate = False
+
+    # Emitted through a deep module's own logger, not through `log`. That is
+    # the whole claim: a module far from this file, using
+    # `getLogger(__name__)` and doing nothing special, is heard.
+    #
+    # It exists so a count taken from these logs has a premise. "Zero provider
+    # calls on reopen" was reported from a stream that could not carry the
+    # line at all, and read as a clean result. A measurement is worth nothing
+    # until something has shown it can produce a non-zero.
+    logging.getLogger("src.mission.parse_model").info(
+        "instrumentation self-test: package logging reaches the operator log")
+
     # Resolve, judge *that object*, then serve under it. The preflight once
     # validated PostgreSQL while the store opened a local SQLite file, because
     # each read the environment for itself and neither was wrong on its own
@@ -239,6 +280,24 @@ app.include_router(ui_router)
 # hostname without any code moving with it.
 app.include_router(workspace_router)
 
+# The pilot surface. Mounted always and *served* only when the deployment
+# declares `QUANTIFY_PARSER_MODE=RUNTIME` — the routes themselves check, so
+# that a deployment which has not made the declaration cannot reach the runtime
+# by knowing a URL. Mounting conditionally would have made the route table
+# depend on an environment variable, and `test_boundary_sweep` derives its
+# inventory from that table.
+from .workspace.pilot_routes import router as pilot_router  # noqa: E402
+from .workspace.pilot_session import note_departures  # noqa: E402
+
+app.include_router(pilot_router)
+
+# A pilot participant reaching the legacy workspace is the strongest negative
+# signal the study can collect, and the only one no counter would otherwise
+# show: `plan_compiled` staying flat looks the same whether people tried the
+# runtime and went back to what they knew, or never arrived at all. Middleware,
+# so the legacy handlers stay unaware there is an experiment.
+note_departures(app)
+
 
 @app.get("/health/live")
 def live() -> Dict[str, Any]:
@@ -296,6 +355,16 @@ def health() -> Dict[str, Any]:
     }
 
 
+def _service_data_policy() -> Optional[Dict[str, Any]]:
+    """What to say about the data behind every figure, derived from the
+    snapshot the deployment actually resolved — synthetic, vendor-attributed,
+    or none configured. It was once "the synthetic disclosure, or None when
+    licensed"; the vendor branch made silence the wrong answer."""
+    from .workspace.routes import _data_notice
+
+    return _data_notice()
+
+
 @app.get("/info")
 def info() -> Dict[str, Any]:
     concepts = _registry.concepts()
@@ -314,6 +383,18 @@ def info() -> Dict[str, Any]:
                 "published backtest under the SEC Marketing Rule."
             ),
         },
+        # The single most important caveat about every figure this service
+        # produces, on the surface that describes the service.
+        #
+        # `/info` is linked from every page footer as "Service details" and is
+        # what an integrator reads. It carried the demo notice and the licence
+        # and said nothing about the numbers being invented, so the disclosure
+        # on every HTML page stopped at the one endpoint that exists to answer
+        # "what is this".
+        #
+        # Read from `_data_notice` rather than restated: a second copy of a
+        # disclosure is the one that goes stale when the policy changes.
+        "data_policy": _service_data_policy(),
         "methodologies": concepts,
         "license": LICENSE_NOTICE,
     }

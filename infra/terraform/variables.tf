@@ -140,17 +140,30 @@ variable "pilot_data_policy" {
   description = <<-EOT
     The market-data boundary, enforced at runtime by the application.
 
-    SYNTHETIC_ONLY until all six vendor licensing questions are resolved and
-    recorded. Declared here as well as in the environment file so that
-    changing it is a reviewed infrastructure change rather than an edit to a
-    file on a host.
+    Was pinned to SYNTHETIC_ONLY until all six vendor licensing questions were
+    resolved and recorded. They are, in data/licensing/market-data-licensing@1.yaml,
+    so the approved policy is now a permitted value.
+
+    Terraform cannot check that record — it cannot read the repository, and a
+    condition here that tried would be checking a file on whoever's laptop ran
+    the plan. So this list says which values are spellable, and the gate that
+    actually decides is the application's: `approved_snapshot()` re-reads the
+    record on every resolve and returns nothing if a single field is missing.
+    Setting this variable does not grant access to vendor data; it declares
+    which boundary the deployment is asking for.
+
+    Declared here as well as in the environment file so that changing it is a
+    reviewed infrastructure change rather than an edit to a file on a host.
   EOT
   type        = string
   default     = "SYNTHETIC_ONLY"
 
   validation {
-    condition     = var.pilot_data_policy == "SYNTHETIC_ONLY"
-    error_message = "The pilot is synthetic-only until the six licensing questions are resolved and recorded. Change this deliberately, in a commit."
+    condition = contains([
+      "SYNTHETIC_ONLY",
+      "market-data-egress/pilot-vendor-approved@1",
+    ], var.pilot_data_policy)
+    error_message = "pilot_data_policy must be SYNTHETIC_ONLY or market-data-egress/pilot-vendor-approved@1. A value the application does not recognise resolves to no policy at all, which serves no figures."
   }
 }
 

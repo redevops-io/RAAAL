@@ -1,0 +1,149 @@
+{
+ "schema": "quantify-discovery-schema@2",
+ "note": "What Discovery must produce. No entry refers to the legacy compiler; `adjudicated_winner` is provenance about how the fixture was obtained and no assertion reads it.",
+ "cases": [
+  {
+   "ref": "WM-0044",
+   "input": "Each month I hold whichever of US stocks, international stocks or bonds had the best 12-month return, past 5 years.",
+   "expected": {
+    "fields": {
+     "evaluation_period": "trailing:5y"
+    },
+    "must_not": {
+     "evaluation_period": [
+      "rolling:unresolved",
+      "rolling:5y"
+     ]
+    },
+    "relations": [],
+    "unresolved": []
+   },
+   "why": "'each month' is a rebalancing cadence and 'past 5 years' is the window. A reader that folds the cadence into the window answers a different question.",
+   "adjudicated_winner": "MODEL"
+  },
+  {
+   "ref": "WM-0073",
+   "input": "Convert enough of my traditional IRA to a Roth each year to fill the 12% bracket, past 5 years.",
+   "expected": {
+    "fields": {
+     "evaluation_period": "trailing:5y"
+    },
+    "relations": [
+     {
+      "kind": "account_transition",
+      "members": [
+       {
+        "role": "from",
+        "subject_contains": "traditional"
+       },
+       {
+        "role": "to",
+        "subject_contains": "roth"
+       }
+      ],
+      "attributes": {
+       "action": "convert"
+      }
+     }
+    ],
+    "must_not_have_scalar": [
+     "account_type"
+    ],
+    "unresolved": []
+   },
+   "why": "Two accounts in named roles with a direction. Reporting either end as a scalar `account_type` states half the sentence as if it were all of it.",
+   "adjudicated_winner": "SCHEMA"
+  },
+  {
+   "ref": "WM-0025",
+   "input": "I hold a core index fund and tilt 30% satellite into US value ETF in a taxable brokerage account, over the past 5 years.",
+   "expected": {
+    "fields": {
+     "account_type": "TAXABLE",
+     "evaluation_period": "trailing:5y"
+    },
+    "relations": [
+     {
+      "kind": "portfolio_sleeves",
+      "members": [
+       {
+        "role": "core",
+        "subject_contains": "core"
+       },
+       {
+        "role": "satellite",
+        "subject_contains": "value",
+        "qualifiers": {
+         "allocation": "30%"
+        }
+       }
+      ],
+      "attributes": {}
+     }
+    ],
+    "unresolved": []
+   },
+   "why": "Two sleeves in different roles, and the 30% belongs to one of them. A flat asset list can only say which weight is whose by position.",
+   "adjudicated_winner": "SCHEMA"
+  },
+  {
+   "ref": "WM-0017",
+   "input": "I hold 60% VTI and 40% BND and rebalance once a year, past 5 years, starting with $50,000.",
+   "expected": {
+    "fields": {
+     "evaluation_period": "trailing:5y"
+    },
+    "assets_must_include": [
+     "VTI",
+     "BND"
+    ],
+    "relations": [],
+    "unresolved": []
+   },
+   "why": "The sentence names both holdings. Reporting one is a recall miss on the dimension where a miss is most expensive: a portfolio read as a single holding is not the portfolio described.",
+   "adjudicated_winner": "COMPILER"
+  },
+  {
+   "ref": "WM-0057",
+   "input": "I hold 100-stock sample directly in a taxable brokerage account tracking the index within TE <=1%, over the past 5 years.",
+   "expected": {
+    "fields": {
+     "account_type": "TAXABLE",
+     "evaluation_period": "trailing:5y"
+    },
+    "assets_must_not_include": [
+     "ETF"
+    ],
+    "relations": [],
+    "unresolved": []
+   },
+   "why": "'ETF' is a wrapper the sentence mentions, not a holding it names. Extracting it as an instrument prices something nobody described.",
+   "adjudicated_winner": "MODEL"
+  },
+  {
+   "ref": "CTRL-1",
+   "input": "I buy $1,000 of SPY whenever it crosses below its 200-day moving average, over the past five years.",
+   "expected": {
+    "fields": {
+     "trigger_semantics": "crossing_event"
+    },
+    "source_span_contains": {
+     "trigger_semantics": "crosses below"
+    },
+    "must_not": {
+     "trigger_semantics": [
+      "persistent_condition"
+     ]
+    },
+    "must_be_present": [
+     "trigger_semantics"
+    ],
+    "relations": [],
+    "unresolved": []
+   },
+   "why": "A different failure class from a recall miss. The hosted reader read this field correctly on a near-identical sentence in the same run and did not report it here, so what is being pinned is consistency: the same kind of evidence must produce the same reading. Absent is as wrong as persistent_condition \u2014 a dimension silently dropped is a dimension the engine will default, and this is the field whose misreading was worth 4.6x the money.",
+   "failure_class": "NON_DETERMINISM",
+   "adjudicated_winner": "COMPILER"
+  }
+ ]
+}

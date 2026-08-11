@@ -1,0 +1,5671 @@
+{
+ "schema": "quantify-discovery-schema@2/103c025ac629946f",
+ "provenance": {
+  "schema_fingerprint": "quantify-discovery-schema@2/103c025ac629946f",
+  "prompt_count": 35,
+  "prompts_digest": "4a5830fe07d6d8b0",
+  "readers": {
+   "quantify-compiler@2": {
+    "enabled": true
+   },
+   "claude-sonnet-5@1": {
+    "enabled": true,
+    "max_tokens": 8000,
+    "api_key_env": "ANTHROPIC_API_KEY"
+   }
+  },
+  "mode": "full",
+  "output_name": "shadow-strategies.json",
+  "commit": "01b438e6bb57",
+  "tree_dirty": true,
+  "truncated": 0
+ },
+ "records": [
+  {
+   "ref": "CTRL-1",
+   "expectation": "EXECUTE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SPY whenever it crosses below its 200-day moving average, over the past five years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "over the past five years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 of SPY whenever it crosses below its 200-day moving average, over the past five years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "ORIG-1",
+   "expectation": "EXECUTE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SP500 ETF every time the S&P 500 crosses below its 200-day moving average for the past 5 years. What would the total amount and return be now?",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "SP500 ETF"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "SP500 ETF"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "for the past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "What would the total amount and return be now?"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "ETF",
+      "claude-sonnet-5@1": "S&P 500"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "the S&P 500 crosses below its 200-day moving average"
+     }
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 1,
+    "ONE_SIDED": 2,
+    "UNREAD": 12
+   }
+  },
+  {
+   "ref": "ORIG-2",
+   "expectation": "EXECUTE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SPY every day the S&P 500 trades under its 200-day moving average, for the past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "daily",
+      "claude-sonnet-5@1": "daily"
+     },
+     "spans": {
+      "quantify-compiler@2": "every day",
+      "claude-sonnet-5@1": "every day"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "for the past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 of SPY every day the S&P 500 trades under its 200-day moving average, for the past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "S&P 500"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "the S&P 500 trades under its 200-day moving average"
+     }
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "persistent_condition"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "every day the S&P 500 trades under its 200-day moving average"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 5,
+    "CONTESTED": 0,
+    "ONE_SIDED": 3,
+    "UNREAD": 11
+   }
+  },
+  {
+   "ref": "ORIG-3",
+   "expectation": "CLARIFY",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of VOO every time it crosses below its moving average, over the past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VOO",
+      "claude-sonnet-5@1": "VOO"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "VOO"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "over the past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 of VOO every time it crosses below its moving average, over the past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "ORIG-4",
+   "expectation": "CLARIFY",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SPX every time it crosses below its 200-day moving average, for the past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "buy $1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPX",
+      "claude-sonnet-5@1": "SPX"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPX"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "for the past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 of SPX every time it crosses below its 200-day moving average, for the past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 5,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "ORIG-5",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SPY at the same day's close whenever it crosses below its 200-day moving average, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "same_session_close",
+      "claude-sonnet-5@1": "same_session_close"
+     },
+     "spans": {
+      "quantify-compiler@2": "at the same day's close",
+      "claude-sonnet-5@1": "at the same day's close"
+     }
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 6,
+    "CONTESTED": 0,
+    "ONE_SIDED": 0,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "ORIG-6",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SPY every time it crosses below its 200-day moving average, over the past 3 months.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:3m",
+      "claude-sonnet-5@1": "trailing:3m"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "over the past 3 months"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 of SPY every time it crosses below its 200-day moving average, over the past 3 months."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 5,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "ORIG-7",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "Every time SPY crosses below its 200-day moving average I put in $1,000, and I also invest $500 every month, for the past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000,",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "monthly",
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "quantify-compiler@2": "every month",
+      "claude-sonnet-5@1": "every month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "for the past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "plan_contributions"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I put in $1,000, and I also invest $500 every month"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 6,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 12
+   }
+  },
+  {
+   "ref": "ORIG-8",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SPY every time it crosses below its 200-day moving average and sell everything when it crosses back above, for the past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "for the past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 of SPY every time it crosses below its 200-day moving average and sell everything when it crosses back above, for the past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "sell everything when it crosses back above"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "sell everything when it crosses back above"
+     }
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 5,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 12
+   }
+  },
+  {
+   "ref": "ORIG-9",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy \u00a31,000 of SPY every time it crosses below its 200-day moving average, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "\u00a31,000"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "\u00a31,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy \u00a31,000 of SPY every time it crosses below its 200-day moving average, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses below",
+      "claude-sonnet-5@1": "crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "WM-0001",
+   "expectation": "EXECUTE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I put $2,000 a year into VTI and hold it. Past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "2000",
+      "claude-sonnet-5@1": "$2,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$2,000",
+      "claude-sonnet-5@1": "$2,000 a year"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VTI",
+      "claude-sonnet-5@1": "VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "into VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "annual",
+      "claude-sonnet-5@1": "annual"
+     },
+     "spans": {
+      "quantify-compiler@2": "a year",
+      "claude-sonnet-5@1": "$2,000 a year"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "Past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "Past 5 years"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0009",
+   "expectation": "EXECUTE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I invest $250 in VTI every week for the past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "250",
+      "claude-sonnet-5@1": "250"
+     },
+     "spans": {
+      "quantify-compiler@2": "$250",
+      "claude-sonnet-5@1": "$250"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VTI",
+      "claude-sonnet-5@1": "VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "weekly",
+      "claude-sonnet-5@1": "weekly"
+     },
+     "spans": {
+      "quantify-compiler@2": "every week",
+      "claude-sonnet-5@1": "every week"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "for the past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I invest $250 in VTI every week for the past 5 years"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0017",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I hold 60% VTI and 40% BND and rebalance once a year, past 5 years, starting with $50,000.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "stated_weights"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "60% VTI and 40% BND"
+     }
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "50000",
+      "claude-sonnet-5@1": "$50,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$50,000",
+      "claude-sonnet-5@1": "starting with $50,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "VTI, BND",
+      "claude-sonnet-5@1": "VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "60% VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "once"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "starting with $50,000"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I hold 60% VTI and 40% BND and rebalance once a year, past 5 years, starting with $50,000."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "once a year"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "rebalance once a year"
+     }
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "60/40"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "60% VTI and 40% BND"
+     }
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 1,
+    "ONE_SIDED": 5,
+    "UNREAD": 11
+   }
+  },
+  {
+   "ref": "WM-0025",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I put $1,000 a month into a value tilt using VTV alongside VTI, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VTV, VTI",
+      "claude-sonnet-5@1": "VTV, VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "using VTV alongside VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "a month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I put $1,000 a month into a value tilt using VTV alongside VTI, past 5 years"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": {
+       "kind": "portfolio_sleeves",
+       "members": [
+        {
+         "role": "core",
+         "subject": "VTI",
+         "qualifiers": {}
+        },
+        {
+         "role": "satellite",
+         "subject": "VTV",
+         "qualifiers": {}
+        }
+       ],
+       "attributes": {},
+       "source_span": "a value tilt using VTV alongside VTI"
+      }
+     },
+     "spans": {
+      "claude-sonnet-5@1": "a value tilt using VTV alongside VTI"
+     }
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 3,
+    "CONTESTED": 0,
+    "ONE_SIDED": 3,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "WM-0033",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "Allocate $100,000 across VTI, BND and GLD by inverse volatility, rebalanced monthly, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "inverse_volatility"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "by inverse volatility"
+     }
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "100000",
+      "claude-sonnet-5@1": "$100,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$100,000",
+      "claude-sonnet-5@1": "$100,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VTI, BND, GLD",
+      "claude-sonnet-5@1": "VTI, BND, GLD"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "VTI, BND and GLD"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "once"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "Allocate $100,000"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "Allocate $100,000 across VTI, BND and GLD by inverse volatility, rebalanced monthly, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "rebalanced monthly"
+     }
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 3,
+    "CONTESTED": 0,
+    "ONE_SIDED": 4,
+    "UNREAD": 12
+   }
+  },
+  {
+   "ref": "WM-0041",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 split equally across AMZN, META, GOOGL, ORCL, AAPL and NVDA every day SPY is below its 200-day moving average, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "equal_weight_at_purchase"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "split equally across"
+     }
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "I buy $1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "AMZN, META, GOOGL, ORCL, AAPL, NVDA",
+      "claude-sonnet-5@1": "AMZN, META, GOOGL, ORCL, AAPL and NVDA"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "AMZN, META, GOOGL, ORCL, AAPL and NVDA"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "daily"
+     },
+     "spans": {
+      "quantify-compiler@2": "every day"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 split equally across AMZN, META, GOOGL, ORCL, AAPL and NVDA every day SPY is below its 200-day moving average, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY is below its 200-day moving average"
+     }
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "persistent_condition",
+      "claude-sonnet-5@1": "persistent_condition"
+     },
+     "spans": {
+      "quantify-compiler@2": "every day SPY is below",
+      "claude-sonnet-5@1": "every day SPY is below its 200-day moving average"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 6,
+    "CONTESTED": 0,
+    "ONE_SIDED": 3,
+    "UNREAD": 10
+   }
+  },
+  {
+   "ref": "WM-0042",
+   "expectation": "EXECUTE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy $1,000 of SPY only on the day it crosses below its 200-day moving average, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy $1,000 of SPY only on the day it crosses below its 200-day moving average, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "only on the day it crosses",
+      "claude-sonnet-5@1": "on the day it crosses below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 5,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "WM-0043",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I hold SPY while it is above its 10-month simple moving average and switch to Treasury bills when it is below, checked at each month end, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "assets",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I hold SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "monthly",
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "quantify-compiler@2": "each month",
+      "claude-sonnet-5@1": "checked at each month end"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "last_session_of_period"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "checked at each month end"
+     }
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "rolling:unresolved",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "10"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "10-month simple moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I hold SPY while it is above its 10-month simple moving average and switch to Treasury bills when it is below"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": ""
+     }
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "persistent_condition",
+      "claude-sonnet-5@1": "persistent_condition"
+     },
+     "spans": {
+      "quantify-compiler@2": "while it is above its 10-month simple moving average and switch to Treasury bills when it is below",
+      "claude-sonnet-5@1": "while it is above ... when it is below"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 1,
+    "ONE_SIDED": 5,
+    "UNREAD": 11
+   }
+  },
+  {
+   "ref": "WM-0044",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "Each month I hold whichever of US stocks, international stocks or bonds had the best 12-month return, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "assets",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "US",
+      "claude-sonnet-5@1": "US stocks, international stocks or bonds"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "US stocks, international stocks or bonds"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "monthly",
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "quantify-compiler@2": "Each month",
+      "claude-sonnet-5@1": "Each month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "rolling:unresolved",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "Each month I hold whichever of US stocks, international stocks or bonds had the best 12-month return, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 1,
+    "CONTESTED": 2,
+    "ONE_SIDED": 1,
+    "UNREAD": 15
+   }
+  },
+  {
+   "ref": "WM-0045",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy SPY when its 50-day average crosses above its 200-day average and sell when it crosses below, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "50",
+      "claude-sonnet-5@1": "50"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "50-day average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I buy SPY when its 50-day average crosses above its 200-day average and sell when it crosses below, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "sell when it crosses below"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "sell when it crosses below"
+     }
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "crossing_event",
+      "claude-sonnet-5@1": "crossing_event"
+     },
+     "spans": {
+      "quantify-compiler@2": "crosses above",
+      "claude-sonnet-5@1": "crosses above"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "WM-0046",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I invest $1,000 a month into VTI, but only in months when VTI is above its 200-day moving average, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VTI",
+      "claude-sonnet-5@1": "VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "a month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day moving average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I invest $1,000 a month into VTI"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "persistent_condition",
+      "claude-sonnet-5@1": "persistent_condition"
+     },
+     "spans": {
+      "quantify-compiler@2": "is above",
+      "claude-sonnet-5@1": "in months when VTI is above its 200-day moving average"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 5,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 12
+   }
+  },
+  {
+   "ref": "WM-0047",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I invest $1,000 a month into VTI and double it in any month after the market falls more than 20%, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VTI",
+      "claude-sonnet-5@1": "VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "a month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "double it"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "double it in any month after the market falls more than 20%"
+     }
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "the market"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "the market falls more than 20%"
+     }
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 3,
+    "CONTESTED": 0,
+    "ONE_SIDED": 4,
+    "UNREAD": 12
+   }
+  },
+  {
+   "ref": "WM-0048",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I buy SPY when it is above its 200-day average and volatility is low, otherwise hold cash, weekly, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "SPY",
+      "claude-sonnet-5@1": "SPY"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "SPY"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "weekly",
+      "claude-sonnet-5@1": "weekly"
+     },
+     "spans": {
+      "quantify-compiler@2": "weekly",
+      "claude-sonnet-5@1": "weekly"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "200",
+      "claude-sonnet-5@1": "200"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "200-day average"
+     }
+    },
+    {
+     "dimension": "objective",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "persistent_condition"
+     },
+     "spans": {
+      "quantify-compiler@2": "is above"
+     }
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 4,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0049",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "Each month I sell any of VTI or ITOT that is down and buy the other to keep my exposure, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "assets",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "VTI, ITOT",
+      "claude-sonnet-5@1": "VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "monthly",
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "quantify-compiler@2": "Each month",
+      "claude-sonnet-5@1": "Each month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "rolling:unresolved",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "Each month I sell any of VTI or ITOT that is down and buy the other to keep my exposure, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "sell any of VTI or ITOT that is down and buy the other to keep my exposure"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "sell any of VTI or ITOT that is down and buy the other to keep my exposure"
+     }
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 1,
+    "CONTESTED": 2,
+    "ONE_SIDED": 2,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0057",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I hold the 500 largest US companies individually rather than through an ETF, contributing $5,000 a quarter, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "5000",
+      "claude-sonnet-5@1": "$5,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$5,000",
+      "claude-sonnet-5@1": "$5,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "US, ETF",
+      "claude-sonnet-5@1": "the 500 largest US companies individually rather than through an ETF"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "the 500 largest US companies individually rather than through an ETF"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "quarterly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "a quarter"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 1,
+    "ONE_SIDED": 1,
+    "UNREAD": 15
+   }
+  },
+  {
+   "ref": "WM-0065",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I keep bonds in my traditional IRA and stocks in my taxable account, $2,000 a month total, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "TRADITIONAL_IRA"
+     },
+     "spans": {
+      "quantify-compiler@2": "traditional IRA"
+     }
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "2000",
+      "claude-sonnet-5@1": "$2,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$2,000",
+      "claude-sonnet-5@1": "$2,000 a month total"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "$2,000 a month total"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 15
+   }
+  },
+  {
+   "ref": "WM-0073",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "Convert enough of my traditional IRA to a Roth each year to fill the 12% bracket, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "ROTH"
+     },
+     "spans": {
+      "quantify-compiler@2": "Roth"
+     }
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "enough to fill the 12% bracket"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "enough of my traditional IRA to a Roth ... to fill the 12% bracket"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "annual",
+      "claude-sonnet-5@1": "annual"
+     },
+     "spans": {
+      "quantify-compiler@2": "each year",
+      "claude-sonnet-5@1": "each year"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "rolling:unresolved",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "other"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "Convert enough of my traditional IRA to a Roth each year to fill the 12% bracket"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": {
+       "kind": "account_transition",
+       "members": [
+        {
+         "role": "from",
+         "subject": "traditional IRA",
+         "qualifiers": {}
+        },
+        {
+         "role": "to",
+         "subject": "Roth",
+         "qualifiers": {}
+        }
+       ],
+       "attributes": {
+        "action": "convert"
+       },
+       "source_span": "Convert enough of my traditional IRA to a Roth"
+      }
+     },
+     "spans": {
+      "claude-sonnet-5@1": "Convert enough of my traditional IRA to a Roth"
+     }
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 1,
+    "CONTESTED": 1,
+    "ONE_SIDED": 4,
+    "UNREAD": 13
+   }
+  },
+  {
+   "ref": "WM-0081",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I withdraw 4% of my $1,000,000 portfolio in the first year and increase it with inflation each year after, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "1000000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "annual",
+      "claude-sonnet-5@1": "annual"
+     },
+     "spans": {
+      "quantify-compiler@2": "each year",
+      "claude-sonnet-5@1": "each year after"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "rolling:unresolved",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "assess_withdrawal"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I withdraw 4% of my $1,000,000 portfolio"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 1,
+    "CONTESTED": 1,
+    "ONE_SIDED": 2,
+    "UNREAD": 15
+   }
+  },
+  {
+   "ref": "WM-0089",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I contribute enough to my 401(k) to get the full employer match, then the rest to an IRA, $2,000 a month, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "TRADITIONAL_401K"
+     },
+     "spans": {
+      "quantify-compiler@2": "401(k"
+     }
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "2000",
+      "claude-sonnet-5@1": "$2,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$2,000",
+      "claude-sonnet-5@1": "$2,000 a month"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "$2,000 a month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "plan_contributions"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I contribute enough to my 401(k) to get the full employer match, then the rest to an IRA, $2,000 a month, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 0,
+    "ONE_SIDED": 3,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0097",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I take my required minimum distribution from my IRA each year starting at age 73, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "TRADITIONAL_IRA"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "from my IRA"
+     }
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "annual",
+      "claude-sonnet-5@1": "annual"
+     },
+     "spans": {
+      "quantify-compiler@2": "each year",
+      "claude-sonnet-5@1": "each year"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "CONTESTED",
+     "values": {
+      "quantify-compiler@2": "rolling:unresolved",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "assess_withdrawal"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I take my required minimum distribution from my IRA each year starting at age 73"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "required minimum distribution"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I take my required minimum distribution"
+     }
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 1,
+    "CONTESTED": 1,
+    "ONE_SIDED": 3,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0105",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "My RSUs vest quarterly and I sell them all immediately and buy VTI, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "assets",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "VTI",
+      "claude-sonnet-5@1": "VTI"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "buy VTI"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "quarterly",
+      "claude-sonnet-5@1": "quarterly"
+     },
+     "spans": {
+      "quantify-compiler@2": "quarterly",
+      "claude-sonnet-5@1": "vest quarterly"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "sell them all immediately"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "sell them all immediately"
+     }
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 3,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0113",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I put $1,000 a month toward my credit card at 22% instead of investing it, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "1000",
+      "claude-sonnet-5@1": "$1,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$1,000",
+      "claude-sonnet-5@1": "$1,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "a month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "compare_strategies"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "instead of investing it"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 15
+   }
+  },
+  {
+   "ref": "WM-0121",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I give $10,000 to charity each year from my portfolio, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "10000",
+      "claude-sonnet-5@1": "$10,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$10,000",
+      "claude-sonnet-5@1": "$10,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "annual",
+      "claude-sonnet-5@1": "annual"
+     },
+     "spans": {
+      "quantify-compiler@2": "each year",
+      "claude-sonnet-5@1": "each year"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "assess_withdrawal"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I give $10,000 to charity each year from my portfolio"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 3,
+    "CONTESTED": 0,
+    "ONE_SIDED": 1,
+    "UNREAD": 15
+   }
+  },
+  {
+   "ref": "WM-0129",
+   "expectation": "REFUSE",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I hold national municipal bonds instead of taxable bonds, $100,000, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "ONE_SIDED",
+     "values": {
+      "quantify-compiler@2": "TAXABLE"
+     },
+     "spans": {
+      "quantify-compiler@2": "taxable"
+     }
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "100000",
+      "claude-sonnet-5@1": "$100,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$100,000,",
+      "claude-sonnet-5@1": "$100,000"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "national municipal bonds"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "national municipal bonds"
+     }
+    },
+    {
+     "dimension": "cadence",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "compare_strategies"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "instead of"
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 0,
+    "ONE_SIDED": 3,
+    "UNREAD": 14
+   }
+  },
+  {
+   "ref": "WM-0137",
+   "expectation": "UNKNOWN",
+   "schema": "quantify-discovery-schema@2/103c025ac629946f",
+   "text": "I keep three months of expenses in cash and invest the rest, $5,000 a month, past 5 years.",
+   "fields": [
+    {
+     "dimension": "account_type",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "allocation_method",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "amount",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "5000",
+      "claude-sonnet-5@1": "$5,000"
+     },
+     "spans": {
+      "quantify-compiler@2": "$5,000",
+      "claude-sonnet-5@1": "$5,000 a month"
+     }
+    },
+    {
+     "dimension": "assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "cadence",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "monthly"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "$5,000 a month"
+     }
+    },
+    {
+     "dimension": "conditional_amount",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "day_rule",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "dividend_policy",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "evaluation_period",
+     "state": "AGREED",
+     "values": {
+      "quantify-compiler@2": "trailing:5y",
+      "claude-sonnet-5@1": "trailing:5y"
+     },
+     "spans": {
+      "quantify-compiler@2": "",
+      "claude-sonnet-5@1": "past 5 years"
+     }
+    },
+    {
+     "dimension": "execution_timing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "moving_average_window",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "objective",
+     "state": "ONE_SIDED",
+     "values": {
+      "claude-sonnet-5@1": "evaluate_investment_strategy"
+     },
+     "spans": {
+      "claude-sonnet-5@1": "I keep three months of expenses in cash and invest the rest, $5,000 a month, past 5 years."
+     }
+    },
+    {
+     "dimension": "observed_assets",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "periodic_rebalancing",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "sell_action",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "stated_weights",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "trigger_semantics",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:portfolio_sleeves",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    },
+    {
+     "dimension": "rel:account_transition",
+     "state": "UNREAD",
+     "values": {},
+     "spans": {}
+    }
+   ],
+   "failed_readers": {},
+   "usable": true,
+   "counts": {
+    "AGREED": 2,
+    "CONTESTED": 0,
+    "ONE_SIDED": 2,
+    "UNREAD": 15
+   }
+  }
+ ]
+}

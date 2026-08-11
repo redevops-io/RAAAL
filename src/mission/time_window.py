@@ -77,6 +77,35 @@ _UNTIL = re.compile(r"\b(?:through|until|up\s+to)\s+(\d{4})\b", re.IGNORECASE)
 _RANGE = re.compile(r"\bfrom\s+.{3,20}\s+(?:to|through|until)\s+.{3,20}", re.IGNORECASE)
 _ROLLING = re.compile(r"\b(?:each|every)\s+(?:month|quarter|year)\b.*\b(?:past|last|over)\b",
                       re.IGNORECASE)
+
+#: "Every month" attached to money is a contribution cadence, not a request to
+#: measure many windows.
+#:
+#: Cadence and evaluation window are separate semantic dimensions and must not
+#: consume each other's text. `_ROLLING` was tested first on the reasoning that
+#: "every month over the past five years" contains "the past five years" and is
+#: not one window — true of a measurement, false of a plan. So
+#:
+#:     I put $500 into VTI every month for the past five years
+#:
+#: produced a ROLLING window whose observed phrase was "every month for the
+#: past", which this build refuses, and an ordinary sentence dead-ended. The
+#: same plan written "monthly for the past 5 years" worked, because that
+#: phrasing has no "every" for the rolling pattern to seize.
+#:
+#: Precedence alone would not do: a trailing phrase is present in genuine
+#: rolling requests too, so preferring trailing whenever one appears would
+#: delete the capability rather than disambiguate it. What separates them is
+#: what repeats — a contribution, or the measurement.
+_CONTRIBUTION_CADENCE = re.compile(
+    r"(?:\$[\d,]+(?:\.\d+)?|\b\d+\s*(?:dollars|usd)\b)[^.]{0,40}?"
+    r"\b(?:each|every)\s+(?:week|month|quarter|year)\b"
+    r"|\b(?:put|puts|invest|invests|add|adds|buy|buys|contribute|contributes|"
+    r"save|saves|transfer|transfers)\b[^.]{0,40}?"
+    r"\b(?:each|every)\s+(?:week|month|quarter|year)\b"
+    r"|\b(?:each|every)\s+(?:week|month|quarter|year)\b[^.]{0,30}?"
+    r"\b(?:i\s+)?(?:put|invest|add|buy|contribute|save|transfer)\b",
+    re.IGNORECASE)
 _EVENT = re.compile(r"\bsince\s+the\s+\w+\s+(?:crash|drawdown|selloff|peak|bottom)\b",
                     re.IGNORECASE)
 
@@ -106,6 +135,30 @@ class TimeWindow:
         return {"kind": self.kind.value, "observed": self.observed,
                 "years": self.years, "months": self.months,
                 "supported": self.supported}
+
+    @staticmethod
+    def from_json(body) -> Optional["TimeWindow"]:
+        """The instruction, read back from a stored plan.
+
+        `supported` is deliberately not read: it is a property of `kind`, and
+        a stored `true` beside a kind this build no longer supports would let
+        a plan assert its own supportability. Derived values are recomputed,
+        never restored.
+
+        Returns None for anything unreadable rather than a partial window. A
+        window with a missing kind is not a window with a default kind.
+        """
+        if not isinstance(body, dict):
+            return None
+        try:
+            kind = WindowKind(str(body.get("kind")))
+        except ValueError:
+            return None
+        years, months = body.get("years"), body.get("months")
+        return TimeWindow(
+            kind=kind, observed=str(body.get("observed") or ""),
+            years=int(years) if years is not None else None,
+            months=int(months) if months is not None else None)
 
 
 @dataclass(frozen=True)
@@ -144,9 +197,13 @@ def detect(text: str) -> Optional[TimeWindow]:
     if not text:
         return None
 
-    found = _ROLLING.search(text)
-    if found:
-        return TimeWindow(WindowKind.ROLLING, found.group(0).strip())
+    # A repeating *contribution* leaves the window to be read on its own. The
+    # cadence itself is recognised elsewhere, by the compiler's own vocabulary;
+    # all that happens here is that this function stops claiming its words.
+    if not _CONTRIBUTION_CADENCE.search(text):
+        found = _ROLLING.search(text)
+        if found:
+            return TimeWindow(WindowKind.ROLLING, found.group(0).strip())
     found = _EVENT.search(text)
     if found:
         return TimeWindow(WindowKind.EVENT_RELATIVE, found.group(0).strip())

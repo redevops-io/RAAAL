@@ -50,23 +50,76 @@ TRACE_PATH_VAR = "QUANTIFY_TRACE_PATH"
 TRACE_RETENTION_VAR = "QUANTIFY_TRACE_RETENTION_DAYS"
 
 
-def _retention(raw: Optional[str]) -> int:
+#: The per-call token ceiling for the hosted reader. Resolved here because a
+#: ceiling nothing reads is not a ceiling: the drift workflow pinned this
+#: variable as a spend control while `HostedReader.max_tokens` kept its
+#: hardcoded default, so the "budget" was a comment in YAML. That is the exact
+#: failure that workflow's own header warns about, committed in the workflow
+#: itself.
+PARSER_MAX_TOKENS_VAR = "QUANTIFY_PARSER_MAX_TOKENS"
+
+#: Whether the deterministic syntax witness runs beside the model on the
+#: serving path. Declared, never inferred from whether Stanza imports: an
+#: image that happens to have the package is not a deployment that decided to
+#: use it, and `WitnessProfile` is carried onto every artifact.
+SYNTAX_WITNESS_VAR = "QUANTIFY_SYNTAX_WITNESS"
+
+#: Whether pilot participants' own sentences are retained, and for how long.
+TRANSCRIPTS_VAR = "QUANTIFY_PILOT_TRANSCRIPTS"
+TRANSCRIPT_RETENTION_VAR = "QUANTIFY_PILOT_TRANSCRIPT_DAYS"
+
+
+def _retention(raw: Optional[str], *, default: Optional[int] = None) -> int:
     """Days, or the default. An unreadable value keeps the default rather than
     raising: a malformed retention setting must not stop a deployment serving,
     because telemetry is the expendable half."""
-    from ..telemetry.trace_store import DEFAULT_RETENTION_DAYS
+    if default is None:
+        from ..telemetry.trace_store import DEFAULT_RETENTION_DAYS
+
+        default = DEFAULT_RETENTION_DAYS
 
     try:
         days = int(str(raw))
     except (TypeError, ValueError):
-        return DEFAULT_RETENTION_DAYS
-    return days if days > 0 else DEFAULT_RETENTION_DAYS
+        return default
+    return days if days > 0 else default
+
+
+def _positive_int(raw: Optional[str], default: int) -> int:
+    """A ceiling, or the default. An unreadable value keeps the default rather
+    than raising: a malformed budget must not stop a deployment serving, and a
+    zero ceiling would refuse every request while looking like a setting."""
+    try:
+        value = int(str(raw))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+def _affirmative(raw: Optional[str]) -> bool:
+    """Only an explicit yes turns transcript retention on.
+
+    Anything unrecognised reads as off. The asymmetry is deliberate: a typo in
+    this variable must fail towards *not* keeping what people typed, and a
+    deployment that meant to retain will notice an empty transcript store far
+    sooner than a cohort would notice prose being kept it was not told about.
+    """
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 #: Declared, never inferred. A deployment states which parser it is running.
 PARSER_MODE_VAR = "QUANTIFY_PARSER_MODE"
 PARSER_FALLBACK_VAR = "QUANTIFY_PARSER_FALLBACK"
 PARSER_PROMPT_VERSION_VAR = "QUANTIFY_PARSER_PROMPT_VERSION"
+
+#: Which reader the pilot interpreter consults. `recorded` replays fixtures
+#: instead of calling the provider — for acceptance tests and for a demo
+#: without a key.
+#:
+#: Resolved here rather than read in the route, which is the whole rule of this
+#: module: a request handler deciding for itself where its answers come from is
+#: how one instance serves fixtures while reporting them as the model's.
+PILOT_READER_VAR = "QUANTIFY_PILOT_READER"
 
 
 def _model_target(source: Mapping[str, str]) -> "ModelTarget":
@@ -83,10 +136,18 @@ def _model_target(source: Mapping[str, str]) -> "ModelTarget":
                     else ParserFallback.REFUSE)
     except ValueError:
         fallback = ParserFallback.REFUSE
+    raw_reader = (source.get(PILOT_READER_VAR) or "").strip().upper()
+    try:
+        reader = PilotReader(raw_reader) if raw_reader else PilotReader.HOSTED
+    except ValueError:
+        reader = PilotReader.HOSTED
     return ModelTarget(
         _api_key=source.get("ANTHROPIC_API_KEY"),
         model=source.get("QUANTIFY_PARSER_MODEL"),
         mode=mode, fallback=fallback, declared=bool(raw_mode),
+        pilot_reader=reader,
+        max_tokens=_positive_int(source.get(PARSER_MAX_TOKENS_VAR), 8000),
+        syntax_witness=_affirmative(source.get(SYNTAX_WITNESS_VAR)),
         prompt_version=source.get(PARSER_PROMPT_VERSION_VAR) or PARSER_VERSION)
 
 
@@ -155,6 +216,35 @@ class ParserMode(str, Enum):
     MODEL_ASSISTED = "MODEL_ASSISTED"
     DETERMINISTIC = "DETERMINISTIC"
 
+    RUNTIME = "RUNTIME"
+    """The pilot interpreter: hosted reader → fusion → `VerifiedIntent` →
+    `compile_intent`.
+
+    A third *declared* mode rather than a flag on `MODEL_ASSISTED`, for the
+    reason that enum's docstring already gives: a deployment states what it is,
+    and an entire pilot was once measured model-assisted because a variable was
+    set in a shell nobody had decided about. `RUNTIME` and `MODEL_ASSISTED`
+    both call a model and produce different artifacts — one a
+    `ScenarioSpecification` from prose, the other a plan compiled from a pinned
+    intent — and a plan cannot say which it was unless the deployment did.
+
+    Model-only is the *witness profile* under this mode, not a fourth mode.
+    Whether the deterministic reader is installed is a property of the image;
+    `discovery.witnesses` carries it onto the artifact."""
+
+
+class PilotReader(str, Enum):
+    HOSTED = "HOSTED"
+    """Call the provider. What a real deployment does."""
+
+    RECORDED = "RECORDED"
+    """Replay recorded readings. A *declared* choice, never a fallback.
+
+    A route that replayed fixtures because a key was missing would serve
+    answers from a file and report them as the model's — the same class of
+    failure as parsing deterministically under a model-assisted declaration,
+    and harder to notice because the answers look right."""
+
 
 class ParserFallback(str, Enum):
     REFUSE = "REFUSE"
@@ -186,6 +276,26 @@ class ModelTarget:
     model: Optional[str] = None
     mode: "ParserMode" = ParserMode.DETERMINISTIC
     fallback: "ParserFallback" = ParserFallback.REFUSE
+    pilot_reader: "PilotReader" = PilotReader.HOSTED
+    max_tokens: int = 8000
+    """Per-call ceiling for the hosted reader, and a real spend control.
+
+    Mirrors `readers_quantify.HostedReader.max_tokens`, which is where the
+    default comes from. Resolved rather than read at the call site, like
+    everything else here."""
+
+    syntax_witness: bool = False
+    """Whether a second, deterministic reader constrains the model's semantics.
+
+    Off by default because the parser is a ~500MB model that not every image
+    carries. Turned on for a serving deployment because a single stochastic
+    witness cannot support a safety gate: two recordings of one model, same
+    prompt version, differed on 24 of 36 corpus sentences — two losing a
+    `sell_action` they previously had, and one inverting `persistent_condition`
+    to `crossing_event`. Syntax does not decide meaning; it stops an unstable
+    reader from changing meaning between runs unnoticed.
+    """
+
     prompt_version: str = ""
 
     declared: bool = False
@@ -211,6 +321,31 @@ class ModelTarget:
     def model_assisted(self) -> bool:
         return self.mode is ParserMode.MODEL_ASSISTED
 
+    @property
+    def witnesses(self):
+        """The declared witness profile, for the artifact to carry."""
+        from ..discovery.witnesses import BOTH, MODEL_ONLY
+
+        return BOTH if self.syntax_witness else MODEL_ONLY
+
+    @property
+    def uses_the_runtime(self) -> bool:
+        """The pilot interpreter: hosted reader, fusion, pinned intent."""
+        return self.mode is ParserMode.RUNTIME
+
+    @property
+    def needs_a_model(self) -> bool:
+        """Both model-calling modes, so the coherence check covers each.
+
+        Written as a property rather than repeated at the call site: adding
+        `RUNTIME` to the enum without adding it here would have let a
+        deployment declare the pilot interpreter with no API key and pass the
+        preflight, then refuse every description at request time with the
+        startup proof still reporting a valid configuration. That is the exact
+        failure the `MODEL_ASSISTED` check exists to prevent, one mode later.
+        """
+        return self.model_assisted or self.uses_the_runtime
+
     def api_key(self) -> Optional[str]:
         """The one accessor. Named so a grep for it finds every use."""
         return self._api_key
@@ -229,18 +364,19 @@ class ModelTarget:
                 "serve a narrower product than the one reviewed, with fewer "
                 "recognitions and different blockers, while the startup proof "
                 "reported a valid configuration",)
-        if not self.model_assisted:
+        if not self.needs_a_model:
             return ()
         found = []
         if not self.available:
             found.append(
-                "parser mode is MODEL_ASSISTED and no API key is configured. "
+                f"parser mode is {self.mode.value} and no API key is "
+                "configured. "
                 "Serving would mean either refusing every description or "
                 "silently parsing with a narrower grammar than this "
                 "deployment declares")
         if not self.model:
             found.append(
-                "parser mode is MODEL_ASSISTED and no model is pinned. An "
+                f"parser mode is {self.mode.value} and no model is pinned. An "
                 "unpinned model changes what a description means without a "
                 "version anyone can cite")
         return tuple(found)
@@ -248,6 +384,9 @@ class ModelTarget:
     def to_json(self) -> dict:
         return {"model": self.model, "available": self.available,
                 "mode": self.mode.value, "fallback": self.fallback.value,
+                "pilot_reader": self.pilot_reader.value,
+                "syntax_witness": self.syntax_witness,
+                "max_tokens": self.max_tokens,
                 "prompt_version": self.prompt_version,
                 "declared": self.declared}
 
@@ -314,6 +453,34 @@ class TelemetryTarget:
 
 
 @dataclass(frozen=True)
+class StudyTarget:
+    """Whether this deployment keeps what pilot participants typed.
+
+    Separate from `telemetry` because it is a different kind of thing held for a
+    different reason. Telemetry is counts, it needs no permission, and it is
+    expendable. A transcript is a person's own words, kept so an interview can
+    quote them accurately instead of from the interviewer's memory — and the
+    only honest default for that is off.
+
+    **Declared, never inferred.** Not derived from `PARSER_MODE=RUNTIME`, and
+    not switched on because a pilot happens to be running: a deployment that
+    started retaining prose because some other variable changed would be
+    keeping people's words on the strength of a side effect. Whoever set this
+    is the person who told the cohort it was set.
+    """
+
+    retain_transcripts: bool = False
+    retention_days: int = 30
+    """Shorter than telemetry's 90 by default. Counts stay useful long after a
+    pilot; the sentence someone typed is evidence for one conversation, and
+    keeping it past that conversation is keeping it for no stated reason."""
+
+    def to_json(self) -> dict:
+        return {"retain_transcripts": self.retain_transcripts,
+                "retention_days": self.retention_days}
+
+
+@dataclass(frozen=True)
 class DeploymentContext:
     """What this deployment is. Immutable, and resolved exactly once."""
 
@@ -322,9 +489,25 @@ class DeploymentContext:
     market_data: MarketDataTarget
     model: ModelTarget
     telemetry: "TelemetryTarget"
+    study: "StudyTarget"
     build: Any
     """The `BuildManifest`, which already resolves itself from the environment
     and is carried here so nothing re-reads it."""
+
+    state_directory: str = "reports/state"
+    """Where the agentic runtime keeps its three authoritative state records.
+
+    An operational identity by this module's own test: two components holding
+    different views about where state lives is the silent-divergence case the
+    resolver exists to prevent — one writes the manifest, another reads an
+    older one, and nothing says they disagreed.
+
+    It arrived here when master merged. `src/agentic/state_store.py` read
+    `RAAAL_STATE_DIR` directly, and `test_no_undeclared_reader` caught it the
+    moment the two codebases met — which is the test doing exactly its job on
+    code written without knowledge of the rule. Declaring it a non-identity
+    would have been cheaper and wrong: a storage location is precisely what a
+    second component can disagree about."""
 
     @property
     def is_production(self) -> bool:
@@ -337,6 +520,7 @@ class DeploymentContext:
                 "market_data": self.market_data.to_json(),
                 "model": self.model.to_json(),
                 "telemetry": self.telemetry.to_json(),
+                "study": self.study.to_json(),
                 "build": {"observable": getattr(self.build, "observable", None)}}
 
 
@@ -382,6 +566,10 @@ def current() -> DeploymentContext:
     silently ignores configuration is the failure this module exists to end.
     """
     return _BOUND["context"] or resolve()
+
+
+#: Where the agentic runtime's state records live. Read here and nowhere else.
+STATE_DIRECTORY_VAR = "RAAAL_STATE_DIR"
 
 
 def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
@@ -432,4 +620,10 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
         telemetry=TelemetryTarget(
             path=source.get(TRACE_PATH_VAR, str(DEFAULT_TRACE_PATH)) or None,
             retention_days=_retention(source.get(TRACE_RETENTION_VAR))),
+        study=StudyTarget(
+            retain_transcripts=_affirmative(source.get(TRANSCRIPTS_VAR)),
+            retention_days=_retention(source.get(TRANSCRIPT_RETENTION_VAR),
+                                      default=30)),
+        state_directory=source.get(STATE_DIRECTORY_VAR,
+                                   "reports/state") or "reports/state",
         build=read_manifest(source))

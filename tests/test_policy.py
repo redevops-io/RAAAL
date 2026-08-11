@@ -323,3 +323,40 @@ class TestLayerSeparation:
         )
         assert without.decision is Decision.BLOCK
         assert without.policy_status is None
+
+
+class TestTheRegistryOnlyLoadsPolicies:
+    """`policies/` is read wholesale by filename shape: anything matching
+    `name@version.yaml` is parsed as a statistical policy.
+
+    A market-data licensing record was written there because it, too, records a
+    decision under a version. It parsed as YAML, matched the filename pattern,
+    and died on `payload["name"]` — a bare `KeyError: 'name'` from inside a
+    registry load, raised while rendering, which surfaced as a 500 on every
+    page of the site and named neither the file nor the field.
+
+    Skipping unrecognised files would hide the opposite failure: a genuine
+    policy with a mistyped key would disappear from the registry and results
+    would be judged under a standard quietly missing a member. So this stays
+    fatal, and only says what it choked on.
+    """
+
+    def _registry(self, tmp_path, text):
+        (tmp_path / "market-data-licensing@1.yaml").write_text(text)
+        return PolicyRegistry(tmp_path)
+
+    def test_a_non_policy_names_itself_and_the_missing_field(self, tmp_path):
+        registry = self._registry(tmp_path, "policy_version: x\nanswers: {}\n")
+        with pytest.raises(ValueError) as raised:
+            registry.load_all()
+        message = str(raised.value)
+        assert "market-data-licensing@1.yaml" in message
+        assert "name" in message and "version" in message
+
+    def test_it_does_not_fail_on_a_real_policy(self, tmp_path):
+        """The discriminating half: the check must reject the intruder without
+        rejecting a policy that merely omits optional fields."""
+        registry = self._registry(
+            tmp_path, "name: market-data-licensing\nversion: 1\n")
+        assert [(p.name, p.version) for p in registry.load_all()] == \
+            [("market-data-licensing", 1)]

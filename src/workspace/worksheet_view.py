@@ -15,6 +15,20 @@ time is a second implementation of the engine living in the view layer.
 """
 from __future__ import annotations
 
+
+#: Fields this view reads from a run result that `MissionResult.to_json` does
+#: not emit, and why each is still read. Declared here rather than in a central
+#: list so the reason sits beside the code, and enforced by
+#: `tests/test_result_contract.py` — three columns in this file were blank for
+#: months because `dict.get` turns a missing key into an empty cell.
+RESULT_FIELD_NOTES = {
+    "max_drawdown": (
+        "EXPLICITLY_ABSENT",
+        "Mission computes no drawdown. `evaluation.runner` does, on a "
+        "different path, and wiring it here is a product decision rather than "
+        "a rename. The read stays so the gap is visible."),
+}
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -200,14 +214,21 @@ def _payload(block: Block, scenario: Mapping[str, Any],
         # Symmetric rows. The user's strategy is one row among the benchmarks
         # rather than the row the others are measured against, because a layout
         # that centres one series has already made an argument.
-        path = result.get("path") or {}
+        # `result["path"]["contributed"]` — a second key the engine does not
+        # emit. `MissionResult.to_json` flattens the path and puts
+        # `contributed` at the top level, so this column was blank too.
         return {
             "rows": [{
                 "name": "Your strategy",
                 "final_value": result.get("final_value"),
-                "contributed": path.get("contributed"),
+                "contributed": result.get("contributed"),
                 "time_weighted_annualized": result.get("time_weighted_annualized"),
-                "money_weighted": result.get("money_weighted"),
+                # Was `money_weighted`, which nothing emits. Three columns in
+                # this block read keys the engine never produced; `dict.get`
+                # returned None for each and an empty cell looks exactly like a
+                # metric that did not compute.
+                "money_weighted": result.get("money_weighted_annualized"),
+                "money_weighted_status": result.get("money_weighted_status"),
                 "max_drawdown": result.get("max_drawdown"),
             }],
             "ran_at": (run or {}).get("ran_at"),
@@ -216,7 +237,7 @@ def _payload(block: Block, scenario: Mapping[str, Any],
             # actually did.
             "both_bases_present": (
                 result.get("time_weighted_annualized") is not None
-                and result.get("money_weighted") is not None),
+                and result.get("money_weighted_annualized") is not None),
         }
 
     if block is Block.MODELING_SCOPE:

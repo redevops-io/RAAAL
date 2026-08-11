@@ -1,0 +1,471 @@
+{
+  "schema": "quantify-material-survival@1",
+  "sentences": 29,
+  "material_semantics": 76,
+  "tally": {
+    "HONOURED": 0,
+    "NAMED": 21,
+    "DROPPED": 0,
+    "NOT_REACHED": 55
+  },
+  "survival_rate": 1.0,
+  "adjudicated": 21,
+  "unrecorded": [],
+  "reached_a_plan": 0,
+  "stopped_by": {
+    "assets": 16,
+    "stated_weights": 9,
+    "amount": 7,
+    "allocation_method": 4,
+    "periodic_rebalancing": 3,
+    "sell_action": 2,
+    "cadence": 1,
+    "holding_period": 1,
+    "account_type": 1
+  },
+  "dropped_by_concept": {},
+  "metric_note": "HONOURED + NAMED over everything adjudicated. A refusal by name is survival: the person knows what became of that clause. Silence is not, whatever the plan looks like.",
+  "caution": "A survival rate near 100% with no sentence reaching a plan is not a good result and must not be quoted as one. Nothing was reduced because nothing ran. It says this build is safe on language of this kind and cannot yet model it, which are two findings and only one of them is comfortable.",
+  "population_note": "29 of 220 sentences that passed a filter built to admit people describing what they do with money are statements of a strategy. The rest are personal circumstance, questions about the world, or fragments. People writing to a forum describe their situation; people typing into a strategy box describe a strategy, and this corpus is drawn from the first population.",
+  "rows": [
+    {
+      "stopped_by": [
+        "allocation_method",
+        "stated_weights"
+      ],
+      "text": "I put 100% of my 401k into an S&P index fund.",
+      "interpretation": "hold a single S&P index fund, in a 401(k)",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NOT_REACHED",
+        "how the money is split": "NAMED",
+        "which account it sits in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/39679/how-or-is-it-necessary-to-rebalance-a-401k-with-only-one-index-fund"
+    },
+    {
+      "stopped_by": [
+        "allocation_method",
+        "stated_weights"
+      ],
+      "text": "However, consider that I start with a 60-40 equity to fixed asset allocation.",
+      "interpretation": "open with 60% equities and 40% fixed income",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NOT_REACHED",
+        "the split they named": "NAMED"
+      },
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important"
+    },
+    {
+      "stopped_by": [
+        "assets",
+        "stated_weights"
+      ],
+      "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split.",
+      "interpretation": "hold 80/20 rather than what is held now",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NAMED",
+        "the split they named": "NAMED"
+      },
+      "source": "https://money.stackexchange.com/questions/47575/with-all-the-different-asset-allocations-out-there-why-is-rebalancing-important"
+    },
+    {
+      "stopped_by": [
+        "assets",
+        "periodic_rebalancing"
+      ],
+      "text": "I understand that rebalancing once a year is better than doing it once every two years.",
+      "interpretation": "rebalance annually",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "putting the portfolio back to its target": "NAMED",
+        "how often it is put back": "NAMED"
+      },
+      "source": "https://money.stackexchange.com/questions/145454/is-there-a-quantitative-answer-to-how-frequently-i-should-optimize-my-portfolio"
+    },
+    {
+      "stopped_by": [
+        "assets",
+        "periodic_rebalancing"
+      ],
+      "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
+      "interpretation": "rebalance on a calendar, at one of several frequencies",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "putting the portfolio back to its target": "NAMED",
+        "how often it is put back": "NAMED"
+      },
+      "source": "https://quant.stackexchange.com/questions/78187/portfolio-optimization-with-etfs-and-futures"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month.",
+      "interpretation": "contribute $50 a month to each of several accounts",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "which account it sits in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/76425/should-i-switch-to-a-new-ira-custodian"
+    },
+    {
+      "stopped_by": [
+        "stated_weights"
+      ],
+      "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
+      "interpretation": "hold stocks, bonds and other at 73/23/4",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NOT_REACHED",
+        "the split they named": "NAMED"
+      },
+      "source": "https://money.stackexchange.com/questions/55630/first-401k-portfolio-with-high-expense-ratios-which-funds-to-pick-24yo"
+    },
+    {
+      "stopped_by": [
+        "amount",
+        "assets"
+      ],
+      "text": "Beyond that, I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually.",
+      "interpretation": "contribute the annual maximum to a Roth IRA and a 403(b) every year",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how often money goes in": "NOT_REACHED",
+        "which account it sits in": "NOT_REACHED",
+        "a cap on what may go in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
+      "interpretation": "contribute 22% of pay, up to $18,000 a year",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "contributions as a share of pay": "NOT_REACHED",
+        "a cap on what may go in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "I am also contributing $5500 to my Roth IRA each year.",
+      "interpretation": "contribute $5,500 a year to a Roth IRA",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "which account it sits in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future"
+    },
+    {
+      "stopped_by": [
+        "amount"
+      ],
+      "text": "Now, what I'm thinking of doing is putting a portion of my cash savings into I-Bonds every year.",
+      "interpretation": "buy I-Bonds annually with part of a cash balance",
+      "expected_disposition": "CLARIFIES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NOT_REACHED",
+        "how much goes in": "NAMED",
+        "how often money goes in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/45170/where-do-i-bonds-fit-into-personal-finance-plans"
+    },
+    {
+      "stopped_by": [
+        "stated_weights"
+      ],
+      "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
+      "interpretation": "contribute 10% of after-tax pay to a traditional IRA each year",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "contributions as a share of pay": "NOT_REACHED",
+        "which account it sits in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/20835/investments-other-than-cds"
+    },
+    {
+      "stopped_by": [
+        "stated_weights"
+      ],
+      "text": "At a minimum, I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs.",
+      "interpretation": "hold twelve months of expenses in cash, plus a further 5%",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "cash held aside": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/126216/home-mortgage-w-very-low-interest-rates-more-or-less-down"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "If I don't touch it, he will continue to put in $50 a month.",
+      "interpretation": "contribute $50 monthly",
+      "expected_disposition": "CLARIFIES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/46758/just-getting-started-and-not-sure-where-to-go-from-here"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
+      "interpretation": "contribute $750 a month to a 401(k)",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "which account it sits in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/111369/strategy-to-pay-off-revolving-debt-while-building-reserve-savings-fund"
+    },
+    {
+      "stopped_by": [
+        "amount"
+      ],
+      "text": "I can probably invest 500€-600€ monthly for something.",
+      "interpretation": "contribute somewhere between €500 and €600 a month",
+      "expected_disposition": "CLARIFIES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NAMED",
+        "how often money goes in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/49912/how-should-i-invest-my-money-as-a-young-graduate-in-europe"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
+      "interpretation": "contribute $550 a month to a 401(k)",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "which account it sits in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/79916/should-i-temporarily-stop-or-decrease-401k-investment-to-pay-off-a-loan"
+    },
+    {
+      "stopped_by": [
+        "amount",
+        "sell_action"
+      ],
+      "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
+      "interpretation": "sell each tranche of equity as it vests, quarterly",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "selling something": "NAMED",
+        "how often money goes in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/28502/3-year-horizon-before-trading-up-to-next-home-put-windfall-in-savings-or-pay-o"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "At the moment I invest $50 every week.",
+      "interpretation": "contribute $50 weekly",
+      "expected_disposition": "CLARIFIES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/136064/focus-on-mortgage-or-keep-investing"
+    },
+    {
+      "stopped_by": [
+        "sell_action"
+      ],
+      "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
+      "interpretation": "redirect a monthly mortgage payment into savings",
+      "expected_disposition": "CLARIFIES",
+      "executed": false,
+      "fates": {
+        "how often money goes in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/87512/savings-investment-diversification"
+    },
+    {
+      "stopped_by": [
+        "amount",
+        "assets",
+        "cadence"
+      ],
+      "text": "I'm about to start putting roughly 8-10% of paychecks into my 401k but havent as of yet.",
+      "interpretation": "contribute 8-10% of each paycheck to a 401(k)",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NAMED",
+        "how often money goes in": "NAMED",
+        "contributions as a share of pay": "NOT_REACHED",
+        "which account it sits in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/55829/should-i-buy-2200-of-a-hot-stock-or-invest-elsewhere"
+    },
+    {
+      "stopped_by": [
+        "allocation_method",
+        "amount",
+        "assets",
+        "periodic_rebalancing",
+        "stated_weights"
+      ],
+      "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
+      "interpretation": "contribute quarterly and rebalance to 70/30 at the same time",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NAMED",
+        "how often money goes in": "NOT_REACHED",
+        "putting the portfolio back to its target": "NAMED",
+        "how often it is put back": "NAMED",
+        "the split they named": "NAMED"
+      },
+      "source": "https://money.stackexchange.com/questions/142270/do-bond-funds-have-an-inherent-advantage-over-individual-bonds-within-a-portfoli"
+    },
+    {
+      "stopped_by": [
+        "amount"
+      ],
+      "text": "Currently I invest 31 EUR/month but plan to go to around 100 to 150 EUR/month once I start by PhD position.",
+      "interpretation": "contribute €31 a month now, raising it to €100-150 later",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how much goes in": "NAMED",
+        "how often money goes in": "NOT_REACHED",
+        "raising the contribution later": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/75058/how-aggressive-should-my-personal-portfolio-be"
+    },
+    {
+      "stopped_by": [
+        "stated_weights"
+      ],
+      "text": "Mutual Funds - No tax rebate/exemption, I invest 5% of salary per month.",
+      "interpretation": "contribute 5% of monthly salary to mutual funds",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NOT_REACHED",
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "contributions as a share of pay": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/109806/how-to-diversify-long-term-retirement-investment-schemes-in-india-so-have-sustai"
+    },
+    {
+      "stopped_by": [
+        "stated_weights"
+      ],
+      "text": "Savings Bank Account - No tax rebate/exemption, I put 15% of salary per month.",
+      "interpretation": "put 15% of monthly salary into a savings account",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NOT_REACHED",
+        "how much goes in": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "contributions as a share of pay": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/109806/how-to-diversify-long-term-retirement-investment-schemes-in-india-so-have-sustai"
+    },
+    {
+      "stopped_by": [
+        "assets",
+        "holding_period"
+      ],
+      "text": "To do this, I employed this methodology: Set a portfolio holding period of 21 days.",
+      "interpretation": "hold each position for 21 days",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "how long a holding is kept": "NAMED"
+      },
+      "source": "https://quant.stackexchange.com/questions/77807/intuition-behind-portfolio-weights-with-lower-rmse-but-higher-variance"
+    },
+    {
+      "stopped_by": [
+        "allocation_method",
+        "assets"
+      ],
+      "text": "In other words, I would like to target, say, an 10% annualised volatility.",
+      "interpretation": "size positions so annualised volatility comes out near 10%",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "a volatility level to aim at": "NOT_REACHED"
+      },
+      "source": "https://quant.stackexchange.com/questions/71489/when-how-do-i-vol-scale-portfolio-weights-when-optimizing-the-portfolio"
+    },
+    {
+      "stopped_by": [
+        "assets"
+      ],
+      "text": "I currently max out my HSA contributions.",
+      "interpretation": "contribute the annual maximum to an HSA",
+      "expected_disposition": "REFUSES",
+      "executed": false,
+      "fates": {
+        "which account it sits in": "NOT_REACHED",
+        "a cap on what may go in": "NOT_REACHED"
+      },
+      "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost"
+    },
+    {
+      "stopped_by": [
+        "account_type"
+      ],
+      "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
+      "interpretation": "contribute to mutual funds in a brokerage account, periodically",
+      "expected_disposition": "CLARIFIES",
+      "executed": false,
+      "fates": {
+        "what to hold": "NOT_REACHED",
+        "how often money goes in": "NOT_REACHED",
+        "which account it sits in": "NAMED"
+      },
+      "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what"
+    }
+  ]
+}

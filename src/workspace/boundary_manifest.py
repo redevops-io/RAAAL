@@ -46,6 +46,11 @@ class EndpointBoundary:
 MANIFEST: Sequence[EndpointBoundary] = (
     EndpointBoundary("/workspace", Exposure.PRIVATE,
                      "The scenario workspace. Everything here is one person's."),
+    EndpointBoundary("/pilot", Exposure.PRIVATE,
+                     "The pilot mission workspace. One person's goal, one "
+                     "person's plan, and a stored intent that names the "
+                     "sentence it came from — private for the same reason the "
+                     "scenario workspace is."),
     EndpointBoundary("/ui", Exposure.PUBLIC,
                      "The research library. Impersonal by construction."),
     EndpointBoundary("/methodologies", Exposure.PUBLIC, "Published rules."),

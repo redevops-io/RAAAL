@@ -28,3 +28,23 @@ gymnasium>=0.29
 
 # --- Broker Execution (install manually, not yet on Python 3.13) ---
 # alpaca-trade-api>=3.0
+
+# --- The Discovery -> Mission boundary contract ---
+# Owned by neither runtime, so pinned to a tag rather than a branch: a mutable
+# ref can be rebased under a consumer, which is the fragility this project
+# criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
+# that moves silently is not a contract.
+runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.2
+
+# --- The Mission Runtime, for the cross-runtime replay gate ---
+# Tag-pinned for the same reason as the contracts above. Same licence family
+# (AGPL-3.0-or-later WITH Commons-Clause), which is what made the import legal:
+# see docs/Migration.md §6.6.
+agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.2
+
+# --- Discovery: deterministic syntax evidence ---
+# Only needed to *record* parses (`corpus/parser/record_parses.py`) and to run
+# `tests/test_parse_fixtures_are_current.py`. The corpus itself replays
+# recordings, so the core image and the everyday suite need neither this nor
+# its models. Deliberately absent from requirements-core.txt.
+stanza>=1.14

@@ -1,0 +1,96 @@
+# The six questions that gate lifting SYNTHETIC_ONLY, answered.
+#
+# Recorded because `licensing_resolved()` checks for a complete record rather
+# than trusting an assertion, and because a decision with no reviewer and no
+# date is one nobody can revisit.
+#
+# The decision, in the operator's words (2026-08-07):
+#
+#   "yahoo licensing is irrelevant at this point - we are testing and there's
+#    no commercial usage. the don't add new data gate was meant for initial
+#    ironing out of the logic on a small data subset - now when that is
+#    completed we need to conduct tests on a bigger data sample - this is
+#    consistent. so no data restriction except for the daily refresh - that is
+#    not needed still in our case"
+#
+# Every answer below was stated by the reviewer. An earlier draft guessed at
+# three of them and was not written; the guesses were wrong in at least one
+# place, which is why they are not here.
+
+policy_version: market-data-egress/pilot-vendor-approved@1
+snapshot_kind: vendor
+provider: yahoo-finance
+refresh: none                # a static snapshot; no daily refresh, as stated
+
+answers:
+  may derived results be shown to end users:
+    answer: "yes, to the closed pilot cohort"
+    source_ref: "operator decision 2026-08-07: testing, no commercial usage"
+    reviewer: "Alex Mats"
+    decided_on: "2026-08-07"
+    audience: "closed pilot cohort, invited individually"
+    derived_outputs: "backtest figures, ledgers, worksheets"
+    export_rule: "shown in the deployment; not exported"
+    retention_rule: "kept while testing continues"
+
+  may derived results be exported in a case bundle:
+    # Not "no" — unasked. The reviewer has seen no need for it, and the
+    # instruction is to raise the question again rather than treat silence as
+    # a standing permission. A future export path must come back here first.
+    answer: "no need identified; ask again before any export path is built"
+    source_ref: "operator decision 2026-08-07"
+    reviewer: "Alex Mats"
+    decided_on: "2026-08-07"
+    audience: "none"
+    derived_outputs: "none exported"
+    export_rule: "no export capability; revisit this record before adding one"
+    retention_rule: "n/a while no export exists"
+
+  may raw prices be redistributed:
+    answer: "no"
+    source_ref: "Yahoo Finance terms prohibit redistribution"
+    reviewer: "Alex Mats"
+    decided_on: "2026-08-07"
+    audience: "none"
+    derived_outputs: "derived figures only, never the price series"
+    export_rule: "the snapshot is never served or exported"
+    retention_rule: "held in the private market-data bucket"
+
+  may data be sent to a model provider:
+    # A debugging affordance for an operator, not a product behaviour. No code
+    # path sends prices to a model today — stage 1 receives the user's
+    # sentence and nothing else — and this permission does not authorise
+    # building one. If a request ever carries price data automatically, that is
+    # a change to the architecture and belongs back in this record.
+    answer: "small snippets during testing, to diagnose faster; never the full series"
+    source_ref: "operator decision 2026-08-07"
+    reviewer: "Alex Mats"
+    decided_on: "2026-08-07"
+    audience: "operator debugging only"
+    derived_outputs: "none"
+    export_rule: "manual, snippet-sized, operator-initiated; no automated path"
+    retention_rule: "governed by the model provider's own retention"
+
+  what retention applies to derived artifacts:
+    answer: "store or archive what testing needs; non-commercial throughout"
+    source_ref: "operator decision 2026-08-07"
+    reviewer: "Alex Mats"
+    decided_on: "2026-08-07"
+    audience: "closed pilot cohort and the operator"
+    derived_outputs: "plans, runs, worksheets, evaluation evidence"
+    export_rule: "no export"
+    retention_rule: "retained for the duration of testing"
+
+  what attribution or notice is required:
+    # This one has a visible consequence. The pages currently say the data is
+    # synthetic and "calibrated to no real security". With real prices behind
+    # the figures that sentence becomes false, so the notice is replaced
+    # rather than supplemented.
+    answer: "name Yahoo as the data source, with 'non-commercial usage only'"
+    source_ref: "operator decision 2026-08-07"
+    reviewer: "Alex Mats"
+    decided_on: "2026-08-07"
+    audience: "closed pilot cohort"
+    derived_outputs: "every page carrying a figure"
+    export_rule: "n/a"
+    retention_rule: "n/a"

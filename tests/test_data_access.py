@@ -172,11 +172,23 @@ class TestTheGateIsTheOnlyWayIn:
     def test_a_denied_snapshot_yields_nothing_rather_than_other_data(
             self, monkeypatch):
         """No fallback. A figure from data the plan did not name renders
-        ordinarily and says nothing about where it came from."""
+        ordinarily and says nothing about where it came from.
+
+        Setting the vendor policy used to be enough to produce a denial,
+        because no vendor snapshot could satisfy it. One can now, so the
+        denial is caused here instead of assumed — otherwise this reads as a
+        passing no-fallback test while exercising the allowed path.
+        """
+        import src.market_data.pilot_policy as policy_module
         import src.web.routes as web
 
         monkeypatch.setenv("PILOT_DATA_POLICY",
                            "market-data-egress/pilot-vendor-approved@1")
+
+        def refuse(snapshot, **kwargs):
+            raise policy_module.PilotDataDenied("refused for this test")
+
+        monkeypatch.setattr(policy_module, "authorise", refuse)
         assert web._prices() is None
 
     def test_the_approved_policy_does_reach_prices(self, monkeypatch, requires_the_vendor_snapshot):

@@ -161,7 +161,11 @@ def comparison_payload(
         rendered_text=rendered_text,
         declared_order=list(declared_order) if declared_order is not None else names,
         payload_order=names,
-        ordering_metric=[b.result.money_weighted if b.result else None
+        # Only a reportable rate orders anything. A benchmark whose series is
+        # NON_UNIQUE has no defensible position in a ranking, and taking the
+        # root a solver happened to reach would order the table by an artifact
+        # of bisection.
+        ordering_metric=[b.result.money_weighted.rate if b.result else None
                          for b in benchmarks],
         user_originated_rule=user_originated_rule,
         platform_generated_action=platform_generated_action,

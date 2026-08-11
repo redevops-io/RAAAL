@@ -44,9 +44,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, Set
 
 from .compiler import (
+    cadence_span_is_rebalancing,
+    trigger_semantics_ambiguous,
     _AMOUNT,
     _CADENCE,
     _RULES,
+    TRIGGER_SEMANTICS_VALUES,
     _TEMPLATE_HINTS,
     AMBIGUOUS_NAMES,
     ParsedUtterance,
@@ -72,6 +75,11 @@ def _vocabulary() -> Dict[str, Set[str]]:
     for field_name, value, _pattern in _RULES:
         vocab.setdefault(field_name, set()).add(value)
     vocab["cadence"] = {name for name, _pattern in _CADENCE}
+    # Resolved by precedence rather than by the flat table, so it has no entry
+    # there — and deriving the vocabulary from `_RULES` alone silently stopped
+    # the model proposing either value for it. Imported rather than restated:
+    # a second copy of this pair is the stale list the docstring warns about.
+    vocab["trigger_semantics"] = set(TRIGGER_SEMANTICS_VALUES)
     return vocab
 
 
@@ -310,35 +318,128 @@ def verify_proposals(
         tuple(rejections)
 
 
+#: Fields where the two readings disagreeing changes what gets executed and
+#: how much money moves. A contested value here is not settled by preferring a
+#: reader; it is asked about.
+#:
+#: Scoped deliberately. Blocking on every disagreement would turn a
+#: dividend-policy quibble into a stopped journey, and a gate that fires on
+#: cosmetic differences is a gate someone widens back out.
+#:
+#: **This governs only fields `merge()` can see** — the closed vocabulary two
+#: readers both propose values for. Two result-changing decisions are settled
+#: elsewhere and are *not* covered by agreement:
+#:
+#:   * **watched versus held instrument** — decided by `_observed_in_signal`
+#:     and `_acquired_instruments` in the compiler, from sentence-local role
+#:     evidence, not by a vocabulary field.
+#:   * **the evaluation period** — decided by `time_window.detect` and
+#:     `resolve`, which read the user's own phrase directly.
+#:
+#: Stated because "agreement is the authority" is true of one layer and would
+#: be false as a claim about the compiler. A reader who believed it covered
+#: every semantic decision would trust it where it does not apply, and the
+#: watched-versus-held split has already produced one defect of its own.
+MATERIAL_EXECUTION_FIELDS: frozenset = frozenset({
+    "trigger_semantics",     # crossing versus persistent: 13 signals or 60
+    "execution_timing",      # same-session close reads one bar ahead
+    "moving_average_kind",   # simple and exponential cross on different days
+    "funding_source",        # whether the money is new or already counted
+    "cadence",               # how often money arrives at all
+    "contribution_day_rule",  # which session it arrives on
+    "weighting",             # what each purchase buys
+    "sells_allowed",         # whether the plan ever exits
+    "earnings_timing",       # which session an earnings rule acts on
+    "vesting_action",        # whether shares are sold or held
+})
+
+
+#: Fields whose deterministic reader can say "this sentence is ambiguous" as
+#: distinct from saying nothing at all. A model proposal for one of these is
+#: not new information; it is an opinion about a question already judged open.
+#:
+#: Keyed by field and consulted against the text, rather than carried on
+#: `ParsedUtterance` — that object is serialized into every saved plan and
+#: replayed from browsers, and a new field on it is a migration.
+AMBIGUOUS_WHEN = {"trigger_semantics": trigger_semantics_ambiguous}
+
+#: Per-field checks on the *evidence* a proposal quotes, not just on whether
+#: the span appears in the text.
+#:
+#: The span check catches fabrication — words the user never wrote. This
+#: catches words the user wrote in a context that means something else, which
+#: is how "rebalanced monthly" arrived as a contribution cadence after the
+#: deterministic reader had stopped taking it.
+DISQUALIFIED_SPAN = {"cadence": cadence_span_is_rebalancing}
+
+
 def merge(deterministic: ParsedUtterance,
           model_recognitions: Sequence[Recognition],
           model_assets: Sequence[str],
           model_unclear: Sequence[str]) -> tuple:
-    """Combine both readings. The deterministic one wins every contested field.
+    """Combine both readings. Agreement is the authority, not either reader.
 
-    The regexes are narrow and high-precision by construction: each matches a
-    specific phrase that distinguishes two economically different readings. When
-    one fires, it saw that phrase. The model's job is the phrasings it does not
-    cover, not second-guessing the ones it does.
+    The old rule was "the deterministic one wins every contested field",
+    justified by a premise stated in this docstring: the regexes are narrow and
+    high-precision, so when one fires it saw the phrase. That premise was
+    false. The persistent-condition pattern matched "whenever … below"
+    whatever verb stood between them, so for
 
-    A disagreement is surfaced rather than resolved silently, because a plan
-    where two readers of the same sentence differ is exactly a plan whose
-    confirmation screen should say so.
+        I buy $1,000 of SPY whenever it crosses below its 200-day average
+
+    the regex read a persistent condition, the model read a crossing event
+    with the span "crosses below", the disagreement was recorded — and the
+    regex won. The plan committed $60,000 instead of $13,000.
+
+    Everything needed to prevent that was computed. It was discarded one line
+    later, because a detector whose output nothing consumes is not a control.
+
+    So on a **material execution field**, neither reading is adopted. The
+    recognition is dropped, the field falls to `unresolved`, and the ordinary
+    clarification machinery asks the user — which is what the compiler already
+    does for a phrase neither reader recognised. Two readers disagreeing is
+    less certainty than one reader alone, and it should produce a question, not
+    a choice.
+
+    On other fields the deterministic reading still stands. A dividend-policy
+    disagreement is worth recording and not worth stopping for.
     """
     by_field = {r.field: r for r in deterministic.recognitions}
     disagreements: List[Disagreement] = []
     accepted: List[str] = []
+    contested: set = set()
+    rejected_spans: List[str] = []
     combined = list(deterministic.recognitions)
 
     for proposal in model_recognitions:
         existing = by_field.get(proposal.field)
-        if existing is None:
+        disqualifies = DISQUALIFIED_SPAN.get(proposal.field)
+        if disqualifies is not None and disqualifies(deterministic.text,
+                                                     proposal.span):
+            rejected_spans.append(proposal.field)
+            continue
+        judged_ambiguous = AMBIGUOUS_WHEN.get(proposal.field)
+        if existing is None and judged_ambiguous is not None \
+                and judged_ambiguous(deterministic.text):
+            # Silence here is a verdict, not a gap. The deterministic reader
+            # found both readings in the sentence and declined to choose; a
+            # model proposal does not settle that, it overrides it.
+            contested.add(proposal.field)
+        elif existing is None:
             combined.append(proposal)
             accepted.append(proposal.field)
         elif existing.value != proposal.value:
             disagreements.append(Disagreement(
                 field=proposal.field, deterministic=existing.value,
                 model=proposal.value))
+            if proposal.field in MATERIAL_EXECUTION_FIELDS:
+                contested.add(proposal.field)
+
+    # Dropped rather than overridden. Leaving the deterministic value in place
+    # and merely noting the conflict is what produced the defect above: the
+    # page said the model decides nothing on its own, and the number came from
+    # a reader that had been contradicted.
+    combined = [one for one in combined if one.field not in contested]
 
     assets = tuple(dict.fromkeys([*deterministic.assets, *model_assets]))
     # Kept apart. `unrecognized` names instruments with known alternatives to
@@ -369,11 +470,19 @@ def parse_with_model(text: str, *,
                                              mode=mode or "DETERMINISTIC",
                                              model_error="no client configured"))
 
+    # One line per provider call, so the count can be measured against a live
+    # server rather than a fixture. A journey that pins its parse should
+    # produce exactly one of these; a helper-level counter proved the helper
+    # and missed a route that bypassed it.
+    logger.info("stage1 provider call: model=%s mode=%s", model, mode)
     try:
         raw = client.complete(system=build_system_prompt(), user=text)
         payload = _load_json(raw)
     except Exception as exc:                                    # noqa: BLE001
-        logger.warning("stage 1 fell back to deterministic parsing: %s", exc)
+        # A fallback is legitimate and is *not* a pinned replay. Logged
+        # distinctly so a journey that fell back cannot pass a strict one-call
+        # conformance check by looking the same as one that did not.
+        logger.warning("stage1 fallback to deterministic: %s", exc)
         return VerifiedParse(
             deterministic,
             ParseProvenance(model=model, model_available=False,
@@ -432,6 +541,18 @@ def parse_from_stored(payload: Mapping[str, Any], text: str) -> ParsedUtterance:
     return ParsedUtterance(
         text=text, recognitions=combined, assets=all_assets,
         unrecognized=unrecognized, unclear=unclear_phrases,
+        # Re-derived from the text, like every other rule-derivable field.
+        #
+        # Left off entirely, a rebuilt parse carried no watched instrument, so
+        # the funding policy fell back to taking the held asset as the signal
+        # subject — and a plan buying VTI on an SPY signal came back watching
+        # VTI. The content hash drifted between the first compile and every
+        # later one, which is how the round-trip suite caught it.
+        #
+        # Derived rather than read from the payload: the roles follow from the
+        # sentence, and a stored value could disagree with the words the plan
+        # still holds.
+        observed=deterministic.observed,
         # Re-derived, not read back: a stored hint could name a template that
         # has since been retired, and the hint selects cited rules.
         template_hint=deterministic.template_hint)

@@ -20,6 +20,7 @@ Both return bases are produced, always, and neither is offered alone.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import numpy as np
@@ -235,6 +236,103 @@ def time_weighted_returns(value: pd.Series, flows: pd.Series) -> pd.Series:
     return returns.replace([np.inf, -np.inf], np.nan).dropna()
 
 
+class MWRStatus(str, Enum):
+    """What Quantify can say about a money-weighted return.
+
+    Four outcomes because `docs/MWR.md` names four, plus one the
+    *implementation* needs and the financial contract does not have. The old
+    signature returned `Optional[float]`, which could say two things, so "no
+    admissible rate" and "the data does not determine one" arrived identically
+    and a non-unique series was reported as a number.
+    """
+
+    RATE = "rate"
+    NO_SOLUTION = "no_solution"
+    NON_UNIQUE = "non_unique"
+    INSUFFICIENT_CASH_FLOWS = "insufficient_cash_flows"
+
+    INDETERMINATE = "indeterminate"
+    """The search could not establish which of the above applies.
+
+    An implementation state, not a financial one: `docs/MWR.md` has four
+    outcomes and this is not a fifth. A bounded numerical scan can miss a root
+    that touches zero without crossing, or one beyond the range it searched,
+    and reporting `NO_SOLUTION` there would turn "could not establish" into
+    "established" — the substitution this whole boundary exists to prevent.
+    """
+
+
+@dataclass(frozen=True)
+class MWRResult:
+    """A rate, or the reason there is not one.
+
+    The invariant is enforced rather than documented: a result carrying both
+    `NO_SOLUTION` and a number is exactly what the old return type allowed.
+    """
+
+    status: MWRStatus
+    rate: Optional[float] = None
+
+    def __post_init__(self) -> None:
+        if self.status is MWRStatus.RATE and self.rate is None:
+            raise ValueError("a RATE result must carry a rate")
+        if self.status is not MWRStatus.RATE and self.rate is not None:
+            raise ValueError(
+                f"{self.status.value} carries a rate; every outcome other "
+                "than RATE means no number may be published")
+
+    @property
+    def reportable(self) -> bool:
+        return self.status is MWRStatus.RATE
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"status": self.status.value, "rate": self.rate}
+
+
+def _sign_changes(coefficients: Sequence[float]) -> int:
+    """Sign changes in the coefficient sequence, ignoring zeros.
+
+    Descartes' rule of signs: the number of positive real roots is at most
+    this and differs from it by an even number. One change therefore means
+    exactly one positive root, which is the only case where this build can
+    establish uniqueness without searching for it.
+    """
+    signs = [1 if c > 0 else -1 for c in coefficients if c != 0]
+    return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
+
+
+def _admissible_roots(npv, tolerance: float, *,
+                      lowest: float = -0.9999, highest: float = 1e4,
+                      steps: int = 4000) -> List[float]:
+    """Per-session rates above -1 where the present value crosses zero.
+
+    Crossings only. A root that touches zero without crossing is invisible
+    here, which is why the caller treats "fewer roots than Descartes permits"
+    as unresolved rather than as an answer.
+    """
+    found: List[float] = []
+    width = (highest - lowest) / steps
+    previous_rate = lowest
+    previous = npv(previous_rate)
+    for step in range(1, steps + 1):
+        rate = lowest + step * width
+        value = npv(rate)
+        if previous * value < 0:
+            low, high = previous_rate, rate
+            for _ in range(200):
+                mid = (low + high) / 2.0
+                if npv(low) * npv(mid) <= 0:
+                    high = mid
+                else:
+                    low = mid
+                if high - low < tolerance:
+                    break
+            found.append((low + high) / 2.0)
+        previous_rate, previous = rate, value
+    return [r for i, r in enumerate(found)
+            if i == 0 or abs(r - found[i - 1]) > 1e-6]
+
+
 def money_weighted_return(
     flows: pd.Series,
     terminal_value: float,
@@ -242,7 +340,7 @@ def money_weighted_return(
     periods_per_year: int = 252,
     tolerance: float = 1e-10,
     max_iterations: int = 200,
-) -> Optional[float]:
+) -> MWRResult:
     """Annualized internal rate of return on the actual cash flow stream.
 
     What the investor experienced, as opposed to what the strategy did. The two
@@ -253,23 +351,26 @@ def money_weighted_return(
     days money moved: elapsed time is measured in sessions, and taking positions
     within a sparse flow index would price a three-month gap as three days.
 
-    Solved by bisection rather than by a Newton method because the sign structure
-    guarantees bisection converges. Contributions are outflows and the terminal
-    value is a single inflow, so the coefficient sequence has exactly one sign
-    change and Descartes' rule gives a unique positive root. Newton would be
-    faster and could leave the bracket on a pathological path, and a silently
-    wrong rate of return is worse than a slow one.
+    **Structured as the contract is** — validate, search, classify — because
+    the previous version fused search and classification. It justified
+    uniqueness by Descartes' rule in its docstring while nothing checked that
+    the series had the shape the argument needs, so on a series containing a
+    withdrawal, where the coefficients read `- + -` and two positive roots
+    exist, bisection returned whichever one its opening bracket straddled and
+    reported it unqualified.
 
-    Returns None when the stream has no sign change — no money was contributed,
-    or nothing remains — because an IRR is undefined there rather than zero.
+    Uniqueness is now established rather than assumed. One sign change means
+    exactly one positive root and a rate may be published. More than one means
+    the rule permits several, so this searches, says `NON_UNIQUE` when it finds
+    them, and refuses to publish a rate when it cannot tell.
     """
     if flows.empty or terminal_value <= 0:
-        return None
+        return MWRResult(MWRStatus.INSUFFICIENT_CASH_FLOWS)
 
     values = flows.to_numpy(dtype=float)
     moved = np.flatnonzero(values != 0.0)
     if moved.size == 0:
-        return None
+        return MWRResult(MWRStatus.INSUFFICIENT_CASH_FLOWS)
 
     sessions = moved.astype(float)
     amounts = values[moved]
@@ -279,26 +380,30 @@ def money_weighted_return(
         growth = (1.0 + rate) ** (horizon - sessions)
         return float(np.sum(amounts * growth) - terminal_value)
 
-    low, high = -0.9999, 1.0
-    f_low, f_high = npv(low), npv(high)
-    widened = 0
-    while f_low * f_high > 0 and widened < 60:
-        high *= 2.0
-        f_high = npv(high)
-        widened += 1
-    if f_low * f_high > 0:
-        return None
+    # The polynomial in the growth factor, highest power first, with the
+    # terminal value as the constant term. Descartes reads this, not the flows.
+    exponents = horizon - sessions
+    powers = sorted({int(p) for p in exponents}, reverse=True)
+    coefficients = [float(np.sum(amounts[exponents == p])) for p in powers]
+    if 0 not in powers:
+        coefficients.append(0.0)
+    coefficients[-1] -= terminal_value
 
-    for _ in range(max_iterations):
-        mid = (low + high) / 2.0
-        f_mid = npv(mid)
-        if abs(f_mid) < tolerance or (high - low) / 2.0 < tolerance:
-            low = high = mid
-            break
-        if f_low * f_mid <= 0:
-            high, f_high = mid, f_mid
-        else:
-            low, f_low = mid, f_mid
+    changes = _sign_changes(coefficients)
+    if changes == 0:
+        return MWRResult(MWRStatus.NO_SOLUTION)
 
-    per_session = (low + high) / 2.0
-    return float((1.0 + per_session) ** periods_per_year - 1.0)
+    roots = _admissible_roots(npv, tolerance)
+
+    if changes == 1:
+        if not roots:
+            return MWRResult(MWRStatus.INDETERMINATE)
+        per_session = roots[0]
+        return MWRResult(
+            MWRStatus.RATE,
+            float((1.0 + per_session) ** periods_per_year - 1.0))
+
+    if len(roots) > 1:
+        return MWRResult(MWRStatus.NON_UNIQUE)
+
+    return MWRResult(MWRStatus.INDETERMINATE)

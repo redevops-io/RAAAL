@@ -13,7 +13,7 @@ import pytest
 
 from src.mission import asset_identity
 from src.mission.asset_identity import Confidence, identify
-from src.mission.compiler import ParsedUtterance, compile_scenario
+from src.mission.compiler import canonical_key, ParsedUtterance, compile_scenario
 from src.mission.spec import ScenarioAmendment
 
 PRICEABLE = ("SPY", "VOO", "VTI", "QQQ", "BND", "AGG", "VXUS", "GLD", "BIL",
@@ -92,7 +92,7 @@ class TestTheCompilerAsksAndSettles:
         """It had no settle site at all: the question was raised, an input
         rendered, the reply recorded, and the same question came back."""
         amendments = (ScenarioAmendment(
-            question_id=f"asset_identity:{OBSERVED}", answer="SPY",
+            question_id=canonical_key("asset_identity", OBSERVED), answer="SPY",
             recorded_at="t"),)
         scenario = compiled(amendments)
         assert not [one for one in scenario.provenance.unresolved
@@ -102,7 +102,7 @@ class TestTheCompilerAsksAndSettles:
         """Settling the question without reaching the allocation would leave a
         plan that agrees it means SPY and holds nothing."""
         amendments = (ScenarioAmendment(
-            question_id=f"asset_identity:{OBSERVED}", answer="SPY",
+            question_id=canonical_key("asset_identity", OBSERVED), answer="SPY",
             recorded_at="t"),)
         assert compiled(amendments).allocation_rule.assets == ("SPY",)
 
@@ -113,21 +113,42 @@ class TestTheCompilerAsksAndSettles:
 
 
 class TestTheDescriptionIsNeverRewritten:
-    def test_the_observed_phrase_is_preserved_in_the_question_id(self):
+    def test_the_observed_phrase_is_preserved_beside_the_choice(self):
         """Six months later, the plan has to be able to say what the user
-        wrote and what they chose — not only the outcome."""
+        wrote and what they chose — not only the outcome.
+
+        The phrase used to live *in* the question id, and this asserted it
+        there. It cannot any more: the id is canonical so that an answer
+        survives the model rewording its explanation, and a key carrying the
+        prose is exactly the defect that made the clarification loop
+        unanswerable.
+
+        The requirement is unchanged and the location moved. The words are on
+        the resolution record, which is where a plan states what it was asked
+        about — and that record also carries the candidates offered and the
+        registry that produced them, which the id never did.
+        """
         amendments = (ScenarioAmendment(
-            question_id=f"asset_identity:{OBSERVED}", answer="SPY",
+            question_id=canonical_key("asset_identity", OBSERVED), answer="SPY",
             recorded_at="t"),)
         scenario = compiled(amendments)
+
         recorded = scenario.provenance.amended
         assert recorded
-        assert OBSERVED in recorded[0].question_id
         assert recorded[0].answer == "SPY"
+
+        resolutions = scenario.provenance.asset_resolutions
+        assert resolutions, "the plan records no resolution for the phrase"
+        assert resolutions[0].observed_phrase == OBSERVED
+        assert resolutions[0].chosen_instrument_id == "SPY"
+        # And the id still identifies *which* phrase, without containing it.
+        assert canonical_key("asset_identity",
+                             resolutions[0].observed_phrase) == \
+            recorded[0].question_id
 
     def test_the_stated_text_still_says_what_the_user_said(self):
         amendments = (ScenarioAmendment(
-            question_id=f"asset_identity:{OBSERVED}", answer="SPY",
+            question_id=canonical_key("asset_identity", OBSERVED), answer="SPY",
             recorded_at="t"),)
         scenario = compiled(amendments)
         assert "SP500 etf" in scenario.canonical_form() or True
@@ -139,7 +160,7 @@ class TestThePageOffersTheCandidates:
     def test_the_view_renders_them_as_choices(self):
         from src.workspace.confirmation import _choices_for
 
-        offered = _choices_for(f"asset_identity:{OBSERVED}", PRICEABLE)
+        offered = _choices_for(canonical_key("asset_identity", OBSERVED), PRICEABLE)
         symbols = [one["value"] for one in offered]
         # SPY leads because the catalogue declares it the default for this
         # concept, not because of where it sits in a file or in the alphabet.
@@ -151,7 +172,7 @@ class TestThePageOffersTheCandidates:
         """The page and the compiler must agree about which funds exist."""
         from src.workspace.confirmation import _choices_for
 
-        offered = _choices_for(f"asset_identity:{OBSERVED}", ("VOO",))
+        offered = _choices_for(canonical_key("asset_identity", OBSERVED), ("VOO",))
         assert [one["value"] for one in offered] == ["VOO"]
 
     def test_a_static_field_still_uses_the_registry(self):

@@ -19,7 +19,26 @@ from typing import Dict, List, Optional
 
 
 def state_dir() -> Path:
-    d = Path(os.environ.get("RAAAL_STATE_DIR", "reports/state"))
+    """Where the three state records live, from the resolved context.
+
+    This read `os.environ["RAAAL_STATE_DIR"]` directly until the Quantify
+    branch merged and `test_no_undeclared_reader` caught it. The rule there is
+    that anything a second component could form its own view about belongs in
+    `DeploymentContext` — and a storage location is the clearest possible case,
+    because two components disagreeing about it means one writes a manifest the
+    other never reads, with nothing saying they disagreed.
+
+    Written first with an `os.environ` fallback for when the resolver is
+    unavailable, and `test_no_undeclared_reader` rejected that too — correctly.
+    A fallback that reads the environment *is* the second opinion, just one
+    that only appears when something else has already gone wrong, which is the
+    worst moment to start disagreeing about where state lives. The resolver
+    reads the same variable and carries the same default, so there is nothing
+    the fallback could have added except a way to diverge.
+    """
+    from ..deploy.context import current
+
+    d = Path(current().state_directory)
     d.mkdir(parents=True, exist_ok=True)
     return d
 

@@ -1,0 +1,1331 @@
+{
+  "schema": "quantify-drift-lane@1",
+  "provenance": {
+    "schema_fingerprint": "quantify-discovery-schema@5/ca8f3b7785ff5d70",
+    "prompt_set_digest": "20f35b4a6fa46c07",
+    "prompt_count": 36,
+    "hosted_model_id": "claude-sonnet-5@1",
+    "hosted_model": "claude-sonnet-5",
+    "prompt_version": "quantify-hosted-prompt@1",
+    "syntax_witness_version": "stanza@1.14.0:en",
+    "pipeline_version": "quantify-pipeline@1",
+    "fusion_version": "quantify-fusion@1",
+    "witness_profile": [
+      "model",
+      "syntax"
+    ],
+    "draws_per_prompt": 3,
+    "recorded_at": "2026-08-10T17:00:45.063766+00:00"
+  },
+  "by_classification": {
+    "STABLE_EXECUTABLE": 4,
+    "STABLE_REFUSAL": 22,
+    "UNSTABLE_SAFE": 6,
+    "STABLE_CLARIFICATION": 4
+  },
+  "execution_unsafe": [],
+  "silently_reduced_any_draw": [],
+  "gate_note": "The pre-Lean gate requires zero UNSTABLE_EXECUTABLE here and zero SILENTLY_REDUCED in strategy_closure.json. Discovery need not be deterministic; it must stop nondeterminism from changing what executes without anybody noticing.",
+  "results": [
+    {
+      "text": "invest $500 monthly into VTI",
+      "classification": "STABLE_EXECUTABLE",
+      "draws": [
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:003a686d55706f25",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:003a686d55706f25",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:003a686d55706f25",
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "plan:003a686d55706f25"
+      ]
+    },
+    {
+      "text": "put $250 into the index fund every two weeks",
+      "classification": "STABLE_EXECUTABLE",
+      "draws": [
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:a4ed9f6df67ff86d",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:a4ed9f6df67ff86d",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:a4ed9f6df67ff86d",
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "plan:a4ed9f6df67ff86d"
+      ]
+    },
+    {
+      "text": "contribute $1,000 a quarter",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets",
+          "refusals": [
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets",
+          "refusals": [
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets",
+          "refusals": [
+            "assets"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets"
+      ]
+    },
+    {
+      "text": "buy VOO when SPY falls below its 200-day moving average",
+      "classification": "STABLE_EXECUTABLE",
+      "draws": [
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:6369edd9f8c417bf",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:6369edd9f8c417bf",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:6369edd9f8c417bf",
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "plan:6369edd9f8c417bf"
+      ]
+    },
+    {
+      "text": "add to BND while TLT is under its 200-day",
+      "classification": "STABLE_EXECUTABLE",
+      "draws": [
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:df9f2cd069b8d874",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:df9f2cd069b8d874",
+          "refusals": []
+        },
+        {
+          "class": "EXECUTABLE",
+          "identity": "plan:df9f2cd069b8d874",
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "plan:df9f2cd069b8d874"
+      ]
+    },
+    {
+      "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
+      "classification": "UNSTABLE_SAFE",
+      "draws": [
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action,stated_weights",
+          "questions": [
+            "sell_action",
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action,stated_weights",
+          "questions": [
+            "sell_action",
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action,stated_weights",
+          "questions": [
+            "sell_action",
+            "stated_weights"
+          ],
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "asks:sell_action,stated_weights",
+        "asks:stated_weights"
+      ]
+    },
+    {
+      "text": "draw down 3% a year in retirement",
+      "classification": "STABLE_CLARIFICATION",
+      "draws": [
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "asks:stated_weights"
+      ]
+    },
+    {
+      "text": "take $40,000 a year out of the portfolio",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,objective,sell_action"
+      ]
+    },
+    {
+      "text": "spend the taxable account first, then the IRA, then the Roth",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,objective,sell_action"
+      ]
+    },
+    {
+      "text": "take from bonds in a down year and from stocks otherwise",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,objective,sell_action"
+      ]
+    },
+    {
+      "text": "take the required minimum distribution starting at 73",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,objective,sell_action"
+      ]
+    },
+    {
+      "text": "harvest losses whenever a position falls 10% below its cost basis",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,sell_action"
+      ]
+    },
+    {
+      "text": "sell the loser and buy a similar fund to avoid a wash sale",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:sell_action",
+          "refusals": [
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:sell_action",
+          "refusals": [
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:sell_action",
+          "refusals": [
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:sell_action"
+      ]
+    },
+    {
+      "text": "sell VTI and buy BND",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:sell_action",
+          "refusals": [
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:sell_action",
+          "refusals": [
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:sell_action",
+          "refusals": [
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:sell_action"
+      ]
+    },
+    {
+      "text": "convert $30,000 from the traditional IRA to the Roth each year",
+      "classification": "STABLE_CLARIFICATION",
+      "draws": [
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "asks:sell_action"
+      ]
+    },
+    {
+      "text": "convert up to the top of the 22% bracket each year",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective,sell_action",
+          "refusals": [
+            "assets",
+            "objective",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,objective,sell_action"
+      ]
+    },
+    {
+      "text": "hold the bonds in the IRA and the stocks in the taxable account",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:asset_location,assets",
+          "refusals": [
+            "asset_location",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:asset_location,assets",
+          "refusals": [
+            "asset_location",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:asset_location,assets",
+          "refusals": [
+            "asset_location",
+            "assets"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:asset_location,assets"
+      ]
+    },
+    {
+      "text": "keep the REITs in the Roth",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:asset_location,assets",
+          "refusals": [
+            "asset_location",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:asset_location,assets",
+          "refusals": [
+            "asset_location",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:asset_location,assets",
+          "refusals": [
+            "asset_location",
+            "assets"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:asset_location,assets"
+      ]
+    },
+    {
+      "text": "rebalance back to 60/40 every year",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,stated_weights",
+          "refusals": [
+            "assets",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,stated_weights",
+          "refusals": [
+            "assets",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,stated_weights",
+          "refusals": [
+            "assets",
+            "stated_weights"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,stated_weights"
+      ]
+    },
+    {
+      "text": "rebalance whenever an allocation drifts more than 5 points",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,periodic_rebalancing",
+          "refusals": [
+            "assets",
+            "periodic_rebalancing"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,periodic_rebalancing",
+          "refusals": [
+            "assets",
+            "periodic_rebalancing"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,periodic_rebalancing",
+          "refusals": [
+            "assets",
+            "periodic_rebalancing"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,periodic_rebalancing"
+      ]
+    },
+    {
+      "text": "a 60/40 portfolio",
+      "classification": "UNSTABLE_SAFE",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,stated_weights",
+          "refusals": [
+            "assets",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets,stated_weights",
+          "refusals": [
+            "allocation_method",
+            "assets",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,stated_weights",
+          "refusals": [
+            "assets",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets,stated_weights",
+          "refusals": [
+            "allocation_method",
+            "assets",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,stated_weights",
+          "refusals": [
+            "assets",
+            "stated_weights"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:allocation_method,assets,stated_weights",
+        "refused:assets,stated_weights"
+      ]
+    },
+    {
+      "text": "70% stocks, 20% bonds, 10% cash",
+      "classification": "UNSTABLE_SAFE",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:stated_weights",
+          "refusals": [
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:stated_weights",
+          "refusals": [
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,stated_weights",
+          "refusals": [
+            "allocation_method",
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:stated_weights",
+          "refusals": [
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,stated_weights",
+          "refusals": [
+            "allocation_method",
+            "stated_weights"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:allocation_method,stated_weights",
+        "refused:stated_weights"
+      ]
+    },
+    {
+      "text": "shift 1% from stocks to bonds every year as I get older",
+      "classification": "STABLE_CLARIFICATION",
+      "draws": [
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "asks:stated_weights"
+      ]
+    },
+    {
+      "text": "hold my age in bonds",
+      "classification": "UNSTABLE_SAFE",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method",
+          "refusals": [
+            "allocation_method"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:stated_weights",
+          "refusals": [
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:stated_weights",
+          "refusals": [
+            "stated_weights"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method",
+          "refusals": [
+            "allocation_method"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:stated_weights",
+          "refusals": [
+            "stated_weights"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:allocation_method",
+        "refused:stated_weights"
+      ]
+    },
+    {
+      "text": "keep three years of expenses in cash and the rest in stocks",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,bucket_policy"
+      ]
+    },
+    {
+      "text": "refill the cash bucket from stocks after a good year",
+      "classification": "UNSTABLE_SAFE",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy,sell_action",
+          "refusals": [
+            "assets",
+            "bucket_policy",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,bucket_policy",
+          "refusals": [
+            "assets",
+            "bucket_policy"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,bucket_policy",
+        "refused:assets,bucket_policy,sell_action"
+      ]
+    },
+    {
+      "text": "allocate by inverse volatility",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets",
+          "refusals": [
+            "allocation_method",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets",
+          "refusals": [
+            "allocation_method",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets",
+          "refusals": [
+            "allocation_method",
+            "assets"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:allocation_method,assets"
+      ]
+    },
+    {
+      "text": "run it at a 10% volatility target",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets",
+          "refusals": [
+            "allocation_method",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets",
+          "refusals": [
+            "allocation_method",
+            "assets"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:allocation_method,assets",
+          "refusals": [
+            "allocation_method",
+            "assets"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:allocation_method,assets"
+      ]
+    },
+    {
+      "text": "tilt 20% toward small cap value",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,portfolio_sleeves"
+      ]
+    },
+    {
+      "text": "sell covered calls one strike out of the money each month",
+      "classification": "UNSTABLE_SAFE",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:sell_action",
+          "questions": [
+            "sell_action"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,sell_action",
+          "refusals": [
+            "assets",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "asks:sell_action",
+        "refused:assets,sell_action"
+      ]
+    },
+    {
+      "text": "annuitize a third of the portfolio at 70",
+      "classification": "STABLE_CLARIFICATION",
+      "draws": [
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        },
+        {
+          "class": "CLARIFICATION",
+          "identity": "asks:stated_weights",
+          "questions": [
+            "stated_weights"
+          ],
+          "refusals": []
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "asks:stated_weights"
+      ]
+    },
+    {
+      "text": "live off the dividends and never touch the principal",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,dividend_policy,objective,sell_action",
+          "refusals": [
+            "assets",
+            "dividend_policy",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,dividend_policy,objective,sell_action",
+          "refusals": [
+            "assets",
+            "dividend_policy",
+            "objective",
+            "sell_action"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,dividend_policy,objective,sell_action",
+          "refusals": [
+            "assets",
+            "dividend_policy",
+            "objective",
+            "sell_action"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,dividend_policy,objective,sell_action"
+      ]
+    },
+    {
+      "text": "do not reinvest the dividends",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,dividend_policy",
+          "refusals": [
+            "assets",
+            "dividend_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,dividend_policy",
+          "refusals": [
+            "assets",
+            "dividend_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,dividend_policy",
+          "refusals": [
+            "assets",
+            "dividend_policy"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,dividend_policy"
+      ]
+    },
+    {
+      "text": "hold 2x leverage on the equity sleeve",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,portfolio_sleeves",
+          "refusals": [
+            "assets",
+            "portfolio_sleeves"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,portfolio_sleeves"
+      ]
+    },
+    {
+      "text": "keep six months of expenses in cash before investing anything",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,reserve_policy",
+          "refusals": [
+            "assets",
+            "reserve_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,reserve_policy",
+          "refusals": [
+            "assets",
+            "reserve_policy"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,reserve_policy",
+          "refusals": [
+            "assets",
+            "reserve_policy"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,reserve_policy"
+      ]
+    },
+    {
+      "text": "pay off the mortgage instead of investing",
+      "classification": "STABLE_REFUSAL",
+      "draws": [
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective",
+          "refusals": [
+            "assets",
+            "objective"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective",
+          "refusals": [
+            "assets",
+            "objective"
+          ]
+        },
+        {
+          "class": "REFUSAL",
+          "identity": "refused:assets,objective",
+          "refusals": [
+            "assets",
+            "objective"
+          ]
+        }
+      ],
+      "silently_reduced_on_draws": [],
+      "distinct_outcomes": [
+        "refused:assets,objective"
+      ]
+    }
+  ]
+}

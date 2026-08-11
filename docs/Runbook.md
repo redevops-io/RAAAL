@@ -148,6 +148,40 @@ because a key happens to be in the shell.
 
 ---
 
+## Terraform: do not run a bare `apply`
+
+`infra/terraform` declares eight variables with no defaults and there is no
+`terraform.tfvars` in the repository. A plan run without the real values does
+not fail — it substitutes whatever you pass and produces a plausible-looking
+diff.
+
+On 2026-08-07 the variables were reconstructed from state to change one
+CloudWatch alarm. `cloudflare_account_id` was taken from the first resource in
+state carrying an `account_id`, which was an **AWS** resource, and the plan
+read:
+
+    cloudflare_zero_trust_tunnel_cloudflared.pilot must be replaced
+    aws_secretsmanager_secret_version.tunnel_token   must be replaced
+    account_id "6b031ff3…" -> "388062344663"
+
+Replacing the tunnel takes `quantify.club` offline. The summary line —
+`Plan: 4 to add, 2 to change, 3 to destroy` — did not say so; only the
+per-resource list did.
+
+So, until the real values live somewhere reachable:
+
+* **read the per-resource list, never the summary count**;
+* apply with `-target` limited to what you actually intend to change, and
+  confirm the reduced plan before proceeding;
+* treat a Cloudflare or Secrets Manager resource appearing in a plan you did
+  not intend to touch as a stop signal.
+
+The eight are `alert_email`, `cloudflare_account_id`, `cloudflare_zone_id`,
+`domain_name`, `application_image`, `build_commit`, `build_release_ref`,
+`build_snapshot_id`. The last four are in `terraform output ansible_variables`
+for the *currently deployed* build; the first four are not recoverable from
+state without guessing, which is the mistake above.
+
 ## Backup and restore
 
 Automated backups are the host's job. This is the **restore drill**, and it is

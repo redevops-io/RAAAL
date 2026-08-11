@@ -174,7 +174,7 @@ class TestTWRAndMWRSeparate:
         second = run(prices, in_kind=[late])
         assert first.path.terminal_value == pytest.approx(
             second.path.terminal_value)
-        assert first.money_weighted != pytest.approx(second.money_weighted)
+        assert first.money_weighted.rate != pytest.approx(second.money_weighted.rate)
 
 
 class TestBenchmarksReceiveTheSameFlow:
