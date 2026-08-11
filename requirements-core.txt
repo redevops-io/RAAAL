@@ -28,6 +28,7 @@ python-multipart>=0.0.9
 # and asks more questions, which is the correct direction to fail in. Nothing
 # below stage 1 depends on it.
 anthropic>=0.40
+openai>=2.0,<3
 httpx>=0.27
 
 # HarnessBench and the analytical projections. Not on any interactive path —
