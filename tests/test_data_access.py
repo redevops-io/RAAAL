@@ -179,6 +179,16 @@ class TestTheGateIsTheOnlyWayIn:
                            "market-data-egress/pilot-vendor-approved@1")
         assert web._prices() is None
 
+    def test_the_approved_policy_does_reach_prices(self, monkeypatch, requires_the_vendor_snapshot):
+        """The other half. Without it, the test above passes just as well on a
+        build where the vendor path is broken in some entirely different way,
+        which is how it passed while the manifest was unreadable."""
+        import src.web.routes as web
+
+        monkeypatch.setenv("PILOT_DATA_POLICY",
+                           "market-data-egress/pilot-vendor-approved@1")
+        assert web._prices() is not None
+
 
 class TestTheSnapshotIsPinned:
     def test_the_loaded_frame_comes_from_a_named_snapshot(self, monkeypatch):
