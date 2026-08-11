@@ -202,3 +202,101 @@ class TestFundingAndItsProjectionCannotDisagree:
         assert out.scenario is None
         assert [r.dimension for r in out.refusals] == ["cadence"]
         assert out.refusals[0].kind == "UNSUPPORTED_DIMENSION"
+
+
+class TestAStatedNumberIsNeverQuietlyDefaulted:
+    """`_decimal(...) or <default>` conflated "not stated" with "stated and
+    unreadable". Both call sites did it, so this is a property of the module
+    rather than a bug in one line."""
+
+    def test_an_unreadable_amount_is_refused_rather_than_zeroed(self):
+        """The finding, in the form that makes it serious.
+
+        "invest $1k monthly into VTI" compiled. Asset right, cadence right, day
+        rule right — and `amount = 0`. The plan was indistinguishable from the
+        one asked for except that it invested nothing, and nothing in the
+        result said so. A backtest of it would have reported a portfolio that
+        never grew, and the honest-looking explanation would have been that the
+        market did badly.
+        """
+        out = compile_intent(intent(amount="$1k"), benchmark_rule=RULE)
+        assert out.scenario is None
+        assert [r.dimension for r in out.refusals] == ["amount"]
+        assert "$1k" in out.refusals[0].detail
+
+    def test_an_absent_amount_still_compiles(self):
+        """The other half, and the reason this is a distinction rather than a
+        new refusal. Nobody stated a figure, so there is nothing to fail to
+        read, and a plan with no contributions is a plan."""
+        out = compile_intent(intent(amount=None), benchmark_rule=RULE)
+        assert out.scenario is not None
+        assert out.scenario.flow_schedule.amount == 0.0
+
+    def test_every_numeric_dimension_is_listed(self):
+        """Structural, not a source grep for prose.
+
+        Walks the AST for `_decimal(...)` calls and recovers the dimension each
+        one reads. A numeric dimension added later and left out of `NUMERIC`
+        would default silently, which is the whole class this closes — so the
+        omission has to fail here rather than wait to be noticed.
+        """
+        import ast
+
+        from src.mission.from_intent import NUMERIC
+
+        tree = ast.parse(Path("src/mission/from_intent.py").read_text())
+        read = set()
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "_decimal" and node.args):
+                continue
+            inner = node.args[0]
+            # `_decimal(value("amount"))` — the dimension is the literal.
+            if (isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name)
+                    and inner.func.id == "value" and inner.args
+                    and isinstance(inner.args[0], ast.Constant)):
+                read.add(inner.args[0].value)
+
+        assert read, "no `_decimal(value(...))` call sites found; this check " \
+                     "would pass by finding nothing"
+        missing = sorted(read - set(NUMERIC))
+        assert not missing, (
+            f"{missing} are read as numbers and are not in NUMERIC, so an "
+            "unreadable value for them falls through to a default silently")
+
+
+class TestTheTwoLayersAgreeOnWhatASetMemberIs:
+    def test_mission_splits_holdings_the_way_fusion_compares_them(self):
+        """Mission may not import Discovery, so the rule exists twice. That is
+        a deliberate duplication and this is what keeps it honest — the copies
+        were *not* the same, and only fusion knew about `and`."""
+        from src.discovery.fusion import same_value
+        from src.mission.from_intent import SET_SEPARATOR
+
+        assert same_value("VTI and BND", "BND, VTI", "SET"), (
+            "fusion no longer treats `and` as a member separator; the "
+            "duplicated rule in Mission now has no counterpart")
+        assert [p.strip() for p in SET_SEPARATOR.split("VTI and BND")] \
+            == ["VTI", "BND"]
+
+    def test_two_holdings_named_with_and_are_two_holdings(self):
+        """"split equally between VTI and BND" built one instrument called
+        `"VTI and BND"`, weighted at 100%. Sorting the assets in
+        `canonical_form` sorted a one-element list and reported nothing."""
+        out = compile_intent(intent(assets="VTI and BND"), benchmark_rule=RULE)
+        assert out.scenario.allocation_rule.assets == ("VTI", "BND")
+
+    def test_and_naming_them_in_either_order_is_the_same_plan(self):
+        """The property the replay guarantee rests on: execution identity is
+        canonical executable semantics, not the order somebody typed."""
+        import json
+        from hashlib import sha256
+
+        def digest(assets):
+            out = compile_intent(intent(assets=assets), benchmark_rule=RULE)
+            return sha256(json.dumps(out.scenario.canonical_form(),
+                                     sort_keys=True,
+                                     default=str).encode()).hexdigest()
+
+        assert digest("VTI and BND") == digest("BND and VTI")

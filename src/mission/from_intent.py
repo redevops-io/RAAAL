@@ -30,12 +30,27 @@ producing a plan that answers a different question.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Mapping, Optional, Sequence
 
 from runtime_contracts import Author, VerifiedIntent
+
 from .capability import Refusal, refusals_for
+from .funding import EventTriggered, Scheduled, Trigger
+from .scenario import (
+    AllocationRule,
+    FlowSchedule,
+    HoldingsPolicy,
+    Objective,
+    ScenarioSpecification,
+)
+from .signals import Estimator, SignalKind
+
+#: Stamped on every plan this module compiles. Bumped when the *mapping*
+#: changes in a way that could turn one intent into a different plan.
+COMPILER_VERSION = "quantify-mission@1"
 
 #: Dimensions that legitimately do not shape the executable plan.
 #:
@@ -55,19 +70,6 @@ READ_DIRECTLY = frozenset({"assets", "trigger_semantics", "observed_assets"})
 
 def _read_directly(intent: Any) -> set:
     return {name for name in READ_DIRECTLY if name in intent.fields}
-from .funding import EventTriggered, Scheduled, Trigger
-from .scenario import (
-    AllocationRule,
-    FlowSchedule,
-    HoldingsPolicy,
-    Objective,
-    ScenarioSpecification,
-)
-from .signals import Estimator, SignalKind
-
-#: Stamped on every plan this module compiles. Bumped when the *mapping*
-#: changes in a way that could turn one intent into a different plan.
-COMPILER_VERSION = "quantify-mission@1"
 
 #: What the engine applies when the intent is silent. Declared here, in one
 #: place, so "the intent did not say" and "the engine chose" are the same
@@ -134,6 +136,31 @@ class Compiled:
         return self.scenario is not None and not self.refusals
 
 
+#: Dimensions read as numbers. Kept beside `_decimal` rather than inline at the
+#: call sites, because the property — a stated figure that cannot be read is
+#: refused, never defaulted — has to hold for every one of them or it is not a
+#: property. A numeric dimension added later and left out of this set is a
+#: silent default waiting to happen; `test_every_numeric_dimension_is_listed`
+#: is what makes that omission fail.
+NUMERIC = frozenset({"amount", "moving_average_window"})
+
+#: How the members of a set-valued dimension are separated.
+#:
+#: This split rule lives twice: here, and in `same_value` in Discovery's fusion,
+#: which uses it to decide whether two readers named the same holdings. It has
+#: to, because Mission may not import Discovery — the boundary is the point of
+#: this module. Duplicated deliberately and pinned by a cross-layer test rather
+#: than left to coincidence.
+#:
+#: Only one of the two copies knew about `and`, and the consequence was not a
+#: near-miss. "split equally between VTI and BND" compiled to a single holding
+#: named `"VTI and BND"` — one instrument, with a name no market has, weighted
+#: at 100%. Fusion had agreed the sentence named two assets; Mission then built
+#: a portfolio of one. `AllocationRule.canonical_form` sorts its assets, so the
+#: sort ran over a one-element list and reported nothing wrong.
+SET_SEPARATOR = re.compile(r"[,;]|\band\b")
+
+
 def _decimal(value: Any) -> Optional[Decimal]:
     if value is None:
         return None
@@ -177,6 +204,32 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
             kind="UNRESOLVED_INPUT", dimension="assets",
             detail="the intent names nothing to hold, so there is no plan to "
                    "compile — this is a missing statement, not missing data"))
+
+    # A number that was stated and cannot be read is not a number that was left
+    # out, and the two had the same consequence here: both call sites below
+    # wrote `_decimal(...) or <default>`, so an unparseable figure fell through
+    # to the default with nothing saying it had.
+    #
+    # "invest $1k monthly into VTI" compiled with `amount = 0`. Every other
+    # field was right — VTI, monthly, first session — so the plan looked
+    # entirely like the one that was asked for, and it contributed nothing. The
+    # benchmark surfaced it only as a digest that moved against `$1,000`, which
+    # undersold it: the finding is not that the two plans differ, it is that one
+    # of them invests zero and says so nowhere.
+    #
+    # Refusing is deliberately the whole fix. Teaching `_decimal` about `k` and
+    # `m` would close this sentence and leave the class open for the next
+    # notation somebody writes, which is the same mistake as closing rotation by
+    # adding `rotate` to a lemma set.
+    for dimension in NUMERIC:
+        stated = intent.fields.get(dimension)
+        if stated is not None and _decimal(stated.value) is None:
+            refusals.append(Refusal(
+                kind="UNRESOLVED_INPUT", dimension=dimension,
+                detail=f"{str(stated.value)!r} was stated for {dimension} and "
+                       "cannot be read as a number. Substituting a default "
+                       "here would produce a plan that looks like the one you "
+                       "asked for and is not"))
 
     derivation = {"compiled_from": intent.intent_hash,
                   "compiled_by": COMPILER_VERSION,
@@ -262,7 +315,7 @@ def _assets(intent: VerifiedIntent) -> Sequence[str]:
     stated = intent.fields.get("assets")
     if stated is None:
         return ()
-    return tuple(part.strip() for part in str(stated.value).split(",")
+    return tuple(part.strip() for part in SET_SEPARATOR.split(str(stated.value))
                  if part.strip())
 
 

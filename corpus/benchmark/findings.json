@@ -6,32 +6,8 @@
     "CORRECT_REFUSAL": 45,
     "CORRECT_CLARIFICATION": 6
   },
-  "dangerous_instances": 2,
+  "dangerous_instances": 0,
   "queue": [
-    {
-      "kind": "UNSTABLE_EXECUTION",
-      "layer": "Fusion",
-      "area": "thousands shorthand",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "invest $1k monthly into VTI",
-          "detail": "thousands shorthand changed the compiled plan; 'invest $1,000 monthly into VTI' and 'invest $1k monthly into VTI' mean the same thing"
-        }
-      ]
-    },
-    {
-      "kind": "UNSTABLE_EXECUTION",
-      "layer": "Fusion",
-      "area": "holding order, equal weight",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "invest $1,000 monthly split equally between BND and VTI",
-          "detail": "holding order, equal weight changed the compiled plan; 'invest $1,000 monthly split equally between VTI and BND' and 'invest $1,000 monthly split equally between BND and VTI' mean the same thing"
-        }
-      ]
-    },
     {
       "kind": "INCOMPLETE_REFUSAL",
       "layer": "Discovery",
@@ -59,6 +35,18 @@
           "detail": "asked about ['assets']"
         }
       ]
+    },
+    {
+      "kind": "UNSTABLE_SAFE",
+      "layer": "Fusion",
+      "area": "thousands shorthand",
+      "instances": 1,
+      "examples": [
+        {
+          "prompt": "invest $1k monthly into VTI",
+          "detail": "thousands shorthand: 'invest $1,000 monthly into VTI' executes and 'invest $1k monthly into VTI' is refused, though they mean the same thing"
+        }
+      ]
     }
   ],
   "findings": [
@@ -84,18 +72,11 @@
       "detail": "refused ['allocation_method', 'stated_weights'] and never mentioned ['periodic_rebalancing'], which the sentence also asks for"
     },
     {
-      "kind": "UNSTABLE_EXECUTION",
+      "kind": "UNSTABLE_SAFE",
       "layer": "Fusion",
       "class": "thousands shorthand",
       "prompt": "invest $1k monthly into VTI",
-      "detail": "thousands shorthand changed the compiled plan; 'invest $1,000 monthly into VTI' and 'invest $1k monthly into VTI' mean the same thing"
-    },
-    {
-      "kind": "UNSTABLE_EXECUTION",
-      "layer": "Fusion",
-      "class": "holding order, equal weight",
-      "prompt": "invest $1,000 monthly split equally between BND and VTI",
-      "detail": "holding order, equal weight changed the compiled plan; 'invest $1,000 monthly split equally between VTI and BND' and 'invest $1,000 monthly split equally between BND and VTI' mean the same thing"
+      "detail": "thousands shorthand: 'invest $1,000 monthly into VTI' executes and 'invest $1k monthly into VTI' is refused, though they mean the same thing"
     }
   ],
   "scoring_note": "There is no pass rate here, deliberately. An unsupported strategy refused by name is correct, and a score that counted executions would reward silent reduction.",
@@ -136,7 +117,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e064ed3f18b084b"
+      "plan": "b008e03c71a6646b"
     },
     "$1,000 into VTI each time it breaks below its 200 day moving average": {
       "text": "$1,000 into VTI each time it breaks below its 200 day moving average",
@@ -579,7 +560,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "5eb8969c4f185ba4"
+      "plan": "ce9b9fa201f3ed9a"
     },
     "buy VTI below its 200-day moving average": {
       "text": "buy VTI below its 200-day moving average",
@@ -959,7 +940,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "32fb95fb81b84589"
+      "plan": "b008e03c71a6646b"
     },
     "invest $1,000 monthly split equally between VTI and BND": {
       "text": "invest $1,000 monthly split equally between VTI and BND",
@@ -976,7 +957,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e064ed3f18b084b"
+      "plan": "b008e03c71a6646b"
     },
     "invest $1,000 monthly, 40% VTI and 60% BND": {
       "text": "invest $1,000 monthly, 40% VTI and 60% BND",
@@ -1080,12 +1061,16 @@
         "objective": "plan_contributions"
       },
       "open": [],
-      "questions": [],
+      "questions": [
+        "amount"
+      ],
       "refusals": [],
-      "needs_input": [],
+      "needs_input": [
+        "amount"
+      ],
       "sealed": true,
-      "executable": true,
-      "plan": "5ef50a9e60cd61ee"
+      "executable": false,
+      "plan": null
     },
     "invest $500 monthly into BND": {
       "text": "invest $500 monthly into BND",
@@ -1186,7 +1171,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e064ed3f18b084b"
+      "plan": "b008e03c71a6646b"
     },
     "monthly $1,000 weighted 60/40 across VTI and BND": {
       "text": "monthly $1,000 weighted 60/40 across VTI and BND",
@@ -1273,12 +1258,14 @@
       },
       "open": [],
       "questions": [
+        "amount",
         "assets"
       ],
       "refusals": [
         "sell_action"
       ],
       "needs_input": [
+        "amount",
         "assets"
       ],
       "sealed": true,
@@ -1351,7 +1338,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e064ed3f18b084b"
+      "plan": "b008e03c71a6646b"
     },
     "put $10,000 into VTI as a lump sum": {
       "text": "put $10,000 into VTI as a lump sum",

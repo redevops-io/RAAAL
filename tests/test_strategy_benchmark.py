@@ -174,12 +174,70 @@ class TestTheFindingsAreRealFindings:
                 f"{phrasing!r} does not execute, but names "
                 f"{point['refusals']} rather than the selection it dropped")
 
-    def test_holding_order_changes_the_compiled_plan(self, findings):
+    def test_holding_order_no_longer_changes_the_compiled_plan(self, findings):
         """`VTI and BND` against `BND and VTI` for an equal-weight strategy.
-        The economics cannot depend on the order they were named in."""
-        assert any(f["class"] == "holding order, equal weight"
-                   for f in findings["findings"])
+        The economics cannot depend on the order they were named in.
 
-    def test_thousands_shorthand_changes_the_compiled_plan(self, findings):
-        assert any(f["class"] == "thousands shorthand"
-                   for f in findings["findings"])
+        The diagnosis was worse than the symptom. `_assets` split on commas
+        only, so "VTI and BND" was *one* holding with a name no market has,
+        weighted at 100% — the two prompts were not two orderings of a
+        portfolio, they were two different single-instrument portfolios.
+        Discovery's fusion had already agreed the sentence named two assets;
+        Mission split them with a rule that had drifted from Discovery's.
+        """
+        assert not any(f["class"] == "holding order, equal weight"
+                       for f in findings["findings"])
+
+    def test_thousands_shorthand_no_longer_executes_a_different_plan(
+            self, findings):
+        """`$1k` compiled with `amount = 0`: every other field correct, and a
+        plan that invested nothing. It is now refused by name, which is a
+        recognition gap rather than a danger — see the taxonomy tests."""
+        from corpus.benchmark.run import UNSTABLE_EXECUTION
+
+        assert not any(f["class"] == "thousands shorthand"
+                       and f["kind"] == UNSTABLE_EXECUTION
+                       for f in findings["findings"])
+
+
+class TestTheTaxonomyCannotBeUsedToHideThings:
+    """`UNSTABLE_SAFE` was introduced in the same change that took dangerous
+    instances to zero. That is exactly the circumstance in which a new category
+    deserves checking, so these are the checks."""
+
+    def test_a_downgraded_finding_is_still_reported(self, findings):
+        """Reclassified, not deleted. A category that removes a finding from
+        the headline *and* from the queue is a category for making numbers
+        look better."""
+        from corpus.benchmark.run import UNSTABLE_SAFE
+
+        safe = [q for q in findings["queue"] if q["kind"] == UNSTABLE_SAFE]
+        assert safe, ("`$1k` against `$1,000` is a real recognition gap and is "
+                      "not in the queue")
+        assert sum(q["instances"] for q in safe) >= 1
+
+    def test_the_downgrade_requires_that_nothing_executed_wrongly(self, findings):
+        """The condition, asserted rather than trusted: every `UNSTABLE_SAFE`
+        pair must have at most one side that compiled a plan. Two executable
+        plans for one meaning is the dangerous shape and must stay dangerous."""
+        from corpus.benchmark.run import UNSTABLE_SAFE
+
+        suite = json.loads(SUITE.read_text())
+        by_name = {r["name"]: r for r in suite["metamorphic"]}
+        for entry in findings["queue"]:
+            if entry["kind"] != UNSTABLE_SAFE:
+                continue
+            relation = by_name[entry["area"]]
+            executed = [side for side in ("from", "to")
+                        if findings["checkpoints"][relation[side]].get("plan")]
+            assert len(executed) <= 1, (
+                f"{entry['area']} is classified UNSTABLE_SAFE and both sides "
+                f"compiled a plan: {executed}")
+
+    def test_unstable_safe_is_not_counted_as_dangerous(self, findings):
+        from corpus.benchmark.run import DANGEROUS, UNSTABLE_SAFE
+
+        assert UNSTABLE_SAFE not in DANGEROUS
+        assert findings["dangerous_instances"] == sum(
+            q["instances"] for q in findings["queue"]
+            if q["kind"] in DANGEROUS)

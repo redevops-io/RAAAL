@@ -17,6 +17,7 @@ diverged. The layer is part of the finding.
 
     SILENT_REDUCTION        unsupported and executed anyway
     UNSTABLE_EXECUTION      siblings executed different plans
+    UNSTABLE_SAFE           siblings disagreed, and at most one executed
     WRONG_EXECUTABLE_MEANING  a contrast pair compiled to one plan
     FALSE_CLAIM_OF_SUPPORT  refused for the wrong capability
     UNNECESSARY_REFUSAL     supported and refused
@@ -42,6 +43,7 @@ CORRECT_CLARIFICATION = "CORRECT_CLARIFICATION"
 
 SILENT_REDUCTION = "SILENT_REDUCTION"
 UNSTABLE_EXECUTION = "UNSTABLE_EXECUTION"
+UNSTABLE_SAFE = "UNSTABLE_SAFE"
 WRONG_EXECUTABLE_MEANING = "WRONG_EXECUTABLE_MEANING"
 FALSE_CLAIM_OF_SUPPORT = "FALSE_CLAIM_OF_SUPPORT"
 UNNECESSARY_REFUSAL = "UNNECESSARY_REFUSAL"
@@ -49,6 +51,10 @@ UNNECESSARY_QUESTION = "UNNECESSARY_QUESTION"
 INCOMPLETE_REFUSAL = "INCOMPLETE_REFUSAL"
 READER_FAILED = "READER_FAILED"
 
+#: `UNSTABLE_SAFE` is deliberately absent. Two phrasings of one request where
+#: one executes and the other is refused by name is a recognition gap and not a
+#: danger — nobody is shown a plan that is not theirs. It stays in the queue,
+#: ranked below everything here, because it is still something to fix.
 DANGEROUS = {SILENT_REDUCTION, UNSTABLE_EXECUTION, WRONG_EXECUTABLE_MEANING,
              FALSE_CLAIM_OF_SUPPORT}
 
@@ -247,11 +253,28 @@ def classify_metamorphic(relation: dict, points: dict) -> list:
         same = _semantic_identity(before) == _semantic_identity(after)
 
     if relation["relation"] == "SAME" and not same:
-        return [{"kind": UNSTABLE_EXECUTION, "layer": FUSION,
+        # Safe or dangerous, the distinction the drift lane already draws.
+        #
+        # Two phrasings that mean one thing and compile to two *executable*
+        # plans is the dangerous shape: whichever the person happened to type
+        # decided what was run, and both looked like an answer. Two phrasings
+        # where one executes and the other is refused by name is a gap in what
+        # the runtime recognises — real, worth closing, and not the same thing,
+        # because nobody is shown a plan that is not theirs.
+        #
+        # Collapsing the two would have been convenient here and wrong: it is
+        # how a taxonomy starts reporting the number that is easiest to move.
+        both_executed = bool(before.get("plan")) and bool(after.get("plan"))
+        return [{"kind": UNSTABLE_EXECUTION if both_executed else UNSTABLE_SAFE,
+                 "layer": FUSION,
                  "class": relation["name"], "prompt": relation["to"],
                  "detail": (f"{relation['name']} changed the compiled plan; "
                             f"{relation['from']!r} and {relation['to']!r} "
-                            "mean the same thing")}]
+                            "mean the same thing"
+                            if both_executed else
+                            f"{relation['name']}: {relation['from']!r} "
+                            f"executes and {relation['to']!r} is refused, "
+                            "though they mean the same thing")}]
     if relation["relation"] == "DIFFER" and same:
         return [{"kind": WRONG_EXECUTABLE_MEANING, "layer": FUSION,
                  "class": relation["name"], "prompt": relation["to"],
