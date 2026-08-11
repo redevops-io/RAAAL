@@ -22,12 +22,44 @@ wheels/
 
 # Virtual environments
 .venv/
+.venv-*/
+**/.venv/
+**/.venv-*/
 venv/
 ENV/
 env/
 
-# Data and cache
-data/
+# Data and cache. Written as `data/*` rather than `data/` so git still descends
+# and the negation below can take effect — an ignored *directory* is never
+# entered, and `!data/manifests/` under `data/` would silently do nothing.
+data/*
+!data/manifests/
+
+# The instrument registry is source, not data. `instruments.yaml`,
+# `concepts.yaml` and `aliases.yaml` are hand-authored — they carry prose
+# explaining why an index is not a fund — and nothing generates them. `data/*`
+# swept them up anyway, so they lived outside version control while ~80 tests
+# depended on them. A clean checkout of a commit whose suite passed 4717 locally
+# failed 80 and errored on 13, and the drift lane would have failed in CI for
+# the same reason, producing a red run that looked like a finding about the
+# model and was a missing file.
+#
+# This is the second time this rule has done this. The manifest comment below
+# records the first. The lesson that did not generalise: `data/` is where
+# authored things go to be forgotten, so anything under it that a human wrote
+# must be negated explicitly the day it is written.
+!data/instruments/
+
+# The load-test catalog, for the same reason and found the same way: nothing
+# writes `strategy_catalog.csv` — `src/loadtest/catalog.py` only reads it — and
+# `tests/test_load_corpus.py` and `tests/test_stability.py` cannot even be
+# collected without it. Two more authored files that `data/*` had hidden.
+!data/catalog/
+
+# Dataset manifests are committed even though the datasets are not. They carry
+# the snapshot identity, version and hash, so a result can name the input it was
+# computed against without the licensed bytes ever entering the repository.
+
 
 # Reports (except the latest dashboard)
 reports/*.csv
@@ -36,6 +68,19 @@ reports/allocation_*.csv
 reports/allocation_*.json
 reports/state.json
 reports/index.html
+
+# Test and type-checker caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local AI tooling. Chat transcripts and a symbol cache are one developer's
+# working state, and the transcripts can carry pasted secrets and private
+# scenario text — neither belongs in a repository whose boundary rules exist to
+# keep personal data out of public artifacts.
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v4/
 
 # IDE
 .vscode/
@@ -61,5 +106,36 @@ package-lock.json
 # Claude Code local session dir
 .claude/
 
+# Provisioning output: bucket name stays out of an AGPL-published repo
+.env.market-data
+
+# Terraform state, and the files that name a real account or hostname.
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/backend.hcl
+infra/terraform/environments/*.tfvars
+infra/terraform/.terraform.lock.hcl
+!infra/terraform/environments/*.tfvars.example
+
+# Deployment evidence. Named individually, not as `evidence/`: that directory
+# already holds six tracked invariant-evidence YAML files, and a blanket rule
+# there hides new ones from anybody who adds them later.
+evidence/acceptance.json
+evidence/startup-proof.txt
+evidence/dns-record-replaced.json
+evidence/workspace-credential.txt
+
+# Saved plan files carry state (and therefore secrets) in their tfstate
+# members on every plan after the first. Keep the redacted text view instead.
+infra/terraform/*.tfplan
+infra/terraform/*.tfplan.txt
+
+# Vendor price snapshots. The mapping and the build script are tracked; the
+# prices are not redistributable and the manifest says so.
+data/snapshots/*.parquet
+
+# Drill evidence names a real endpoint and a real plan.
+evidence/restore-drill-*.md
 # vendored shared runtime (see scripts/vendor_agentic_os.sh)
 /agentic_os/

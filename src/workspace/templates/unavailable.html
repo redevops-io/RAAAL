@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel">
+  <h1 class="small" style="margin:0 0 8px">Not available in this pilot</h1>
+  <p style="margin:0 0 10px">{{ detail }}</p>
+  <p class="small muted" style="margin:0">
+    Nothing has been saved. Your description is below if you would like to
+    rewrite it.
+  </p>
+</div>
+
+<div class="panel">
+  <form action="/workspace/new" method="get">
+    <textarea name="describe" autofocus>{{ describe }}</textarea>
+    <button type="submit">See what that means</button>
+  </form>
+</div>
+
+{% endblock %}

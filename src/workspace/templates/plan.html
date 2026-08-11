@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ record.title }}{% endblock %}
+{% block content %}
+
+{# The parser that actually produced this plan, from the stored record. Not
+   from `DeploymentContext`: that says what the service would use today, and a
+   saved interpretation must not be re-described by a configuration that has
+   moved since. Same pinning rule as market-data provenance. #}
+{% if parser_identity and parser_identity.mode == "MODEL_ASSISTED" %}
+<div class="panel">
+  <p class="small muted" style="margin:0">
+    Interpreted with model assistance —
+    <span class="mono">{{ parser_identity.model or "unpinned" }}</span>,
+    parser v{{ parser_identity.prompt_version }}. Recorded when this plan was
+    saved; later changes to the service do not alter it.
+  </p>
+</div>
+{% endif %}
+
+<h1>{{ record.title }}</h1>
+<p class="lede">{{ record.stated_text }}</p>
+<p class="small muted mono">
+  saved {{ record.saved_at[:19] }} · rule {{ record.rule_hash[:16] }}… ·
+  plan {{ record.content_hash[:16] }}…
+</p>
+
+{% include "_chain.html" %}
+
+{# Disclosures above the result, not below it. #}
+{% include "_disclosures.html" %}
+
+<p class="small">
+  <a href="/workspace/plans/{{ record.plan_id }}/proposals">Proposals ({{ proposals|length }})</a> ·
+  <a href="/workspace/plans/{{ record.plan_id }}/observations">Observations ({{ observations|length }})</a> ·
+  <a href="/workspace/plans/{{ record.plan_id }}/counterfactual">Counterfactual</a>
+</p>
+
+{% if run and run.unavailable %}
+{# No figures in this branch, deliberately. A number beside a caveat is a
+   number: people remember $5,160 and forget the sentence under it. #}
+<h2>Historically</h2>
+<div class="blocked">{{ run.unavailable }}</div>
+{% elif run and run.result %}
+<h2>Historically</h2>
+<div class="panel">
+  <div class="scroll"><table>
+    <tr><th>Measure</th><th class="num">Value</th><th>What it answers</th></tr>
+    <tr><td>Contributed</td><td class="num">${{ "{:,.0f}".format(run.result.path.contributed) }}</td><td class="small muted">money you put in</td></tr>
+    <tr><td>Final value</td><td class="num">${{ "{:,.0f}".format(run.result.final_value) }}</td><td class="small muted">what it would be worth</td></tr>
+    <tr><td>Money-weighted return</td><td class="num">{{ "%+.2f%%"|format((run.result.money_weighted or 0) * 100) }}</td><td class="small muted">how you did, given when your money arrived</td></tr>
+    <tr><td>Time-weighted return</td><td class="num">{{ "%+.2f%%"|format((run.result.time_weighted_annualized or 0) * 100) }}</td><td class="small muted">whether the strategy is good, independent of timing</td></tr>
+  </table></div>
+</div>
+
+<h2>Compared with</h2>
+{% include "_comparison.html" %}
+{% endif %}
+
+{% if legacy_provenance %}
+<div class="disclosure">
+  <strong>This plan predates structured amendment persistence.</strong>
+  The answers shown under "you stated" were recorded as sentences rather than
+  as decisions, so they cannot be used as authoritative input to re-run this
+  plan under the current engine. The description and any earlier result remain
+  as historical records. To run this under the current engine, create a
+  replacement plan through the builder — the answers are then stored as
+  decisions and survive every later change.
+  <span class="mono small">LEGACY_PROVENANCE_INCOMPLETE</span>
+</div>
+{% endif %}
+
+{% include "_timeline.html" %}
+
+{% set invalidated = runs|selectattr("invalidation")|list %}
+{% if invalidated %}
+<h2>Withdrawn results</h2>
+<div class="panel">
+  <p class="small">
+    {{ invalidated|length }} earlier result{{ "" if invalidated|length == 1 else "s" }}
+    for this plan {{ "has" if invalidated|length == 1 else "have" }} been
+    invalidated. The run{{ "" if invalidated|length == 1 else "s" }}
+    {{ "is" if invalidated|length == 1 else "are" }} kept rather than deleted,
+    so the record of what was shown survives.
+  </p>
+  <div class="scroll"><table class="small">
+    <tr><th>Run</th><th>Ran</th><th>Classification</th><th>Why</th></tr>
+    {% for one in invalidated %}
+    <tr>
+      <td class="mono">{{ one.run_id[:16] }}…</td>
+      <td class="mono">{{ one.ran_at[:19] }}</td>
+      <td class="mono">{{ one.invalidation.classification }}</td>
+      <td class="small muted">{{ one.invalidation.reason }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p class="small muted" style="margin:12px 0 0">
+    Produced by engine
+    <span class="mono">{{ invalidated[0].invalidation.engine_version }}</span>.
+  </p>
+</div>
+{% endif %}
+
+<h2>Modelling scope</h2>
+{% include "_scope.html" %}
+
+<h2>What this plan declares</h2>
+<div class="panel">
+  <div class="scroll"><table class="small">
+    <tr><th>Layer</th><th>Declared</th></tr>
+    <tr><td>Rule</td><td class="mono">{{ scenario.methodology.allocation_rule.weighting }} ·
+        {{ scenario.methodology.allocation_rule.assets|join(", ") or "—" }}</td></tr>
+    <tr><td>Money path</td><td class="mono">{{ scenario.flows.cadence }} ·
+        ${{ "{:,.0f}".format(scenario.flows.amount) }} · {{ scenario.flows.day_rule }}</td></tr>
+    <tr><td>Selling</td><td class="mono">{{ "allowed" if scenario.methodology.holdings_policy.sells_allowed else "never" }}</td></tr>
+    <tr><td>Tax treatment</td><td class="mono">{{ scenario.protocol.tax_treatment }}</td></tr>
+  </table></div>
+  <p class="small muted" style="margin:12px 0 0">
+    The rule and the money path are separate on purpose. The same rule under a
+    different contribution schedule is the same rule and a different plan, which
+    is what lets a comparison say whether a difference came from the strategy or
+    from when the money arrived.
+  </p>
+</div>
+
+<p style="margin-top:22px"><a href="/workspace/">← all plans</a></p>
+{% endblock %}

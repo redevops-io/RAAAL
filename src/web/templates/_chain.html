@@ -1,0 +1,24 @@
+{# The artifact chain, textual rendering.
+
+   Renders the same ChainState the glyph renders. It computes nothing: state,
+   summary, adversity and link target all arrive prepared. If this template ever
+   needs an `{% if %}` over an underlying object, the state belongs in chain.py. #}
+<aside class="panel chain">
+  <h2 style="margin-top:0">Artifact chain</h2>
+  <p class="small muted" style="margin:-6px 0 12px">{{ chain.headline }}</p>
+  <ol>
+    {% for link in chain.links %}
+    <li class="{{ link.state.value }}">
+      <div class="step">
+        <span class="dot dot-{{ link.state.value }}" aria-hidden="true">{{ link.state.symbol }}</span>
+        {{ link.step }}
+      </div>
+      <div class="val">
+        {% if link.href %}<a href="{{ link.href }}">{{ link.value }}</a>
+        {% else %}{{ link.value }}{% endif %}
+      </div>
+      {% if link.summary %}<div class="note">{{ link.summary }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</aside>

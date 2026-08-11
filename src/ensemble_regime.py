@@ -5,6 +5,8 @@ CFA Institute AI monograph Chapter 5: Ensemble Learning in Investment.
 """
 from __future__ import annotations
 
+import json
+import logging
 from pathlib import Path
 from typing import Dict, Iterable, Tuple
 
@@ -12,8 +14,9 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+
+logger = logging.getLogger(__name__)
 
 MODELS_DIR = Path("data/models")
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -78,25 +81,54 @@ def prepare_features(timeline: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
 
 
 def train_ensemble_models(
-    timeline: pd.DataFrame, test_size: float = 0.2, random_state: int = 42
+    timeline: pd.DataFrame,
+    test_size: float = 0.2,
+    random_state: int = 42,
+    embargo: int = 21,
 ) -> Dict:
     """
     Train Random Forest and Gradient Boosting classifiers for regime prediction.
-    
+
+    The split is **chronological with an embargo**, not shuffled. `timeline` is a
+    time series whose features are built from overlapping rolling windows, so a
+    shuffled `train_test_split` places neighbouring — effectively duplicate —
+    observations on both sides of the split. The accuracy that produces is not
+    out-of-sample, and the figure previously published from it (>80%) was not a
+    measure of predictive skill.
+
+    `embargo` drops that many rows between train and test so windowed features
+    computed near the boundary cannot span it.
+
     Returns:
         Dictionary containing trained models, encoders, and performance metrics
     """
     X, y = prepare_features(timeline)
-    
+
     # Encode regime labels
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
-    
-    # Train/test split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y_encoded, test_size=test_size, random_state=random_state, stratify=y_encoded
-    )
-    
+
+    # Chronological split: train on the past, test on the future, embargo between.
+    n = len(X)
+    n_test = max(1, int(round(n * test_size)))
+    split = n - n_test
+    train_end = max(1, split - embargo)
+
+    X_train, y_train = X.iloc[:train_end], y_encoded[:train_end]
+    X_test, y_test = X.iloc[split:], y_encoded[split:]
+
+    # A chronological split can legitimately leave one class in the training
+    # window when regimes arrive in long contiguous blocks. That is a real
+    # limitation of the data, not a bug to be papered over with shuffling —
+    # say so plainly instead of letting sklearn raise something cryptic.
+    if len(np.unique(y_train)) < 2:
+        raise ValueError(
+            f"Chronological train split covers only one regime "
+            f"({le.inverse_transform(np.unique(y_train))[0]!r}) across "
+            f"{train_end} rows. Need a longer history or a smaller embargo "
+            f"(currently {embargo}) so the training window spans a regime change."
+        )
+
     # Random Forest
     rf_model = RandomForestClassifier(
         n_estimators=100,
@@ -127,11 +159,26 @@ def train_ensemble_models(
         'importance': rf_model.feature_importances_
     }).sort_values('importance', ascending=False)
     
+    # The last observation the model actually saw. Everything downstream depends
+    # on this being recorded — a model artifact without a training cutoff cannot
+    # be checked for look-ahead, so it must not be trusted.
+    train_cutoff = pd.Timestamp(X.index[train_end - 1]) if train_end > 0 else None
+
+    metadata = {
+        'train_cutoff': train_cutoff.isoformat() if train_cutoff is not None else None,
+        'train_rows': int(train_end),
+        'test_rows': int(len(X_test)),
+        'embargo': int(embargo),
+        'feature_names': list(X.columns),
+        'random_state': int(random_state),
+    }
+
     # Save models
     joblib.dump(rf_model, MODELS_DIR / 'random_forest.pkl')
     joblib.dump(gb_model, MODELS_DIR / 'gradient_boosting.pkl')
     joblib.dump(le, MODELS_DIR / 'label_encoder.pkl')
-    
+    (MODELS_DIR / 'metadata.json').write_text(json.dumps(metadata, indent=2))
+
     return {
         'random_forest': rf_model,
         'gradient_boosting': gb_model,
@@ -140,22 +187,54 @@ def train_ensemble_models(
         'gb_accuracy': gb_score,
         'feature_importance': feature_importance,
         'feature_names': list(X.columns),
+        'metadata': metadata,
     }
 
 
-def load_ensemble_models() -> Dict:
-    """Load trained models from disk."""
+def load_ensemble_models(as_of: pd.Timestamp | str | None = None) -> Dict:
+    """Load trained models from disk, refusing any that saw the future.
+
+    `as_of` is the simulated date the caller intends to predict for. A model whose
+    training data extends to or beyond that date cannot be used to predict it, and
+    this function returns ``{}`` rather than serving it.
+
+    Passing ``as_of=None`` means "live use, no simulated date" and skips the check.
+    Backtests MUST pass a date; the previous behaviour — loading a model trained on
+    the full timeline and applying it to every historical evaluation date — made
+    every `ml`-mode result look-ahead-contaminated.
+    """
     try:
         rf_model = joblib.load(MODELS_DIR / 'random_forest.pkl')
         gb_model = joblib.load(MODELS_DIR / 'gradient_boosting.pkl')
         le = joblib.load(MODELS_DIR / 'label_encoder.pkl')
-        return {
-            'random_forest': rf_model,
-            'gradient_boosting': gb_model,
-            'label_encoder': le,
-        }
     except FileNotFoundError:
         return {}
+
+    metadata_path = MODELS_DIR / 'metadata.json'
+    metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
+
+    if as_of is not None:
+        cutoff = metadata.get('train_cutoff')
+        if cutoff is None:
+            logger.warning(
+                "Refusing ensemble models: no train_cutoff recorded, so look-ahead "
+                "cannot be ruled out. Retrain to regenerate metadata.json."
+            )
+            return {}
+        if pd.Timestamp(cutoff) >= pd.Timestamp(as_of):
+            logger.warning(
+                "Refusing ensemble models for %s: trained through %s (would leak).",
+                pd.Timestamp(as_of).date(),
+                pd.Timestamp(cutoff).date(),
+            )
+            return {}
+
+    return {
+        'random_forest': rf_model,
+        'gradient_boosting': gb_model,
+        'label_encoder': le,
+        'metadata': metadata,
+    }
 
 
 def predict_regime_ensemble(

@@ -1,0 +1,97 @@
+{# Planned, observed and reconciliation, side by side.
+
+   Every value came out of a stored record. This file arranges; it does not
+   match events, compute dates or decide statuses — those were decided when the
+   reconciliation was derived, and deciding them again here would produce a
+   second answer that disagrees on exactly the rows that are hard to call. #}
+
+<div class="tracking">
+
+  <h3>Planned against observed</h3>
+
+  {% if not view.rows %}
+  <p class="small muted">Nothing is being tracked for this worksheet yet.</p>
+  {% else %}
+
+  {% if view.unverified_count %}
+  <div class="group conflict">
+    <p class="small"><strong>{{ view.unverified_count }}</strong> of these rows
+      could not be verified against the records they were derived from. They are
+      shown as history and not as verified verdicts.</p>
+  </div>
+  {% endif %}
+
+  <table class="plan tracking-lanes">
+    <tr><th>Planned</th><th>Observed</th><th>Reconciliation</th></tr>
+    {% for row in view.rows %}
+    <tr class="lane-{{ row.status|lower }}">
+
+      {# Planned lane. #}
+      <td>
+        <div>{{ row.planned_summary }}</div>
+        {% if row.planned_date %}
+        <div class="small muted">{{ row.planned_date }}</div>
+        {% endif %}
+      </td>
+
+      {# Observed lane. Effective and reported dates are separate lines: a vest
+         reported in July may have settled in June, and one date would make an
+         on-time vest look late. #}
+      <td>
+        <div>{{ row.observed_summary }}</div>
+        {% if row.has_observation %}
+        <div class="small muted">effective {{ row.observed_effective_date }}</div>
+        <div class="small muted">reported {{ row.observed_reported_date }}</div>
+        {% endif %}
+        {% if row.evidence_refs %}
+        <div class="small muted">evidence: {{ row.evidence_refs|join(', ') }}</div>
+        {% endif %}
+      </td>
+
+      {# Reconciliation lane. The wording comes from the view model, so
+         "Not yet due" cannot become "Missing" by a template edit. #}
+      <td>
+        <div><strong>{{ row.verdict }}</strong></div>
+        {% if row.detail %}
+        <div class="small muted">{{ row.detail }}</div>
+        {% endif %}
+        {% for variance in row.variances %}
+        <div class="small">{{ variance.dimension|replace('_',' ') }}:
+          expected {{ variance.expected }}, observed {{ variance.observed }}</div>
+        {% endfor %}
+        {% if row.candidates %}
+        <div class="small">could be: {{ row.candidates|join(', ') }}</div>
+        {% endif %}
+        {% if row.verification != "VERIFIED" %}
+        <div class="small muted">{{ row.verification|replace('_',' ')|lower }}</div>
+        {% endif %}
+      </td>
+
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {# Counterfactuals, deliberately outside the lanes. A hypothetical in the
+     observed column is a thing that did not happen, in the column for things
+     that did. #}
+  {% if view.counterfactuals %}
+  <div class="group inferred">
+    <h3>Hypothetical — these did not happen</h3>
+    {% for one in view.counterfactuals %}
+    <div class="small">
+      <strong>{{ one.label }}</strong>
+      {% if one.changed_dimension %}
+      — changing {{ one.changed_dimension|replace('_',' ') }}
+      {% endif %}
+      {% if one.isolates %}<span class="mono">isolates {{ one.isolates }}</span>{% endif %}
+    </div>
+    {% endfor %}
+    <p class="small muted" style="margin:10px 0 0">
+      These explore what a different choice or constraint would have produced.
+      None of them is a record of what occurred.
+    </p>
+  </div>
+  {% endif %}
+
+</div>

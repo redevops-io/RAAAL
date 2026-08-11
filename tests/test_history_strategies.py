@@ -26,6 +26,10 @@ def test_strategy_cumulative_returns_builds_growth_series():
     )
     cumulative = strategy_cumulative_returns(weights, returns, "strategy_rule_based_mock_weight")
     assert not cumulative.empty
-    assert cumulative.index.equals(dates)
+    # The curve starts one business day after the first rebalance: weights set on
+    # dates[0] are not executable until dates[1]. This assertion previously read
+    # `cumulative.index.equals(dates)`, which only holds if weights earn the
+    # return of the day they were decided — i.e. it encoded the look-ahead bug.
+    assert cumulative.index.equals(dates[1:])
     assert abs(cumulative.iloc[0] - 1.0) < 1e-9
     assert cumulative.iloc[-1] > 0.99  # growth remains positive-ish

@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}{{ run.run_id }} — Quantify{% endblock %}
+{% from "_status_chip.html" import status_chip %}
+{% block content %}
+
+<h1>Run</h1>
+<p class="lede mono">{{ run.run_id }}</p>
+
+<p class="small muted" style="margin-top:-12px">
+  The left column is what was recorded when the run executed. The right column is
+  what is true now about the artifacts it used. They are never merged: a page that
+  re-derived a verdict would be showing today's policy applied to yesterday's
+  execution, and a page that ignored today's state would hide a refutation.
+</p>
+
+{% if current.changed %}
+<div class="disclosure">
+  <strong>Something has changed since this run.</strong>
+  Its recorded verdicts stand as historical fact; what they mean today is the
+  panel on the right.
+</div>
+{% endif %}
+
+<div class="layout">
+<main>
+
+  <h2>Recorded at execution</h2>
+  <div class="panel recorded">
+    <p class="panel-head">As executed {{ run.started_at[:10] }}</p>
+    <dl class="kv small">
+      <dt>Methodology</dt>
+      <dd><a href="/ui/m/{{ concept }}/{{ version }}" class="mono">{{ run.version_id }}</a></dd>
+      <dt>Protocol</dt>
+      <dd><a href="/ui/protocols#{{ run.protocol_id.split('/')[1].split('@')[0] }}" class="mono">{{ run.protocol_id }}</a></dd>
+      <dt>Trial</dt>
+      <dd><span class="mono">{{ run.trial_id }}</span>
+        <div class="muted">ordinal {{ run.trial_ordinal }} · outcome {{ run.outcome }}</div></dd>
+      <dt>Manifest digest</dt><dd class="mono">{{ run.manifest_digest[:32] }}…</dd>
+      <dt>Started</dt><dd>{{ run.started_at[:19] }}</dd>
+    </dl>
+  </div>
+
+  {% if run.result_status %}
+  <h2>Result status</h2>
+  <div class="panel">
+    <div class="scroll"><table>
+      <tr><th>Condition</th><th>Value</th></tr>
+      {% for key in ("computation_valid", "contract_valid", "economic_valid",
+                     "statistical_assessment_complete", "reproducible") %}
+      <tr>
+        <td class="small">{{ key.replace("_", " ") }}</td>
+        <td>{% if run.result_status.get(key) is true %}<span class="chip ok">true</span>
+            {% elif run.result_status.get(key) is false %}<span class="chip block">false</span>
+            {% else %}<span class="chip">—</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+    <p class="small muted" style="margin:10px 0 0">
+      Five separate conditions, deliberately not collapsed. A failed computation
+      and a successful computation describing a cash proxy need different
+      responses.
+    </p>
+  </div>
+  {% endif %}
+
+  {% if run.diagnostics %}
+  <h2>Diagnostics</h2>
+  <div class="panel">
+    <dl class="kv small">
+      <dt>Top holding</dt>
+      <dd>{{ run.diagnostics.top_asset }}
+        ({{ "%.1f"|format((run.diagnostics.top_asset_mean_weight or 0) * 100) }}% mean weight)</dd>
+      <dt>Effective breadth</dt>
+      <dd>{{ "%.2f"|format(run.diagnostics.effective_n_assets or 0) }} assets</dd>
+    </dl>
+    {% for flag in run.diagnostics.flags %}
+      <div class="blocked small">{{ flag }}</div>
+    {% endfor %}
+    {% if not run.diagnostics.flags %}
+      <p class="small muted" style="margin:10px 0 0">No degeneracy flags raised.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if run.execution_audit %}
+  <h2>Execution audit</h2>
+  <div class="panel">
+    <dl class="kv small">
+      <dt>Rebalances</dt><dd>{{ run.execution_audit.n_rebalances }}</dd>
+      <dt>Fallback usage</dt>
+      <dd>{{ "%.1f"|format((run.execution_audit.fallback_share or 0) * 100) }}% of rebalances
+        {% if not run.execution_audit.fallback_share %}
+          <span class="muted">— the primary rule produced the whole record</span>
+        {% endif %}</dd>
+      <dt>Turnover</dt>
+      <dd>cap {{ run.execution_audit.requested_turnover_cap }},
+        realized mean {{ "%.4f"|format(run.execution_audit.realized_turnover_mean or 0) }},
+        max {{ "%.4f"|format(run.execution_audit.realized_turnover_max or 0) }}</dd>
+      <dt>Precedence overrides</dt>
+      <dd>{{ run.execution_audit.precedence_override_count }}
+        <span class="muted">— hard constraint overrode the soft turnover cap</span></dd>
+    </dl>
+    {% if run.execution_audit.precedence_overrides %}
+    <h3>Overrides</h3>
+    <div class="scroll"><table>
+      <tr><th>Date</th><th>Soft</th><th>Hard</th><th class="num">Requested</th><th class="num">Realized</th></tr>
+      {% for o in run.execution_audit.precedence_overrides[:10] %}
+      <tr><td class="small mono">{{ o.date }}</td>
+          <td class="small">{{ o.soft_constraint }}</td>
+          <td class="small">{{ o.hard_constraint }}</td>
+          <td class="num">{{ o.requested }}</td>
+          <td class="num">{{ "%.4f"|format(o.realized) }}</td></tr>
+      {% endfor %}
+    </table></div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if run.assessment %}
+  <h2>Statistical assessment</h2>
+  <div class="panel">
+    <div class="scroll"><table>
+      <tr><th>Statistic</th><th class="num">Value</th></tr>
+      {% if run.assessment.psr %}<tr><td>PSR</td><td class="num">{{ "%.4f"|format(run.assessment.psr.value) }}</td></tr>{% endif %}
+      {% if run.assessment.dsr %}<tr><td>DSR</td><td class="num">{{ "%.4f"|format(run.assessment.dsr.value) }}</td></tr>{% endif %}
+      {% if run.assessment.pbo %}<tr><td>PBO</td><td class="num">{{ "%.4f"|format(run.assessment.pbo.value) }}</td></tr>{% endif %}
+      <tr><td>Trials counted</td><td class="num">{{ run.assessment.trial_count }}</td></tr>
+      <tr><td>Observations</td><td class="num">{{ run.assessment.observations }}</td></tr>
+    </table></div>
+    <p class="small muted" style="margin:10px 0 0">
+      Computation status {{ run.assessment.computation_status }} ·
+      estimator {{ run.assessment.estimator_version }} ·
+      count policy {{ run.assessment.count_policy }}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if run.policy_evaluation %}
+  <h2>Policy</h2>
+  <div class="panel">
+    <dl class="kv small">
+      <dt>Policy</dt><dd class="mono">{{ run.policy_evaluation.policy_id }}</dd>
+      <dt>Status</dt><dd><strong>{{ run.policy_evaluation.status }}</strong></dd>
+      <dt>Evidence grade</dt><dd>{{ run.policy_evaluation.evidence_grade }}</dd>
+    </dl>
+    <div class="scroll"><table>
+      <tr><th>Requirement</th><th>Severity</th><th>Outcome</th></tr>
+      {% for f in run.policy_evaluation.findings %}
+      <tr>
+        <td class="small mono">{{ f.code }}</td>
+        <td class="small">{{ f.severity }}</td>
+        <td class="small">{% if f.passed %}<span class="chip ok">pass</span>
+            {% else %}<span class="chip {{ 'block' if f.severity == 'BLOCK' else 'warn' }}">{{ f.detail }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% endif %}
+
+  {% if run.publication_decision %}
+  <h2>Publication</h2>
+  <div class="panel">
+    <dl class="kv small">
+      <dt>Surface</dt><dd>{{ run.publication_decision.surface }}</dd>
+      <dt>Decision</dt><dd><strong>{{ run.publication_decision.decision }}</strong></dd>
+      <dt>May claim validated</dt>
+      <dd>{{ "Yes" if run.publication_decision.may_claim_validated else "No" }}</dd>
+    </dl>
+    {% for d in run.publication_decision.disclosures %}<div class="disclosure small">{{ d }}</div>{% endfor %}
+    {% for b in run.publication_decision.hard_blockers %}<div class="blocked small">{{ b }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if drift %}
+  <h2>Would today's policy agree?</h2>
+  <div class="panel current">
+    <p class="panel-head">Recorded facts · current standard</p>
+    <p style="margin:0 0 10px"><strong>{{ drift.headline() }}</strong></p>
+    <div class="scroll"><table class="small">
+      <tr><th></th><th>As recorded</th><th>Under {{ drift.current_policy_id }}</th></tr>
+      <tr><td>Policy</td><td class="mono">{{ drift.recorded_policy_id }}</td>
+          <td class="mono">{{ drift.current_policy_id }}</td></tr>
+      <tr><td>Status</td><td>{{ drift.recorded_status }}</td><td>{{ drift.current_status }}</td></tr>
+      <tr><td>Evidence grade</td><td>{{ drift.recorded_grade }}</td><td>{{ drift.current_grade }}</td></tr>
+    </table></div>
+
+    {% if drift.changes %}
+    <h3>Requirements that moved</h3>
+    <div class="scroll"><table class="small">
+      <tr><th>Requirement</th><th>Severity</th><th>Then</th><th>Now</th></tr>
+      {% for c in drift.changes %}
+      <tr><td class="mono small">{{ c.code }}</td><td>{{ c.severity }}</td>
+          <td>{{ c.then }}</td><td>{{ c.now }}</td></tr>
+      {% endfor %}
+    </table></div>
+    {% endif %}
+
+    <p class="small muted" style="margin:10px 0 0">{{ drift.detail }}</p>
+  </div>
+  {% endif %}
+
+  <h2>State now</h2>
+  <div class="panel current">
+    <p class="panel-head">Read today · not part of the record</p>
+    <div class="scroll"><table class="small">
+      <tr><th>Artifact class</th><th>Now</th></tr>
+      <tr>
+        <td>Claims referenced</td>
+        <td>{% if current.claims %}
+          {% for a in current.claims %}<span class="mono">{{ a.claim.name }}</span>
+            {{ status_chip(a.status.value) }}{% if not loop.last %} · {% endif %}
+          {% endfor %}
+        {% else %}<span class="muted">none</span>{% endif %}</td>
+      </tr>
+      <tr>
+        <td>Assumptions declared</td>
+        <td>{{ current.assumptions|length }}
+          {% set unvalidated = current.assumptions|rejectattr("is_validated")|list %}
+          {% if unvalidated %}<span class="chip warn">{{ unvalidated|length }} unvalidated</span>{% endif %}</td>
+      </tr>
+      <tr>
+        <td>Findings touching this version</td>
+        <td>{{ current.findings|length }}
+          {% if current.invalidating %}<span class="chip block">{{ current.invalidating|length }} invalidate these results</span>{% endif %}
+          {% if current.findings %}<a class="small" href="/ui/findings">see findings</a>{% endif %}</td>
+      </tr>
+      <tr>
+        <td>Errata against the lineage</td>
+        <td>{{ current.errata|length }}
+          {% if current.errata %}<a class="small" href="/ui/errata">see errata</a>{% endif %}</td>
+      </tr>
+      <tr>
+        <td>Version standing</td>
+        <td>{% if current.is_latest %}latest in lineage
+            {% else %}superseded by a later version —
+            <a href="/ui/m/{{ concept }}">see lineage</a>{% endif %}</td>
+      </tr>
+    </table></div>
+    <p class="small muted" style="margin:10px 0 0">
+      None of this alters the verdicts above. A run whose claim was later refuted
+      still received the verdict it received; that is the point of recording it.
+    </p>
+  </div>
+
+</main>
+
+{% include "_chain.html" %}
+</div>
+{% endblock %}

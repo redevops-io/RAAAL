@@ -1,0 +1,31 @@
+name: weekend-padding-in-joined-panel
+version: 1
+outcome: FINDING_RECORDED
+opened_at: '2026-07-30'
+closed_at: '2026-07-30'
+
+question: >-
+  Does joining equity and crypto price series into one panel introduce sessions
+  that the equity instruments never traded, and if so does it change published
+  annualized figures?
+
+motivation: >-
+  A reviewer asked what `periods_per_year` meant for a panel spanning two
+  markets. The question had no answer in the code, which is usually a sign the
+  choice was never made.
+
+examined:
+  - methodology/hrp@3
+  - calendar/nyse@1
+  - calendar/crypto@1
+  - assumption/nyse-sessions@1
+
+findings:
+  - finding/joined-panel-inherits-widest-calendar@1
+
+trials_examined: 2
+
+resolution: >-
+  Concluded with a finding and an erratum. Trading calendars became addressable
+  artifacts and protocols now name one, so the annualization basis is declared
+  rather than inferred from whatever the panel happened to contain.

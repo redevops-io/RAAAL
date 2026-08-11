@@ -85,13 +85,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run test suite
+        # Gates the deploy on correctness. The leakage regression tests in
+        # tests/test_leakage.py guard the Release 0 fixes (execution lag,
+        # transaction costs, model-cutoff enforcement, determinism); without
+        # this step they could silently regress into a published dashboard.
+        run: |
+          . .venv/bin/activate
+          python -m pytest tests/ -q
+
       - name: Purge persisted data caches
         # Self-hosted workspaces persist between runs; stale parquet/yfinance
         # caches have silently truncated the dashboard's date range before.
-        # Wipe both the per-ticker cache and the joined history outputs so
+        # Wipe the per-ticker cache and the joined history outputs so
         # `--refresh` re-downloads everything from scratch each run.
+        # data/models must go too: it previously survived, so a regime model
+        # trained on the full timeline by the dashboard was reloaded at the start
+        # of the next backtest and used to classify every historical date.
         run: |
-          rm -rf data/cache data/history
+          rm -rf data/cache data/history data/models
           rm -rf "${HOME}/.cache/py-yfinance"
 
       - name: Run historical backtest

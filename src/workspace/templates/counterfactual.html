@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Counterfactual — {{ plan_id }}{% endblock %}
+{% block content %}
+
+<h1>What the constraint cost</h1>
+
+{% if unavailable %}
+<div class="blocked">{{ unavailable }}</div>
+{% elif verdict %}
+
+{# Attribution first. A number shown before it would be read as a verdict on
+   the strategy, which is exactly what this comparison cannot support. #}
+<div class="panel">
+  {% if verdict.attribution_isolated %}
+    <p class="small muted" style="margin:0 0 4px">Constraint isolated</p>
+    <p style="font-size:20px; margin:0 0 8px"><strong>{{ verdict.isolates }}</strong></p>
+  {% else %}
+    <p style="font-size:20px; margin:0 0 8px"><strong>Not isolated</strong></p>
+  {% endif %}
+  <p class="small muted" style="margin:0">{{ verdict.detail }}</p>
+</div>
+
+<div class="disclosure">
+  <strong>{{ verdict.comparison_class.value.replace("_", " ")|title }}.</strong>
+  {{ verdict.required_disclosure }}
+</div>
+
+<h2>Held identical</h2>
+<div class="panel">
+  <p class="small mono" style="margin:0">{{ held_identical|join(" · ") }}</p>
+  <p class="small muted" style="margin:10px 0 0">
+    Each of these is something a comparison could quietly change. A counterfactual
+    that moved any of them would be measuring something other than
+    {{ verdict.isolates or "the constraint" }}, and this view downgrades rather
+    than pretending otherwise.
+  </p>
+</div>
+
+{% if verdict.differing_dimensions %}
+<h2>What differs</h2>
+<div class="panel">
+  <p class="small mono" style="margin:0">{{ verdict.differing_dimensions|join(" · ") }}</p>
+</div>
+{% endif %}
+
+{% endif %}
+
+<p style="margin-top:22px"><a href="/workspace/plans/{{ plan_id }}">← back to plan</a></p>
+{% endblock %}

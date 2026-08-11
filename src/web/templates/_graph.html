@@ -1,0 +1,56 @@
+{# Graph projection — SVG plus fallback table from ONE payload.
+
+   Geometry comes from `g.layout()`, not from the template. Templates draw;
+   they do not calculate. That keeps the diagram and the table one source of
+   truth, and means a layout bug cannot silently drop an edge the table lists.
+
+   Visual channels are orthogonal — no two meanings share one:
+     line style  -> directness (solid direct, dashed inherited)
+     edge label  -> relation type
+     node symbol -> state
+     stroke width-> effect (never colour alone)
+#}
+{% set L = g.layout() %}
+<div class="graph" data-projection="{{ g.projection_type }}">
+  <p class="small muted" style="margin:0 0 8px">{{ g.compact_summary() }}</p>
+
+  <svg class="graph-svg" viewBox="0 0 {{ L.width }} {{ L.height }}"
+       role="img" aria-label="{{ g.accessibility_summary() }}">
+    {% for e in L.edges %}
+      <line x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}"
+            class="edge edge-{{ e.effect }} edge-{{ e.directness }}"
+            data-key="{{ e.semantic_key }}"
+            {% if e.directness == "inherited" %}stroke-dasharray="5 4"{% endif %} />
+      <text x="{{ e.lx }}" y="{{ e.ly }}" class="edge-label" text-anchor="middle">{{ e.relation_type|replace("_"," ")|lower }}</text>
+    {% endfor %}
+    {% for n in L.nodes %}
+      <text x="{{ n.x }}" y="{{ n.y }}" class="node node-{{ n.state }}">
+        <tspan class="sym">{{ n.symbol }}</tspan> {{ n.label|truncate(30) }}
+      </text>
+    {% endfor %}
+  </svg>
+
+  {% if g.omitted_count %}
+  <div class="disclosure small">
+    {{ g.omitted_count }} relationship(s) omitted from the diagram. A view showing
+    a subset without saying so would claim a completeness it does not have.
+  </div>
+  {% endif %}
+
+  <details class="small">
+    <summary>Relationships as a table</summary>
+    <div class="scroll"><table>
+      <tr><th>Source</th><th>Relation</th><th>Target</th><th>Effect</th><th>Directness</th><th>Detail</th></tr>
+      {% for row in g.fallback_rows() %}
+      <tr data-edge="{{ row.semantic_key }}">
+        <td class="mono small">{{ row.source_label|truncate(34) }}</td>
+        <td><span class="chip">{{ row.relation_type|replace("_"," ")|lower }}</span></td>
+        <td class="mono small">{{ row.target_label|truncate(34) }}</td>
+        <td class="small">{{ row.effect }}</td>
+        <td class="small">{{ row.directness }}</td>
+        <td class="small">{{ row.detail|truncate(80) }}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+  </details>
+</div>

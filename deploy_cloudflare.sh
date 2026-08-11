@@ -1,4 +1,12 @@
 #!/bin/bash
+# DEPRECATED (2026-07-30) — raw Direct Upload API fallback.
+#
+# The canonical deploy is .github/workflows/daily-deploy.yml; the local
+# equivalent is ./run_backtest.sh. Both publish `reports/` via wrangler.
+# This script is retained only for the case where wrangler is unavailable.
+# It does not run the test suite and does not emit a run manifest, so results
+# deployed through it are not reproducible — prefer the paths above.
+#
 # Deploy RAAAL dashboard to Cloudflare Pages via Direct Upload API
 
 set -e
@@ -69,10 +77,11 @@ ROUTES_HASH=$($HASH_CMD _routes.json | cut -d' ' -f1)
 cd - > /dev/null
 
 echo "Uploading to Cloudflare Pages..."
-echo "DEBUG: Account ID = ${CLOUDFLARE_ACCOUNT_ID:0:6}..."
-echo "DEBUG: Project = $PROJECT_NAME"
-echo "DEBUG: Token = ${CLOUDFLARE_API_TOKEN:0:6}..."
-echo "DEBUG: Auth method = $([ -n "$CLOUDFLARE_EMAIL" ] && echo "API Key" || echo "Bearer Token")"
+echo "Project = $PROJECT_NAME"
+echo "Auth method = $([ -n "$CLOUDFLARE_EMAIL" ] && echo "API Key" || echo "Bearer Token")"
+# Credential prefixes are deliberately not echoed: CI logs are retained and, for
+# public repos, world-readable. A 6-character prefix narrows a brute force and
+# confirms which credential is in use.
 
 # Disable set -e temporarily to capture curl error
 set +e

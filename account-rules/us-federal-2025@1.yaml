@@ -1,0 +1,103 @@
+spec_version: '0.1'
+name: us-federal-2025
+version: 1
+tax_year: 2025
+jurisdiction: US-federal
+title: US federal account rules for tax year 2025
+
+source:
+  authority: IRS
+  documents:
+    - "Publication 590-A (2025), Contributions to Individual Retirement
+       Arrangements (IRAs) — https://www.irs.gov/publications/p590a"
+    - "Retirement topics — 401(k) and profit-sharing plan contribution limits —
+       https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-401k-and-profit-sharing-plan-contribution-limits"
+  verified_on: '2026-08-02'
+
+rationale: >-
+  Pinned to a tax year, not to "current". A ruleset that means whatever the
+  latest figures are would silently re-judge a stored scenario the moment the
+  annual limits were updated: the same plan, replayed, would refuse a
+  contribution it previously permitted, with no version change to point at.
+
+  A run pins the ruleset for the year it simulates. Updating 2026 cannot alter
+  what a 2025 run decided.
+
+rules:
+
+  ira_contribution:
+    applies_to: [ROTH_IRA, TRADITIONAL_IRA]
+    # One limit across every IRA a person holds, traditional and Roth together.
+    # Not one limit each — capping the accounts independently would permit
+    # double the legal amount, which is why this rule cannot be enforced from a
+    # single account in isolation.
+    combined_across_applies_to: true
+    value: 7000
+    catch_up_50: 1000
+    verified_against_source: true
+    requires:
+      - all_ira_contributions_for_tax_year
+      - participant_age
+
+  employee_deferral:
+    applies_to: [TRADITIONAL_401K, ROTH_401K]
+    # Elective deferrals generally aggregate across the workplace plans a person
+    # participates in, so the traditional and Roth halves share one limit.
+    combined_across_applies_to: true
+    value: 23500
+    catch_up_50: 7500
+    catch_up_60_63: 11250
+    verified_against_source: true
+    requires:
+      - all_401k_employee_deferrals_for_tax_year
+      - participant_age
+      - plan_types
+
+  annual_additions:
+    applies_to: [TRADITIONAL_401K, ROTH_401K]
+    # Deliberately a separate rule from the elective-deferral limit. This one
+    # counts employee deferrals, employer matching, employer nonelective
+    # contributions and forfeitures together; catch-up contributions are treated
+    # separately. Merging the two would refuse a legal plan that defers the
+    # employee maximum and receives a large match.
+    value: 70000
+    verified_against_source: true
+    requires:
+      - employee_deferrals_for_tax_year
+      - employer_contributions_for_tax_year
+      - forfeitures_allocated
+
+  hsa_self_only:
+    applies_to: [HSA]
+    value: 4300
+    catch_up_55: 1000
+    verified_against_source: true
+    requires: [hsa_coverage_kind, participant_age]
+
+  hsa_family:
+    applies_to: [HSA]
+    value: 8550
+    catch_up_55: 1000
+    verified_against_source: true
+    requires: [hsa_coverage_kind, participant_age]
+
+# Eligibility, not a contribution ceiling. A Roth IRA contribution can be
+# reduced or disallowed entirely by income, which is a different refusal from
+# exceeding a limit — and it cannot be evaluated at all until filing status and
+# modified AGI are represented. Recorded so the gap is visible rather than
+# absent.
+income_phase_outs:
+  roth_ira:
+    verified_against_source: true
+    requires: [filing_status, modified_agi]
+    by_filing_status:
+      single_or_head_of_household: {begins: 150000, ends: 165000}
+      married_filing_jointly: {begins: 236000, ends: 246000}
+      married_filing_separately_living_with_spouse: {begins: 0, ends: 10000}
+
+unlimited:
+  - TAXABLE
+
+not_yet_entered:
+  - PLAN_529
+  - TRUST

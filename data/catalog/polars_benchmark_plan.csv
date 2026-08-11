@@ -1,0 +1,8 @@
+workload,scale,baseline,polars_eager,polars_lazy_streaming,metrics,equivalence_invariant
+Event normalization,1K / 10K / 100K / 1M events,Python objects,Polars eager,Polars lazy/streaming,"rows/s, p95, RSS",Exact normalized rows
+Mission replay,100 / 1K / 10K events per mission,Canonical replay,Polars grouped replay,Polars lazy,"p50/p95, mismatches",Same state/outcome/errors
+Fleet replay,100 / 1K / 10K missions,Loop canonical replay,Polars partition/group,Polars streaming,"missions/s, RSS",Same aggregate outcomes
+Sequence rules,"secret-read→egress, private→public",Incremental rule state,Polars asof/join,Polars streaming,"detections/s, recall",Same cited events
+Context metrics,Context precision/expansion recall,Python aggregation,Polars groupby,Polars lazy,queries/s,Same metrics
+Case bundles,1K / 100K / 1M events,Python JSON,Polars→Parquet,Polars streaming,"build time, size",Same manifest counts
+Concurrent scenario results,100–5000 users,Per-request objects,Microbatch Polars,Queued Polars workers,"p95/p99, queue depth",No missing/duplicate rows

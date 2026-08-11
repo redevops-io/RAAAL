@@ -1,0 +1,78 @@
+name: library-default
+version: 1
+title: Library default statistical policy
+
+rationale: >-
+  Conservative but non-dogmatic, matching the Library-first thesis: a modest,
+  fully documented result is more valuable than an impressive one with hidden
+  degeneracy, so statistically weak findings remain publishable as documented
+  research and are simply labelled weak.
+
+  BLOCK is therefore reserved for conditions that make a number *uninterpretable*
+  — the statistic was not computed, the trial count is unknown, neutralization
+  was required and absent. Note that no performance threshold blocks: a low
+  return is a finding, not a defect, and blocking it would turn the library into
+  a highlight reel.
+
+  WARN covers weakness: low DSR, high PBO, short track record. These publish with
+  the weakness stated and disqualify the result from any "validated" claim.
+
+  Thresholds are deliberately visible here rather than embedded in code, because
+  they are product decisions that will be revised. Raising one produces a new
+  policy version; it does not retroactively re-judge results that cite version 1.
+
+requirements:
+  # --- BLOCK: the number cannot be interpreted ---------------------------
+  - code: require_complete_computation
+    description: >-
+      Every requested estimator produced a value. A partial assessment cannot be
+      judged against a standard.
+    severity: BLOCK
+    comparison: truthy
+
+  - code: require_trial_count
+    description: >-
+      A platform-observed trial count exists. Without it the Deflated Sharpe
+      Ratio has no denominator and is not a corrected statistic.
+    severity: BLOCK
+    threshold: 1
+    comparison: gte
+
+  - code: minimum_observations
+    description: >-
+      At least three years of daily observations. Below this the moment estimates
+      that PSR depends on are too unstable to support any claim.
+    severity: BLOCK
+    threshold: 756
+    comparison: gte
+
+  # --- WARN: interpretable but weak --------------------------------------
+  - code: minimum_dsr
+    description: >-
+      Deflated Sharpe Ratio of at least 0.50 — the result is more likely than not
+      to reflect something other than the maximum of a search.
+    severity: WARN
+    threshold: 0.50
+    comparison: gte
+
+  - code: maximum_pbo
+    description: >-
+      Probability of Backtest Overfitting at most 0.35. Above this, in-sample
+      selection carries little information about out-of-sample rank.
+    severity: WARN
+    threshold: 0.35
+    comparison: lte
+
+  - code: sufficient_track_record
+    description: >-
+      The record is at least as long as the minimum track-record length implied
+      by its own Sharpe and moments.
+    severity: WARN
+    comparison: truthy
+
+  - code: require_factor_neutralization
+    description: >-
+      Returns were regressed against a declared factor model, so factor
+      dependence is visible rather than implied.
+    severity: WARN
+    comparison: truthy

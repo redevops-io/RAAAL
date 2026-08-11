@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% block title %}{{ m.title }} {{ m.version_id }} — Quantify{% endblock %}
+{% from "_status_chip.html" import status_chip %}
+{% block content %}
+
+<div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin-bottom:4px">
+  <h1 style="margin:0">{{ m.title }}</h1>
+  <span class="mono muted">{{ m.version_id }}</span>
+  {% if publication %}
+    {% if publication.may_claim_validated %}
+      <span class="chip ok">Validated</span>
+    {% elif publication.decision == "ALLOW_WITH_DISCLOSURE" %}
+      <span class="chip warn">Published with disclosure</span>
+    {% elif publication.decision == "BLOCK" %}
+      <span class="chip block">Not publishable</span>
+    {% endif %}
+  {% endif %}
+</div>
+<p class="lede">{{ m.objective }}</p>
+
+{% if errata %}
+{# Errata are an adverse historical condition, not an active blocker. Styling
+   them as a failure would teach readers that publishing a correction is one. #}
+<div class="disclosure">
+  <strong>{{ errata|length }} erratum affecting this lineage.</strong>
+  {% for e in errata %}
+    <div style="margin-top:6px"><a href="/ui/errata#{{ e.erratum_id }}">{{ e.erratum_id }} — {{ e.title }}</a></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="layout">
+<main>
+
+  {% if publication %}
+  <h2>Publication status</h2>
+  <div class="panel">
+    <dl class="kv">
+      <dt>Surface</dt><dd>{{ publication.surface }}</dd>
+      <dt>Decision</dt><dd><strong>{{ publication.decision }}</strong></dd>
+      <dt>Policy</dt>
+      <dd><span class="mono">{{ policy_eval.policy_id }}</span> — {{ policy_eval.status }}</dd>
+      <dt>Evidence grade</dt><dd>{{ policy_eval.evidence_grade }}</dd>
+      <dt>May claim validated</dt>
+      <dd>{{ "Yes" if publication.may_claim_validated else "No" }}</dd>
+    </dl>
+    {% for d in publication.disclosures %}
+      <div class="disclosure">{{ d }}</div>
+    {% endfor %}
+    {% for b in publication.hard_blockers %}
+      <div class="blocked"><strong>Blocked:</strong> {{ b }}</div>
+    {% endfor %}
+    <p class="small muted" style="margin:10px 0 0">{{ publication.detail }}</p>
+  </div>
+  {% endif %}
+
+  {% if findings %}
+  <h2>What has been concluded about this</h2>
+  {% for f in findings %}
+  <div class="panel">
+    <div style="display:flex; gap:10px; align-items:baseline; flex-wrap:wrap">
+      <a href="/ui/findings#{{ f.name }}" class="mono small">{{ f.artifact_id }}</a>
+      <span class="chip">{{ f.status.value|lower }}</span>
+      {% for i in f.impacts %}{% if i.target == m.version_id %}
+        {% set rel = relation(i.relation.value) %}
+        <span class="chip chip-{{ rel.effect.value }}" title="{{ rel.summarize(f.artifact_id, m.version_id) }}">{{ rel.label }}</span>
+      {% endif %}{% endfor %}
+    </div>
+    <p class="small" style="margin:8px 0 0">{{ f.statement }}</p>
+    {% for i in f.impacts %}{% if i.target == m.version_id and i.detail %}
+      <p class="small muted" style="margin:6px 0 0"><strong>On this version:</strong> {{ i.detail }}</p>
+    {% endif %}{% endfor %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if inquiries %}
+  <h2>Questions asked about this</h2>
+  <div class="panel">
+    <div class="scroll"><table>
+      <tr><th>Investigation</th><th>Outcome</th><th class="num">Trials</th><th>Question</th></tr>
+      {% for i in inquiries %}
+      <tr>
+        <td><a href="/ui/investigations#{{ i.name }}" class="mono small">{{ i.artifact_id }}</a></td>
+        <td class="small">
+          {% if i.outcome.value == "PENDING" %}<span class="chip warn">Open</span>
+          {% elif i.outcome.value == "FINDING_RECORDED" %}<span class="chip ok">Finding</span>
+          {% else %}<span class="chip">{{ i.outcome.value|lower|replace("_", " ") }}</span>{% endif %}
+        </td>
+        <td class="num">{{ i.trials_examined }}</td>
+        <td class="small">{{ i.question|truncate(140) }}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+
+    {% if trial_reconciliation.investigations > trial_reconciliation.ledger %}
+    <div class="disclosure small">
+      <strong>Investigations record {{ trial_reconciliation.investigations }} trials against this
+      version; the ledger counts {{ trial_reconciliation.ledger }}.</strong>
+      Deflation uses the ledger count, so the deflated figures on this page are
+      computed against the smaller number — that is, they are optimistic by
+      exactly the trials that were spent without producing a recorded run.
+      Reconciling the two is outstanding work, and stating the gap is the least
+      this page can do in the meantime.
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <h2>Reasoning</h2>
+  <div class="panel">
+    <h3 style="margin-top:0">Claims this rests on</h3>
+    {% for a in claims %}
+      <div style="margin-bottom:12px">
+        <a href="/ui/claims#{{ a.claim.name }}" class="mono small">{{ a.claim.artifact_id }}</a>
+        {{ status_chip(a.status.value) }}
+        <div class="small" style="margin-top:4px">{{ a.claim.statement }}</div>
+        <div class="small muted">
+          {{ a.supporting|length }} supporting ·
+          {{ a.qualifying|length }} qualifying ·
+          {{ a.contradicting|length }} contradicting
+        </div>
+      </div>
+    {% endfor %}
+    {% if not claims %}<p class="muted small" style="margin:0">No claims referenced.</p>{% endif %}
+
+    <h3>Assumptions it depends on</h3>
+    <div class="scroll"><table>
+      <tr><th>Assumption</th><th>Kind</th><th>Checked?</th></tr>
+      {% for a in assumptions_declared %}
+      <tr>
+        <td><a href="/ui/claims#assumptions" class="mono small">{{ a.artifact_id }}</a></td>
+        <td class="small">{{ a.kind.value.replace("_", " ")|lower }}</td>
+        <td>{% if a.is_validated %}<span class="chip ok">test</span>
+            {% else %}<span class="chip warn">unvalidated</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+  </div>
+
+  <h2>Methodology</h2>
+  <div class="panel">
+    <dl class="kv">
+      {% for name, p in m.params.items() %}
+        <dt>{{ name.replace("_", " ") }}</dt>
+        <dd><span class="mono">{{ p.value }}</span>{% if p.unit %} <span class="muted small">{{ p.unit }}</span>{% endif %}</dd>
+      {% endfor %}
+      <dt>rebalance cadence</dt><dd><span class="mono">{{ m.contract.rebalance_frequency }}</span></dd>
+      <dt>weight bounds</dt>
+      <dd><span class="mono">[{{ m.contract.weight_bounds["min"] }}, {{ m.contract.weight_bounds["max"] }}]</span></dd>
+      <dt>gross leverage max</dt><dd><span class="mono">{{ m.contract.gross_leverage_max }}</span></dd>
+      <dt>universe</dt><dd class="mono small">{{ m.contract.universe|join(", ") }}</dd>
+      <dt>content hash</dt><dd class="mono small">{{ m.content_hash[:32] }}…</dd>
+    </dl>
+  </div>
+
+  <h3>Pipeline</h3>
+  <div class="panel small">
+    <span class="muted">ordered — sequence carries meaning:</span>
+    <span class="mono">{{ m.pipeline|join(" → ") }}</span>
+    {% if m.fallback_chain %}
+    <div style="margin-top:8px"><span class="muted">fallback chain:</span>
+      <span class="mono">{{ m.fallback_chain|join(" → ") }}</span></div>
+    {% endif %}
+  </div>
+
+  <h3>Assumptions</h3>
+  <div class="panel"><ul class="small" style="margin:0; padding-left:20px">
+    {% for a in m.assumptions %}<li>{{ a }}</li>{% endfor %}
+  </ul></div>
+
+  <h3>Limitations</h3>
+  <div class="panel"><ul class="small" style="margin:0; padding-left:20px">
+    {% for l in m.limitations %}<li>{{ l }}</li>{% endfor %}
+  </ul></div>
+
+  {% if m.grounded_in %}
+  <h3>Grounded in</h3>
+  <div class="panel small">
+    {% for c in m.grounded_in %}
+      <div style="margin-bottom:10px">
+        <div class="mono">{{ c.identifier }}</div>
+        <div>{{ c.title }}</div>
+        {% if c.claim_used %}<div class="muted">{{ c.claim_used }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if result %}
+  <h2>Result</h2>
+  <div class="panel">
+    <p class="small muted" style="margin-bottom:12px">
+      Measured under <a href="/ui/protocols#{{ protocol.name }}" class="mono">{{ protocol.protocol_id }}</a>
+      on calendar <span class="mono">{{ protocol.walk_forward.calendar }}</span>,
+      {{ protocol.transaction_costs.bps }}bps costs,
+      {{ protocol.transaction_costs.execution_lag_days }}-day execution lag.
+    </p>
+    <div class="scroll"><table>
+      <tr><th>Metric</th><th class="num">Value</th><th>Note</th></tr>
+      <tr><td>Annualized return</td><td class="num">{{ "%.4f"|format(result.annualized_return * 100) }}%</td><td class="small muted">net of costs, execution-lagged</td></tr>
+      <tr><td>Volatility</td><td class="num">{{ "%.4f"|format(result.volatility * 100) }}%</td><td class="small muted">annualized on {{ periods }} sessions/yr</td></tr>
+      <tr><td>Sharpe</td><td class="num">{{ "%.4f"|format(result.sharpe) }}</td><td class="small muted">excess-return ratio</td></tr>
+      <tr><td>Max drawdown</td><td class="num">{{ "%.4f"|format(result.max_drawdown * 100) }}%</td><td></td></tr>
+      <tr><td>Rebalances</td><td class="num">{{ result.n_rebalances }}</td><td></td></tr>
+      <tr><td>Observations</td><td class="num">{{ result.n_observations }}</td><td class="small muted">{{ result.period_start }} … {{ result.period_end }}</td></tr>
+    </table></div>
+  </div>
+
+  {% if assessment %}
+  <h3>Statistical assessment <span class="muted small">— facts, no verdict</span></h3>
+  <div class="panel">
+    <div class="scroll"><table>
+      <tr><th>Statistic</th><th class="num">Value</th><th>What it accounts for</th></tr>
+      {% if assessment.psr %}<tr><td>PSR</td><td class="num">{{ "%.4f"|format(assessment.psr.value) }}</td>
+        <td class="small muted">sample length, skewness, kurtosis</td></tr>{% endif %}
+      {% if assessment.dsr %}<tr><td>DSR</td><td class="num">{{ "%.4f"|format(assessment.dsr.value) }}</td>
+        <td class="small muted">the above, plus {{ assessment.trial_count }} attempted configuration{{ "s" if assessment.trial_count != 1 }}</td></tr>{% endif %}
+      {% if assessment.pbo %}<tr><td>PBO</td><td class="num">{{ "%.4f"|format(assessment.pbo.value) }}</td>
+        <td class="small muted">whether in-sample selection transfers out of sample</td></tr>{% endif %}
+    </table></div>
+    {% if assessment.factor_neutralization %}
+    <p class="small muted" style="margin:12px 0 0">
+      Factor-neutralized against <span class="mono">{{ assessment.factor_neutralization.factor_model_id }}</span>:
+      R² {{ "%.3f"|format(assessment.factor_neutralization.r_squared) }}.
+      Raw and residual returns are both retained — neither substitutes for the other.
+    </p>
+    {% endif %}
+    {% if assessment.warnings %}
+      <div class="disclosure small">
+        {% for w in assessment.warnings %}<div>{{ w }}</div>{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if audit %}
+  <h3>Execution audit</h3>
+  <div class="panel small">
+    <dl class="kv">
+      <dt>Fallback usage</dt>
+      <dd>{{ "%.1f"|format(audit.fallback_share * 100) }}% of rebalances
+        {% if audit.fallback_share == 0 %}<span class="muted">— the primary rule produced the whole record</span>{% endif %}</dd>
+      <dt>Turnover</dt>
+      <dd>cap {{ audit.requested_turnover_cap }}, realized mean
+        {{ "%.4f"|format(audit.realized_turnover_mean or 0) }}</dd>
+      <dt>Precedence overrides</dt>
+      <dd>{{ audit.precedence_override_count }}
+        <span class="muted">— times a hard constraint overrode the soft turnover cap</span></dd>
+    </dl>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <h2>History</h2>
+  <div class="panel">
+    {% include "_timeline.html" %}
+  </div>
+  <div class="panel">
+    <div class="scroll"><table>
+      <tr><th>Version</th><th>Why it exists</th><th>Comparable to this one?</th></tr>
+      {% for v in siblings %}
+      <tr>
+        <td><a href="/ui/m/{{ m.concept }}/{{ v.version }}" class="mono">@{{ v.version }}</a></td>
+        <td class="small">{{ v.change_rationale|truncate(220) }}</td>
+        <td class="small">
+          {% if v.version == m.version %}<span class="muted">—</span>
+          {% elif v.comparable %}<span class="chip ok">Comparable</span>
+          {% else %}
+            <a href="/ui/m/{{ m.concept }}/compare?a={{ v.version }}&b={{ m.version }}" class="chip warn">Not comparable</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table></div>
+  </div>
+
+</main>
+
+{% include "_chain.html" %}
+</div>
+{% endblock %}

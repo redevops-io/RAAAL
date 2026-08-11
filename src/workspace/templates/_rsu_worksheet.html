@@ -1,0 +1,240 @@
+{# The RSU worksheet. Every value here came out of a stored run; this file
+   arranges and calculates nothing.
+
+   No arithmetic, no sorting by outcome, no ranking. A page that recomputed
+   would be a second implementation of the engine, and a page that ranked would
+   be making a recommendation the system does not make. #}
+
+<div class="rsu-worksheet">
+
+  {# 1. Result status. First, because every figure below is qualified by it. #}
+  <div class="group status status-{{ view.presentability|lower }}">
+    <h3>Result status</h3>
+    <p><strong>{{ view.presentability or "not stated" }}</strong> —
+      {% if view.context_state == "RSU_CONTEXT_PRESENT" %}
+        {# The record is complete; the status reflects what is *in* it. Saying
+           "full record" alone next to BLOCKED reads as reassurance. #}
+        derived from the record below.
+      {% else %}
+        {{ view.note }}
+      {% endif %}
+    </p>
+    {% if view.diagnostics %}
+    <ul>
+      {% for entry in view.diagnostics %}
+      {# The kind is spelled out, never signalled by colour alone: a limitation
+         and a data gap lead a reader somewhere different. #}
+      <li class="small"><strong>{{ entry.kind|replace('_',' ')|title }}:</strong>
+        {{ entry.detail }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  {% if not view.financial_blocks_available %}
+  <div class="group conflict">
+    <h3>Figures not shown</h3>
+    <p class="small">{{ view.note }}</p>
+  </div>
+  {% else %}
+
+  {# 2. Vest accounting. Gross, withheld and delivered stay apart. #}
+  <div class="group">
+    <h3>Vest accounting</h3>
+    {% if view.vest_accounting.delivered_value is none %}
+    <p class="small muted">No vest accounting was recorded for this run.</p>
+    {% else %}
+    <table class="plan">
+      <tr><th>Gross vest value</th><td>{{ view.vest_accounting.gross_value }}</td></tr>
+      <tr><th>Withheld for tax</th><td>{{ view.vest_accounting.withheld_value }}</td></tr>
+      <tr><th>Delivered to the account</th>
+          <td>{{ view.vest_accounting.delivered_value }}</td></tr>
+      <tr><th>Cash remainder</th>
+          <td>{{ view.vest_accounting.cash_remainder }}</td></tr>
+    </table>
+    {% endif %}
+    <p class="small muted">{{ view.vest_accounting.basis_note }}</p>
+    {% if view.vest_accounting.unpriced_arrivals %}
+    <div class="small">Not recorded, because no price was available:</div>
+    <ul>{% for one in view.vest_accounting.unpriced_arrivals %}
+      <li class="small">{{ one.asset }} — {{ one.why }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  {# 3. Disposition. Instruction and fill are separate columns: an order placed
+     on the first eligible session fills later, at a price nobody knew when
+     deciding. #}
+  <div class="group">
+    <h3>Disposition</h3>
+    {% if view.disposition.executions %}
+    <table class="plan">
+      <tr><th>Instructed</th><th>Filled</th><th>Shares</th>
+          <th>Expected price</th><th>Fill price</th><th>Proceeds</th></tr>
+      {% for one in view.disposition.executions %}
+      <tr>
+        <td>{{ one.instructed_on }}</td>
+        <td>{{ one.filled_on if one.reconciled else "not filled" }}</td>
+        <td>{{ one.shares }}</td>
+        <td>{{ one.expected_price }}</td>
+        <td>{{ one.fill_price if one.reconciled else "—" }}</td>
+        <td>{{ one.proceeds if one.reconciled else "unknown until filled" }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% elif not view.disposition.has_outstanding %}
+    <p class="small muted">No disposition was instructed for this run.</p>
+    {% endif %}
+
+    {% if view.disposition.pending %}
+    <div class="small"><strong>Still pending</strong></div>
+    <ul>{% for one in view.disposition.pending %}
+      <li class="small">{{ one.policy }} — {{ one.detail or "awaiting an eligible session" }}
+        {% if one.earliest_eligible_date %}
+        <span class="mono">(eligible from {{ one.earliest_eligible_date }})</span>
+        {% endif %}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if view.disposition.failed %}
+    <div class="small"><strong>Did not complete</strong></div>
+    <ul>{% for one in view.disposition.failed %}
+      <li class="small">{{ one.policy }} — {{ one.detail }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if view.disposition.unsettled %}
+    <div class="small muted">Shares that were instructed for sale and did not
+      sell remain held. This is not a decision to hold.</div>
+    {% endif %}
+  </div>
+
+  {# 4. Allocation. A failed leg keeps its requested weight; the remainder is
+     not rescaled to cover it. #}
+  <div class="group">
+    <h3>Allocation of proceeds</h3>
+    {% if not view.allocation.requested %}
+    <p class="small muted">No allocation was requested for this run.</p>
+    {% else %}
+    <table class="plan">
+      <tr><th>Target</th><th>Requested</th><th>Invested</th></tr>
+      {% for asset, weight in view.allocation.requested.items() %}
+      <tr><td>{{ asset }}</td><td>{{ weight }}</td>
+          <td>{{ view.allocation.executed.get(asset, "not filled") }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    {% if view.allocation.unfilled %}
+    <div class="small"><strong>Could not be bought</strong></div>
+    <ul>{% for one in view.allocation.unfilled %}
+      <li class="small">{{ one.asset }} — {{ one.why }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if view.allocation.requested %}
+    <table class="plan">
+      <tr><th>Purchase costs</th><td>{{ view.allocation.purchase_costs }}</td></tr>
+      <tr><th>Left as cash</th><td>{{ view.allocation.residual_cash }}</td></tr>
+      <tr><th>Share of the plan not invested</th>
+          <td>{{ view.allocation.unallocated_weight }}</td></tr>
+    </table>
+    {% endif %}
+  </div>
+
+  {# 5. Concentration. Projected and realized are separate rows and separately
+     labelled, because a projection is what a plan expected and only a fill can
+     say what happened. #}
+  <div class="group">
+    <h3>Employer-stock concentration</h3>
+    {% if view.concentration.declared_target is none %}
+    <p class="small muted">No concentration cap was declared for this run.</p>
+    {% else %}
+    <table class="plan">
+      <tr><th>Before the sale</th><td>{{ view.concentration.current }}</td></tr>
+      <tr><th>Declared cap</th>
+          <td>{{ view.concentration.declared_target }}</td></tr>
+      <tr><th>Projected after the planned sale</th>
+          <td>{{ view.concentration.projected if view.concentration.projected
+                 is not none else "not computed" }}</td></tr>
+      <tr><th>Realized, measured from the fill</th>
+          <td>{{ view.concentration.realized if view.concentration.realized
+                 is not none else "not yet available" }}</td></tr>
+    </table>
+    {% if view.concentration.projected_only %}
+    <p class="small muted">The figure above is <strong>projected</strong> from
+      the planned sale. The cap cannot be reported as reached until a fill is
+      measured.</p>
+    {% endif %}
+    {% endif %}
+    {% if view.concentration.missing_prices %}
+    <div class="small">Concentration could not be measured — no price for:
+      {{ view.concentration.missing_prices|join(', ') }}</div>
+    {% endif %}
+    {% if view.concentration.denominator_scope %}
+    <div class="small muted">Measured over:
+      {{ view.concentration.denominator_scope|join(', ') }}.
+      {{ view.concentration.scope_note }}</div>
+    {% endif %}
+  </div>
+
+  {# 6. Benchmark comparability. Every requested row, in the order requested.
+     Sorting by outcome would rank them, and a ranking is a recommendation. #}
+  <div class="group">
+    <h3>Benchmark comparisons</h3>
+    {% if not view.comparisons %}
+    <p class="small muted">No benchmarks were requested for this run.</p>
+    {% else %}
+    <table class="plan">
+      <tr><th>Benchmark</th><th>Verdict</th><th>Why</th></tr>
+      {% for row in view.comparisons %}
+      <tr>
+        <td>{{ row.benchmark_id }}</td>
+        <td>{{ row.status|replace('_',' ')|lower }}</td>
+        <td class="small">{{ row.reason }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="small muted">Every benchmark requested for this run appears above,
+      including the ones that could not be compared. A comparison that is
+      missing was never asked for.</p>
+    {% endif %}
+  </div>
+
+  {% endif %}
+
+  {# 7. Modelling scope, directly beneath the figures it qualifies. At the foot
+     of the page it is read after the number has been believed. #}
+  <div class="group scope">
+    <h3>What this run modelled</h3>
+    {% set scope = view.modelling_scope %}
+    {% if not (scope.modelled or scope.out_of_scope or scope.not_applicable
+               or scope.unresolved) %}
+    <p class="small muted">No modelling scope was recorded for this run.</p>
+    {% else %}
+    <div class="two-column">
+      <div>
+        <div class="small muted">Modelled</div>
+        <ul>{% for one in scope.modelled %}<li class="small">{{ one }}</li>{% endfor %}</ul>
+      </div>
+      <div>
+        <div class="small muted">Out of scope</div>
+        <ul>{% for one in scope.out_of_scope %}<li class="small">{{ one }}</li>{% endfor %}</ul>
+      </div>
+    </div>
+    {% if scope.not_applicable %}
+    <div class="small muted">Does not arise here:
+      {{ scope.not_applicable|join(', ') }}</div>
+    {% endif %}
+    {% if scope.unresolved %}
+    <div class="small muted">Could have been modelled and was not stated:
+      {{ scope.unresolved|join(', ') }}</div>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  {# 8. Provenance. Renders whatever the context state, so a corrupt result can
+     still be traced to what produced it. #}
+  <div class="group">
+    <h3>Provenance</h3>
+    <table class="plan">
+      <tr><th>Result record</th><td class="mono">{{ view.context_state }}</td></tr>
+      <tr><th>Status</th><td class="mono">{{ view.presentability or "—" }}</td></tr>
+    </table>
+  </div>
+
+</div>

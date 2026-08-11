@@ -1,0 +1,51 @@
+spec_version: '0.1'
+name: long-warmup
+version: 1
+title: Long-warmup evaluation (504-day estimation windows)
+
+change_rationale: >-
+  Created after protocol/standard@1 was refused for methodology/hrp@3: a 252-day
+  warmup is shorter than that methodology's 504-day lookback, which would push
+  early evaluation dates onto the fallback allocation rule while still reporting
+  them as the methodology.
+
+  Identical to standard@1 except for warmup. Kept as a separate protocol rather
+  than a revision of standard@1 so that results measured under the 252-day warmup
+  remain citable and comparable among themselves.
+
+data_snapshot:
+  source: yfinance
+  start: '2016-01-01'
+  end: '2025-11-20'
+  content_hash: null
+  as_of: null
+  notes: Adjusted close only; content hash bound at run time.
+
+walk_forward:
+  scheme: expanding
+  warmup: 504
+  step: 5
+  purge: 0
+  embargo: 0
+  train_window: null
+  calendar: nyse@1
+
+transaction_costs:
+  model: flat_bps
+  bps: 10.0
+  execution_lag_days: 1
+  notes: As standard@1.
+
+risk_model:
+  covariance: sample
+  covariance_span: null
+  factor_model: null
+  factors: []
+
+holdout:
+  start: null
+  end: null
+  sealed: false
+  unlock_event: null
+
+benchmark: SPY

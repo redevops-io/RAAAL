@@ -1,0 +1,21 @@
+name: cross-sectional-momentum-persists
+version: 1
+statement: >-
+  Assets ranked on trailing returns exhibit continuation over three- to
+  twelve-month horizons: past relative winners outperform past relative losers
+  over the subsequent holding period.
+
+scope: >-
+  Asserted by the source paper for a broad cross-section of individual US
+  equities, 1965-1989. Its applicability to a nine-asset multi-asset ETF universe
+  is not established by that paper and is exactly what the platform's own
+  evidence bears on.
+
+depends_on:
+  - assumption/skip-most-recent-period@1
+  - assumption/nyse-sessions@1
+
+change_rationale: >-
+  Initial publication, extracted from the source paper. Stated with explicit
+  scope because the platform applies it far outside the setting it was
+  established in.

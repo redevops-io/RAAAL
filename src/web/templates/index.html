@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Library — Quantify{% endblock %}
+{% block content %}
+
+<h1>Methodology library</h1>
+<p class="lede">
+  Every figure below links to the methodology that produced it, the protocol it
+  was measured under, the calendar that defined its sessions, and the number of
+  configurations attempted before it was published.
+</p>
+
+{% include "_legend.html" %}
+
+<h2>Lineage status</h2>
+<div class="panel">
+  <div class="scroll"><table class="matrix">
+    <tr>
+      <th>Version</th>
+      {% for step, domain in chain_order %}
+        <th class="dom-{{ domain.value }}" title="{{ domain.value }}">{{ step }}</th>
+      {% endfor %}
+      <th>State</th>
+    </tr>
+    {% for row in matrix %}
+    <tr>
+      <td><a href="/ui/m/{{ row.version.concept }}/{{ row.version.version }}" class="mono">{{ row.version.version_id }}</a></td>
+      {% for link in row.chain.links %}
+        <td class="dom-{{ link.domain.value }}">
+          <span class="dot dot-{{ link.state.value }}" title="{{ link.aria }}{% if link.summary %} — {{ link.summary }}{% endif %}">{{ link.state.symbol }}</span>
+        </td>
+      {% endfor %}
+      <td class="small">{{ row.chain.headline }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p class="small muted" style="margin:12px 0 0">
+    A dot reports the <em>state</em> of that artifact class, not its presence — so
+    a version with many artifacts still reads as blocked when one of them
+    establishes a blocker. Hover any dot for its condition.
+  </p>
+</div>
+
+{% for entry in entries %}
+<div class="panel">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><a href="/ui/m/{{ entry.concept }}">{{ entry.title }}</a></h3>
+    {% with chain = entry.chain %}{% include "_glyph.html" %}{% endwith %}
+    <span class="mono muted">{{ entry.latest_id }}</span>
+    {% if entry.validated %}
+      <span class="chip ok">Validated</span>
+    {% elif entry.decision == "ALLOW_WITH_DISCLOSURE" %}
+      <span class="chip warn">Published with disclosure</span>
+    {% elif entry.decision == "BLOCK" %}
+      <span class="chip block">Not publishable</span>
+    {% else %}
+      <span class="chip">Not assessed</span>
+    {% endif %}
+    {% if entry.errata %}
+      <a href="/ui/errata" class="chip warn">{{ entry.errata }} errata affect this lineage</a>
+    {% endif %}
+  </div>
+
+  <p class="small" style="margin:8px 0 4px"><strong>{{ entry.chain.headline }}</strong></p>
+  <p class="small muted" style="margin:0 0 12px">{{ entry.objective }}</p>
+
+  <dl class="kv">
+    <dt>Versions</dt>
+    <dd>
+      {% for v in entry.versions %}
+        <a href="/ui/m/{{ entry.concept }}/{{ v }}" class="mono">@{{ v }}</a>{% if not loop.last %} · {% endif %}
+      {% endfor %}
+    </dd>
+    <dt>Configurations attempted</dt>
+    <dd>{{ entry.attempted }} ({{ entry.dsr_countable }} count toward multiple-testing correction)</dd>
+    <dt>Grounded in</dt>
+    <dd>{% for c in entry.citations %}<span class="mono">{{ c }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</dd>
+  </dl>
+</div>
+{% endfor %}
+
+{% if not entries %}
+<div class="panel"><p class="muted">No methodologies published yet.</p></div>
+{% endif %}
+
+<h2>What this library does differently</h2>
+<div class="panel small">
+  <p style="margin-bottom:10px">
+    A methodology here is executable data, not prose. Its lookback, covariance
+    estimator, weight bounds and rebalance cadence are declared fields — so
+    changing one necessarily changes the result, and two versions can be compared
+    field by field rather than by eyeballing two curves.
+  </p>
+  <p style="margin-bottom:10px">
+    A published figure names both the methodology <em>and</em> the evaluation
+    protocol that produced it, because
+    <span class="mono">methodology + protocol = performance</span>. The protocol
+    carries the trading calendar, the transaction costs, the execution lag and the
+    data snapshot — all of which move the number.
+  </p>
+  <p style="margin:0">
+    Corrections are published, not quietly applied. Superseded figures stay
+    reachable and link forward to what replaced them.
+  </p>
+</div>
+
+{% endblock %}

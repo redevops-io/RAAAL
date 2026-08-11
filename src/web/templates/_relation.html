@@ -1,0 +1,15 @@
+{# Relation badge — the typed relation IS the information.
+
+   Never degrade to "related to" or "impacts": direction, exact relation and
+   effect are what the ontology exists to preserve. Language comes from the
+   semantics registry so the same edge cannot read "invalidates" here and
+   "affects" elsewhere. #}
+<span class="relation relation-{{ rel.effect.value }}{% if historical %} relation-historical{% endif %}"
+      title="{{ rel.aria(source, target) }}">
+  <span class="mono rel-source">{{ source|truncate(30) }}</span>
+  <span class="rel-arrow" aria-hidden="true">→</span>
+  <span class="rel-type">{{ rel.label }}</span>
+  <span class="rel-arrow" aria-hidden="true">→</span>
+  <span class="mono rel-target">{{ target|truncate(30) }}</span>
+  {% if historical %}<span class="chip">no longer current</span>{% endif %}
+</span>

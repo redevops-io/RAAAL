@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Errata — Quantify{% endblock %}
+{% block content %}
+
+<h1>Errata</h1>
+<p class="lede">
+  Published corrections. Superseded figures are retained and linked forward, never
+  deleted — a result page should link to what it replaced. Most research platforms
+  present corrections as though they never happened; here they are a first-class
+  artifact with their own identifier.
+</p>
+
+{% for e in errata %}
+<div class="panel" id="{{ e.erratum_id }}">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><span class="mono">{{ e.erratum_id }}</span></h3>
+    <span>{{ e.title }}</span>
+    <span class="chip {{ 'block' if e.severity == 'material' else 'warn' }}">{{ e.severity }}</span>
+    <span class="chip">{{ e.correction_type|lower }}</span>
+    <span class="chip">caused by {{ e.cause_type|lower }}</span>
+  </div>
+  <p class="small" style="margin:10px 0">{{ e.summary }}</p>
+  <dl class="kv small">
+    <dt>What changed</dt><dd>{{ e.correction_type }}</dd>
+    <dt>Why</dt><dd>{{ e.cause_type }}</dd>
+    <dt>How consequential</dt><dd>{{ e.severity }}</dd>
+    <dt>Published</dt><dd>{{ e.published_at[:10] }}</dd>
+    <dt>Superseded figures</dt>
+    <dd>{{ e.supersedes|length }} performance record{{ "s" if e.supersedes|length != 1 }} flagged, none deleted</dd>
+    {% if e.document_path %}
+    <dt>Full erratum</dt><dd><span class="mono">{{ e.document_path }}</span></dd>
+    {% endif %}
+  </dl>
+</div>
+{% endfor %}
+
+{% if not errata %}
+<div class="panel"><p class="muted">No errata published.</p></div>
+{% endif %}
+
+<h2>Reading the taxonomy</h2>
+<div class="panel small">
+  <p style="margin:0 0 10px">
+    Three questions, three answers. One label cannot carry all of them.
+  </p>
+  <dl class="kv small" style="margin:0">
+    <dt>Correction type</dt>
+    <dd><span class="mono">NUMERICAL</span> · <span class="mono">METHODOLOGICAL</span> ·
+        <span class="mono">INTERPRETIVE</span> — what changed</dd>
+    <dt>Cause type</dt>
+    <dd><span class="mono">DATA</span> · <span class="mono">EXECUTION</span> ·
+        <span class="mono">EVALUATION</span> · <span class="mono">STATISTICAL</span> ·
+        <span class="mono">PUBLICATION</span> — why</dd>
+    <dt>Severity</dt><dd>how consequential</dd>
+  </dl>
+  <p class="small muted" style="margin:10px 0 0">
+    Both errata here are numerical corrections, but with different causes — one
+    an execution defect, one a data defect. A future
+    <span class="mono">INTERPRETIVE / STATISTICAL</span> case would be a
+    conclusion that was wrong because a statistic was misread, with every figure
+    correct. Collapsing the axes would lose the distinction that decides what to
+    re-check.
+  </p>
+</div>
+
+<h2>Why this page exists</h2>
+<div class="panel small">
+  <p style="margin-bottom:10px">
+    Both errata so far were found by the platform's own artifacts rather than by
+    review. Erratum 01 surfaced when execution lag became a declared field and the
+    attribution turned out to credit weights with the return of the day they were
+    decided. Erratum 02 surfaced when the assessment layer began reporting
+    observation counts as a fact, and 3,103 observations over eight and a half
+    years proved impossible.
+  </p>
+  <p style="margin:0">
+    That is the argument for making assumptions explicit: a hidden choice cannot
+    be checked, and an unchecked choice is how a wrong number survives.
+  </p>
+</div>
+
+{% endblock %}

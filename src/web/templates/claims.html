@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Claims and assumptions — Quantify{% endblock %}
+{% from "_status_chip.html" import status_chip %}
+{% block content %}
+
+<h1>Claims and assumptions</h1>
+<p class="lede">
+  Methodologies <em>reference</em> claims; they do not contain them. A prose
+  citation cannot be supported by two methodologies, contradicted by a
+  replication, or superseded without editing every file that quotes it — an
+  addressable claim can.
+</p>
+
+<h2>Claims</h2>
+{% for a in assessments %}
+<div class="panel" id="{{ a.claim.name }}">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><span class="mono">{{ a.claim.artifact_id }}</span></h3>
+    {{ status_chip(a.status.value) }}
+  </div>
+
+  <p style="margin:10px 0">{{ a.claim.statement }}</p>
+  {% if a.claim.scope %}
+  <p class="small muted" style="margin:0 0 12px"><strong>Scope:</strong> {{ a.claim.scope }}</p>
+  {% endif %}
+
+  {% if a.supporting or a.contradicting or a.qualifying %}
+  {% set g = stance[a.claim.artifact_id] %}
+  {% include "_graph.html" %}
+  <h3 style="margin-top:14px">Evidence</h3>
+  <div class="scroll"><table>
+    <tr><th>Stance</th><th>Source</th><th>Strength</th><th>Finding</th></tr>
+    {% for e in a.supporting %}
+    <tr><td><span class="chip ok">Supports</span></td>
+        <td class="mono small">{{ e.identifier or e.artifact_id }}</td>
+        <td class="small">{{ e.strength }}</td>
+        <td class="small">{{ e.summary }}</td></tr>
+    {% endfor %}
+    {% for e in a.qualifying %}
+    <tr><td><span class="chip warn">Qualifies</span></td>
+        <td class="mono small">{{ e.identifier or e.artifact_id }}</td>
+        <td class="small">{{ e.strength }}</td>
+        <td class="small">{{ e.summary }}</td></tr>
+    {% endfor %}
+    {% for e in a.contradicting %}
+    <tr><td><span class="chip block">Contradicts</span></td>
+        <td class="mono small">{{ e.identifier or e.artifact_id }}</td>
+        <td class="small">{{ e.strength }}</td>
+        <td class="small">{{ e.summary }}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
+
+  {% set impact = impacts[a.claim.artifact_id] %}
+  {% if impact.affected_count %}
+  <div class="{{ 'blocked' if a.status.value in ('REFUTED','CONTESTED') else 'disclosure' }}">
+    <strong>{{ impact.affected_count }} methodology version{{ "s" if impact.affected_count != 1 }}
+    reference this claim.</strong>
+    {% for v in impact.affected_methodologies %}
+      <a href="/ui/m/{{ v.split('/')[1].split('@')[0] }}/{{ v.split('@')[1] }}" class="mono">{{ v }}</a>{% if not loop.last %} · {% endif %}
+    {% endfor %}
+    {% if a.status.value == "REFUTED" %}
+      <div class="small" style="margin-top:6px">
+        A refuted claim does not automatically invalidate the methodologies that
+        reference it — it opens them for review. That review is the work; this
+        page is what makes it findable.
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if a.claim.depends_on %}
+  <p class="small muted" style="margin:10px 0 0">
+    Rests on: {% for d in a.claim.depends_on %}<a href="#assumptions" class="mono">{{ d }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+</div>
+{% endfor %}
+
+<h2 id="assumptions">Assumptions</h2>
+<p class="lede small">
+  Every defect in this platform's erratum history was an undeclared assumption —
+  not a wrong claim and not missing evidence. The covariance estimator, the
+  trading calendar, the execution lag, the constraint-precedence rule and the
+  annualization basis were each a hidden choice that moved a published number.
+  Declaring them is what turns
+  <em>"which files mention EWMA?"</em> into
+  <em>"which methodologies depend on this assumption?"</em>
+</p>
+
+{% if unvalidated %}
+<div class="disclosure">
+  <strong>{{ unvalidated|length }} assumption{{ "s" if unvalidated|length != 1 }} nothing checks.</strong>
+  An assumption without a validating test is an assertion, not a control — and
+  historically that is where the next defect is.
+</div>
+{% endif %}
+
+{% for a in assumptions %}
+<div class="panel">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><span class="mono">{{ a.artifact_id }}</span></h3>
+    <span class="chip">{{ a.kind.value.replace("_", " ")|lower }}</span>
+    {% if a.is_validated %}<span class="chip ok">Validated by test</span>
+    {% else %}<span class="chip warn">Unvalidated</span>{% endif %}
+  </div>
+
+  <p style="margin:10px 0">{{ a.statement }}</p>
+
+  {% if a.risk %}
+  <p class="small" style="margin:0 0 10px"><strong>If false:</strong> <span class="muted">{{ a.risk }}</span></p>
+  {% endif %}
+
+  {% set g = dependency[a.artifact_id] %}
+  {% include "_graph.html" %}
+
+  {% if a.realized_by %}
+  <dl class="kv small">
+    <dt>Realized by</dt>
+    <dd>{% for r in a.realized_by %}
+      <div><span class="mono">{{ r.artifact_kind }}.{{ r.field }}</span>{% if r.value is not none %} = <span class="mono">{{ r.value }}</span>{% endif %}</div>
+    {% endfor %}</dd>
+  </dl>
+  {% endif %}
+
+  {% if a.history %}
+  <p class="small muted" style="margin:10px 0 0">{% for h in a.history %}{{ h }}{% endfor %}</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}

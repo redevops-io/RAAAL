@@ -1,0 +1,51 @@
+# Copy to test.tfvars and fill in. Not committed: it names a real hostname,
+# a real zone and a real image digest.
+#
+#   terraform plan -var-file=environments/test.tfvars
+
+project     = "quantify"
+environment = "test"
+region      = "us-east-1"
+
+# --- dns -------------------------------------------------------------------
+domain_name    = "quantify.example.com"
+hosted_zone_id = "ZXXXXXXXXXXXXX"
+
+# --- who may reach it ------------------------------------------------------
+# Empty means nobody, and `terraform apply` will succeed and serve no one.
+# That is the safe default, not a mistake to work around. Put your own address
+# here first, verify the deployment, then add the pilot users'.
+operator_cidrs = [
+  # "203.0.113.10/32",
+]
+
+# --- the image -------------------------------------------------------------
+# By digest. `terraform plan` rejects a tag.
+#
+#   docker buildx imagetools inspect ghcr.io/redevops-io/quantify:v1 \
+#     --format '{{.Manifest.Digest}}'
+application_image = "ghcr.io/redevops-io/quantify@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+registry_host     = "ghcr.io"
+
+# --- build identity --------------------------------------------------------
+# The preflight refuses to serve without all four. The image digest is taken
+# from application_image above, so it is not repeated here.
+build_commit      = "d795997"
+build_release_ref = "feat/quantify-repository-baseline"
+build_snapshot_id = "syn-2026-08"
+
+# --- sizing ----------------------------------------------------------------
+instance_type           = "t3.small"
+db_instance_class       = "db.t4g.micro"
+db_allocated_storage_gb = 20
+db_multi_az             = false
+
+# --- application -----------------------------------------------------------
+pilot_data_policy = "SYNTHETIC_ONLY"
+parser_mode       = "MODEL_ASSISTED"
+parser_model      = "claude-sonnet-5"
+parser_fallback   = "REFUSE"
+
+# --- alerts ----------------------------------------------------------------
+alert_email        = "operator@example.com"
+monthly_budget_usd = 150

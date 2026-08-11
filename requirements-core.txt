@@ -15,3 +15,31 @@ networkx>=3.1
 matplotlib>=3.7.0
 joblib>=1.3.0
 requests>=2.31
+# Methodology registry (YAML) + the investment-agent API surface.
+pyyaml>=6.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+# Form posts. The confirmation screen returns the parse it showed,
+# and a query string is not a reliable place to put it.
+python-multipart>=0.0.9
+
+# Stage 1 of the scenario compiler, optionally. Without it — or without
+# ANTHROPIC_API_KEY — the compiler falls back to its deterministic phrase rules
+# and asks more questions, which is the correct direction to fail in. Nothing
+# below stage 1 depends on it.
+anthropic>=0.40
+httpx>=0.27
+
+# HarnessBench and the analytical projections. Not on any interactive path —
+# below the measured crossover Polars is slower, so it belongs to replay,
+# aggregation and Discovery sweeps only. See docs/Performance.md.
+polars>=1.30
+
+# Persistence. PostgreSQL is the deployed authority; SQLite remains for tests,
+# local development and the standalone demo. SQLAlchemy Core defines the schema
+# once for both dialects and Alembic turns it into ordered, reversible
+# migrations — the three in-code repair routines it replaces had no ordering,
+# no recorded state and no way to say which schema a database was at.
+sqlalchemy>=2.0
+alembic>=1.13
+psycopg[binary]>=3.1

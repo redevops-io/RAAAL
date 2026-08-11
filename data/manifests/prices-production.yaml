@@ -1,0 +1,96 @@
+# The licensed market-data snapshot used for research, integration and
+# production runs. The data is NOT in this repository and must not be.
+#
+# The manifest is committed so the *identity* of what a run used is versioned
+# even though the bytes are not. A result that cannot name its input snapshot is
+# a number without provenance.
+#
+# The bucket name is supplied by environment so it stays out of a repository
+# published under AGPL. The snapshot identity, object version and hashes are
+# committed, because those are what make a recorded result reviewable.
+#
+# UPLOADED 2026-08-01 while `licensing_review` below is still UNCONFIRMED. That
+# was an explicit instruction, and it is recorded here rather than smoothed over:
+# private storage does not cure a licence that forbids server-side
+# redistribution or multi-user serving, and the review still has to happen.
+
+dataset_id: market-data/prices
+snapshot_id: prices-2025-11-19
+kind: licensed
+
+# Supplied by environment when naming the bucket is undesirable. The manifest
+# still carries the snapshot identity and hash, so a wrong object is caught
+# regardless of where the URI came from.
+uri: ${QUANTIFY_MARKET_DATA_URI}
+object_version_id: 4wP89vvQr5wdzAnHAHF5i1bym2Md59FS
+sha256: f9b0e3f23018f1533a6c5215852f5ee5c7b639fb15a6fc7030e841dfa9e8a1ab
+content_digest: "mdv1:084a8c90ed58b43f6c96c9ea81cafd6009c3986b231f21e8d1135c2fa901c6ca"
+
+schema_version: "1"
+calendar: calendar/nyse@1
+data_as_of: 2025-11-19
+uploaded_at: 2026-08-01
+coverage: {start: 2016-01-04, end: 2025-11-19}
+
+provider: TO BE RECORDED          # part of the review below
+license_class: restricted
+redistributable: false
+
+# Queried by exports and model-context construction rather than remembered by
+# developers. An unlisted route is DENY: a policy that permits what it forgot to
+# mention grows permissions by omission.
+#
+# REVIEW is a refusal at the call site. An undecided question answered by
+# whoever happens to be running the code is a decision nobody made.
+egress_policy:
+  public_export: DENY
+  case_bundle: DENY
+  model_provider_upload: REVIEW
+  derived_aggregate: REVIEW
+  internal_benchmark: ALLOW
+  customer_result: REVIEW
+
+# While this is UNCONFIRMED, every route that could reach someone outside the
+# system is forced to REVIEW regardless of the policy above. The policy says
+# what the agreement would allow; nobody has read the agreement yet.
+license_review_status: UNCONFIRMED
+
+# The normalization rules behind `content_digest`, not only the digest. A reader
+# who has the hash but not the rules cannot reproduce it.
+content_digest_version: mdv1
+
+# `restricted` is load-bearing, not descriptive. It keeps this dataset out of
+# public exports and case bundles: the boundary rules say a public artifact may
+# never cite a private one, and licensed data is private in exactly that sense.
+export_policy:
+  public_exports: forbidden
+  case_bundles: forbidden
+  derived_statistics: permitted        # subject to the review below
+
+# Immutability requirements. An ordinary object path can be overwritten, and
+# then the same commit plus the same URI yields a different result — the exact
+# failure this whole manifest exists to prevent.
+# Verified against AWS on 2026-08-01, not merely requested at creation. A bucket
+# set up correctly once can be changed later, and "we configured that properly"
+# is a memory rather than a fact.
+storage_requirements:
+  bucket_versioning: {required: true, verified: Enabled}
+  immutable_object_keys: {required: true, verified: true}   # snapshot id in key
+  object_version_id_pinned: {required: true, verified: true}
+  sha256_verified_on_load: {required: true, verified: true}
+  refuse_on_mismatch: {required: true, verified: true}      # never the newest
+  public_access_blocked: {required: true, verified: true}
+  encryption_at_rest: {required: true, verified: AES256}
+  tls_only: {required: true, verified: true}
+
+# Unanswered. Each must be confirmed with the provider before upload, and
+# private storage resolves none of them.
+# Still open on 2026-08-01, after upload. Answering these is not optional; the
+# data is now in cloud storage regardless of what they turn out to say.
+licensing_review:
+  cloud_storage: UNCONFIRMED
+  backend_use: UNCONFIRMED
+  derived_analytics: UNCONFIRMED
+  multi_user_serving: UNCONFIRMED
+  test_and_benchmark_use: UNCONFIRMED
+  historical_snapshot_retention: UNCONFIRMED

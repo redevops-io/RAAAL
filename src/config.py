@@ -70,6 +70,19 @@ FOMO_SCORE_THRESHOLDS = {
 FOMO_LONG_LOOKBACK = 252
 FOMO_SHORT_LOOKBACK = 63
 
+# --- Execution model -------------------------------------------------------
+# Weights decided using data through date d are executable no earlier than d+1.
+# A backtest that applies them on d itself earns that day's return with
+# knowledge of it. Expressed in trading days so it can be widened for slower
+# rebalance cycles without touching call sites.
+EXECUTION_LAG_DAYS = 1
+
+# Round-trip transaction cost charged on turnover, in basis points of notional
+# traded. 10bps is a deliberately conservative default for liquid US ETFs
+# (spread + commission + slippage). It is a required input to any published
+# performance number, not an optional refinement.
+TRANSACTION_COST_BPS = 10.0
+
 # Lookback windows (trading days)
 FAST_LOOKBACK = 21
 MED_LOOKBACK = 63

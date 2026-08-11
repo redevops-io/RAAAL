@@ -1,0 +1,27 @@
+name: hard-bounds-beat-soft-turnover
+version: 1
+kind: CONSTRAINT_POLICY
+statement: >-
+  When a turnover cap and a weight ceiling conflict, the weight ceiling wins and
+  realized turnover may exceed its cap.
+
+risk: >-
+  Resolving the conflict silently in executor code is a hidden degree of freedom:
+  two implementations could resolve it opposite ways and both claim to run the
+  same methodology. Resolving it the other way would publish a portfolio that
+  violates its own stated constraints.
+
+realized_by:
+  - artifact_kind: methodology
+    field: contract.constraint_policy.soft_may_be_violated_to_satisfy_hard
+    value: true
+
+validated_by:
+  - test: tests/test_evaluation.py::TestConstraintPolicy::test_default_policy_makes_bounds_hard
+  - test: tests/test_executor.py::TestContractIsEnforced::test_weights_respect_contract_bounds
+
+history:
+  - >-
+    Undeclared until 2026-07-30; discovered when apply_turnover_cap carried
+    weights back over a declared 25% ceiling. Every override is now counted and
+    reported in the execution audit.

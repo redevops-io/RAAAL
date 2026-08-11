@@ -1,0 +1,119 @@
+# Things a user can mean that are not themselves purchasable.
+#
+# An index is a measurement. An asset class is an exposure. Neither has a
+# price you can buy at, and conflating them with the funds that track them is
+# what made "SPX ETF" resolve to "no price history for SPX" — an answer about
+# a ticker, to a question about intent.
+#
+# `aliases` here are ways of naming the *concept*. How somebody asks for a
+# vehicle that delivers it is a separate file.
+version: 1
+
+concepts:
+  - concept_id: INDEX:SP500
+    kind: INDEX
+    canonical_name: S&P 500 Index
+    # Which fund to offer first when nothing in the phrase decides it.
+    # Declared, because the alternative is ordering by whichever tie-break the
+    # sort happens to apply — alphabetical put IVV ahead of SPY, which is an
+    # accident presented as a recommendation.
+    default_instrument: US:NYSEARCA:SPY
+    aliases: ["s&p 500", "s&p500", "sp500", "spx", "^spx", "^gspc", "gspc",
+              "the s&p", "s&p", "sandp500", "standard and poors 500"]
+
+  - concept_id: INDEX:NASDAQ100
+    kind: INDEX
+    canonical_name: Nasdaq-100 Index
+    aliases: ["nasdaq 100", "nasdaq100", "ndx", "^ndx", "nasdaq"]
+
+  - concept_id: INDEX:DJIA
+    kind: INDEX
+    canonical_name: Dow Jones Industrial Average
+    aliases: ["dow", "dow jones", "djia", "the dow"]
+
+  - concept_id: INDEX:RUSSELL2000
+    kind: INDEX
+    canonical_name: Russell 2000 Index
+    aliases: ["russell 2000", "russell2000", "rut"]
+
+  - concept_id: INDEX:RUSSELL1000
+    kind: INDEX
+    canonical_name: Russell 1000 Index
+    aliases: ["russell 1000", "russell1000"]
+
+  - concept_id: EXPOSURE:US_TOTAL_MARKET
+    kind: ASSET_CLASS
+    canonical_name: US total stock market
+    aliases: ["total market", "total us market", "us total market",
+              "total stock market", "whole us market"]
+
+  - concept_id: EXPOSURE:US_LARGE_CAP
+    kind: ASSET_CLASS
+    canonical_name: US large-cap equity
+    aliases: ["us large cap", "large cap", "large caps"]
+
+  - concept_id: EXPOSURE:US_SMALL_CAP
+    kind: ASSET_CLASS
+    canonical_name: US small-cap equity
+    aliases: ["small cap", "small caps", "us small cap"]
+
+  - concept_id: EXPOSURE:INTERNATIONAL_EQUITY
+    kind: ASSET_CLASS
+    canonical_name: International equity
+    aliases: ["international", "ex us", "ex-us", "outside the us",
+              "international stocks"]
+
+  - concept_id: EXPOSURE:EMERGING_MARKETS
+    kind: ASSET_CLASS
+    canonical_name: Emerging-market equity
+    aliases: ["emerging markets", "emerging market", "em"]
+
+  - concept_id: EXPOSURE:DEVELOPED_MARKETS
+    kind: ASSET_CLASS
+    canonical_name: Developed-market equity
+    aliases: ["developed markets", "developed market"]
+
+  - concept_id: EXPOSURE:US_AGGREGATE_BOND
+    kind: ASSET_CLASS
+    canonical_name: US aggregate bonds
+    default_instrument: US:NYSEARCA:BND
+    aliases: ["total bond", "total bond market", "aggregate bond",
+              "aggregate bonds", "bonds", "us bonds"]
+
+  - concept_id: EXPOSURE:TREASURIES
+    kind: ASSET_CLASS
+    canonical_name: US Treasuries
+    default_instrument: US:NYSEARCA:IEF
+    aliases: ["treasuries", "treasury bonds", "govvies"]
+
+  - concept_id: EXPOSURE:TBILLS
+    kind: ASSET_CLASS
+    canonical_name: Treasury bills
+    default_instrument: US:NYSEARCA:BIL
+    aliases: ["t bills", "tbills", "t-bills", "treasury bills", "cash",
+              "cash equivalent"]
+
+  - concept_id: EXPOSURE:MUNICIPAL_BONDS
+    kind: ASSET_CLASS
+    canonical_name: Municipal bonds
+    aliases: ["munis", "muni bonds", "municipal bonds", "tax free bonds"]
+
+  - concept_id: EXPOSURE:GOLD
+    kind: ASSET_CLASS
+    canonical_name: Gold
+    aliases: ["gold", "bullion"]
+
+  - concept_id: EXPOSURE:COMMODITIES
+    kind: ASSET_CLASS
+    canonical_name: Broad commodities
+    aliases: ["commodities", "commodity basket"]
+
+  - concept_id: EXPOSURE:REAL_ESTATE
+    kind: ASSET_CLASS
+    canonical_name: Real estate
+    aliases: ["reits", "real estate", "property"]
+
+  - concept_id: EXPOSURE:BITCOIN
+    kind: ASSET_CLASS
+    canonical_name: Bitcoin
+    aliases: ["bitcoin", "btc"]

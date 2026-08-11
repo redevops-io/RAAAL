@@ -1,0 +1,12 @@
+name: lopez-de-prado-2016
+version: 1
+kind: PAPER
+identifier: doi:10.3905/jpm.2016.42.4.59
+about: claim/hrp-outperforms-mvo-out-of-sample@1
+stance: SUPPORTS
+strength: strong
+valid_from: '2016-01-01'
+summary: >-
+  Building Diversified Portfolios That Outperform Out of Sample, Journal of
+  Portfolio Management 42(4). Demonstrates HRP on Monte Carlo simulations and
+  historical data against inverse-variance and minimum-variance benchmarks.

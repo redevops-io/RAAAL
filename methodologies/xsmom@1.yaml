@@ -1,0 +1,110 @@
+spec_version: '0.1'
+concept: xsmom
+version: 1
+title: Cross-sectional momentum (12-1)
+objective: >-
+  Rank a fixed multi-asset ETF universe by trailing total return over a 12-month
+  formation window, skipping the most recent month, and hold the highest-ranked
+  assets in equal weight.
+
+grounded_in:
+  - identifier: doi:10.1111/j.1540-6261.1993.tb04702.x
+    title: >-
+      Returns to Buying Winners and Selling Losers: Implications for Stock Market
+      Efficiency
+    claim_used: >-
+      Securities ranked on trailing returns exhibit continuation over three- to
+      twelve-month horizons, with the most recent month excluded to avoid
+      short-horizon reversal.
+
+claims_ref:
+  - claim/cross-sectional-momentum-persists@1
+
+assumptions_ref:
+  - assumption/skip-most-recent-period@1
+  - assumption/nyse-sessions@1
+  - assumption/one-session-execution-lag@1
+  - assumption/adjusted-close-is-restated@1
+
+contract:
+  universe: [SPY, SH, TLT, TBT, LQD, DBC, GLD, HYG, BIL]
+  rebalance_frequency: 21B
+  weight_bounds:
+    min: 0.0
+    max: 0.34
+  gross_leverage_max: 1.0
+  requires_cost_model: true
+
+params:
+  lookback:
+    value: 252
+    unit: trading_days
+    description: Formation window over which trailing return is measured.
+  skip:
+    value: 21
+    unit: trading_days
+    description: >-
+      Most recent period excluded from the formation window. Declared because
+      omitting it measures a different effect — short-horizon reversal
+      contaminates the signal.
+  top_n:
+    value: 3
+    unit: assets
+    description: >-
+      Number of highest-ranked assets held. Selection breadth is the parameter
+      this family is most sensitive to.
+
+pipeline:
+  - compute_momentum
+  - rank_assets
+  - select_top_n
+  - equal_weight_selected
+  - apply_bounds
+
+fallback_chain:
+  - equal_weight
+
+universe_filters:
+  - id: has_full_formation_history
+    enforced_by: pipeline.compute_momentum
+    description: >-
+      Realized by compute_momentum raising when fewer than lookback + skip
+      sessions are available.
+
+rules:
+  - id: min_history
+    enforced_by: params.lookback
+    expected: '>= 252'
+    description: >-
+      Asserts the formation window. Realized by compute_momentum, which raises
+      when fewer than lookback + skip sessions are available.
+  - id: skip_declared
+    enforced_by: params.skip
+    expected: '>= 1'
+    description: >-
+      Asserts the most recent period is excluded. Realized by compute_momentum;
+      a skip of zero measures a different effect.
+  - id: selection_breadth
+    enforced_by: params.top_n
+    expected: '>= 3'
+    description: Asserts a minimum number of holdings, realized by select_top_n.
+
+assumptions:
+  - Close-to-close execution at the next session's price.
+  - Past relative performance is informative about the next holding period.
+  - No borrow constraints or short availability limits (the universe is long-only ETFs).
+  - Equal weighting within the selected set; no risk scaling.
+
+limitations:
+  - Long-only; expresses bearish views solely through inverse ETFs already in the universe.
+  - Concentrated by construction — three of nine assets — so single-asset risk is high.
+  - Turnover is materially higher than a covariance-based allocator, and the
+    corrected cost model bites accordingly.
+  - No volatility targeting; selected assets can have very different risk.
+  - Estimated on daily Adj Close, which is restated over time by the data vendor.
+  - Nine ETFs is a far smaller cross-section than the equity universe the source
+    paper studied; results are not a replication of that paper.
+
+cost_model: flat_bps
+risk_classification: medium
+change_rationale: Initial publication.

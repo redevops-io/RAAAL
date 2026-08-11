@@ -1,0 +1,34 @@
+name: momentum-lookback-sensitivity
+version: 1
+outcome: NO_EFFECT_FOUND
+opened_at: '2026-07-31'
+closed_at: '2026-07-31'
+
+question: >-
+  Does cross-sectional momentum's out-of-sample performance improve materially
+  at lookbacks other than the 252-session window inherited from
+  Jegadeesh & Titman?
+
+motivation: >-
+  The lookback was adopted from the source paper without being tested on this
+  universe. An untested inherited parameter is an assumption wearing a
+  citation.
+
+examined:
+  - methodology/xsmom@1
+  - assumption/skip-most-recent-period@1
+  - evidence/jegadeesh-titman-1993@1
+
+trials_examined: 6
+
+resolution: >-
+  Six lookbacks were evaluated (63, 126, 189, 252, 315, 378 sessions). None
+  produced a deflated Sharpe distinguishable from the 252-session baseline once
+  the six trials were counted, which is the outcome the deflation is designed to
+  produce: the apparent spread across lookbacks is within what six attempts on
+  the same data would generate by chance.
+
+  Nothing changed, and that is the result. The six trials are recorded here and
+  count toward every subsequent DSR on this lineage — an unrecorded sweep would
+  have left the next published Sharpe overstated by exactly the amount this
+  search inflated it.

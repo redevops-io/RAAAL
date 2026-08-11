@@ -1,0 +1,767 @@
+"""Quantify investment-agent API.
+
+The public surface for quantify.club. Two rules shape it:
+
+**Impersonal by construction.** The product's regulatory position rests on the
+publisher's exclusion (*Lowe v. SEC*, 472 U.S. 181; the 2024 Seeking Alpha
+dismissal). That holds only while output is impersonal and disinterested. There
+is therefore no endpoint that accepts a user's holdings, and none that tailors a
+response to a caller. Adding one is not a feature decision — it changes which
+body of law applies to every backtest already published.
+
+**No number without its class.** Every performance figure is served as a record
+carrying its `performance_class` and the disclosure bound to it, so a figure
+cannot be copied out of the API without its caveat. Mixed-class series are
+refused rather than rendered.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from contextlib import asynccontextmanager
+
+import logging
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
+
+from .evaluation import ProtocolRegistry
+from .ledger import Ledger
+from .methodology import MethodologyRegistry, merge
+from .methodology.spec import PerformanceClass
+from .policy import HARD_BLOCKERS, Decision, PolicyRegistry, Surface
+from .web import router as ui_router
+from .workspace.routes import router as workspace_router
+
+API_VERSION = "0.2.0"
+
+SOURCE_URL = "https://github.com/redevops-io/RAAAL"
+
+#: AGPL §13 requires that users interacting with the software over a network are
+#: offered its source. Serving it from the API root is how that offer is made
+#: visible rather than merely satisfied in the repository.
+LICENSE_NOTICE = {
+    "license": "AGPL-3.0-or-later",
+    "source": SOURCE_URL,
+    "notice": (
+        "This service is AGPL-3.0-or-later. You are entitled to the complete "
+        "corresponding source of the version running here."
+    ),
+}
+
+DEMO_NOTICE = (
+    "DEMO — decision support only, not investment advice. Paper trading; no real "
+    "orders are ever placed."
+)
+
+_registry = MethodologyRegistry()
+_protocols = ProtocolRegistry()
+_policies = PolicyRegistry()
+_ledger = Ledger()
+
+
+def _bootstrap() -> None:
+    """Publish on-disk methodologies and protocols into the ledger at startup.
+
+    Idempotent: publishing no-ops on identical content and raises on a changed
+    body under an existing id, so an edited published file is caught here rather
+    than silently diverging from what results cite.
+    """
+    for m in _registry.load_all():
+        _ledger.publish_methodology(m)
+    for p in _protocols.load_all():
+        _ledger.publish_protocol(p)
+
+
+#: The startup preflight's outcome, held for the readiness endpoint.
+#:
+#: Readiness and liveness are separate on purpose. A migration mismatch should
+#: make the service *unready* — visible to a load balancer, still diagnosable by
+#: an operator — rather than crash-looping a container that cannot be inspected.
+#: What must not happen is a user-facing request being served in that state.
+_PREFLIGHT: Dict[str, Any] = {"outcome": None}
+
+
+def preflight_outcome():
+    return _PREFLIGHT["outcome"]
+
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI):
+    import datetime as dt
+
+    from .deploy.context import bind, bound, resolve as resolve_context
+    from .deploy.preflight import Profile, Result, run as run_preflight
+
+    # In production `create_app` has already resolved, judged and bound one,
+    # and this reuses it: resolving again here would reintroduce the second
+    # reader the context exists to remove, and a deployment whose environment
+    # changed between the two calls would be preflighted as one thing and
+    # served as another. Resolving only happens on the imported-application
+    # path, where nothing has established a deployment at all.
+    context = bound() or bind(resolve_context())
+
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    # Run again rather than reusing `create_app`'s outcome: the preflight is a
+    # check, not a resolution, and re-checking the same context is idempotent.
+    # Reusing a held outcome would let a process that has served before report
+    # the previous deployment's verdict for this one.
+    outcome = run_preflight(checked_at=stamp, context=context)
+    _PREFLIGHT["outcome"] = outcome
+
+    if not outcome.ready:
+        # The detail is for logs and the private proof record, never for a
+        # client. It names the host, the revision or the drifted column.
+        LOG.error("preflight %s: %s", outcome.result.value, outcome.detail)
+        if outcome.profile is Profile.PRODUCTION or \
+                outcome.result is Result.MIGRATION_MISMATCH:
+            # A schema mismatch stops any profile. Serving a database whose
+            # columns this code does not expect moves the failure onto the
+            # first request that touches one, which is how it reaches a user
+            # instead of an operator.
+            raise RuntimeError(
+                f"preflight {outcome.result.value}; refusing to serve. "
+                "See the operator log for detail.")
+
+    _bootstrap()
+    try:
+        yield
+    finally:
+        # A bound context outlives the application object, and a process that
+        # serves several — every test that builds a client — would otherwise
+        # inherit the previous deployment's answer.
+        from .deploy.context import unbind
+
+        unbind()
+
+
+LOG = logging.getLogger(__name__)
+
+
+class DeploymentRefused(RuntimeError):
+    """The deployment did not establish what it must before serving.
+
+    Raised by `create_app` rather than by a request handler, so a refusal
+    happens before the process is capable of accepting traffic at all — not on
+    the first request that reaches whichever code path noticed.
+    """
+
+    def __init__(self, outcome) -> None:
+        self.outcome = outcome
+        super().__init__(
+            f"deployment preflight {outcome.result.value}; refusing to serve. "
+            "See the operator log for detail.")
+
+
+def create_app() -> FastAPI:
+    """The production entrypoint.
+
+    Uvicorn is pointed at this rather than at the module-level `app`, so the
+    preflight runs while the process is still starting and a refusal prevents
+    the server binding at all. Importing a ready-made application would run the
+    checks in a lifespan hook, after the socket is open.
+
+    Until Gate 3 nothing served this application at all — no uvicorn invocation
+    existed anywhere, and the container ran the Bokeh dashboard instead. Every
+    control Gate 2 built sat on a path no deployment took.
+    """
+    import datetime as dt
+    import json as _json
+
+    from .deploy.context import bind, resolve as resolve_context
+    from .deploy.preflight import Profile, run as run_preflight
+
+    # Uvicorn installs its own logging config and does not propagate this
+    # module's logger, so a proof written with `LOG.info` never reached the
+    # container log. It is attached to uvicorn's own logger, which is the one
+    # an operator is actually reading.
+    log = logging.getLogger("uvicorn.error")
+
+    # Resolve, judge *that object*, then serve under it. The preflight once
+    # validated PostgreSQL while the store opened a local SQLite file, because
+    # each read the environment for itself and neither was wrong on its own
+    # terms. Passing the resolved context to both is what makes them the same
+    # answer rather than two answers that usually agree.
+    context = resolve_context()
+
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    outcome = run_preflight(checked_at=stamp, context=context)
+    _PREFLIGHT["outcome"] = outcome
+
+    if not outcome.ready:
+        # Detail goes to the operator, never to a client: it names the host,
+        # the revision or the drifted column.
+        log.error("preflight %s: %s", outcome.result.value, outcome.detail)
+        LOG.error("preflight %s: %s", outcome.result.value, outcome.detail)
+        if outcome.profile is Profile.PRODUCTION:
+            raise DeploymentRefused(outcome)
+
+    # Only now, and only this object: nothing serves under a context the
+    # preflight did not judge.
+    bind(context)
+    app.state.deployment = context
+
+    proof = _json.dumps(outcome.proof(), sort_keys=True)
+    log.info("deployment proof %s", proof)
+    LOG.info("deployment proof %s", proof)
+    log.info("deployment context %s",
+             _json.dumps(context.to_json(), sort_keys=True))
+    return app
+
+
+app = FastAPI(
+    title="investment-agent (Quantify Investment OS)",
+    version=API_VERSION,
+    description=(
+        "Versioned, evidence-backed investment methodologies. Every result links to "
+        "its methodology version, run manifest, trial count and disclosure."
+    ),
+    lifespan=_lifespan,
+)
+
+
+# One translation for every route. Installed on the application rather than
+# written into handlers: there are 49 handlers and one boundary, and a handler
+# that sanitises its own database exception is a handler that can forget.
+from .web.failure import install as install_failure_handling  # noqa: E402
+
+install_failure_handling(app)
+
+
+# --- service metadata ------------------------------------------------------
+
+app.include_router(ui_router)
+
+# The private workspace. A separate router with its own templates and its
+# own store, mounted at its own prefix, so it can move to a different
+# hostname without any code moving with it.
+app.include_router(workspace_router)
+
+
+@app.get("/health/live")
+def live() -> Dict[str, Any]:
+    """Liveness. The process exists and is answering.
+
+    Deliberately says nothing about whether it can serve. A dashboard
+    responding on a port has never been evidence of pilot readiness, and a
+    liveness probe that reported readiness would make an unready instance
+    indistinguishable from a working one.
+    """
+    return {"live": True}
+
+
+@app.get("/health/ready")
+def ready() -> Dict[str, Any]:
+    """Whether this instance may serve requests.
+
+    Carries the outcome and nothing about why: a client learns that the service
+    is not ready, not that its migration head is behind or which host it could
+    not reach. The reasons are in the operator log and the startup proof.
+    """
+    from fastapi.responses import JSONResponse
+
+    outcome = preflight_outcome()
+    if outcome is None:
+        # The factory has not run. Either the application was imported rather
+        # than created, or the preflight has not completed.
+        return JSONResponse({"ready": False}, status_code=503)
+    return JSONResponse(outcome.public(),
+                        status_code=200 if outcome.ready else 503)
+
+
+@app.get("/ready")
+def ready_alias() -> Dict[str, Any]:
+    """Kept so an existing probe does not silently start failing."""
+    return ready()
+
+
+@app.get("/health")
+def health() -> Dict[str, Any]:
+    """Liveness plus the compatibility facts a client needs.
+
+    The public view only. An image digest and a migration head describe how to
+    attack the deployment, not how to interoperate with it.
+    """
+    from .deploy.context import current
+
+    return {
+        "status": "ok",
+        "version": API_VERSION,
+        "build": current().build.public(),
+        "paper_only": True,
+        "external_execution_path": False,
+        "notice": DEMO_NOTICE,
+    }
+
+
+@app.get("/info")
+def info() -> Dict[str, Any]:
+    concepts = _registry.concepts()
+    return {
+        "service": "investment-agent (Quantify Investment OS)",
+        "version": API_VERSION,
+        "spec_version": "0.1",
+        "paper_only": True,
+        "external_execution_path": False,
+        "notice": DEMO_NOTICE,
+        "personalization": {
+            "enabled": False,
+            "reason": (
+                "Output is impersonal by design. Personalized output would forfeit "
+                "the publisher's exclusion under Lowe v. SEC and bring every "
+                "published backtest under the SEC Marketing Rule."
+            ),
+        },
+        "methodologies": concepts,
+        "license": LICENSE_NOTICE,
+    }
+
+
+# --- methodologies ---------------------------------------------------------
+
+
+@app.get("/methodologies")
+def list_methodologies() -> Dict[str, Any]:
+    """All published methodology versions. Versions coexist; none replaces another."""
+    return {"methodologies": _ledger.list_methodologies()}
+
+
+@app.get("/methodologies/{concept}")
+def get_concept(concept: str, version: Optional[int] = None) -> Dict[str, Any]:
+    """Resolve a concept. Omit `version` for latest, supply it to pin."""
+    try:
+        m = _registry.get(concept, version)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    versions = _registry.versions(concept)
+    return {
+        "methodology": m.to_json(),
+        "resolved": "pinned" if version is not None else "latest",
+        "available_versions": [v.version for v in versions],
+        "trials_observed": _ledger.trial_count(concept),
+    }
+
+
+@app.get("/methodologies/{concept}/diff")
+def diff_versions(concept: str, base: int, target: int) -> Dict[str, Any]:
+    """Structural diff between two versions of one concept."""
+    try:
+        a = _registry.get(concept, base)
+        b = _registry.get(concept, target)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    left, right = a.canonical_form(), b.canonical_form()
+    changed = {
+        key: {"base": left.get(key), "target": right.get(key)}
+        for key in sorted(set(left) | set(right))
+        if left.get(key) != right.get(key)
+    }
+    contract_breaks = b.contract.breaks_compatibility_with(a.contract)
+    return {
+        "base": a.version_id,
+        "target": b.version_id,
+        "changed_fields": changed,
+        "contract_breaks": contract_breaks,
+        "comparability": "broken" if contract_breaks else "comparable",
+        "change_rationale": b.change_rationale,
+    }
+
+
+@app.get("/methodologies/{concept}/compare")
+def compare_versions(concept: str) -> Dict[str, Any]:
+    """Compare published figures across versions of one concept.
+
+    Refuses to present a naive ranking. Two versions can differ in contract *and*
+    in the period they were evaluated over — a longer lookback needs more warmup,
+    so it starts later — and a table sorted by return would silently compare
+    strategies measured on different data. Both conditions are reported.
+    """
+    try:
+        versions = _registry.versions(concept)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if not versions:
+        raise HTTPException(status_code=404, detail=f"unknown concept {concept!r}")
+
+    entries: List[Dict[str, Any]] = []
+    for m in versions:
+        for record in _ledger.list_performance(m.version_id):
+            entries.append(
+                {
+                    "version_id": m.version_id,
+                    "metric": record["metric"],
+                    "value": record["value"],
+                    "period_start": record["period_start"],
+                    "period_end": record["period_end"],
+                    "performance_class": record["performance_class"],
+                    "trials_at_publication": record["trials_at_publication"],
+                    "cost_model": record["cost_model"],
+                }
+            )
+
+    blockers: List[str] = []
+    periods = {(e["period_start"], e["period_end"]) for e in entries}
+    if len(periods) > 1:
+        blockers.append(
+            "evaluation periods differ across versions: "
+            + "; ".join(f"{s} .. {e}" for s, e in sorted(periods))
+        )
+
+    for older, newer in zip(versions, versions[1:]):
+        breaks = newer.contract.breaks_compatibility_with(older.contract)
+        if breaks:
+            blockers.append(f"{older.version_id} -> {newer.version_id}: {'; '.join(breaks)}")
+
+    classes = {e["performance_class"] for e in entries}
+    if len(classes) > 1:
+        blockers.append(f"mixed performance classes: {sorted(classes)}")
+
+    return {
+        "concept_id": f"methodology/{concept}",
+        "entries": entries,
+        "directly_comparable": not blockers,
+        "comparability_blockers": blockers,
+        "note": (
+            "Figures are reported side by side, not ranked. Ranking versions "
+            "measured over different periods or under different contracts would "
+            "compare different things."
+        )
+        if blockers
+        else None,
+        "trials_observed": _ledger.trial_count(concept),
+    }
+
+
+@app.post("/methodologies/{concept}/merge")
+def merge_versions(concept: str, base: int, ours: int, theirs: int) -> Dict[str, Any]:
+    """Three-way merge of two independent revisions.
+
+    Returns a verdict per layer rather than a boolean — see `methodology.merge`.
+    """
+    try:
+        result = merge(
+            _registry.get(concept, base),
+            _registry.get(concept, ours),
+            _registry.get(concept, theirs),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return result.to_json()
+
+
+# --- performance -----------------------------------------------------------
+
+
+@app.get("/performance")
+def list_performance(
+    version_id: Optional[str] = None,
+    include_superseded: bool = Query(
+        False, description="Superseded figures are retained, not deleted."
+    ),
+) -> Dict[str, Any]:
+    """Published figures. Each carries its class, disclosure and trial count."""
+    records = _ledger.list_performance(version_id, include_superseded)
+    classes = {r["performance_class"] for r in records}
+    return {
+        "performance": records,
+        "performance_classes_present": sorted(classes),
+        "linking_prohibited": len(classes) > 1,
+        "linking_note": (
+            "Records of different performance classes must not be combined into a "
+            "single series. GIPS prohibits linking actual to theoretical performance."
+        )
+        if len(classes) > 1
+        else None,
+    }
+
+
+@app.get("/performance/series")
+def performance_series(version_id: str, metric: str) -> Dict[str, Any]:
+    """A single-class series for charting.
+
+    Refuses to return a mixed-class series. This is the data-model enforcement of
+    the GIPS rule — a chart that flows from backtest into live cannot be built
+    from this endpoint because the endpoint will not serve the underlying data.
+    """
+    records = [
+        r for r in _ledger.list_performance(version_id) if r["metric"] == metric
+    ]
+    if not records:
+        raise HTTPException(status_code=404, detail="no performance records match")
+
+    classes = {r["performance_class"] for r in records}
+    if len(classes) > 1:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"refusing to serve a mixed-class series ({sorted(classes)}). "
+                "Request one class at a time; linking them is prohibited."
+            ),
+        )
+    return {
+        "version_id": version_id,
+        "metric": metric,
+        "performance_class": records[0]["performance_class"],
+        "disclosure": records[0]["disclosure"],
+        "points": [
+            {"value": r["value"], "period_end": r["period_end"], "run_id": r["run_id"]}
+            for r in records
+        ],
+    }
+
+
+# --- runs, trials, errata --------------------------------------------------
+
+
+@app.get("/runs")
+def list_runs(version_id: Optional[str] = None) -> Dict[str, Any]:
+    return {"runs": _ledger.list_runs(version_id)}
+
+
+@app.get("/trials/{concept}")
+def trials(concept: str) -> Dict[str, Any]:
+    """Platform-observed trial count for a methodology lineage.
+
+    This is the number an individual researcher cannot be relied upon to report,
+    because they see only the result they chose to publish. It is the input to
+    the Deflated Sharpe Ratio, and it only increases.
+    """
+    if concept not in _registry.concepts():
+        raise HTTPException(status_code=404, detail=f"unknown concept {concept!r}")
+    breakdown = _ledger.trial_breakdown(concept)
+    return {
+        "concept": concept,
+        "trials_observed": _ledger.trial_count(concept),
+        "breakdown": breakdown,
+        "note": (
+            "Counted by the platform across every version of this lineage AND every "
+            "evaluation protocol those versions ran under, not self-reported. "
+            "Searching over protocols is multiple testing exactly as searching over "
+            "parameters is. Required for multiple-testing correction."
+        ),
+    }
+
+
+@app.get("/policies")
+def list_policies() -> Dict[str, Any]:
+    """Versioned statistical policies.
+
+    Thresholds live here rather than in code because they are product decisions
+    that will be revised. A published result cites the policy version it was
+    judged under, so raising a bar later does not retroactively re-judge it.
+    """
+    return {
+        "policies": [p.to_json() for p in _policies.load_all()],
+        "available": _policies.names(),
+    }
+
+
+@app.get("/policies/{name}")
+def get_policy(name: str, version: Optional[int] = None) -> Dict[str, Any]:
+    try:
+        p = _policies.get(name, version)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "policy": p.to_json(),
+        "resolved": "pinned" if version is not None else "latest",
+        "available_versions": [v.version for v in _policies.versions(name)],
+    }
+
+
+@app.get("/surfaces")
+def list_surfaces() -> Dict[str, Any]:
+    """Publication surfaces and what each asserts.
+
+    Different surfaces make different claims, so one universal threshold cannot
+    serve them. A private draft asserts nothing; a validated badge asserts a
+    strict standard was met.
+    """
+    return {
+        "surfaces": [s.value for s in Surface],
+        "decisions": [d.value for d in Decision],
+        "hard_blockers": list(HARD_BLOCKERS),
+        "note": (
+            "Failed results are not hidden. The gate controls whether a result may "
+            "be represented as validated and what disclosure travels with it."
+        ),
+    }
+
+
+@app.get("/protocols")
+def list_protocols() -> Dict[str, Any]:
+    """Published evaluation protocols.
+
+    `methodology + evaluation protocol = performance`. A figure that cites only a
+    methodology is not reproducible: the costs, execution lag, walk-forward grid
+    and data snapshot all live here.
+    """
+    return {
+        "protocols": _ledger.list_protocols(),
+        "available": _protocols.names(),
+        "note": (
+            "Protocols are versioned and hashed like methodologies. Searching over "
+            "protocols is multiple testing and is counted as such."
+        ),
+    }
+
+
+@app.get("/protocols/{name}")
+def get_protocol(name: str, version: Optional[int] = None) -> Dict[str, Any]:
+    try:
+        p = _protocols.get(name, version)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "protocol": p.to_json(),
+        "resolved": "pinned" if version is not None else "latest",
+        "available_versions": [v.version for v in _protocols.versions(name)],
+    }
+
+
+@app.get("/holdout-unlocks")
+def holdout_unlocks() -> Dict[str, Any]:
+    """Every sealed-holdout opening, with reason and authorizer.
+
+    A sealed holdout opens once. This log is what makes that claim checkable
+    rather than asserted.
+    """
+    return {"unlocks": _ledger.list_holdout_unlocks()}
+
+
+@app.get("/errata")
+def list_errata() -> Dict[str, Any]:
+    """Published corrections. Superseded results are linked, never removed."""
+    return {"errata": _ledger.list_errata()}
+
+
+# --- discovery (v8 Discovery Runtime interfaces) ---------------------------
+
+
+@app.get("/project/discoveries")
+def discoveries() -> Dict[str, Any]:
+    """Detected changes worth acting on, as governed mission proposals.
+
+    Shapes follow the Context Runtime v8 Discovery interfaces (Signal →
+    Detection → Correlation → Hypothesis → MissionProposal) so this surface can
+    be backed by that runtime rather than a parallel implementation.
+
+    Detection is deterministic and evidence-cited; nothing here proposes a change
+    to a published methodology directly. A proposal is an input to review.
+    """
+    proposals: List[Dict[str, Any]] = []
+
+    for concept, versions in _registry.concepts().items():
+        if len(versions) < 2:
+            continue
+        latest = _registry.get(concept)
+        previous = _registry.get(concept, sorted(versions)[-2])
+        breaks = latest.contract.breaks_compatibility_with(previous.contract)
+        if breaks:
+            proposals.append(
+                {
+                    "kind": "COMPARABILITY_BROKEN",
+                    "subject": latest.concept_id,
+                    "hypothesis": {
+                        "claim": (
+                            f"{previous.version_id} results are not comparable to "
+                            f"{latest.version_id}"
+                        ),
+                        "supporting_evidence": breaks,
+                        "contradicting_evidence": [],
+                        "verification_plan": [
+                            f"re-run {previous.version_id} under the {latest.version_id} contract",
+                            "compare against the published figure",
+                        ],
+                    },
+                    "suggested_template": "SupersessionMission",
+                    "approval_policy": "human_required",
+                    "evidence": {"change_rationale": latest.change_rationale},
+                }
+            )
+
+    for erratum in _ledger.list_errata():
+        proposals.append(
+            {
+                "kind": "ERRATUM_PUBLISHED",
+                "subject": erratum.get("version_id") or "platform",
+                "hypothesis": {
+                    "claim": erratum["title"],
+                    "supporting_evidence": [erratum["summary"]],
+                    "contradicting_evidence": [],
+                    "verification_plan": ["confirm superseded figures are flagged"],
+                },
+                "suggested_template": "ErratumMission",
+                "approval_policy": "published",
+                "evidence": {"supersedes": erratum["supersedes"]},
+            }
+        )
+
+    return {
+        "discoveries": proposals,
+        "note": (
+            "Proposals only. Discovery never mutates a published methodology; it "
+            "produces evidence-backed work for review."
+        ),
+    }
+
+
+@app.get("/project/learning")
+def learning() -> Dict[str, Any]:
+    """What the platform has learned about its own published results."""
+    errata = _ledger.list_errata()
+    superseded = sum(len(e["supersedes"]) for e in errata)
+    return {
+        "errata_published": len(errata),
+        "performance_records_superseded": superseded,
+        "methodology_versions": len(_ledger.list_methodologies()),
+        "trials_by_concept": {
+            c: _ledger.trial_count(c) for c in _registry.concepts()
+        },
+    }
+
+
+# --- current strategies ----------------------------------------------------
+
+
+@app.get("/current-strategies")
+def current_strategies() -> Dict[str, Any]:
+    """Latest published version of each methodology, with its integrity context."""
+    out = []
+    for concept, versions in _registry.concepts().items():
+        m = _registry.get(concept)
+        perf = _ledger.list_performance(m.version_id)
+        out.append(
+            {
+                "concept_id": m.concept_id,
+                "version_id": m.version_id,
+                "title": m.title,
+                "objective": m.objective,
+                "content_hash": m.content_hash,
+                "grounded_in": [c.to_json() for c in m.grounded_in],
+                "assumptions": list(m.assumptions),
+                "limitations": list(m.limitations),
+                "cost_model": m.cost_model,
+                "trials_observed": _ledger.trial_count(concept),
+                "published_performance": perf,
+                "deprecation_date": m.deprecation_date,
+            }
+        )
+    return {"strategies": out, "notice": DEMO_NOTICE}
+
+
+@app.get("/")
+def root() -> JSONResponse:
+    return JSONResponse(
+        {
+            "service": "investment-agent (Quantify Investment OS)",
+            "version": API_VERSION,
+            "notice": DEMO_NOTICE,
+            "license": LICENSE_NOTICE,
+            "docs": "/docs",
+        }
+    )

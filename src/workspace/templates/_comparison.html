@@ -1,0 +1,39 @@
+{# Benchmarks, in declaration order. Never sorted by outcome — a ranking the
+   platform performs is a recommendation the platform did not intend to make. #}
+<div class="panel">
+  <div class="scroll"><table>
+    <tr>
+      <th>Benchmark</th><th class="num">Final value</th>
+      <th class="num">Money-weighted</th><th class="num">Time-weighted</th><th></th>
+    </tr>
+    {% for b in run.benchmarks %}
+    <tr>
+      <td>{{ b.name }}<div class="small muted">{{ b.description }}</div></td>
+      {% if b.comparable %}
+        <td class="num">${{ "{:,.0f}".format(b.result.final_value) }}</td>
+        <td class="num">{{ "%+.2f%%"|format((b.result.money_weighted or 0) * 100) }}</td>
+        <td class="num">{{ "%+.2f%%"|format((b.result.time_weighted_annualized or 0) * 100) }}</td>
+        <td></td>
+      {% else %}
+        <td colspan="3" class="small muted">{{ b.mismatch.why }}</td>
+        <td><span class="chip warn">not comparable</span></td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table></div>
+
+  <p class="small muted" style="margin:12px 0 0">
+    Listed in the order the set was declared, before any of it was run.
+    Every comparable benchmark received identical contributions on identical days
+    under identical costs, execution lag and calendar, so the only difference
+    between them is what the money bought.
+  </p>
+</div>
+
+{% if run.comparability %}
+<div class="disclosure">
+  <strong>{{ run.comparability.comparison_class.value.replace("_", " ")|title }}.</strong>
+  {{ run.comparability.required_disclosure }}
+  <div class="small muted" style="margin-top:5px">{{ run.comparability.to_json()["disclosure_version"] }}</div>
+</div>
+{% endif %}

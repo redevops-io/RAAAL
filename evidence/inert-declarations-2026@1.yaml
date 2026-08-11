@@ -1,0 +1,18 @@
+name: inert-declarations-2026
+version: 1
+kind: PLATFORM_RESULT
+identifier: audit/executor-references-2026-07-31
+about: claim/cross-sectional-momentum-persists@1
+stance: QUALIFIES
+strength: strong
+valid_from: '2026-07-31'
+summary: >-
+  Static audit of src/methodology/executor.py found zero references to a
+  methodology's `rules` or `universe_filters`, while src/methodology/spec.py
+  references them 6 and 4 times respectively and merge.py 5 and 3 times. Both
+  fields are part of the canonical form and therefore of content identity, so
+  editing a rule mints a new methodology version that behaves identically. Any
+  claim measured through this executor is conditional on the declared rules
+  having had no effect.
+produced_by:
+  - methodology/xsmom@1

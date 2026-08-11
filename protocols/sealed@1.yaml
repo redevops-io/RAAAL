@@ -1,0 +1,51 @@
+spec_version: '0.1'
+name: sealed
+version: 1
+title: Sealed-holdout evaluation (2022-01-01 onward)
+
+change_rationale: >-
+  Initial publication. Reserves 2022-01-01 onward as a sealed out-of-sample
+  window. The runner refuses to read the sealed period, so a result measured
+  under this protocol is in-sample by construction until the holdout is opened by
+  a logged unlock event — once, and recorded.
+
+  This is the mechanism-level answer to backtest overfitting: it converts an
+  honour-system norm ("we didn't peek") into an enforced control that leaves an
+  audit trail either way.
+
+data_snapshot:
+  source: yfinance
+  start: '2016-01-01'
+  end: '2025-11-20'
+  content_hash: null
+  as_of: null
+  notes: Adjusted close only; content hash bound at run time.
+
+walk_forward:
+  scheme: expanding
+  warmup: 252
+  step: 5
+  purge: 10
+  embargo: 10
+  train_window: null
+  calendar: nyse@1
+
+transaction_costs:
+  model: flat_bps
+  bps: 10.0
+  execution_lag_days: 1
+  notes: As standard@1.
+
+risk_model:
+  covariance: sample
+  covariance_span: null
+  factor_model: market_only
+  factors: [SPY]
+
+holdout:
+  start: '2022-01-01'
+  end: '2025-11-20'
+  sealed: true
+  unlock_event: null
+
+benchmark: SPY

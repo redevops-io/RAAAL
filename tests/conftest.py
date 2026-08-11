@@ -1,0 +1,267 @@
+"""Shared fixtures, and the market-data tier split.
+
+Two datasets, two purposes:
+
+    tests/fixtures/prices_synthetic.parquet   committed, invented, no network
+    the licensed snapshot                     private, immutable, pinned by hash
+
+The default suite runs entirely on the first. It needs no credentials, reaches
+no network, and produces the same numbers on a fresh clone as on the machine
+that wrote it. That is the point: the repository, not one workstation, has to be
+able to reproduce the application.
+
+The licensed snapshot is for integration, benchmark and research runs, behind
+`-m market_data_integration`. When that marker is not requested, missing
+credentials are not a failure — nobody asked for the licensed data.
+
+Nothing measured on the synthetic fixture is a claim about any real security. It
+is shaped like market data so the evaluation stack has something realistic to
+run on, and deliberately not calibrated to anything.
+"""
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SYNTHETIC = REPO_ROOT / "tests" / "fixtures" / "prices_synthetic.parquet"
+
+#: The vendor snapshot, when a developer has produced one locally. Used only by
+#: the integration tier; the default suite ignores it even when present, so a
+#: result cannot differ between two machines because one happened to have it.
+LICENSED = REPO_ROOT / "data" / "history" / "prices.parquet"
+
+
+@pytest.fixture(autouse=True)
+def no_model_calls(request, monkeypatch):
+    """The default suite never calls a language model.
+
+    Stage 1 may use one, and the moment `anthropic` was installed alongside an
+    `ANTHROPIC_API_KEY` the workspace tests started making live API calls — they
+    became nondeterministic, network-dependent, billable, and dependent on which
+    machine ran them. One promptly failed because the model raised a question
+    the deterministic rules do not.
+
+    Same rule as the licensed market data: reaching outside is opt-in, and a
+    test that silently acquires a network dependency passes locally, fails in
+    CI, and gets diagnosed as flaky for a week. Opt in with
+    `@pytest.mark.model_stage1`.
+    """
+    if request.node.get_closest_marker("model_stage1"):
+        return
+    if request.node.get_closest_marker("real_parser_client"):
+        # Reaches the real `_parser_client` without reaching a model. The
+        # decision it makes — declared mode, refuse or fall back — is worth
+        # testing, and `model_stage1` is the wrong marker for it: that tier is
+        # deselected by default because it calls a live API, so marking these
+        # meant they silently never ran.
+        return
+    try:
+        import src.workspace.routes as routes
+    except Exception:                                           # pragma: no cover
+        return
+    monkeypatch.setattr(routes, "_parser_client", lambda: None, raising=False)
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "model_stage1: exercises model-assisted compiler stage 1 against a live "
+        "API. Requires ANTHROPIC_API_KEY and network; opt-in, because the "
+        "default suite must produce the same result on every machine.")
+    config.addinivalue_line(
+        "markers",
+        "market_data_integration: runs against the licensed snapshot. Requires "
+        "credentials and network; fails rather than skips when explicitly "
+        "requested, because a silent skip in the tier that exists to check the "
+        "real data is indistinguishable from a pass.")
+
+
+@pytest.fixture(scope="session")
+def synthetic_prices():
+    """The committed fixture, loaded through the ordinary loader.
+
+    Deliberately not `pd.read_parquet` — going through the loader means the
+    integrity check runs on every suite, so a fixture edited by hand is caught
+    here rather than by a confusing assertion three layers up.
+    """
+    from src.market_data import load_prices, synthetic_snapshot
+
+    return load_prices(synthetic_snapshot())
+
+
+@pytest.fixture
+def prices_on_disk(monkeypatch, tmp_path, synthetic_prices):
+    """Point the web and workspace routes at the synthetic fixture.
+
+    Both read a module-level path at request time. Redirecting that is what
+    makes the rendered result panels — and therefore the pages asserting
+    provenance is visible — work from a clone alone.
+    """
+    import src.web.routes as web_routes
+    import src.workspace.routes as workspace_routes
+
+    monkeypatch.setattr(web_routes, "PRICES", SYNTHETIC)
+    monkeypatch.setattr(workspace_routes, "PRICES", SYNTHETIC)
+    return synthetic_prices
+
+
+@pytest.fixture(scope="session")
+def licensed_snapshot():
+    """The pinned licensed snapshot, for the integration tier only."""
+    from src.market_data import load_prices, production_snapshot
+
+    snapshot = production_snapshot()
+    return load_prices(snapshot, allow_network=True), snapshot
+
+
+def requires_licensed_data(func):
+    """Mark a test as belonging to the licensed tier."""
+    return pytest.mark.market_data_integration(func)
+
+
+#: Set by the integration tier to make absence a failure rather than a skip.
+LICENSED_REQUIRED = os.environ.get("QUANTIFY_REQUIRE_MARKET_DATA") == "1"
+
+
+@pytest.fixture(autouse=True)
+def _pilot_data_policy(monkeypatch):
+    """Run the suite under the closed-pilot boundary, stated rather than
+    inherited.
+
+    `_prices()` fails closed without this, so a suite that did not declare a
+    policy would quietly stop exercising every run path — and the journey tests
+    would pass by producing nothing.
+    """
+    monkeypatch.setenv("PILOT_DATA_POLICY", "SYNTHETIC_ONLY")
+
+
+@pytest.fixture(autouse=True)
+def _no_inherited_deployment():
+    """No test serves under the deployment a previous test established.
+
+    `create_app` binds a process-wide `DeploymentContext`, which is right for a
+    server — one process, one deployment — and wrong for a suite, where the
+    next test would silently answer from the previous one's environment. That
+    is the same defect the context exists to remove, one level up: a component
+    using a resolved answer that was resolved for something else.
+    """
+    from src.deploy.context import unbind
+
+    unbind()
+    try:
+        yield
+    finally:
+        unbind()
+
+
+# --- the confirmation journey, as a browser performs it ---------------------
+
+def submit_rendered_confirmation(client, description, *, title="Test plan",
+                                 answers=None, acknowledge_all=True):
+    """GET the confirmation page, then submit the controls it rendered.
+
+    Parses the returned HTML and posts the fields that are actually inside the
+    save form. That is the point: the answer and confirmation radios once
+    rendered *outside* it, so a user could read every question, click every
+    answer, press Save, and none of it was submitted. Every backend test passed
+    because they each built the POST body by hand.
+
+    A test that constructs the payload it wishes the page produced is testing
+    its own copy of the contract. This reads the page.
+
+    Returns `(response, plan_id)`; `plan_id` is `None` unless the save
+    redirected, because the identity is generated by the server.
+    """
+    import html as html_module
+    import re
+
+    page = client.get("/workspace/new", params={"describe": description})
+    if page.status_code != 200:
+        return page, None
+    body = page.text
+
+    fields = {"describe": description, "title": title}
+    found = re.search(r'name="parse" value="([^"]*)"', body)
+    fields["parse"] = html_module.unescape(found.group(1)) if found else ""
+
+    # Radios: a browser submits the pre-checked option, or nothing until the
+    # user picks one. Groups with no selection are what the user must answer.
+    offered, chosen = {}, {}
+    for name, value, rest in re.findall(
+            r'<input type="radio" name="([^"]+)"\s+value="([^"]*)"([^>]*)',
+            body, re.S):
+        offered.setdefault(name, value)
+        if "checked" in rest:
+            chosen[name] = value
+
+    # Selects submit their selected option, or the first one when none is
+    # marked. Reading only radios left every confirmation empty the moment the
+    # page moved to dropdowns, and the plan then failed to save for a reason
+    # that had nothing to do with what was being tested.
+    for name, options in re.findall(
+            r'<select name="([^"]+)"[^>]*>(.*?)</select>', body, re.S):
+        picked = re.search(r'<option value="([^"]*)"[^>]*selected', options)
+        if picked:
+            chosen[name] = picked.group(1)
+        else:
+            first = re.search(r'<option value="([^"]+)"', options)
+            if first:
+                offered.setdefault(name, first.group(1))
+
+    for name, first in offered.items():
+        chosen.setdefault(name, first)
+    fields.update(chosen)
+
+    if acknowledge_all:
+        for name in re.findall(r'name="(exclude:[^"]+)"', body):
+            fields[name] = "on"
+    for field, value in (answers or {}).items():
+        fields[f"answer:{field}"] = value
+
+    response = client.post("/workspace/save", data=fields,
+                           follow_redirects=False)
+    plan_id = (response.headers["location"].rsplit("/", 1)[-1]
+               if response.status_code == 303 else None)
+    return response, plan_id
+
+
+@pytest.fixture
+def requires_the_vendor_snapshot():
+    """Skip when the licensed price file is genuinely absent, and only then.
+
+    The vendor parquet is deliberately not in the repository: it is not
+    redistributable, and a repository under a public licence is redistribution.
+    So a clean clone cannot run the handful of tests that ask whether a run
+    comes back *holding prices*.
+
+    Those tests are not decoration — they exist because every other check on
+    the vendor snapshot once passed while no run could use it, and they are the
+    only ones that ask the end-to-end question. Deleting them to get a green
+    clone would remove the guard that caught that. Failing on a clone is no
+    better: it reports a licensing constraint as a defect, and a suite whose
+    red is expected is a suite nobody reads.
+
+    So: skip, narrowly. The condition is the file being missing and nothing
+    else, so on any machine or runner that has fetched the snapshot these tests
+    run exactly as before. The message names the file, because "skipped" with
+    no reason is how a permanently unverified property hides.
+    """
+    from pathlib import Path
+
+    import pytest
+
+    from src.market_data.access import approved_snapshot
+
+    snapshot = approved_snapshot()
+    if snapshot is None:
+        return
+    uri = getattr(snapshot, "uri", "")
+    path = Path(__file__).resolve().parent.parent / uri
+    if not path.exists():
+        pytest.skip(
+            f"the licensed vendor snapshot is absent ({uri}). It is not "
+            "redistributable, so this property is unverified in this "
+            "checkout — fetch the snapshot to run it")

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Your plans{% endblock %}
+{% block content %}
+
+<h1>Your plans</h1>
+<p class="lede">
+  Describe how you invest, or what you are thinking about doing. Everything here
+  is private: nothing you write becomes part of the public research library, and
+  nothing published there is tailored to you.
+</p>
+
+<div class="panel">
+  <form action="/workspace/new" method="get">
+    <label class="small muted" for="describe">Describe a plan</label>
+    <textarea id="describe" name="describe" placeholder="I buy $2,000 of VTI every month. Whenever SPY is below its 200-day average, buy AMZN and NVDA equally at purchase. Never sell."></textarea>
+    <button type="submit">See what that means</button>
+  </form>
+</div>
+
+{% if plans %}
+<h2>Saved</h2>
+{% for p in plans %}
+<div class="panel">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <strong><a href="/workspace/plans/{{ p.plan_id }}">{{ p.title }}</a></strong>
+    <span class="small muted">saved {{ p.saved_at[:10] }}</span>
+  </div>
+  <p class="small" style="margin:8px 0 0">{{ p.stated_text }}</p>
+  <p class="small muted mono" style="margin:6px 0 0">
+    rule {{ p.rule_hash[:12] }}… · plan {{ p.content_hash[:12] }}…
+  </p>
+</div>
+{% endfor %}
+{% else %}
+<div class="panel"><p class="muted small" style="margin:0">No saved plans yet.</p></div>
+{% endif %}
+
+{% endblock %}

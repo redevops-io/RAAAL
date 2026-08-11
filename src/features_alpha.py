@@ -221,10 +221,16 @@ def build_alpha_features(
         moving_average_features(close),
     ]
 
-    # ADX requires high/low — approximate from close if unavailable
-    high = prices.get(f"{ticker}_High", close * 1.005)
-    low = prices.get(f"{ticker}_Low", close * 0.995)
-    parts.append(adx_features(high, low, close))
+    # ADX needs real intraday high/low. Synthesising them as close*1.005 /
+    # close*0.995 — as this did until 2026-07 — produces a constant-width band,
+    # so the resulting "ADX" is a deterministic function of close carrying no
+    # independent information, while presenting as a volatility feature. The
+    # loader currently fetches Adj Close only, so this branch is normally skipped;
+    # it activates automatically if real OHLC is added upstream.
+    high = prices.get(f"{ticker}_High")
+    low = prices.get(f"{ticker}_Low")
+    if high is not None and low is not None:
+        parts.append(adx_features(high, low, close))
 
     if include_volume:
         vol_col = prices.get(f"{ticker}_Volume")

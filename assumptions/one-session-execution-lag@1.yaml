@@ -1,0 +1,25 @@
+name: one-session-execution-lag
+version: 1
+kind: EXECUTION
+statement: >-
+  Weights derived from data through session d are executable no earlier than
+  session d+1.
+
+risk: >-
+  Applying weights on the session they were decided credits a strategy with a
+  return it could not have traded. On the RAAAL regime-unrestricted variant this
+  alone accounted for 11.15 of a 15.83 percentage-point overstatement, and the
+  variant most dependent on it was the one promoted as best.
+
+realized_by:
+  - artifact_kind: protocol
+    field: transaction_costs.execution_lag_days
+    value: 1
+
+validated_by:
+  - test: tests/test_leakage.py::test_weights_cannot_earn_the_day_they_are_decided
+  - test: tests/test_leakage.py::test_zero_lag_would_capture_the_jump
+
+history:
+  - >-
+    Violated in production until 2026-07-30. See Erratum 2026-07-30-01.

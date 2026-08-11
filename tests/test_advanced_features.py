@@ -31,11 +31,19 @@ def sample_returns():
 @pytest.fixture
 def sample_timeline():
     """Create sample timeline data for testing."""
+    # Regimes alternate rather than arriving as one contiguous block each.
+    # The original fixture was three solid blocks, which only trains under a
+    # shuffled split — a chronological split saw a single class and could not
+    # learn. Real timelines cycle between regimes, so this is both the more
+    # honest fixture and the one that exercises the causal split.
     dates = pd.date_range(start="2023-01-01", periods=50, freq="D")
+    cycle = ["risk_on"] * 4 + ["risk_off"] * 3 + ["inflation"] * 3
+    regimes = (cycle * 5)[:50]
+    vix_by_regime = {"risk_on": 15.0, "risk_off": 25.0, "inflation": 18.0}
     data = {
-        "regime": ["risk_on"] * 20 + ["risk_off"] * 15 + ["inflation"] * 15,
+        "regime": regimes,
         "spy_price": range(400, 450),
-        "vix": [15.0] * 20 + [25.0] * 15 + [18.0] * 15,
+        "vix": [vix_by_regime[r] for r in regimes],
         "gold_price_oz": range(1800, 1850),
         "diag_spy_ma200": range(390, 440),
         "diag_credit_signal": [0.5] * 50,

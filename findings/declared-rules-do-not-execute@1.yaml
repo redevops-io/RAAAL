@@ -1,0 +1,78 @@
+name: declared-rules-do-not-execute
+version: 1
+status: CONCLUDED
+opened_at: '2026-07-31'
+concluded_at: '2026-07-31'
+
+statement: >-
+  A methodology's `rules` and `universe_filters` are declared, merged, and hashed
+  into its identity, but no pipeline step evaluates them. They have zero
+  references in the executor. A reader seeing
+
+      rules:
+        - id: concentration_cap
+          expr: max_asset_weight <= 0.25
+
+  reasonably concludes the constraint is enforced by that rule. It is not. In
+  hrp@3 the constraint happens to hold because `contract.weight_bounds.max` is
+  also 0.25 — the rule is decorative, and the two could disagree silently.
+
+  This inverts the defect class the project has found repeatedly. The usual
+  pattern is a hidden choice that takes effect without being declared. Here a
+  declared rule appears to take effect and does not, which is arguably worse:
+  declaring it creates the belief that it is checked.
+
+  Surfaced by adding a second methodology family. xsmom@1 declares
+  `has_full_formation_history` and a `min_history` rule; neither runs, and the
+  history requirement is enforced only incidentally by an ExecutionError inside
+  compute_momentum.
+
+supported_by:
+  - evidence/inert-declarations-2026@1
+
+impacts:
+  - target: methodology/hrp@1
+    relation: INVALIDATES_RESULTS_OF
+    detail: Declares min_history; the rule does not execute.
+  - target: methodology/hrp@2
+    relation: INVALIDATES_RESULTS_OF
+    detail: Declares min_history and turnover_cap; neither rule executes.
+  - target: methodology/hrp@3
+    relation: INVALIDATES_RESULTS_OF
+    detail: >-
+      Declares concentration_cap <= 0.25, which is satisfied only because
+      contract.weight_bounds independently enforces the same number.
+  - target: methodology/xsmom@1
+    relation: INVALIDATES_RESULTS_OF
+    detail: Declares min_history and has_full_formation_history; neither executes.
+  - target: assumption/declarations-name-their-realization@1
+    relation: INTRODUCED
+    detail: >-
+      Generalised the fix into a standing principle: every declaration must
+      identify what realizes it, and the realization must be checkable.
+
+resolution: >-
+  Resolved by option (c): a rule now names the field that realizes it and the
+  property that field must have. Contracts execute, rules verify, policies
+  interpret — three responsibilities that had blurred together.
+
+      rules:
+        - id: concentration_cap
+          enforced_by: contract.weight_bounds.max
+          expected: "<= 0.25"
+
+  `src/methodology/verify.py` resolves each `enforced_by` path against the
+  methodology and checks the assertion. Three drift modes now fail loudly: a
+  contract that moves while the rule does not, a rule naming a field that does
+  not exist, and a rule naming a pipeline stage absent from the pipeline.
+  `universe_filters` were restructured the same way and name the stage that
+  realizes them.
+
+  An unrealized declaration is a hard blocker in the publication gate, alongside
+  contract violation and failed reproducibility — a methodology asserting what
+  its own fields do not support is making a claim it cannot keep.
+
+  Rejected: (a) an expression evaluator, which would add a language to the spec
+  and make rules a second execution path competing with the contract; (b)
+  demoting rules to documentation, which would remove them from content identity
+  and weaken versioning.

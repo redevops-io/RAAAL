@@ -1,0 +1,34 @@
+{
+  "missions": 1728,
+  "summary": {
+    "SPECIFICATION": {
+      "n": 1728,
+      "exact": 1728,
+      "rule_hash_kept": 1728,
+      "schedule_hash_kept": 1728,
+      "new_questions": 0,
+      "failed": 0,
+      "exact_rate": 100.0
+    },
+    "SUMMARY": {
+      "n": 1728,
+      "exact": 134,
+      "rule_hash_kept": 428,
+      "schedule_hash_kept": 1153,
+      "new_questions": 0,
+      "failed": 0,
+      "exact_rate": 7.8
+    }
+  },
+  "summary_losses": {
+    "inferred": 1452,
+    "methodology.holdings_policy.rebalancing_allowed": 864,
+    "methodology.holdings_policy.sells_allowed": 864,
+    "flows.funding_source": 428,
+    "methodology.event_program": 288,
+    "methodology.pipeline": 288,
+    "methodology.allocation_rule.weighting": 148,
+    "flows.day_rule": 147
+  },
+  "drifted": 0
+}

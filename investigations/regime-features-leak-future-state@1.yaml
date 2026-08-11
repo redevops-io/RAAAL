@@ -1,0 +1,21 @@
+name: regime-features-leak-future-state
+version: 1
+outcome: PENDING
+opened_at: '2026-07-31'
+
+question: >-
+  Do any of the ensemble regime features derive, directly or through a rolling
+  transform, from observations later than the point at which the regime label is
+  applied?
+
+motivation: >-
+  The chronological split with embargo closed the obvious leak at training time.
+  It does not rule out a feature that is itself computed with lookahead, which
+  would survive every split-level check because the leak is inside the feature.
+
+examined:
+  - methodology/hrp@3
+
+trials_examined: 0
+
+resolution: ''

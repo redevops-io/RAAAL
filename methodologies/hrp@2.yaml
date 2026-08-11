@@ -1,0 +1,127 @@
+spec_version: '0.1'
+concept: hrp
+version: 2
+title: Hierarchical Risk Parity
+derived_from: methodology/hrp@1
+change_rationale: >-
+  Erratum 2026-07-30-01 established that v1's published performance was computed
+  without an execution lag or transaction costs. Correcting those revealed that
+  v1's 5-business-day rebalance carries turnover the corrected cost model makes
+  material. Lengthened the rebalance interval to 21 business days and added an
+  explicit turnover cap, both of which reduce cost drag. Also lengthened the
+  correlation lookback from 252 to 504 days to stabilise the clustering, which
+  was flipping cluster membership between adjacent rebalances.
+
+  Comparability: this changes the rebalance frequency in the output contract, so
+  results published against v1 describe a different strategy and must not be
+  linked to v2's.
+
+objective: >-
+  Allocate across a fixed multi-asset ETF universe using correlation-based
+  hierarchical clustering, avoiding the estimation error of explicit
+  mean-variance optimization by never inverting the covariance matrix.
+
+grounded_in:
+  - identifier: doi:10.3905/jpm.2016.42.4.59
+    title: Building Diversified Portfolios That Outperform Out of Sample
+    claim_used: >-
+      Quasi-diagonalization of the correlation matrix followed by recursive
+      bisection produces out-of-sample performance superior to mean-variance
+      optimization, because it does not require inverting an ill-conditioned
+      covariance matrix.
+
+claims_ref:
+  - claim/hrp-outperforms-mvo-out-of-sample@1
+  - claim/hrp-diversifies-without-constraints@1
+
+assumptions_ref:
+  - assumption/sample-covariance@1
+  - assumption/one-session-execution-lag@1
+  - assumption/hard-bounds-beat-soft-turnover@1
+  - assumption/adjusted-close-is-restated@1
+
+contract:
+  universe: [SPY, SH, TLT, TBT, LQD, DBC, GLD, HYG, BIL]
+  rebalance_frequency: 21B
+  weight_bounds:
+    min: 0.0
+    max: 1.0
+  gross_leverage_max: 1.0
+  requires_cost_model: true
+
+params:
+  lookback:
+    value: 504
+    unit: trading_days
+    description: >-
+      Window used to estimate the correlation matrix. Doubled from v1's 252 to
+      stabilise cluster membership across adjacent rebalances.
+  linkage_method:
+    value: single
+    unit: ''
+    description: Hierarchical clustering linkage.
+  correlation_distance:
+    value: sqrt_half_one_minus_rho
+    unit: ''
+    description: >-
+      Distance metric d = sqrt(0.5 * (1 - rho)), as specified in the source
+      paper.
+  covariance_estimator:
+    value: sample
+    unit: ''
+    description: >-
+      Equal-weighted sample covariance over the lookback window. Declared
+      explicitly because the source paper does not specify an estimator, and two
+      faithful implementations differing only on this point produce different
+      allocations — the choice must be data, not an implementation detail.
+  max_turnover:
+    value: 0.25
+    unit: fraction_of_notional
+    description: >-
+      Per-rebalance turnover cap. Trades are scaled back proportionally when the
+      target allocation would exceed it.
+
+pipeline:
+  - estimate_correlation
+  - cluster_assets
+  - quasi_diagonalize
+  - recursive_bisection
+  - apply_bounds
+  - apply_turnover_cap
+
+fallback_chain:
+  - inverse_volatility
+  - equal_weight
+
+universe_filters:
+  - id: has_full_lookback_history
+    enforced_by: pipeline.estimate_correlation
+    description: Realized by estimate_correlation raising on a short window.
+
+rules:
+  - id: min_history
+    enforced_by: params.lookback
+    expected: '>= 504'
+    description: Asserts the lengthened estimation window, realized by estimate_correlation.
+  - id: turnover_cap
+    enforced_by: pipeline.apply_turnover_cap
+    expected: present
+    description: >-
+      Asserts the turnover cap stage actually runs. The cap value itself lives in
+      params.max_turnover and is applied by that stage.
+
+assumptions:
+  - Close-to-close execution at the next session's price.
+  - Correlations estimated over the trailing window are informative for the next rebalance.
+  - No borrow constraints or short availability limits (the universe is long-only ETFs).
+  - A 21-business-day rebalance is frequent enough to track correlation regime shifts.
+
+limitations:
+  - Long-only; expresses bearish views solely through inverse ETFs already in the universe.
+  - No regime conditioning — allocation responds to correlation structure alone.
+  - Estimated on daily Adj Close, which is restated over time by the data vendor.
+  - Ignores capacity and market impact.
+  - The 504-day lookback needs two years of history before the first allocation.
+
+cost_model: flat_bps
+risk_classification: medium

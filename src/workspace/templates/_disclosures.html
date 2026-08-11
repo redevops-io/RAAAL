@@ -1,0 +1,44 @@
+{# Trial accounting and the recommendation assessment, above the fold.
+
+   A conversational interface makes trying variants nearly free, so this is the
+   strongest protection the product has. Putting it below the result would let a
+   reader form a conclusion before learning how many attempts produced it. #}
+<div class="panel">
+  <h3 style="margin-top:0">How this plan was arrived at</h3>
+  <div class="scroll"><table class="small">
+    <tr><th>Measure</th><th>Value</th><th>What it means</th></tr>
+    <tr>
+      <td>Selection basis</td>
+      <td class="mono">{{ disclosures.selection_basis }}</td>
+      <td class="muted">{{ disclosures.selection_note }}</td>
+    </tr>
+    <tr>
+      <td>Candidates evaluated</td>
+      <td class="num">{{ disclosures.evaluated }}</td>
+      <td class="muted">alternatives whose results were seen before choosing</td>
+    </tr>
+    <tr>
+      <td>Trials counted</td>
+      <td class="num">{{ disclosures.trials }}</td>
+      <td class="muted">every attempt raises the bar the result must clear</td>
+    </tr>
+    <tr>
+      <td>Hidden selection</td>
+      <td>{% if disclosures.hidden_selection %}<span class="chip block">detected</span>
+          {% else %}<span class="chip ok">none</span>{% endif %}</td>
+      <td class="muted">candidates measured but never shown</td>
+    </tr>
+    <tr>
+      <td>Reads as a recommendation</td>
+      <td>{% if disclosures.is_recommendation %}<span class="chip block">yes</span>
+          {% else %}<span class="chip ok">no</span>{% endif %}</td>
+      <td class="muted">{{ disclosures.recommendation_headline }}</td>
+    </tr>
+    <tr>
+      <td>Derivation complete</td>
+      <td>{% if disclosures.derivation_complete %}<span class="chip ok">yes</span>
+          {% else %}<span class="chip warn">partly asserted</span>{% endif %}</td>
+      <td class="muted">whether that verdict rests on the data or on assertion</td>
+    </tr>
+  </table></div>
+</div>

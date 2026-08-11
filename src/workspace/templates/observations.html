@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Observations — {{ plan_id }}{% endblock %}
+{% block content %}
+
+<h1>Planned against observed</h1>
+<p class="lede">
+  Your plan is a declaration and does not change. These are records of what
+  actually happened, kept beside it — because the point of tracking is knowing
+  that reality diverged, and rewriting the plan would erase exactly that.
+</p>
+
+{% for o in observations %}
+<div class="panel">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <strong>{{ o.observed_at[:10] }}</strong>
+    <span class="small mono muted">{{ o.data_snapshot }}</span>
+    {% if o.has_drifted %}<span class="chip warn">drifted</span>
+    {% else %}<span class="chip ok">as planned</span>{% endif %}
+  </div>
+  <p class="small" style="margin:8px 0 12px">{{ o.summary }}</p>
+
+  <div class="scroll"><table class="small">
+    <tr><th>Planned</th><th>Observed</th><th>Reconciliation</th></tr>
+    {% for e in o.expected_events %}
+    <tr>
+      <td class="mono">{{ e.date }} · {{ e.kind }}
+        <div class="muted">{{ e.detail }}</div></td>
+      <td class="muted">—</td>
+      <td>
+        {% set miss = o.deviations|selectattr("expected")|selectattr("kind", "equalto", "MISSING")|list %}
+        {% if miss and miss[0].expected.date == e.date %}
+          <span class="chip block">missing</span>
+        {% else %}<span class="chip ok">matched</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% for d in o.deviations if d.kind == "UNEXPECTED" %}
+    <tr>
+      <td class="muted">—</td>
+      <td class="mono">{{ d.observed.date }} · {{ d.observed.kind }}
+        <div class="muted">{{ d.observed.detail }}</div></td>
+      <td><span class="chip warn">unexpected</span></td>
+    </tr>
+    {% endfor %}
+  </table></div>
+
+  {% if o.deviations %}
+  <h3>Why each difference matters</h3>
+  <ul class="small" style="margin:0; padding-left:18px">
+    {% for d in o.deviations %}<li style="margin-bottom:6px">{{ d.why_it_matters }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% else %}
+<div class="panel"><p class="muted small" style="margin:0">Nothing observed yet.</p></div>
+{% endfor %}
+
+<p style="margin-top:22px"><a href="/workspace/plans/{{ plan_id }}">← back to plan</a></p>
+{% endblock %}

@@ -1,6 +1,10 @@
-# Build a container that refreshes the dashboard daily and serves it via HTTP.
-# Uses requirements-core.txt (no torch/transformers/RL) to keep the image lean.
-# The ML workstream packages are optional and used only when installed.
+# The production image. It serves the pilot API and nothing else.
+#
+# This ran `scripts/service.py` — the Bokeh dashboard — until Gate 3, while
+# nothing anywhere served `src/api.py`. The pilot application, its gated
+# routers and its entire startup preflight had no deployment entrypoint: every
+# control was on a path the container never took. The dashboard now lives in
+# `Dockerfile.dashboard` and is a development surface.
 FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -9,25 +13,31 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install all dependencies including ML/RL stack
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# The API surface does not need the ML/RL stack.
+COPY requirements-core.txt ./
+RUN pip install --no-cache-dir -r requirements-core.txt
 
 COPY . .
 
-# Ensure reports and data directories exist
-RUN mkdir -p reports data/history data/models site
+RUN mkdir -p data
 
-ENV START_DATE=2015-01-01 \
-    WARMUP_DAYS=252 \
-    STEP_DAYS=5 \
-    REFRESH_INTERVAL=86400 \
-    FORCE_REFRESH=1 \
-    PORT=8080
+# Deliberately unset. `QUANTIFY_DATABASE_URL` has no production default — the
+# preflight refuses rather than falling back to a local SQLite file, which
+# would be a live path reading a database nobody authorised. The build stamps
+# are supplied at deploy time and the preflight refuses without them.
+ENV QUANTIFY_DEPLOYMENT_PROFILE=production \
+    PORT=8000
 
-EXPOSE 8080
+EXPOSE 8000
 
-HEALTHCHECK --interval=60s --timeout=10s --start-period=120s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
+# Readiness, not liveness. A process answering on a port is not evidence that
+# it has a migrated database, a current schema or an observable build.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ready || exit 1
 
-CMD ["python", "scripts/service.py"]
+# The factory, not the module-level app. `create_app` runs the deployment
+# preflight while the process is still starting, so a refusal prevents the
+# server binding at all rather than being noticed by a lifespan hook after the
+# socket is already open.
+CMD ["uvicorn", "src.api:create_app", "--factory", \
+     "--host", "0.0.0.0", "--port", "8000"]

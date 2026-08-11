@@ -1,0 +1,20 @@
+---
+- name: Restart the application
+  # `--force-recreate`, not a bare `up -d`.
+  #
+  # `up -d` recreates a container only when its *definition* changes. The
+  # Caddyfile and the environment file are bind-mounted and read at start, so
+  # editing them changes nothing compose compares: the root redirect was
+  # written to the host, the playbook reported success, and the proxy kept
+  # serving a 32-minute-old configuration. A deploy that reports "changed" and
+  # changes nothing about what users get is the worst of both.
+  #
+  # The cost is a few seconds of ingress while the tunnel container comes
+  # back. For a pilot that is cheaper than a configuration change that quietly
+  # does not apply — including a rotated credential, which would look applied
+  # and would not be.
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans --force-recreate
+    chdir: /opt/quantify
+  become: true
+  changed_when: true

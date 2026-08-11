@@ -1,0 +1,41 @@
+{# Version timeline — comparability boundaries made spatial.
+
+   Walls come from the comparability engine, never from the template. A line may
+   cross a version boundary only where that engine says it is traversable. #}
+{% set T = t.layout() %}
+<div class="timeline">
+  <p class="small muted" style="margin:0 0 8px">{{ t.compact_summary() }}</p>
+  <svg class="timeline-svg" viewBox="0 0 {{ T.width }} {{ T.height }}"
+       role="img" aria-label="{{ t.accessibility_summary() }}">
+    {% for s in T.spans %}
+      {% if s.comparable %}
+        <line x1="{{ s.x1 }}" y1="{{ s.y }}" x2="{{ s.x2 }}" y2="{{ s.y }}" class="span span-ok" />
+        <text x="{{ s.mid }}" y="{{ s.y - 10 }}" class="span-label" text-anchor="middle">comparable</text>
+      {% else %}
+        <line x1="{{ s.x1 }}" y1="{{ s.y }}" x2="{{ s.mid - 8 }}" y2="{{ s.y }}" class="span span-broken" />
+        <line x1="{{ s.mid + 8 }}" y1="{{ s.y }}" x2="{{ s.x2 }}" y2="{{ s.y }}" class="span span-broken" />
+        <line x1="{{ s.mid }}" y1="{{ s.y - 18 }}" x2="{{ s.mid }}" y2="{{ s.y + 18 }}" class="wall" />
+        <text x="{{ s.mid }}" y="{{ s.y - 24 }}" class="wall-label" text-anchor="middle">not comparable</text>
+      {% endif %}
+    {% endfor %}
+    {% for v in T.stops %}
+      <circle cx="{{ v.x + 46 }}" cy="{{ v.y }}" r="5"
+              class="stop{% if v.latest %} stop-latest{% endif %}{% if v.deprecated %} stop-deprecated{% endif %}" />
+      <text x="{{ v.x }}" y="{{ v.y + 26 }}" class="stop-label">@{{ v.version }}{% if v.latest %} · latest{% endif %}</text>
+      {% if v.errata %}<text x="{{ v.x }}" y="{{ v.y + 40 }}" class="stop-errata">{{ v.errata }} errata</text>{% endif %}
+    {% endfor %}
+  </svg>
+
+  {% if t.walls %}
+  <div class="scroll"><table class="small">
+    <tr><th>Boundary</th><th>Blocking difference</th><th></th></tr>
+    {% for w in t.walls %}
+    <tr>
+      <td class="mono small">@{{ w.from_version.split('@')[1] }} → @{{ w.to_version.split('@')[1] }}</td>
+      <td class="small">{{ w.blockers|join("; ") }}</td>
+      <td><a class="small" href="/ui/m/{{ t.concept }}/compare?a={{ w.from_version.split('@')[1] }}&b={{ w.to_version.split('@')[1] }}">why</a></td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
+</div>

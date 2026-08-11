@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Evaluation protocols — Quantify{% endblock %}
+{% block content %}
+
+<h1>Evaluation protocols</h1>
+<p class="lede">
+  <span class="mono">methodology + evaluation protocol = performance</span>.
+  A protocol carries everything that shapes a number but is not part of the
+  strategy: the trading calendar, transaction costs, execution lag, walk-forward
+  grid, sealed holdout and data snapshot. Each is versioned and hashed, because
+  changing any of them reprices every result measured under it.
+</p>
+
+{% for p in protocols %}
+<div class="panel" id="{{ p.name }}">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><span class="mono">{{ p.protocol_id }}</span></h3>
+    <span>{{ p.title }}</span>
+    {% if p.holdout.sealed %}<span class="chip warn">Holdout sealed</span>{% endif %}
+  </div>
+  <dl class="kv small" style="margin-top:10px">
+    <dt>Calendar</dt>
+    <dd><a href="/ui/calendars#{{ p.walk_forward.calendar.split('@')[0] }}" class="mono">{{ p.walk_forward.calendar }}</a></dd>
+    <dt>Transaction costs</dt>
+    <dd>{{ p.transaction_costs.bps }}bps of notional traded</dd>
+    <dt>Execution lag</dt>
+    <dd>{{ p.transaction_costs.execution_lag_days }} session{{ "s" if p.transaction_costs.execution_lag_days != 1 }}</dd>
+    <dt>Walk-forward</dt>
+    <dd>{{ p.walk_forward.scheme }}, warmup {{ p.walk_forward.warmup }},
+        step {{ p.walk_forward.step }}, purge {{ p.walk_forward.purge }},
+        embargo {{ p.walk_forward.embargo }}</dd>
+    {% if p.holdout.start %}
+    <dt>Holdout</dt>
+    <dd>{{ p.holdout.start }} … {{ p.holdout.end }}
+      {% if p.holdout.sealed %}
+        <span class="chip warn">sealed</span>
+        <div class="muted">The runner truncates the panel before execution, so the
+          sealed period is unreachable rather than merely unreported. It opens once,
+          by a logged event.</div>
+      {% endif %}
+    </dd>
+    {% endif %}
+    <dt>Data snapshot</dt>
+    <dd>{{ p.data_snapshot.source }} {{ p.data_snapshot.start }} … {{ p.data_snapshot.end }}</dd>
+    <dt>Content hash</dt><dd class="mono">{{ p.content_hash[:32] }}…</dd>
+  </dl>
+</div>
+{% endfor %}
+
+<h2>Trading calendars</h2>
+<p class="lede small">
+  A calendar is a referenced artifact, not a string. Holidays are expressed as
+  rules — fixed dates with weekend observance, nth-weekday, and Easter-relative —
+  so they can be checked against a published exchange schedule.
+</p>
+{% for c in calendars %}
+<div class="panel" id="{{ c.name }}">
+  <div style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap">
+    <h3 style="margin:0"><span class="mono">{{ c.calendar_id }}</span></h3>
+    <span>{{ c.title }}</span>
+  </div>
+  <dl class="kv small" style="margin-top:10px">
+    <dt>Sessions per year</dt><dd>{{ c.periods_per_year }}</dd>
+    <dt>Trading days</dt><dd>{{ c.weekmask|length }} per week</dd>
+    <dt>Closures</dt><dd>{{ c.holidays|length }} recurring rule{{ "s" if c.holidays|length != 1 }}</dd>
+    <dt>Covers</dt><dd>{{ c.covers_from }} … {{ c.covers_to }}
+      <div class="muted">Applying it outside this range raises rather than extrapolating.</div></dd>
+  </dl>
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,274 @@
+{# The confirmation screen. Every decision on this page was made in
+   confirmation.py; this file arranges and calculates nothing. A page that
+   recalculates what the compiler already decided is a second implementation of
+   the same rules, and the copy here is the one that drifts. #}
+
+<div class="confirm confirm-{{ view.path|lower }}">
+
+  <h2>{{ view.headline }}</h2>
+
+  {# 1. The summary answers the only question that matters first: did you
+     understand my plan? Everything below is how we know.
+
+     Titled, because unlabelled it read as an assertion of what *will* run
+     rather than as a report of what was understood — and a reader who
+     disagrees with a row needs to know which of those it is. #}
+  <div class="panel summary">
+    <h3 style="margin-top:0">Understood so far</h3>
+    <table class="plan">
+      {% for row in view.summary %}
+      <tr><th>{{ row.label }}</th><td>{{ row.value }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  {# 1a. Over the contribution limit. First, and above the summary's siblings,
+     because this is the one state where the plan was understood perfectly and
+     still cannot be run. Placed after a conflict would read as a detail. #}
+  {% if view.over_limit %}
+  <div class="group conflict over-limit">
+    <h3>More than this account allows</h3>
+    <div class="small">{{ view.over_limit.detail }}</div>
+    <div class="controls">{{ view.over_limit.account_label }} ·
+      {{ view.over_limit.year }}</div>
+    <ul class="choices">
+      {% for choice in view.over_limit.choices %}
+      <li><label><input type="radio" name="over-limit"
+                        value="{{ choice.value }}"> {{ choice.label }}</label></li>
+      {% endfor %}
+    </ul>
+    {% if view.over_limit.caveat %}
+    {# The number doing the refusing states its own reliability, whatever the
+       reason. Gated on `limit_is_verified` this went silent the moment the
+       figures were checked — and the remaining caveat, that the limit is shared
+       with accounts nobody described, is the one a reader most needs. #}
+    <div class="small muted">{{ view.over_limit.caveat }}</div>
+    {% endif %}
+    <p class="small muted" style="margin:10px 0 0">
+      We have not changed anything. Contributing the excess anyway is a decision
+      with consequences outside this simulation, so the plan stays as you wrote
+      it until you say which you meant.
+    </p>
+  </div>
+  {% endif %}
+
+  {# 2. Conflicts block. Shown before anything that could make the plan look
+     ready, because a provisional result next to an unresolved conflict reads
+     as though the conflict were resolved. #}
+  {% if view.conflicts %}
+  <div class="group conflict">
+    <h3>Choose which you meant</h3>
+    {% for conflict in view.conflicts %}
+    <div class="small">{{ conflict.detail }}</div>
+    <div class="controls">between {{ conflict.between|join(' and ') }}</div>
+    {% endfor %}
+    <p class="small muted" style="margin:10px 0 0">
+      Both readings are plausible and they cannot both hold, so the choice stays
+      yours — picking one for you would run a plan you did not describe.
+    </p>
+  </div>
+  {% endif %}
+
+  {# 3. Questions, with their options rather than a text box. A free-text field
+     where the answers are finite invites a phrasing the compiler then has to
+     re-read, and re-reading is where meaning is lost. #}
+  {# --- Needs your input ---------------------------------------------------
+     One heading for everything the user can settle, rather than a count of
+     "questions" beside a separate block of "please confirm" that reads as a
+     different kind of obligation. Both are the same act: supply a value. #}
+  {% if view.questions %}
+  <div class="group ask">
+    <h3>Help me finish your plan</h3>
+    <p class="small muted" style="margin:0 0 10px">
+      {{ view.questions|length }} to settle. Nothing is saved until you submit.
+    </p>
+    {% for question in view.questions %}
+    <div class="question" data-field="{{ question.field }}">
+      <div><strong>{{ question.question }}</strong></div>
+      {% set matching = (open_items or [])
+           | selectattr("field", "equalto", question.field) | list %}
+      {% if question.choices %}
+      {# A select, not a radio list. Five accounts and eight cadences as
+         stacked radios pushed the page to several screens and buried the
+         questions that had no options at all between them. The values are the
+         engine's vocabulary — `mission.vocabulary` — and an answer outside it
+         is refused rather than stored. #}
+      <select name="answer:{{ question.field }}" class="answer-select">
+        <option value="">Choose…</option>
+        {% for choice in question.choices %}
+        <option value="{{ choice.value }}">{{ choice.label }}</option>
+        {% endfor %}
+      </select>
+      {% elif matching and matching[0].answerable %}
+      {# A question with no finite answers still has to be answerable.
+         Rendering choices only meant "how much are you contributing?" appeared
+         with no control at all: the user could read the question, could not
+         answer it, and had to go back and rewrite the whole description. The
+         compiler already accepts these — `answered()` records them as stated
+         and `_as_amount` parses "$1,000" — so the gap was the page, not the
+         engine. #}
+      <label class="answer-free" style="display:block;margin:6px 0">
+        <input type="text" name="answer:{{ question.field }}"
+               inputmode="{{ 'decimal' if question.field in ('amount', 'starting_capital') else 'text' }}"
+               placeholder="Your answer" autocomplete="off">
+      </label>
+      {% endif %}
+      {% if question.routing %}
+      <div class="routing small">{{ question.routing }}</div>
+      {% endif %}
+      {# Behind a disclosure rather than inline. Every question repeating a
+         full paragraph turned the page into several screens of prose in which
+         the controls were the hard part to find. #}
+      <details class="why"><summary class="small muted">Why this matters</summary>
+        <div class="small muted">{{ question.why_it_matters }}</div>
+      </details>
+      {# Ordinary extra prose must not be a dead end. Where the feasibility
+         service classifies an item as separable, the user may proceed without
+         it — recorded as an exclusion that narrows the plan's scope, never as
+         a pretence that it was understood. The control appears only for items
+         the service permits; the route refuses the rest even if the field is
+         submitted by hand. #}
+      {% for item in open_items or [] %}
+        {% if item.field == question.field and item.dismissible %}
+        <label class="small" style="display:block;margin-top:6px">
+          <input type="checkbox" name="exclude:{{ item.field }}" value="on">
+          {{ item.label }}
+        </label>
+        <div class="small muted">
+          This part of your description will not affect the result, and the
+          saved plan will say so.
+        </div>
+        {% elif item.field == question.field
+                and item.resolution == "MATERIAL" %}
+        {# Stated, not merely omitted. A missing checkbox is invisible: the
+           user sees an item they cannot answer and cannot set aside, with no
+           indication that the difference is deliberate. #}
+        <div class="small" style="margin-top:6px">
+          <strong>Cannot be excluded.</strong>
+          {{ blockers.material | selectattr("field", "equalto", item.field)
+             | map(attribute="subject") | first | default("") and "" }}
+          This request depends on a capability Quantify does not currently
+          model, and setting it aside would change what the result answers.
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# 4. Inferences are the primary confirmation target: the only category where
+     the system decided something on the user's behalf. #}
+  {% if view.inferences %}
+  <div class="group inferred">
+    <h3>Chosen for you — confirm or change</h3>
+    <p class="small muted" style="margin:0 0 10px">
+      Each changes the result. None is saved until you submit.
+    </p>
+    {% for inference in view.inferences %}
+    <div class="inference" data-field="{{ inference.field }}">
+      <div><strong>{{ inference.label }}</strong> — {{ inference.value }}</div>
+      <details class="why"><summary class="small muted">Why this matters</summary>
+        <div class="small muted">{{ inference.why }}</div>
+      </details>
+      {% if inference.choices %}
+      <select name="confirm:{{ inference.field }}" class="answer-select">
+        {% for choice in inference.choices %}
+        <option value="{{ choice.value }}"
+                {% if choice.value == inference.value %}selected{% endif %}>
+          {{ choice.label }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      {# An inference with no alternative still has to be confirmable. Gated on
+         choices alone, "when orders execute" was presented as a decision made
+         on the user's behalf with no way to accept it — and a plan cannot save
+         while an inference is unconfirmed. The user could read the assumption,
+         agree with it, and still be refused with nothing to click. #}
+      <label class="small" style="display:block;margin-top:6px">
+        <input type="checkbox" name="confirm:{{ inference.field }}"
+               value="{{ inference.value }}">
+        Keep this assumption
+      </label>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <p class="small muted" style="margin:10px 0 0">
+      Supplied by <span class="mono">{{ view.defaults_ref }}</span>. These are
+      choices you did not make — each changes the result, and none is saved
+      until you confirm it.
+    </p>
+  </div>
+  {% endif %}
+
+  {# 5. What the account means to the engine. Account type decides tax
+     treatment, contribution limits, withdrawal constraints and benchmark
+     comparability, so it gets more than a one-line card. #}
+  {% if view.account %}
+  <div class="group account">
+    <h3>{{ view.account.label }}</h3>
+    {# Three claims rendered apart. A single "supported" badge would collapse
+       identification, comparability and enforcement into one word, and the
+       third is the one a reader assumes from the first two. #}
+    <table class="plan">
+      <tr><th>Account identified</th>
+          <td>{{ view.account.support.recognized|lower }}</td></tr>
+      <tr><th>Pinned across comparisons</th>
+          <td>{{ view.account.support.comparable|lower }}</td></tr>
+      <tr><th>Rules fully enforced</th>
+          <td>{{ view.account.support.enforced|lower }}</td></tr>
+    </table>
+    {% if view.account.support.unenforced_behaviours %}
+    <div class="small muted">Not enforced:
+      {{ view.account.support.unenforced_behaviours|join(', ') }}</div>
+    {% endif %}
+    <div class="two-column">
+      <div>
+        <div class="small muted">Modelled</div>
+        <ul>{% for item in view.account.modelled %}<li class="small">{{ item }}</li>{% endfor %}</ul>
+      </div>
+      <div>
+        <div class="small muted">Not modelled</div>
+        <ul>{% for item in view.account.not_modelled %}<li class="small">{{ item }}</li>{% endfor %}</ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# 6. Understood and not simulated — before the run, not buried in the
+     modelling scope afterwards. A choice the engine cannot honour is something
+     to know while there is still a decision to make about running it. #}
+  {% if view.not_simulated %}
+  <div class="group scope">
+    <h3>Understood, but not included in this simulation</h3>
+    {% for item in view.not_simulated %}
+    <div class="small"><strong>{{ item.field.replace('_', ' ') }}</strong>:
+      {{ item.declared.replace('_', ' ') }}</div>
+    <div class="small muted">{{ item.why }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if view.better_route %}
+  <div class="group inferred">
+    <h3>A better route exists</h3>
+    <div class="small"><strong>{{ view.better_route.question }}</strong></div>
+    <div class="small muted">{{ view.better_route.why_it_matters }}</div>
+    <p class="small muted" style="margin:10px 0 0">
+      This does not block anything. The plan above is a valid reading of what you
+      wrote; the template is a more precise one.
+    </p>
+  </div>
+  {% endif %}
+
+  {# 7. Everything read straight from the words, collapsed. Most complete plans
+     state many fields, and a long checklist of them makes confirming feel like
+     filing a form. #}
+  {% if view.stated_count %}
+  <details class="group stated">
+    <summary class="small">✓ {{ view.stated_count }} detail{{ '' if view.stated_count == 1 else 's' }} understood directly from what you wrote</summary>
+    <ul>{% for statement in view.stated_detail %}<li class="small">“{{ statement }}”</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+
+</div>

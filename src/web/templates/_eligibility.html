@@ -1,0 +1,23 @@
+{# Why a performance visualisation is or is not drawn.
+
+   The absence of a chart should be informative. A blank panel reads as broken;
+   a checklist reads as a fact about the data. #}
+<div class="panel eligibility">
+  <h3 style="margin-top:0">{{ el.headline() }}</h3>
+  <div class="scroll"><table class="small">
+    {% for g in el.gates %}
+    <tr>
+      <td class="gate gate-{{ 'ok' if g.passed else 'fail' }}" style="width:2em">{{ "✓" if g.passed else "✕" }}</td>
+      <td>{{ g.question }}</td>
+      <td class="small muted">{{ g.detail }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% if not el.eligible %}
+  <p class="small muted" style="margin:10px 0 0">
+    A performance visual is itself a claim. It renders only when every condition
+    holds — otherwise the chart would assert something the artifacts do not
+    support.
+  </p>
+  {% endif %}
+</div>
