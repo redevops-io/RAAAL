@@ -29,7 +29,8 @@ def portfolio_metrics(weights: Dict[str, float], mu: pd.Series, cov: pd.DataFram
     vec = weights_array(weights)
     ret = float(np.dot(mu.values, vec)) * 252
     vol = float(np.sqrt(vec.T @ cov.values @ vec)) * np.sqrt(252)
-    sharpe = (ret - rf * 252) / vol if vol else 0.0
+    # guard a near-zero (e.g. all-cash) portfolio: Sharpe is undefined, not astronomically large
+    sharpe = (ret - rf * 252) / vol if vol > 1e-6 else 0.0
 
     spy_idx = None
     for idx, asset in enumerate(UNIVERSE):
