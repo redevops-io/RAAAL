@@ -1,7 +1,23 @@
 """P4: deterministic investment discovery turns market/portfolio changes into proposed missions."""
 from __future__ import annotations
 
-from src.agentic.discovery_runtime import InvestmentDiscovery
+import pytest
+
+# `src.agentic.discovery_runtime` imports the vendored `agentic_os` runtime,
+# which `.gitignore` excludes — it is produced by `scripts/vendor_agentic_os.sh`
+# rather than committed. Without it this module raised at *import* time, and a
+# collection error aborts the entire run: one absent vendored directory made
+# `pytest tests` unrunnable on any clean checkout, master included.
+#
+# A skip says the same thing without taking the suite down with it. The
+# condition is the module being absent and nothing else, so wherever the vendor
+# script has run these tests behave exactly as before.
+pytest.importorskip(
+    "agentic_os.discovery",
+    reason="the vendored agentic_os runtime is absent; run "
+           "scripts/vendor_agentic_os.sh to exercise these tests")
+
+from src.agentic.discovery_runtime import InvestmentDiscovery  # noqa: E402
 from src.agentic.signals import PortfolioObservation, build_signals
 
 
