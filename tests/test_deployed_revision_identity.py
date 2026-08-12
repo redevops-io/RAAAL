@@ -134,12 +134,70 @@ class TestTheSupplySide:
 
         The job runs on `self-hosted` and the repository has no registered
         runner, so it has never executed. This asserts the honest state: the
-        declaration exists and the execution does not. When a runner is
-        registered and a deployment proves the chain end to end, this test
-        should be replaced by one that reads the identity from the running
-        service.
+        declaration exists and the execution does not.
+
+        **Delete this test when, and only when, this passes against the
+        running service:**
+
+            scripts/verify_deployment_identity.py --url <service> \
+                --expect-commit <the commit the deployment run supplied>
+
+        which requires both halves — the serving identity's commit equals the
+        commit the deployment supplied, *and* the source offer resolves to
+        that same revision. Replace it then with a check that reads the
+        identity from the running service, because at that point the chain is
+        provable rather than declared.
         """
         job = yaml.safe_load(DEPLOY.read_text())["jobs"]["backtest-and-deploy"]
         assert job["runs-on"] == "self-hosted", (
             "the deploy job no longer needs a self-hosted runner; if it now "
             "runs, replace this test with an end-to-end deployment proof")
+
+
+class TestTheProofScriptCannotPassVacuously:
+    """The script is what will retire the unproven test above, so its failure
+    modes matter more than its success path. A deployment check that exits
+    zero when it could not check anything is the PASS/VACUOUS defect at the
+    last link in the chain."""
+
+    def test_an_empty_expectation_is_refused(self):
+        from scripts.verify_deployment_identity import main
+
+        assert main(["--url", "https://example.invalid",
+                     "--expect-commit", "  "]) == 4, (
+            "a check against an unknown expectation passes for any deployment")
+
+    def test_an_unreachable_service_is_not_a_pass(self):
+        from scripts.verify_deployment_identity import main
+
+        assert main(["--url", "https://service.invalid",
+                     "--expect-commit", "abc123", "--timeout", "1"]) == 2
+
+    def test_a_service_that_cannot_identify_itself_is_not_a_pass(self,
+                                                                 monkeypatch):
+        import scripts.verify_deployment_identity as verifier
+
+        monkeypatch.setattr(verifier, "fetch", lambda *_a, **_k: {
+            "build": {"observable": False},
+            "license": {"source": "https://github.com/redevops-io/RAAAL"}})
+        assert verifier.verify("https://x", "abc123") == 3
+
+    def test_a_right_commit_with_a_branch_source_offer_fails(self, monkeypatch):
+        """The half that is easy to lose. A service reporting the correct
+        revision while offering source for a branch still hands the person a
+        different program than the one answering them."""
+        import scripts.verify_deployment_identity as verifier
+
+        monkeypatch.setattr(verifier, "fetch", lambda *_a, **_k: {
+            "build": {"observable": True},
+            "license": {"source": "https://github.com/redevops-io/RAAAL"}})
+        assert verifier.verify("https://x", "abc123") == 1
+
+    def test_both_halves_agreeing_is_the_only_pass(self, monkeypatch):
+        import scripts.verify_deployment_identity as verifier
+
+        monkeypatch.setattr(verifier, "fetch", lambda *_a, **_k: {
+            "build": {"observable": True},
+            "license": {"source":
+                        "https://github.com/redevops-io/RAAAL/tree/abc123"}})
+        assert verifier.verify("https://x", "abc123") == 0
