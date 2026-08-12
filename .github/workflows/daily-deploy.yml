@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Keep scheduled workflow active
         if: github.event_name == 'schedule'
-        uses: liskin/gh-workflow-keepalive@v1
+        uses: liskin/gh-workflow-keepalive@f72ff1a1336129f29bf0166c0fd0ca6cf1bcb38c # v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,7 +72,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
             # Force the workflow to run off the canonical main branch so the
             # resulting Pages deployment goes to the production environment.
@@ -169,7 +169,7 @@ jobs:
           fi
 
       - name: Upload dashboard artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dashboard-${{ github.sha }}
           path: reports/regime_dashboard.html

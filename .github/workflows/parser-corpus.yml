@@ -22,6 +22,13 @@ on:
     - cron: '0 4 * * 1'
   workflow_dispatch:
 
+# Least privilege, declared rather than inherited. The repository default is
+# already `read`, but a default is a setting somebody can change in a UI
+# without touching a reviewed file — and these two workflows hold a provider
+# credential, so what their token may do belongs in the diff.
+permissions:
+  contents: read
+
 concurrency:
   group: parser-corpus-${{ github.ref }}
   cancel-in-progress: true
@@ -31,8 +38,8 @@ jobs:
     name: corpus (recorded parses)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: pip
@@ -86,8 +93,8 @@ jobs:
       contains(github.event.head_commit.message, '[parser]') ||
       github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: pip
@@ -99,7 +106,7 @@ jobs:
           pip install -r requirements-core.txt
 
       - name: Cache the Stanza models
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/stanza_resources
           key: stanza-en-${{ hashFiles('corpus/parser/parses.json') }}
@@ -118,6 +125,11 @@ jobs:
           echo "Re-record with: python corpus/parser/record_parses.py"
           echo "Then read the diff — a changed attachment is a changed reading."
 
+  # Already restricted to `schedule` and `workflow_dispatch` below, both of
+  # which require write access. A pull request — fork or not — never reaches
+  # this job, so a missing secret here is a real fault rather than the
+  # ordinary condition of an outside contribution. That is what lets the step
+  # below fail hard instead of apologising.
   model-drift:
     name: model drift (live hosted reader, small subset)
     runs-on: ubuntu-latest
@@ -127,8 +139,8 @@ jobs:
     continue-on-error: true
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: pip
@@ -153,9 +165,16 @@ jobs:
           # secret on a run that *should* have one is not, and the two now
           # read differently in the log.
           if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::notice::no OPENAI_API_KEY in this context (expected for a"\
-                 "fork pull request); the live subset was NOT checked"
-            exit 0
+            # A job whose whole purpose is a live call, finishing green
+            # without making one, is a tick for work that did not happen.
+            # `::error::` plus a non-zero exit is the only rendering GitHub
+            # offers that cannot be mistaken for evidence — a fork pull
+            # request legitimately has no secret, so this job is excluded
+            # from those by its `if:` rather than by exiting quietly here.
+            echo "::error::OPENAI_API_KEY is absent, so the live subset was"\
+                 "NOT re-asked. This job exists to make a provider call and"\
+                 "has not made one; a green result here would be vacuous."
+            exit 1
           fi
           cp corpus/parser/hosted.json /tmp/hosted.recorded.json
           python corpus/parser/record_hosted.py --subset 8 --refresh

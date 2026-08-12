@@ -75,10 +75,11 @@ def test_a_secret_bearing_pull_request_workflow_is_inert_without_it(path):
         f"{path.name} maps a secret and runs on pull_request without checking "
         "whether the secret arrived. A fork pull request gets an empty "
         "variable and would call a provider with no credential")
-    assert "NOT checked" in text or "not checked" in text, (
-        f"{path.name} handles a missing secret without saying the check was "
-        "skipped. A step that no-ops quietly is a green tick for work that "
-        "did not happen")
+    # What happens next is asserted by
+    # `test_a_job_that_must_call_a_provider_fails_without_its_key`, which
+    # checks the exit status rather than the wording. An earlier version of
+    # this test matched on the message text and broke when the message was
+    # improved — pinning prose is how a test starts measuring itself.
 
 
 def test_only_the_expected_workflow_carries_a_provider_credential():
@@ -97,3 +98,79 @@ def test_only_the_expected_workflow_carries_a_provider_credential():
     assert carrying == {"drift-lane.yml", "parser-corpus.yml"}, (
         f"{sorted(carrying)} map a provider credential. Each one spends real "
         "money on a schedule somebody has to have chosen")
+
+
+class TestTheWorkflowsAreHardenedForAPublicRepository:
+    """The repository was made private after a look at these. Going back to
+    public should rest on these properties holding, not on remembering that
+    they held once.
+    """
+
+    def test_every_action_is_pinned_to_a_commit(self):
+        """A tag is a pointer its owner can move. `liskin/gh-workflow-keepalive@v1`
+        is a third party, and a job that carries a credential running code
+        someone else can change under a fixed name is the supply-chain shape.
+
+        GitHub's own actions get the same treatment: `actions/checkout@v4` is
+        also mutable, and the reason to trust it is a judgement about a vendor
+        rather than a property of the reference.
+        """
+        for path in WORKFLOWS:
+            for ref in re.findall(r"uses:\s*(\S+)", path.read_text()):
+                if ref.startswith("./"):
+                    continue
+                assert re.search(r"@[0-9a-f]{40}$", ref), (
+                    f"{path.name} uses {ref}, which is a movable reference")
+
+    def test_every_workflow_declares_its_permissions(self):
+        """The repository default is `read`, and a default is a setting
+        somebody can change in a UI without touching a reviewed file."""
+        for path in WORKFLOWS:
+            text = path.read_text()
+            has_top = re.search(r"^permissions:", text, re.M)
+            has_job = re.search(r"^\s{4}permissions:", text, re.M)
+            assert has_top or has_job, (
+                f"{path.name} declares no permissions and inherits whatever "
+                "the repository setting happens to be")
+
+    def test_no_event_data_is_expanded_into_a_shell(self):
+        """`${{ github.event.<field> }}` inside a `run:` block is substituted
+        before the shell sees it, so the value becomes script.
+
+        Read from the parsed YAML rather than by matching text. The first
+        version used a regex for `run:` blocks, over-captured past the end of
+        one, and reported an `env:` assignment in the next step as if it were
+        shell — a false positive that would have been "fixed" by editing
+        perfectly safe configuration.
+
+        `github.event_name` is deliberately not covered: it is one of a fixed
+        set GitHub assigns and cannot carry a payload.
+        """
+        import yaml
+
+        for path in WORKFLOWS:
+            document = yaml.safe_load(path.read_text())
+            for job in (document.get("jobs") or {}).values():
+                for step in job.get("steps", []):
+                    script = step.get("run")
+                    if not script:
+                        continue
+                    found = re.findall(r"\$\{\{\s*github\.event\.[^}]*\}\}",
+                                       script)
+                    assert not found, (
+                        f"{path.name} expands {found} in the script of step "
+                        f"{step.get('name', '?')!r}; those fields carry text a "
+                        "contributor chooses. Pass it through `env:`")
+
+    def test_a_job_that_must_call_a_provider_fails_without_its_key(self):
+        """A green job that skipped the only thing it exists to do is the
+        PASS/VACUOUS problem in CI form."""
+        for path in WORKFLOWS:
+            text = path.read_text()
+            if "API_KEY" not in text:
+                continue
+            for guard in re.findall(r'if \[ -z "\$[A-Z_]*API_KEY" \];(.*?)fi',
+                                    text, re.S):
+                assert "exit 0" not in guard, (
+                    f"{path.name} exits successfully when its provider key is "
+                    "absent, so a run that made no call reports as evidence")
