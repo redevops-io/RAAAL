@@ -430,6 +430,47 @@
 # -d` will not notice. This asserts the running proxy actually serves the
 # configuration just deployed, rather than trusting that writing the file was
 # enough — it was not, and the deploy reported success anyway.
+# One real reading, from the container, against the provider it declares.
+#
+# Everything above this point is configuration agreeing with configuration. The
+# parser identity check compares what the process resolved against what the
+# playbook intended, and both come from the same variables — it passes happily
+# with a credential belonging to a different vendor, because nothing has asked
+# the provider anything.
+#
+# That gap is not hypothetical: the secret holds one vendor's key, the provider
+# is declared separately, and switching the declaration without rotating the
+# key produces a deployment that starts cleanly, reports a valid configuration,
+# and fails on the first sentence a user types. A deploy is the last moment
+# this is cheap to find out.
+#
+# One short sentence, and the reading is discarded. What is under test is
+# whether the credential and the provider belong together.
+- name: Prove the declared provider actually answers
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T api python -c "
+    from src.discovery.readers_quantify import configured_hosted_reader
+    from src.discovery.schema import QUANTIFY_SCHEMA
+    reader = configured_hosted_reader()
+    if not reader.available():
+        raise SystemExit('NO_KEY: ' + reader.api_key_env + ' is unset for ' + reader.id)
+    result = reader.read('invest \$500 a month into VTI', QUANTIFY_SCHEMA)
+    if not result.ok:
+        raise SystemExit('PROVIDER_REFUSED: ' + str(result.failed))
+    print('PROVIDER_OK=' + reader.id)
+    "
+  args:
+    executable: /bin/bash
+  become: true
+  register: provider_live
+  changed_when: false
+  failed_when: "'PROVIDER_OK=' not in provider_live.stdout"
+
+- name: Show which reader answered
+  ansible.builtin.debug:
+    msg: "{{ provider_live.stdout_lines | select('search', 'PROVIDER_OK') | list }}"
+
 - name: Confirm the proxy is serving the deployed configuration
   ansible.builtin.uri:
     url: http://127.0.0.1:80/

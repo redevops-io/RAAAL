@@ -43,7 +43,7 @@ resource "aws_secretsmanager_secret_version" "database_password" {
 
 resource "aws_secretsmanager_secret" "model_api_key" {
   name        = "${local.name}/model-api-key"
-  description = "Anthropic API key. Value set out of band — see infra/README.md."
+  description = "Hosted parser API key for whichever provider `parser_provider` declares. Value set out of band — see infra/README.md."
 
   recovery_window_in_days = 0
 }
