@@ -93,7 +93,7 @@ def _plan_digest(reading) -> str:
     if scenario is None:
         intent = reading.intent
         return "no-plan:" + (intent.intent_hash[:16] if intent else "?")
-    canonical = json.dumps(scenario.canonical_form(), sort_keys=True,
+    canonical = json.dumps(scenario.execution_form(), sort_keys=True,
                            default=str)
     return sha256(canonical.encode()).hexdigest()[:16]
 

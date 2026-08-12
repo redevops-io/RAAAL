@@ -88,7 +88,7 @@ def checkpoints(text: str, model, syntax) -> dict:
     plan = None
     scenario = getattr(reading.compiled, "scenario", None)
     if scenario is not None:
-        canonical = json.dumps(scenario.canonical_form(), sort_keys=True,
+        canonical = json.dumps(scenario.execution_form(), sort_keys=True,
                                default=str)
         plan = sha256(canonical.encode()).hexdigest()[:16]
 

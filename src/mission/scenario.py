@@ -19,6 +19,8 @@ and it is what makes `extract_rule` a clean seam rather than a redaction pass.
 """
 from __future__ import annotations
 
+import re
+
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -31,6 +33,52 @@ def _hash(payload: Mapping[str, Any]) -> str:
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
     ).hexdigest()
+
+
+#: A leading article, stripped only where the registry has no opinion.
+_LEADING_ARTICLE = re.compile(r"^(?:a|an|the)\s+", re.I)
+
+
+def execution_subject(asset: str) -> str:
+    """What a holding *is*, for the purpose of plan identity only.
+
+    `VerifiedIntent` keeps what the person said and `canonical_form()` keeps
+    what the plan holds — both stay verbatim. This is the third thing: the
+    subject two requests must share before they may be called the same plan.
+
+    Resolved phrases collapse to the registry's own identity, so `S&P 500`,
+    `the S&P` and `SPX` are one subject; the resolver already does that and
+    this reuses it rather than re-deciding. Unresolved phrases fall back to a
+    canonical spelling with a leading article removed — safe *here* precisely
+    because the phrase did not resolve, since anything the registry can name
+    has already been collapsed above. Stripping articles globally would be
+    wrong, because a real product name can contain one, and a real product
+    name resolves.
+
+    Never used for what executes. The first version of this put the
+    canonicalisation in `canonical_form()`, which is consumed as data by
+    `representation.py` and `to_json()` — so `SPY` became `spy`, the engine
+    found no prices for it, and sixteen tests failed on missing signals. The
+    lesson is in the name: this is the *identity* of a holding, not the
+    holding.
+    """
+    try:
+        from .resolver import resolve
+
+        found = resolve(asset)
+        concept = getattr(found, "concept_id", None)
+        if concept:
+            return f"concept:{concept}"
+        instrument = getattr(found, "instrument", None)
+        symbol = getattr(instrument, "symbol", None)
+        if symbol:
+            return f"instrument:{symbol}"
+    except Exception:                                          # noqa: BLE001
+        # A registry that will not load leaves every phrase on the fallback,
+        # which keeps identity deterministic and article-insensitive — a
+        # narrower answer than resolution gives, not a wrong one.
+        pass
+    return _LEADING_ARTICLE.sub("", " ".join(str(asset).split())).lower()
 
 
 @dataclass(frozen=True)
@@ -47,7 +95,13 @@ class AllocationRule:
     weighting: str = "equal_weight_at_purchase"
 
     def canonical_form(self) -> Dict[str, Any]:
+        """The holdings as written. Data, and consumed as such."""
         return {"assets": sorted(self.assets), "weighting": self.weighting}
+
+    def execution_form(self) -> Dict[str, Any]:
+        """The holdings as subjects. Identity, and consumed only as such."""
+        return {"assets": sorted(execution_subject(a) for a in self.assets),
+                "weighting": self.weighting}
 
 
 @dataclass(frozen=True)
@@ -267,6 +321,20 @@ class ScenarioSpecification:
         if self.funding is not None:
             body["funding"] = self.funding.to_json()
         return body
+
+    def execution_form(self) -> Dict[str, Any]:
+        """`canonical_form()` with holdings replaced by their subjects.
+
+        The one thing plan identity is computed from. Everything else is
+        shared, so the two forms cannot drift apart in any respect except the
+        one this exists to canonicalise.
+        """
+        form = self.canonical_form()
+        form["methodology"] = {
+            **form["methodology"],
+            "allocation_rule": self.allocation_rule.execution_form(),
+        }
+        return form
 
     def canonical_form(self) -> Dict[str, Any]:
         return {
