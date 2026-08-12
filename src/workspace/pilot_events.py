@@ -176,9 +176,20 @@ def _profile() -> dict:
     """
     from ..deploy.context import current
 
-    model = current().model
+    resolved = current()
+    model = resolved.model
+    # The serving revision, so an observation can be joined to the code that
+    # produced it rather than inferred from a timestamp. Without it a cohort
+    # spanning a deploy is one population wearing two behaviours, and the data
+    # cannot say which reading came from which build.
+    #
+    # `""` when the deployment cannot say — the manifest reports
+    # `observable: False` in the same case, so the two agree rather than one
+    # of them inventing a value.
+    commit = (resolved.build.private() or {}).get("commit") or ""
     return {"parser_mode": model.mode.value,
-            "pilot_reader": model.pilot_reader.value}
+            "pilot_reader": model.pilot_reader.value,
+            "serving_commit": commit}
 
 
 def record(kind: str, *, plan_id: str = "", participant: str = "",

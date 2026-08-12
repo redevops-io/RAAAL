@@ -94,6 +94,13 @@ router = APIRouter(prefix="/workspace", tags=["workspace"])
 #: missing from will be the one someone reads a figure on.
 TEMPLATES.env.globals["data_notice"] = lambda: _data_notice()
 
+#: The AGPL §13 offer, for the same reason and by the same mechanism. It is a
+#: global rather than a template literal because the offer must name the
+#: revision serving the person reading it, and `base.html` had the repository
+#: hardcoded — an offer for whatever the default branch holds later.
+TEMPLATES.env.globals["source_url"] = lambda: __import__(
+    "src.api", fromlist=["source_url"]).source_url()
+
 PRICES = Path("data/history/prices.parquet")
 BENCHMARK_RULE = "benchmark-policy/public-default@1"
 

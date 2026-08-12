@@ -37,11 +37,46 @@ from .workspace.routes import router as workspace_router
 
 API_VERSION = "0.2.0"
 
-SOURCE_URL = "https://github.com/redevops-io/RAAAL"
+SOURCE_REPOSITORY = "https://github.com/redevops-io/RAAAL"
+
+
+def source_url() -> str:
+    """The corresponding source for *the revision running here*.
+
+    AGPL §13 offers users the source of the version they are interacting with.
+    A bare repository link is an offer for whatever the default branch holds
+    when they click it, which after a few merges is a different program.
+
+    Falls back to the repository when the deployment cannot say what it is —
+    an offer that is too broad, rather than one that is silently wrong. The
+    build manifest reports `observable: False` in that case, so the two
+    statements agree.
+    """
+    from .deploy.context import current
+
+    commit = (current().build.private() or {}).get("commit")
+    if commit:
+        return f"{SOURCE_REPOSITORY}/tree/{commit}"
+    return SOURCE_REPOSITORY
+
+
+SOURCE_URL = SOURCE_REPOSITORY
 
 #: AGPL §13 requires that users interacting with the software over a network are
 #: offered its source. Serving it from the API root is how that offer is made
 #: visible rather than merely satisfied in the repository.
+def license_notice() -> dict:
+    """The notice, with the source offer resolved for the running revision.
+
+    A function rather than the module-level constant it used to be, because
+    the constant was built at import time and the deployment identity is not
+    known until the context resolves. An offer computed once at import is an
+    offer for whatever the repository held when the process started, which is
+    the moving-target problem one level in.
+    """
+    return {**LICENSE_NOTICE, "source": source_url()}
+
+
 LICENSE_NOTICE = {
     # The §13 entitlement is unchanged by the Commons Clause — that condition
     # removes the right to *sell*, and says nothing about offering source. Both
@@ -49,7 +84,7 @@ LICENSE_NOTICE = {
     # object is the machine-readable statement of what the service is.
     "license": "AGPL-3.0-or-later WITH Commons-Clause",
     "spdx": "LicenseRef-AGPL-3.0-or-later-with-Commons-Clause",
-    "source": SOURCE_URL,
+    "source": SOURCE_REPOSITORY,
     "notice": (
         "This service is AGPL-3.0-or-later with the Commons Clause condition. "
         "You are entitled to the complete corresponding source of the version "
@@ -396,7 +431,7 @@ def info() -> Dict[str, Any]:
         # disclosure is the one that goes stale when the policy changes.
         "data_policy": _service_data_policy(),
         "methodologies": concepts,
-        "license": LICENSE_NOTICE,
+        "license": license_notice(),
     }
 
 
@@ -842,7 +877,7 @@ def root() -> JSONResponse:
             "service": "investment-agent (Quantify Investment OS)",
             "version": API_VERSION,
             "notice": DEMO_NOTICE,
-            "license": LICENSE_NOTICE,
+            "license": license_notice(),
             "docs": "/docs",
         }
     )

@@ -69,6 +69,23 @@ jobs:
     if: needs.precheck.outputs.should_deploy == 'true'
     runs-on: self-hosted
     timeout-minutes: 90
+
+    # The deployment facts the running service reports as its identity.
+    # `BuildManifest` has required these since it was written and nothing has
+    # ever supplied them, so every deployment so far has answered
+    # `observable: false` — it could not say which revision it was.
+    #
+    # That is what makes a cohort observation joinable to the code that
+    # produced it, and what lets the AGPL §13 offer name the revision a person
+    # is actually using rather than whatever `master` holds when they click.
+    #
+    # `github.sha` is resolved by Actions and is not user input, so it is
+    # passed through `env` and never expanded into a shell.
+    env:
+      QUANTIFY_COMMIT: ${{ github.sha }}
+      QUANTIFY_RELEASE_REF: ${{ github.ref_name }}
+      QUANTIFY_IMAGE_DIGEST: ${{ github.sha }}
+      QUANTIFY_SNAPSHOT_ID: ${{ github.run_id }}
     
     steps:
       - name: Checkout repository
