@@ -133,3 +133,51 @@ class TestTheReopenTriggersAreWrittenDown:
         for trigger in ("wrong executable meaning", "silent reduction",
                         "journey blocked", "roadmap trigger"):
             assert trigger in text, trigger
+
+
+class TestTheFrozenDriftArtifactIsTheOneDescribed:
+    """The baseline now cites a specific CI run. A document naming an artifact
+    it does not contain is the failure this file exists to prevent, one level
+    up from version strings."""
+
+    ARTIFACT = Path(__file__).resolve().parent.parent / "corpus" / "parser" / "drift.json"
+
+    def _provenance(self):
+        import json
+
+        if not self.ARTIFACT.exists():
+            pytest.skip("no drift artifact committed")
+        return json.loads(self.ARTIFACT.read_text()).get("provenance", {})
+
+    def test_it_was_produced_by_ci_and_says_so(self):
+        """The whole reason this artifact is citable. A local run is evidence
+        for development and not a guarantee about what serves people."""
+        assert self._provenance().get("producer") == "github-actions"
+
+    def test_its_identities_are_the_ones_the_baseline_records(self):
+        recorded, provenance = _recorded(), self._provenance()
+        for key in ("schema_fingerprint", "hosted_model_id", "prompt_version",
+                    "pipeline_version"):
+            value = provenance.get(key)
+            assert value, f"the artifact carries no {key}"
+            assert value in recorded, (
+                f"the artifact was produced against {key}={value!r} and the "
+                "baseline does not mention it")
+
+    def test_it_carries_enough_draws_to_be_about_stability(self):
+        """One draw measures provider drift over time and says nothing about
+        stochasticity. The gate refuses fewer than three for that reason."""
+        assert self._provenance().get("draws_per_prompt", 0) >= 3
+
+    def test_the_baseline_does_not_claim_a_cleaner_result_than_the_artifact(self):
+        """Written against the direction a summary drifts. `execution_unsafe`
+        is the hard condition, and a document claiming zero over an artifact
+        that says otherwise would be the most flattering possible error."""
+        import json
+
+        report = json.loads(self.ARTIFACT.read_text())
+        unsafe = report.get("execution_unsafe", [])
+        if unsafe:
+            assert "execution_unsafe            0" not in _recorded(), (
+                f"the baseline records zero execution-unsafe prompts and the "
+                f"artifact names {len(unsafe)}")

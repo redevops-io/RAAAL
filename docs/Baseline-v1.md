@@ -99,16 +99,62 @@ that attribution is the reason to write it down here rather than edit a line.
 - **Pilot instrumentation** — seven events, structured context only, per
   participant consent, transcripts off unless declared.
 
+## The Discovery baseline, frozen on admissible evidence
+
+The pre-Lean gate is **open**, and what makes that citable is not the verdict
+but the artifact behind it: the first one ever produced by CI from the actual
+serving stack, carrying every identity the gate checks.
+
+    run                     31603973383
+    commit                  a982959
+    schema                  quantify-discovery-schema@6/eb01a824e4f43d02
+    serving reader          gpt-4.1-2025-04-14@1
+    hosted prompt           quantify-hosted-prompt@1
+    fusion pipeline         quantify-pipeline@1
+    producer                github-actions
+    mode                    workflow_dispatch
+    draws                   3 per prompt, 36 prompts
+
+    execution_unsafe            0
+    silently_reduced_any_draw   0
+    silently_reduced            0
+    watched_crossed             0
+    closure_witness             gpt-4.1-2025-04-14@1
+
+    STABLE_EXECUTABLE 4 · STABLE_REFUSAL 12 · STABLE_CLARIFICATION 2
+    UNSTABLE_SAFE 18
+
+`corpus/parser/drift.json` is that artifact, committed rather than described.
+It expires: the gate refuses evidence about stochastic behaviour older than
+seven days, so this freezes what was measured without letting it be cited
+forever.
+
+**Why the two former blockers matter more than the count.** Both now produce
+*one distinct executable identity across all three draws*, which is a stronger
+statement than "never unsafe". It says the serving path reproduces the same
+executable meaning, rather than merely containing stochasticity behind
+refusals.
+
+**`UNSTABLE_SAFE` is 18, and the decomposition is the useful part.**
+
+    12  REFUSAL <-> REFUSAL            different stated reasons
+     4  CLARIFICATION <-> REFUSAL      different journey shape
+     2  CLARIFICATION <-> CLARIFICATION  a different ambiguity asked about
+
+Only the last two vary which question a person is asked. None of it reopens
+the safety gate, and none of it is a pre-pilot zero target — it is a UX queue.
+
 ## What is open, and stays open
 
-- `OPENAI_API_KEY` is not configured as a repository secret, so the drift lane
-  cannot call the provider and the pre-Lean gate stays closed. The lane refused
-  and named the missing precondition rather than running with a broken reader,
-  and wrote no artifact — so nothing was overwritten and the gate is closed on
-  the same evidence as before.
-- The gate now also pins `hosted_model_id`. It was blind to which reader
-  produced its evidence, which a provider swap would have walked straight
-  through.
+- **Closed, and left here as the shape of the problem.** The gate was blocked
+  for weeks on `producer='unknown'`, which read as an operational to-do —
+  press *Run workflow*. It was not: `drift-lane.yml` lived on a feature branch
+  and GitHub registers `workflow_dispatch` only from the default branch, so
+  the lane had never been startable. Merging it, configuring
+  `OPENAI_API_KEY`, and dispatching produced the artifact above.
+- The gate now pins `hosted_model_id` and checks the closure report's witness.
+  It was blind to both, and a provider swap would have walked straight through
+  with a GPT drift artifact and a Claude closure report reaching one verdict.
 - Mission computes no volatility and no drawdown. `max_drawdown` is declared
   absent in `worksheet_view` with a reason.
 - Six prompts are `UNSTABLE_SAFE` and watched.
