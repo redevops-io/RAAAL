@@ -218,14 +218,28 @@ MANIFEST: Mapping[str, Dimension] = {
 
     "stated_weights": _d(
         "stated_weights", REFUSED,
-        why=("this build divides each purchase equally between the named "
-             "holdings, so a stated split such as 60/40 cannot be honoured")),
+        why=("a split such as 60/40 is read but not attached to anything: the "
+             "sentences that state one usually name no holdings, and `60/40` "
+             "with nothing saying which side is which cannot be executed. The "
+             "engine divides a purchase by stated weights when it has them — "
+             "what is missing is the relation between the numbers and the "
+             "holdings, not the arithmetic")),
 
     # ---- what happens to holdings -------------------------------------
     # Named as `coverage` names it, so the two range over one vocabulary.
     "periodic_rebalancing": _d(
-        "periodic_rebalancing", REFUSED,
-        why="this build buys and holds; it does not rebalance"),
+        "periodic_rebalancing", EXECUTED,
+        refuses={
+            "threshold_band":
+                "rebalancing when a weight drifts past a band is not "
+                "modelled: this build restores the split on a calendar, and "
+                "running a drift rule as an annual one would trade on "
+                "different days and produce a different figure",
+        },
+        why=("restored on a calendar — annual, quarterly, monthly, weekly or "
+             "biweekly. An instruction that states no cadence is refused "
+             "rather than defaulted: rebalancing sells, and picking a "
+             "frequency would invent a schedule of sales nobody described")),
 
     "selection_rule": _d(
         "selection_rule", NOT_MODELLED,

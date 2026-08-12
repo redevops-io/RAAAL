@@ -94,14 +94,31 @@ class AllocationRule:
     assets: Sequence[str]
     weighting: str = "equal_weight_at_purchase"
 
+    weights: Mapping[str, float] = field(default_factory=dict)
+    """A stated split, such as 60/40. Empty means the user stated none, which
+    is not the same as stating an equal one — `weighting` records which.
+
+    Absent from both forms below when empty. A scenario nobody gave weights to
+    hashes exactly as it did before this field existed, so adding the
+    capability does not reinterpret every plan already stored."""
+
     def canonical_form(self) -> Dict[str, Any]:
         """The holdings as written. Data, and consumed as such."""
-        return {"assets": sorted(self.assets), "weighting": self.weighting}
+        form = {"assets": sorted(self.assets), "weighting": self.weighting}
+        if self.weights:
+            form["weights"] = {k: float(v) for k, v in sorted(self.weights.items())}
+        return form
 
     def execution_form(self) -> Dict[str, Any]:
         """The holdings as subjects. Identity, and consumed only as such."""
-        return {"assets": sorted(execution_subject(a) for a in self.assets),
+        form = {"assets": sorted(execution_subject(a) for a in self.assets),
                 "weighting": self.weighting}
+        if self.weights:
+            # Keyed by execution subject, so `60% VTI` and `60% Vanguard Total
+            # Stock` are one execution identity rather than two.
+            form["weights"] = {execution_subject(k): float(v)
+                               for k, v in sorted(self.weights.items())}
+        return form
 
 
 @dataclass(frozen=True)
@@ -122,10 +139,24 @@ class HoldingsPolicy:
 
     See `UNSIMULATED` below: representing it is not the same as honouring it."""
 
+    rebalancing_cadence: str = ""
+    """How often the split is restored. Empty means never — buy and hold.
+
+    Separate from `rebalancing_allowed`, which says whether the strategy may
+    sell at all. A plan may permit rebalancing and state no cadence, and that
+    is buy-and-hold rather than an unstated default: choosing one would invent
+    a schedule of sales the user never described.
+
+    Omitted from the canonical form when empty, so plans stored before this
+    existed keep the hash they had."""
+
     def canonical_form(self) -> Dict[str, Any]:
-        return {"sells_allowed": self.sells_allowed,
+        form = {"sells_allowed": self.sells_allowed,
                 "rebalancing_allowed": self.rebalancing_allowed,
                 "dividend_policy": self.dividend_policy}
+        if self.rebalancing_cadence:
+            form["rebalancing_cadence"] = self.rebalancing_cadence
+        return form
 
 
 #: Declared behaviours the engine records but does not simulate, and why. A
@@ -133,6 +164,12 @@ class HoldingsPolicy:
 #: so where one cannot be honoured yet it is named here rather than left to look
 #: enforced. Every entry must appear in a result's modelling scope.
 UNSIMULATED = {
+    # `stated_weights` and `periodic_rebalancing` were here and are gone. They
+    # were never simulator limitations: `simulate` has always filled a negative
+    # order by clamping it to the position held, and `buy_and_hold` has always
+    # taken a `weights` argument. What was missing was a program that used
+    # either, so the engine was described as unable to do something no part of
+    # it refused. See `mission/rebalance.py`.
     "event_program": (
         "The engine replays a flow schedule against a buy-and-hold program. "
         "The declared conditional rule — a trigger, its condition and the "

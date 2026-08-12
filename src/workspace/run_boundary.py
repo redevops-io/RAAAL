@@ -57,6 +57,7 @@ from ..mission import (
     hold_cash,
     simulate,
 )
+from ..mission.rebalance import UnsupportedRebalancing, weighted
 from ..mission.scenario import UNSIMULATED
 from ..mission.schedule import UnsupportedCadence
 from .comparability_record import as_payload as comparability_payload
@@ -401,7 +402,31 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None,
     from ..market_data.access_event import frame_digest
 
     execution_input = frame_digest(prices)
-    result = simulate(prices, flows=flows, program=buy_and_hold(tradeable),
+    # The program the scenario describes, not the one this line used to
+    # hardcode. `buy_and_hold(tradeable)` ignored both the stated split and the
+    # rebalancing cadence, so "60/40, rebalanced annually" replayed as equal
+    # dollars in and nothing ever sold — a different strategy, returning a
+    # figure under the name of the one asked for.
+    allocation = scenario.allocation_rule
+    holdings_policy = scenario.holdings_policy
+    cadence = getattr(holdings_policy, "rebalancing_cadence", "")
+    if cadence and not holdings_policy.rebalancing_allowed:
+        # Two declarations that contradict each other. Refusing is the only
+        # honest move: running either reading silently picks one of two
+        # different strategies on the user's behalf.
+        return {"result": None, "benchmarks": [], "payload": None,
+                "comparability": None, "strategy_not_executed": True,
+                "coverage": None,
+                "unavailable": (
+                    f"this plan states a {cadence} rebalancing cadence and "
+                    "also states that rebalancing is not allowed; the two "
+                    "cannot both be honoured")}
+
+    program = weighted(tradeable,
+                       weights=getattr(allocation, "weights", None),
+                       rebalance=cadence,
+                       sessions=prices.index if cadence else None)
+    result = simulate(prices, flows=flows, program=program,
                       cash_policy=policy, modelling_scope=scope)
 
     # The ledger, and then the check that it and the result agree.

@@ -290,6 +290,28 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
                    "a plan that does nothing, and it would be shown as though "
                    "it were the one you described"))
 
+    # A rebalancing instruction whose cadence cannot be read.
+    #
+    # `periodic_rebalancing` is free text on the contract — "annually", "at
+    # year end", "rebalance" are all valid readings of it — and only some of
+    # them state how often. The engine restores a split on a calendar, so a
+    # cadence it cannot place is a plan it cannot run.
+    #
+    # Refused rather than defaulted, and annual is the tempting default because
+    # it is what most people mean. Choosing it would invent a schedule of sales
+    # the user never described, and rebalancing sells: the difference between
+    # annual and quarterly is a different set of trades, a different figure,
+    # and on a monotone run a materially different outcome.
+    rebalancing = intent.fields.get("periodic_rebalancing")
+    if rebalancing is not None and not _rebalancing_cadence(rebalancing.value):
+        refusals.append(Refusal(
+            kind="UNRESOLVED_INPUT", dimension="periodic_rebalancing",
+            detail=f"{str(rebalancing.value)!r} asks for rebalancing without "
+                   "saying how often. This build restores the split on a "
+                   "calendar — annual, quarterly, monthly, weekly or biweekly "
+                   "— and picking one for you would invent a schedule of sales "
+                   "you did not describe"))
+
     for dimension in NUMERIC:
         stated = intent.fields.get(dimension)
         if stated is not None and _decimal(stated.value) is None:
@@ -332,8 +354,14 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
         event_program=(),
         flow_schedule=_schedule(intent, value, funding),
         allocation_rule=allocation,
+        # Rebalancing is the one thing that makes this build sell, so the two
+        # permissions follow from whether a cadence was stated rather than
+        # being hardcoded off. A plan that rebalances and forbids selling is
+        # incoherent, and `run_boundary` refuses it rather than picking a side.
         holdings_policy=HoldingsPolicy(
-            sells_allowed=False, rebalancing_allowed=False,
+            sells_allowed=bool(_rebalancing_cadence(value("periodic_rebalancing"))),
+            rebalancing_allowed=bool(_rebalancing_cadence(value("periodic_rebalancing"))),
+            rebalancing_cadence=_rebalancing_cadence(value("periodic_rebalancing")),
             dividend_policy=str(ENGINE_CONSTANTS["dividend_policy"])),
         benchmark_set=None if benchmark_rule is None else _benchmarks(benchmark_rule),
         tax_treatment=str(ENGINE_CONSTANTS["tax_treatment"]),
@@ -386,6 +414,24 @@ def _assets(intent: VerifiedIntent) -> Sequence[str]:
         return ()
     return tuple(part.strip() for part in SET_SEPARATOR.split(str(stated.value))
                  if part.strip())
+
+
+def _rebalancing_cadence(stated: Any) -> str:
+    """The cadence inside a free-text rebalancing instruction, or "".
+
+    Read with the same normaliser the discovery path uses rather than a word
+    list written here. One place decides what "annually" means; a second would
+    eventually disagree with the first, and the disagreement would show up as
+    two users getting different schedules from the same sentence.
+    """
+    if stated in (None, ""):
+        return ""
+    from ..discovery.syntax import normalize
+
+    for value in normalize(str(stated)):
+        if value.kind == "cadence":
+            return str(value.canonical)
+    return ""
 
 
 def _funding(intent: VerifiedIntent, value):

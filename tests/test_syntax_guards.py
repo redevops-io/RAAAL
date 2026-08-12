@@ -108,11 +108,25 @@ class TestWhatTheGuardsFireOn:
         assert guard.lemmas
 
 
-class TestAGuardOnlyCoversWhatMissionRefuses:
-    def test_every_guarded_dimension_is_refusable(self):
-        """A guard on an executable dimension would only manufacture
-        questions: the reader stays silent, the guard raises it, and the person
-        is asked about something the engine would have run anyway."""
+class TestAGuardOnlyCoversWhatVanishingWouldChange:
+    def test_every_guarded_dimension_changes_the_plan_if_it_vanishes(self):
+        """A guard is justified when a *lost* reading changes what runs.
+
+        This asserted that every guarded dimension was REFUSED or
+        NOT_MODELLED, on the reasoning that guarding an executable one would
+        manufacture questions about something the engine would have run
+        anyway. That reasoning held while `periodic_rebalancing` was refused
+        and stopped holding the moment it was not: if the reader goes silent on
+        "rebalance annually" the engine does not rebalance, it buys and holds —
+        a different strategy, no question asked, no refusal shown. The guard is
+        what catches that, and it became *more* necessary when the dimension
+        started executing, not less.
+
+        "Would have run it anyway" is only true of a dimension with a default.
+        These have none: a lost reading is a lost instruction either way, and
+        which way only changes whether the silence costs a refusal or a
+        behaviour.
+        """
         from src.discovery.guards import GUARDS
         from src.mission.capability import MANIFEST
 
@@ -120,9 +134,11 @@ class TestAGuardOnlyCoversWhatMissionRefuses:
         for guard in GUARDS:
             entry = manifest.get(guard.dimension)
             assert entry is not None, guard.dimension
-            assert entry.support in ("REFUSED", "NOT_MODELLED"), (
-                f"{guard.dimension} is {entry.support}; guarding it would ask "
-                "about something the engine executes")
+            assert not entry.values or entry.support != "EXECUTED", (
+                f"{guard.dimension} executes and has a closed value set, so a "
+                "silent reading would fall to a default rather than vanish; "
+                "guarding it manufactures a question instead of catching a "
+                "reduction")
 
     def test_every_guarded_dimension_is_in_the_schema(self):
         from src.discovery.guards import GUARDS
