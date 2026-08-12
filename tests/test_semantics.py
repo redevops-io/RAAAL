@@ -97,15 +97,26 @@ DRIFTED: set = set()
 #: green, and a case had silently left the tested set under cover of a number
 #: going up. `corpus/parser/answerable.json` is the recorded set; this dict is
 #: the only way out of it, and each entry has to say what happened.
+#:
+#: `sema-window-moving_average-013` was listed here and has been removed. The
+#: unit ambiguity — syntax reading `12` from "the 12-month moving average" and
+#: the hosted reader reading `252` — was a property of *that* reader.
+#: gpt-4.1-2025-04-14 reads it as 12 and agrees with syntax, so the case is
+#: answered again and the staleness rule required the entry out. The dimension
+#: still has no unit; nothing about the schema improved. A reader that happens
+#: to agree is not the same as an ambiguity being resolved, which is why the
+#: queue entry in docs/Benchmark-Queue.md stays.
 LEFT_THE_ANSWERABLE_SET = {
-    "sema-window-moving_average-013":
-        "the dimension has no unit: syntax reads `12` from 'the 12-month "
-        "moving average' and the hosted reader reads `252`, twelve months in "
-        "trading sessions. Both are defensible readings of a field that never "
-        "says what it counts, and fusion is right to refuse to settle it. "
-        "Fixing it means giving `moving_average_window` a unit, which is a "
-        "schema change held until the harvested corpus says which units real "
-        "language uses. Queued in docs/Benchmark-Queue.md.",
+    "sema-negation-changes_the_value-002":
+        "the serving reader changed provider, and this is the one case of 43 "
+        "that did not survive it. `buy the index rather than through an ETF` "
+        "reads as `assets='ETF'` under gpt-4.1-2025-04-14 and as `the index` "
+        "under claude-sonnet-5. The model dropped the negation and returned "
+        "the instrument the sentence rejects, which reverses what is held. "
+        "The expectation is NOT edited to match: the corpus asserts what the "
+        "sentence means, and a reader that reads it backwards is the finding. "
+        "Recorded again in MODEL_IS_WRONG in tests/test_closure.py, where the "
+        "fusion outcome that let it through is described.",
 }
 
 

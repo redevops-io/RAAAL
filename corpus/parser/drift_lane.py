@@ -1,6 +1,7 @@
 """Whether nondeterminism can change what gets executed.
 
     python corpus/parser/drift_lane.py                 # 3 draws, escalate to 5
+    python corpus/parser/drift_lane.py --canary        # the daily boundary check
     python corpus/parser/drift_lane.py --longitudinal  # 1 draw, for schedule
     python corpus/parser/drift_lane.py --draws 5       # override
 
@@ -265,14 +266,68 @@ def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
     }
 
 
+#: The daily lane's sentences: the boundaries that have actually broken.
+#:
+#: The daily run used to re-ask all 36 families, which is a statistically
+#: meaningless sample repeated at cost. Its question is not "how stable is the
+#: reader" — that is Monday's three-draw run — but "has the provider started
+#: violating a boundary we already know is dangerous". Those are different
+#: questions and only the second needs asking every day.
+#:
+#: Every entry earned its place by having changed executable meaning or exposed
+#: reader instability at least once. A sentence nobody has ever seen go wrong
+#: is not a canary; it is a bill.
+CANARY = [
+    # Crossing versus persistent. Conflating an event with a state changes how
+    # often a strategy fires, and these two are the pair that showed it.
+    "buy VOO when SPY falls below its 200-day moving average",
+    "add to BND while TLT is under its 200-day",
+
+    # Buy/sell role inversion. Getting the roles the wrong way round produces
+    # a formally perfect calculation of the opposite portfolio.
+    "sell VTI and buy BND",
+
+    # Negation. The `rather than` case reads backwards under the current
+    # reader — `assets='ETF'` for a sentence rejecting the ETF — accepted on a
+    # single witness because syntax was silent.
+    "buy the index rather than through an ETF",
+    "do not reinvest the dividends",
+
+    # Asset omission. The dominant real-world shape: everything stated except
+    # what to hold.
+    "a 60/40 portfolio",
+
+    # Cadence attachment, and a live incomplete-refusal finding.
+    "rebalance back to 60/40 every year",
+
+    # Structural relations, where a flattened mapping loses the whole request.
+    "hold the bonds in the IRA and the stocks in the taxable account",
+    "keep three years of expenses in cash and the rest in stocks",
+
+    # The withdrawal case that refuses for the wrong capability under the
+    # current reader, and the factor tilt that once reduced silently.
+    "take $40,000 a year out of the portfolio",
+    "tilt 20% toward small cap value",
+]
+
+
 def main(argv: list) -> int:
     draws = 1 if "--longitudinal" in argv else 3
     if "--draws" in argv:
         draws = int(argv[argv.index("--draws") + 1])
     escalate = draws if draws == 1 else 5
 
-    report = run(draws=draws, escalate_to=escalate)
-    out = OUT if draws > 1 else OUT.with_name("drift_longitudinal.json")
+    # `--canary` narrows the sentences, never the draws. A daily run that also
+    # cut draws would answer neither question: one draw of ten prompts says
+    # nothing about stability, and it would still cost money to say it.
+    texts = CANARY if "--canary" in argv else None
+    report = run(draws=draws, escalate_to=escalate, texts=texts)
+    # `scope` only. `prompt_count` is already set by `run()` from the sentences
+    # it actually asked about, and overwriting it here with `None` for full
+    # runs would have blanked a field the gate compares.
+    report["provenance"]["scope"] = "canary" if texts else "full"
+    out = OUT if (draws > 1 and not texts) else OUT.with_name(
+        "drift_canary.json" if texts else "drift_longitudinal.json")
     out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
 
     print(f"\n{out.name}")

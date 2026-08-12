@@ -122,6 +122,32 @@ PARSER_PROMPT_VERSION_VAR = "QUANTIFY_PARSER_PROMPT_VERSION"
 PILOT_READER_VAR = "QUANTIFY_PILOT_READER"
 
 
+#: Which provider hosts the reader. Declared, never inferred from which key
+#: happens to be present — the same rule `mode` already follows, and for the
+#: same reason: a deployment that guesses its own identity from the shell is
+#: how a pilot got measured model-assisted without anybody deciding it.
+PARSER_PROVIDER_VAR = "QUANTIFY_PARSER_PROVIDER"
+
+
+class ParserProvider(str, Enum):
+    ANTHROPIC = "ANTHROPIC"
+    OPENAI = "OPENAI"
+
+
+#: Which environment variable carries each provider's credential, and what the
+#: model is when the deployment does not name one.
+#:
+#: Named `_VARS` rather than `_VAR` deliberately. `test_the_workflow_pins_a_
+#: variable_the_code_reads` collects every `*_VAR` in this module on the
+#: understanding that each one *is* an environment variable name, and a dict
+#: wearing that suffix broke it. The convention was doing its job. Kept as one table so adding
+#: a provider is a row rather than a search for every place that assumed two.
+PROVIDER_KEY_VARS = {ParserProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+                    ParserProvider.OPENAI: "OPENAI_API_KEY"}
+PROVIDER_DEFAULT_MODEL = {ParserProvider.ANTHROPIC: "claude-sonnet-5",
+                          ParserProvider.OPENAI: "gpt-4.1-2025-04-14"}
+
+
 def _model_target(source: Mapping[str, str]) -> "ModelTarget":
     from ..mission.parse_model import PARSER_VERSION
 
@@ -141,8 +167,15 @@ def _model_target(source: Mapping[str, str]) -> "ModelTarget":
         reader = PilotReader(raw_reader) if raw_reader else PilotReader.HOSTED
     except ValueError:
         reader = PilotReader.HOSTED
+    raw_provider = (source.get(PARSER_PROVIDER_VAR) or "").strip().upper()
+    try:
+        provider = (ParserProvider(raw_provider) if raw_provider
+                    else ParserProvider.ANTHROPIC)
+    except ValueError:
+        provider = ParserProvider.ANTHROPIC
     return ModelTarget(
-        _api_key=source.get("ANTHROPIC_API_KEY"),
+        provider=provider,
+        _api_key=source.get(PROVIDER_KEY_VARS[provider]),
         model=source.get("QUANTIFY_PARSER_MODEL"),
         mode=mode, fallback=fallback, declared=bool(raw_mode),
         pilot_reader=reader,
@@ -273,6 +306,10 @@ class ModelTarget:
     """
 
     _api_key: Optional[str] = field(default=None, repr=False)
+    provider: "ParserProvider" = None  # type: ignore[assignment]
+    """Which provider hosts the reader. The credential variable and the default
+    model follow from it, so a deployment names one thing rather than three
+    that can disagree."""
     model: Optional[str] = None
     mode: "ParserMode" = ParserMode.DETERMINISTIC
     fallback: "ParserFallback" = ParserFallback.REFUSE

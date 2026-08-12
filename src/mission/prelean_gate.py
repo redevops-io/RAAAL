@@ -83,9 +83,35 @@ def _current_versions() -> dict:
     from ..discovery.pipeline import PIPELINE_VERSION
     from ..discovery.schema import QUANTIFY_SCHEMA
 
+    # `hosted_model_id` is here because the gate was blind to it, and the gap
+    # only became visible when a provider swap was proposed. Every other
+    # identity was pinned — schema, prompt, pipeline — so an artifact produced
+    # by a *different reader* would have passed as evidence about this build,
+    # while the recorded corpus, the benchmark and the baseline all describe
+    # the reader that is no longer serving. That is precisely the "two runs
+    # look comparable when they are not" failure the rest of this function
+    # exists to prevent, one identity short.
+    #
+    # Resolved from the declared provider rather than hardcoded, so switching
+    # provider re-points the gate and immediately invalidates evidence gathered
+    # under the old one — which is the correct and inconvenient behaviour.
     return {"schema_fingerprint": schema_fingerprint(QUANTIFY_SCHEMA),
             "prompt_version": PROMPT_VERSION,
-            "pipeline_version": PIPELINE_VERSION}
+            "pipeline_version": PIPELINE_VERSION,
+            "hosted_model_id": _configured_reader_id()}
+
+
+def _configured_reader_id() -> str:
+    """The id of the reader this deployment declares it serves with."""
+    from ..deploy.context import (PROVIDER_DEFAULT_MODEL, ParserProvider,
+                                  current)
+    from ..discovery.readers_quantify import HostedReader, OpenAIReader
+
+    model = current().model
+    reader = (OpenAIReader if model.provider is ParserProvider.OPENAI
+              else HostedReader)
+    return reader(model=model.model
+                  or PROVIDER_DEFAULT_MODEL[model.provider]).id
 
 
 def _staleness(drift: Mapping[str, Any], *, now=None) -> Sequence[str]:

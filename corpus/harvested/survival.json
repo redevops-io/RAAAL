@@ -4,24 +4,24 @@
   "material_semantics": 76,
   "tally": {
     "HONOURED": 0,
-    "NAMED": 21,
+    "NAMED": 22,
     "DROPPED": 0,
-    "NOT_REACHED": 55
+    "NOT_REACHED": 54
   },
   "survival_rate": 1.0,
-  "adjudicated": 21,
+  "adjudicated": 22,
   "unrecorded": [],
   "reached_a_plan": 0,
   "stopped_by": {
-    "assets": 16,
-    "stated_weights": 9,
-    "amount": 7,
-    "allocation_method": 4,
+    "assets": 18,
+    "amount": 11,
+    "stated_weights": 8,
+    "allocation_method": 3,
     "periodic_rebalancing": 3,
+    "cadence": 3,
     "sell_action": 2,
-    "cadence": 1,
-    "holding_period": 1,
-    "account_type": 1
+    "objective": 1,
+    "holding_period": 1
   },
   "dropped_by_concept": {},
   "metric_note": "HONOURED + NAMED over everything adjudicated. A refusal by name is survival: the person knows what became of that clause. Silence is not, whatever the plan looks like.",
@@ -30,8 +30,7 @@
   "rows": [
     {
       "stopped_by": [
-        "allocation_method",
-        "stated_weights"
+        "amount"
       ],
       "text": "I put 100% of my 401k into an S&P index fund.",
       "interpretation": "hold a single S&P index fund, in a 401(k)",
@@ -39,7 +38,7 @@
       "executed": false,
       "fates": {
         "what to hold": "NOT_REACHED",
-        "how the money is split": "NAMED",
+        "how the money is split": "NOT_REACHED",
         "which account it sits in": "NOT_REACHED"
       },
       "source": "https://money.stackexchange.com/questions/39679/how-or-is-it-necessary-to-rebalance-a-401k-with-only-one-index-fund"
@@ -121,6 +120,7 @@
     },
     {
       "stopped_by": [
+        "allocation_method",
         "stated_weights"
       ],
       "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
@@ -151,7 +151,8 @@
     },
     {
       "stopped_by": [
-        "assets"
+        "assets",
+        "cadence"
       ],
       "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
       "interpretation": "contribute 22% of pay, up to $18,000 a year",
@@ -159,7 +160,7 @@
       "executed": false,
       "fates": {
         "how much goes in": "NOT_REACHED",
-        "how often money goes in": "NOT_REACHED",
+        "how often money goes in": "NAMED",
         "contributions as a share of pay": "NOT_REACHED",
         "a cap on what may go in": "NOT_REACHED"
       },
@@ -240,6 +241,7 @@
     },
     {
       "stopped_by": [
+        "amount",
         "assets"
       ],
       "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
@@ -247,7 +249,7 @@
       "expected_disposition": "REFUSES",
       "executed": false,
       "fates": {
-        "how much goes in": "NOT_REACHED",
+        "how much goes in": "NAMED",
         "how often money goes in": "NOT_REACHED",
         "which account it sits in": "NOT_REACHED"
       },
@@ -285,6 +287,8 @@
     {
       "stopped_by": [
         "amount",
+        "assets",
+        "objective",
         "sell_action"
       ],
       "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
@@ -313,6 +317,8 @@
     },
     {
       "stopped_by": [
+        "amount",
+        "assets",
         "sell_action"
       ],
       "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
@@ -426,7 +432,6 @@
     },
     {
       "stopped_by": [
-        "allocation_method",
         "assets"
       ],
       "text": "In other words, I would like to target, say, an 10% annualised volatility.",
@@ -454,7 +459,8 @@
     },
     {
       "stopped_by": [
-        "account_type"
+        "amount",
+        "cadence"
       ],
       "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
       "interpretation": "contribute to mutual funds in a brokerage account, periodically",
@@ -462,8 +468,8 @@
       "executed": false,
       "fates": {
         "what to hold": "NOT_REACHED",
-        "how often money goes in": "NOT_REACHED",
-        "which account it sits in": "NAMED"
+        "how often money goes in": "NAMED",
+        "which account it sits in": "NOT_REACHED"
       },
       "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what"
     }

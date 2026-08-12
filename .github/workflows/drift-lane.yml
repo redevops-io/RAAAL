@@ -4,11 +4,21 @@ name: Discovery drift lane
 # is its own workflow: every job here calls a paid provider, and a lane that
 # ran on push would bill the project for every commit message typo.
 #
-#   daily      1 draw  x 36 prompts  = 36 calls   provider drift over time
+#   daily      1 draw  x 11 prompts  = 11 calls   has the provider started
+#                                                 violating a known-dangerous
+#                                                 boundary
 #   weekly     3 draws x 36 prompts  = 108 calls  same-version stochasticity,
 #                                                 escalating to 5 on any
 #                                                 disagreement
 #   manual     whatever is asked for              pre-release confidence
+#
+# The daily lane asks a different question from the weekly one, and used to ask
+# the weekly one badly: 36 prompts at a single draw says nothing about
+# stability and cost 36 calls a day to say it. It now runs `--canary` — the
+# eleven sentences that have actually changed executable meaning or exposed
+# reader instability — and writes `drift_canary.json`, which the gate does not
+# read. Monday's three-draw sweep remains the only artifact that can be
+# evidence.
 #
 # **The spend policy is here rather than in a document.** A budget written in
 # prose is a budget nobody enforces. What bounds the bill is the `draws` input
@@ -42,6 +52,13 @@ on:
         required: false
         default: '3'
 
+# Least privilege, declared rather than inherited. The repository default is
+# already `read`, but a default is a setting somebody can change in a UI
+# without touching a reviewed file — and these two workflows hold a provider
+# credential, so what their token may do belongs in the diff.
+permissions:
+  contents: read
+
 concurrency:
   group: drift-lane
   cancel-in-progress: false
@@ -52,7 +69,11 @@ env:
   # in the artifact says which.
   QUANTIFY_PARSER_MODE: RUNTIME
   QUANTIFY_PILOT_READER: HOSTED
-  QUANTIFY_PARSER_MODEL: claude-sonnet-5
+  QUANTIFY_PARSER_PROVIDER: OPENAI
+  # A dated snapshot, not the `gpt-4.1` alias. This lane exists to tell a
+  # provider changing under a fixed id from a reader changing, and an alias
+  # makes that question unanswerable.
+  QUANTIFY_PARSER_MODEL: gpt-4.1-2025-04-14
   QUANTIFY_SYNTAX_WITNESS: 'yes'
   # Read by `deploy.context` and passed to the reader. It was pinned here
   # while nothing consumed it — a ceiling that is a comment in YAML, which is
@@ -69,8 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: pip
@@ -82,12 +103,12 @@ jobs:
           pip install -r requirements.txt
           python -c "import stanza; stanza.download('en')"
 
-      - name: One draw per prompt
+      - name: One draw per high-risk prompt
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python corpus/parser/drift_lane.py --longitudinal
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python corpus/parser/drift_lane.py --longitudinal --canary
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: drift-longitudinal
           path: corpus/parser/drift_longitudinal.json
@@ -101,8 +122,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: pip
@@ -116,10 +137,16 @@ jobs:
 
       - name: Repeated draws in the serving profile
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Passed through the environment rather than expanded into the
+          # shell. `workflow_dispatch` inputs need write access, so this was
+          # never outsider-reachable — but a `${{ }}` expansion inside a
+          # `run:` block is the injection shape whoever can reach it, and
+          # writing it the safe way costs nothing.
+          DRAWS: ${{ github.event.inputs.draws || '3' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python corpus/parser/drift_lane.py \
-            --draws "${{ github.event.inputs.draws || '3' }}"
+            --draws "$DRAWS"
 
       - name: Record what this run cost and what it was run against
         # Written from the artifact rather than restated, so the summary cannot
@@ -142,7 +169,7 @@ jobs:
               print(f"- {name}: {total}")
           PY
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: drift-stochastic
           path: corpus/parser/drift.json

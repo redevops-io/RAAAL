@@ -1,6 +1,6 @@
 # Rules for evidence
 
-Four rules, each written after a defect that the rule would have caught. They
+Five rules, each written after a defect that the rule would have caught. They
 are about the evidence rather than the runtime, because every one of these
 failures leaves the test suite green — that is what makes them worth writing
 down rather than remembering.
@@ -74,7 +74,55 @@ tests require the downgraded finding to stay in the queue, require that no
 `UNSTABLE_SAFE` pair has two executable sides, and pin the dangerous count to
 the taxonomy.
 
-## 4. Missing is not zero.
+## 4. A workflow definition is not evidence of a check.
+
+Only a reachable execution path that cannot silently skip the check is.
+
+This rule exists because the same failure was found three times in one day, in
+three unrelated places, each time wearing a different disguise and each time
+leaving the repository looking green.
+
+**Unreachable.** `drift-lane.yml` existed, was correct, and had never run.
+GitHub registers `workflow_dispatch` and `schedule` only from the default
+branch, and the file lived on a feature branch — so the lane had zero runs in
+its lifetime while the pre-Lean gate blocked on "no CI artifact", which read as
+an operational to-do rather than as a workflow that could not be started.
+
+**Skippable.** `parser-corpus.yml` mapped `ANTHROPIC_API_KEY`, which was never
+configured. Its live-drift step took the `no key configured; exit 0` branch on
+every run it ever had: a verification that has never once executed, reporting
+success each time.
+
+**Pointed at the wrong thing.** After the serving reader changed provider, the
+same step still asked Anthropic and still installed `anthropic`. A check that
+runs, passes, and measures a component nothing else uses is worse than one that
+does not run, because its green is load-bearing.
+
+The general shape is that a check has three ways to be absent — never started,
+started and skipped, started against the wrong subject — and all three look
+identical from a build badge. So the questions to ask of any verification are:
+
+    can it start                who or what triggers it, and from which ref
+    can it no-op                what happens when a precondition is missing
+    what did it measure         which version, which model, which environment
+
+A green tick answers none of them. `tests/test_secret_exposure.py` asserts the
+second for provider-calling jobs; the pre-Lean gate asserts the third by
+pinning schema, prompt, pipeline, reader and producer onto the artifact; the
+first is now enforced by the workflow living on the default branch, which is
+the only place the answer can be yes.
+
+**Enforced twice, deliberately.** The structural tests check the repository's
+files; two GitHub policies check what the platform will actually run:
+
+    allowed_actions        selected   (github-owned + one named third party)
+    sha_pinning_required   true       (every action, including GitHub's own)
+
+Neither layer is sufficient. A test cannot stop a workflow added through the
+web UI, and a platform setting cannot explain *why* a job must fail without its
+key. They fail in different directions, which is the only reason to have both.
+
+## 5. Missing is not zero.
 
     missing material quantity   ->  unresolved
     explicitly zero quantity    ->  zero

@@ -32,7 +32,9 @@ from corpus.parser.loader import load                              # noqa: E402
 from src.discovery.hosted_recording import (                       # noqa: E402
     PROMPT_VERSION, RECORDING_SCHEMA, key, to_json,
 )
-from src.discovery.readers_quantify import HostedReader            # noqa: E402
+from src.discovery.readers_quantify import (                       # noqa: E402
+    HostedReader, OpenAIReader,
+)
 from src.discovery.schema import QUANTIFY_SCHEMA                   # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "hosted.json"
@@ -115,7 +117,18 @@ def main(argv: list) -> int:
     if "--subset" in argv:
         subset = int(argv[argv.index("--subset") + 1])
 
-    reader = HostedReader()
+    # The reader this deployment declares, not a hardcoded one. Recordings are
+    # keyed by reader id, so a recorder that always built the Anthropic reader
+    # would write one provider's answers under another's key the moment the
+    # serving provider changed.
+    from src.deploy.context import (PROVIDER_DEFAULT_MODEL,       # noqa: E402
+                                    ParserProvider, current)
+
+    declared = current().model
+    cls = (OpenAIReader if declared.provider is ParserProvider.OPENAI
+           else HostedReader)
+    reader = cls(model=declared.model
+                 or PROVIDER_DEFAULT_MODEL[declared.provider])
     if not reader.available():
         print(f"{reader.api_key_env} is not set; nothing recorded",
               file=sys.stderr)

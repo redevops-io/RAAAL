@@ -42,13 +42,25 @@ RECORDED = RecordedReader()
 #: out of the queue on their asserted field and verified by nothing — and
 #: writing those four producers took it to 2.
 #:
-#: The two are both deliberate: a units disagreement with no declared
+#: The two were both deliberate: a units disagreement with no declared
 #: conversion policy, and one syntax-only case kept as the asymmetry witness.
-#: Neither is waiting on code.
+#: Neither was waiting on code.
+#:
+#: It is one now, and the reader is why rather than any work here. Under
+#: `gpt-4.1-2025-04-14@1` the units case — "the 12-month moving average" — is
+#: read as 12 and agrees with syntax, so it leaves the queue. That is not the
+#: ambiguity being resolved: the dimension still carries no unit, and a reader
+#: that happens to agree with the deterministic path is a coincidence this
+#: corpus should not be relieved by. The queue entry in
+#: docs/Benchmark-Queue.md stays for that reason.
+#:
+#: What remains is the trigger-semantics case: crosses-below is an event and
+#: stays-below is a state, and collapsing them changes how often a strategy
+#: fires.
 #: Fourteen semantics cases are run end to end by `tests/test_semantics.py`,
 #: and `corpus/parser/closure.json` says who owns each of the rest rather
 #: than leaving them a single number.
-AWAITING_A_PARSER = 2
+AWAITING_A_PARSER = 1
 
 #: Semantics cases the deterministic path answers, asserted elsewhere. Read
 #: from the closure report because that is where the classification lives; the

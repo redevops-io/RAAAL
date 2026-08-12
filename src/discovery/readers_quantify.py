@@ -275,6 +275,56 @@ class HostedReader:
                           relations=tuple(relations), unread=unread)
 
 
+@dataclass
+class OpenAIReader(HostedReader):
+    """The same reader, against a different provider.
+
+    This is the subclass `HostedReader` was written to make possible: the model
+    is a parameter, the transport is one method, and everything above it —
+    prompt construction, JSON extraction, the reading vocabulary, the failure
+    categories — is shared. Nothing about *what a reading means* changes with
+    the provider, which is the property that makes swapping one a measurement
+    rather than a rewrite.
+
+    **The model is pinned to a dated snapshot on purpose.** `gpt-4.1` is a
+    moving alias; `gpt-4.1-2025-04-14` is not. The reason is the one the drift
+    lane exists for: an unpinned model turns "the answer changed" into a
+    question nobody can answer, because the reader moved or the provider did
+    and no artifact says which.
+
+    **Why the id carries the whole model name.** Recordings are keyed
+    `reader_id\ttext`, so the id is what keeps two providers' answers from
+    being confused for one another. A short id like `gpt@1` would let a
+    re-record silently overwrite readings taken from a different model —
+    exactly the collision the Anthropic reader's `claude-sonnet-5@1` avoids.
+    """
+
+    # `@dataclass` on the subclass is load-bearing. Without it the parent's
+    # generated `__init__` runs and assigns *its* defaults, so these three
+    # class attributes are silently overwritten and `id` reports
+    # `claude-sonnet-5@1`. That is not a cosmetic bug: recordings are keyed by
+    # reader id, so an OpenAI reader announcing itself as the Anthropic one
+    # would have written its answers over the other model's — two providers'
+    # readings merged into one file with nothing saying so.
+    model: str = "gpt-4.1-2025-04-14"
+    version: str = "1"
+    api_key_env: str = "OPENAI_API_KEY"
+
+    def _call(self, prompt: str) -> str:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=os.environ[self.api_key_env],
+                        timeout=self.timeout_s)
+        # `max_completion_tokens`, not `max_tokens`: the older parameter is
+        # rejected by current models rather than ignored, which would have
+        # surfaced as a reader failure on every sentence.
+        reply = client.chat.completions.create(
+            model=self.model,
+            max_completion_tokens=self.max_tokens,
+            messages=[{"role": "user", "content": prompt}])
+        return reply.choices[0].message.content or ""
+
+
 def _extract_json(raw: str) -> Optional[dict]:
     """The outermost JSON object, fences or prose notwithstanding."""
     text = raw.strip()

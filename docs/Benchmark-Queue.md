@@ -4,11 +4,12 @@ Run against `Baseline-v1`. Not a pass rate: an unsupported strategy refused by
 name is correct, and a score counting executions would reward the silent
 reduction this project spent months removing.
 
+    reader                 gpt-4.1-2025-04-14@1   (was claude-sonnet-5@1)
     prompts                103
-    correct executions     31
-    correct refusals       45
-    correct clarifications 6
-    dangerous instances    0      (was 12)
+    correct executions     28
+    correct refusals       42
+    correct clarifications 8
+    dangerous instances    1      (was 12, then 0 under the previous reader)
 
 | finding | instances | severity | layer | area |
 |---|---:|---|---|---|
@@ -16,8 +17,18 @@ reduction this project spent months removing.
 | unnecessary question | 1 | medium | Discovery | ma-cross-below |
 | unstable safe | 1 | low | Fusion | thousands shorthand |
 
-Zero dangerous instances is not zero findings, and one of the three below was
-*reclassified* rather than fixed. That is said here rather than left to be
+**These numbers were re-measured after the serving reader changed provider.**
+Under `claude-sonnet-5@1` this read zero dangerous instances; under
+`gpt-4.1-2025-04-14@1` it reads one. Nothing in Mission changed between the two
+runs. That is the point of recording the reader beside the count: a benchmark
+whose headline moves when the model moves is measuring the pair, and a number
+quoted without the reader is not a fact about the system.
+
+What did *not* move is the class that matters most — no silent reduction and no
+wrong executable meaning under either reader. What moved is precision: refusals
+naming the wrong capability, and questions about things the sentence states.
+
+One of the findings below was *reclassified* rather than fixed. That is said here rather than left to be
 discovered, because a headline that goes to zero in the same change that adds
 a new category is the shape of a number being managed.
 
