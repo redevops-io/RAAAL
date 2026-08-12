@@ -121,7 +121,12 @@ package-lock.json
 .wrangler/
 
 # Docker
-.dockerignore
+#
+# `.dockerignore` was listed here and must not be: it is build configuration,
+# not local state, and ignoring it meant nobody could commit one. Without it
+# `COPY . .` took the whole working tree — a 5.6GB virtualenv and 5.1GB of Lean
+# build output — and produced a 19.3GB image. Three of those filled a 29GB
+# volume and the deploy refused, correctly, on a full disk.
 # Claude Code local session dir
 .claude/
 

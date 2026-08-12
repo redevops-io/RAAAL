@@ -179,6 +179,33 @@
   ansible.builtin.debug:
     msg: "{{ pruned.stdout_lines | select('search', 'Total reclaimed') | list }}"
 
+  # How much room this particular pull needs, rather than a constant.
+  #
+  # The constant was 8GB, chosen when the image was around 4GB. It then blocked
+  # a deploy on a host with 5.8GB free — for an image of 1.2GB, which would have
+  # fit four times over. A fixed threshold encodes the size of whatever image
+  # was current the day it was written, and goes wrong in both directions: too
+  # small once an image grows, and a false refusal once one shrinks.
+  #
+  # The manifest gives the compressed layer sizes before anything is
+  # transferred. Extracted layers run larger than compressed, and the old image
+  # is still resident until the new container replaces it, so the requirement is
+  # three times compressed with a 2GB floor for the container writable layer and
+  # logs.
+- name: Measure what this image needs
+  ansible.builtin.shell: |
+    set -euo pipefail
+    aws ecr get-login-password --region {{ quantify_region }} \
+      | docker login --username AWS --password-stdin \
+        "$(echo '{{ quantify_image }}' | cut -d/ -f1)" >/dev/null 2>&1
+    docker manifest inspect '{{ quantify_image }}' \
+      | python3 -c 'import json,sys; m=json.load(sys.stdin); print(sum(l["size"] for l in m.get("layers",[])))'
+  args:
+    executable: /bin/bash
+  become: true
+  register: image_bytes
+  changed_when: false
+
 - name: Refuse to deploy onto a full disk
   # A pull needs room for the compressed layers and the extracted tree at
   # once. Failing here names the problem; failing in the middle of an extract
@@ -190,7 +217,22 @@
     executable: /bin/bash
   register: free_space
   changed_when: false
-  failed_when: (free_space.stdout | int) < 8
+
+- name: Refuse to deploy onto a full disk
+  # Say both numbers. "Refused: 6GB free" without the requirement beside it
+  # sends whoever reads it looking for a threshold that is no longer written
+  # down anywhere.
+  ansible.builtin.assert:
+    that: (free_space.stdout | int) >= (required_gb | int)
+    fail_msg: >-
+      {{ free_space.stdout }}GB free, {{ required_gb }}GB required for
+      {{ ((image_bytes.stdout | int) / 1073741824) | round(2) }}GB of layers
+    success_msg: >-
+      {{ free_space.stdout }}GB free, {{ required_gb }}GB required
+  vars:
+    required_gb: >-
+      {{ [((image_bytes.stdout | int) * 3 / 1073741824) | round(0, 'ceil') | int,
+          2] | max }}
 
 - name: Pull the pinned image
   ansible.builtin.command: docker pull {{ quantify_image }}

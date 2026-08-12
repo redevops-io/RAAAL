@@ -1,0 +1,49 @@
+# What never belongs in the image.
+#
+# Without this file `COPY . .` copied the entire working tree, including
+# everything git ignores, and the served image was 19.3GB. The application is
+# a Python API; almost none of that was it.
+#
+# Written as an allowlist of exclusions rather than `*` plus re-inclusions,
+# because a deny-by-default list silently drops a new source directory the day
+# somebody adds one, and the failure appears at runtime as a missing module.
+
+# Local environments and caches — the image installs its own dependencies.
+.venv/
+.venv-*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Lean build output. The proofs are source and are not run in the image; the
+# `.lake` directory alone is gigabytes of compiled artefacts.
+formal/.lake/
+
+# History and tooling. `.git` is tens of megabytes and the image needs none of
+# it — the deployment identity arrives as an environment variable, not from a
+# working tree.
+.git/
+.github/
+.aider*
+
+# Infrastructure. Terraform state, plans and Ansible roles describe how the
+# image is deployed; shipping them inside it is circular.
+infra/
+
+# Local data. Snapshots, databases and generated reports are mounted or
+# fetched at runtime, never baked in.
+data/cache/
+data/history/
+data/models/
+data/snapshots/
+data/*.db
+reports/
+evidence/
+
+# Test surfaces and corpora. The image serves; it does not measure itself.
+tests/
+corpus/parser/parses.json
+corpus/parser/hosted.json
