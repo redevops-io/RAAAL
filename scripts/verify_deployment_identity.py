@@ -54,7 +54,14 @@ def fetch(url: str, timeout: float) -> dict:
         return json.loads(response.read().decode())
 
 
-def verify(base: str, expected: str, *, timeout: float = 20.0) -> int:
+def _now() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def verify(base: str, expected: str, *, timeout: float = 20.0,
+           release: str = "", image: str = "") -> int:
     base = base.rstrip("/")
 
     # Two endpoints, because the two facts live in two places and the first
@@ -101,6 +108,32 @@ def verify(base: str, expected: str, *, timeout: float = 20.0) -> int:
               "program than the one answering them", file=sys.stderr)
         return 1
 
+    # The whole record, printed by the tool that checked it.
+    #
+    # The preserved artifact used to carry a header this script never emitted:
+    # somebody — me — assembled it by hand around the one line below, and
+    # `tests/test_deployed_revision_identity.py` then validated a format its own
+    # producer could not produce. A proof partly written by the person claiming
+    # it is the failure this repository keeps finding everywhere else, and it
+    # had got into the tool for finding it.
+    #
+    # Verified and declared are separated because they are not the same
+    # evidence. The commit is checked against the running service twice over;
+    # the release ref and image digest are what the deployment says it used,
+    # are not visible from outside, and are recorded as claims.
+    print("# Deployment identity proof")
+    print()
+    print(f"at:        {_now()}")
+    print(f"service:   {base}")
+    print(f"commit:    {expected}")
+    if release:
+        print(f"release:   {release}   (declared by the deployment run)")
+    if image:
+        print(f"image:     {image}   (declared by the deployment run)")
+    print()
+    print("verified:  the service reports this revision, and its AGPL source")
+    print("           offer resolves to that same revision")
+    print()
     print(f"OK: {base} serves {expected} and offers its source at {source}")
     return 0
 
@@ -111,6 +144,12 @@ def main(argv: list) -> int:
                         help="base URL of the running service")
     parser.add_argument("--expect-commit", required=True,
                         help="the commit the deployment run supplied")
+    parser.add_argument("--release-ref", default="",
+                        help="branch or tag the deployment run supplied; "
+                             "recorded as a declaration, not verified")
+    parser.add_argument("--image", default="",
+                        help="image reference the deployment run supplied; "
+                             "recorded as a declaration, not verified")
     parser.add_argument("--timeout", type=float, default=20.0)
     args = parser.parse_args(argv)
 
@@ -120,7 +159,8 @@ def main(argv: list) -> int:
               file=sys.stderr)
         return 4
 
-    return verify(args.url, args.expect_commit.strip(), timeout=args.timeout)
+    return verify(args.url, args.expect_commit.strip(), timeout=args.timeout,
+                  release=args.release_ref.strip(), image=args.image.strip())
 
 
 if __name__ == "__main__":

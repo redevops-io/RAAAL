@@ -67,6 +67,42 @@ def test_the_expensive_directories_are_excluded(path, why):
     assert path in rules, f"{path} is not excluded: {why}"
 
 
+def test_what_the_deploy_runs_in_the_container_is_in_the_image():
+    """The other direction, and the one that actually broke a deploy.
+
+    The tests above ask "is the expensive thing excluded". Nothing asked "is
+    the thing the deployment needs still present", so excluding `tests/` passed
+    every check here and failed on a host with `No module named 'conftest'` —
+    after the image had been pulled, migrations had run, and every identity
+    assertion had already passed.
+
+    The deploy runs its launch journeys inside the container against paths under
+    `/app`. Any path it reaches for has to survive the build context, so this
+    reads the playbook rather than trusting a comment to stay true.
+    """
+    import re
+
+    role = (ROOT / "infra" / "ansible" / "roles" / "quantify" / "tasks"
+            / "main.yml")
+    if not role.exists():
+        pytest.skip("no ansible role in this checkout")
+
+    rules = {line.strip().rstrip("/")
+             for line in DOCKERIGNORE.read_text().splitlines()
+             if line.strip() and not line.startswith("#")}
+
+    needed = set(re.findall(r"/app/([A-Za-z0-9_][A-Za-z0-9_./-]*)",
+                            role.read_text()))
+    assert needed, "the playbook reaches into no /app path; this test is stale"
+
+    for path in sorted(needed):
+        top = path.split("/")[0]
+        assert top not in rules, (
+            f"the deploy runs code from /app/{path} inside the container and "
+            f"`{top}/` is excluded from the image. The build succeeds, every "
+            "identity check passes, and the playbook fails on the host")
+
+
 def test_docker_agrees_that_they_are_excluded():
     """The rules are checked above by reading them, which assumes this file
     means to Docker what it reads like. This asks Docker.

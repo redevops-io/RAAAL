@@ -43,7 +43,22 @@ data/*.db
 reports/
 evidence/
 
-# Test surfaces and corpora. The image serves; it does not measure itself.
-tests/
+# Recorded corpora. Megabytes of provider replies the served image never
+# reads: they exist so the suite can replay a reader without calling one, and
+# a deployment calls the real thing.
 corpus/parser/parses.json
 corpus/parser/hosted.json
+
+# `tests/` is deliberately NOT excluded, and was, for one revision.
+#
+# "The image serves; it does not measure itself" is a good rule and false about
+# this repository. The deploy runs two launch journeys *inside* the container,
+# and they import `submit_rendered_confirmation` from `tests/conftest.py` on
+# purpose — so the journey exercises the same submission path the suite does
+# rather than a reimplementation of it that could drift and still pass.
+# Excluding the directory broke the deploy with `No module named 'conftest'`
+# after every identity check had already passed.
+#
+# It costs 12MB against a 1.2GB image. If shipping test code stops being
+# acceptable, the fix is to move that helper into `src/`, not to drop it here
+# and find out on a host.

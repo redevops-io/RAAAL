@@ -1,9 +1,12 @@
 # Deployment identity proof
 
-at:        2026-08-12T17:36:38Z
+at:        2026-08-12T21:06:12Z
 service:   https://quantify.club
-commit:    47730f0589641c8cd4a61a42c56798b11a8f2703
-release:   master
-image:     388062344663.dkr.ecr.us-east-1.amazonaws.com/quantify@sha256:6cbbbb72252782dcf9dfe0f8ae8991dcbcebc9d5a578faa3257afcb65ff6a59d
+commit:    bb4d6e42db9a581ef64ad1746b4b9410612773d3
+release:   master   (declared by the deployment run)
+image:     388062344663.dkr.ecr.us-east-1.amazonaws.com/quantify@sha256:b5392cfe78600466cba43d657a366732f8da31eef6d06ce8cee5a7c7e7a8f6ec   (declared by the deployment run)
 
-OK: https://quantify.club serves 47730f0589641c8cd4a61a42c56798b11a8f2703 and offers its source at https://github.com/redevops-io/RAAAL/tree/47730f0589641c8cd4a61a42c56798b11a8f2703
+verified:  the service reports this revision, and its AGPL source
+           offer resolves to that same revision
+
+OK: https://quantify.club serves bb4d6e42db9a581ef64ad1746b4b9410612773d3 and offers its source at https://github.com/redevops-io/RAAAL/tree/bb4d6e42db9a581ef64ad1746b4b9410612773d3

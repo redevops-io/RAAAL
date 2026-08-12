@@ -97,9 +97,14 @@ jobs:
         run: |
           set -euo pipefail
           terraform init -backend-config=backend.hcl -input=false
+          # `application_image` is deliberately NOT passed. It used to be, and
+          # that is the two-variable design that let a deploy declare one commit
+          # while running another image: nothing tied them together, and on
+          # 2026-08-12 they drifted. Terraform now resolves the digest from the
+          # commit's own tag, so this run cannot supply a mismatched pair even
+          # by mistake. The push step above still verifies the tag exists.
           terraform apply -input=false -auto-approve \
             -var-file="environments/${TFVARS}.tfvars" \
-            -var "application_image=${IMAGE}" \
             -var "build_commit=${COMMIT}" \
             -var "build_release_ref=${GITHUB_REF_NAME}"
 
@@ -112,6 +117,10 @@ jobs:
           ansible-playbook -i inventory.aws_ec2.yml site.yml -e @/tmp/quantify.json
 
       - name: Prove the running service is this revision
+        env:
+          # Read back from Terraform rather than carried from the build step, so
+          # the artifact records the image the deployment actually resolved.
+          IMAGE: ${{ steps.image.outputs.image }}
         run: |
           set -euo pipefail
           # Both halves, and neither substitutes for the other: the service must
@@ -120,6 +129,7 @@ jobs:
           # different program than the one answering them.
           python scripts/verify_deployment_identity.py \
             --url "https://quantify.club" --expect-commit "${COMMIT}" \
+            --release-ref "${GITHUB_REF_NAME}" --image "${IMAGE}" \
             | tee deployment-proof.txt
 
       - name: Preserve the proof
