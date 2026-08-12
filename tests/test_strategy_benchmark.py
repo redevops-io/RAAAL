@@ -279,3 +279,61 @@ class TestTheCorpusCannotSilentlyShrink:
         """The failure mode of every ratchet: both sides drift to empty and it
         passes by having nothing to check."""
         assert self.RECORDED["count"] == len(self.RECORDED["prompts"]) > 0
+
+
+class TestARefusalSaysWhatCannotBeDone:
+    """The `swr-fixed-amount` finding, resolved by checking content rather
+    than which dimension carried it.
+
+    The benchmark declared `refuses=["sell_action"]` and the runtime refused
+    `objective` for one of four phrasings — "an annual $40,000 withdrawal" is
+    a noun phrase, so Discovery settles `objective=assess_withdrawal` rather
+    than a verb-driven `sell_action`. Nothing executed on either path.
+
+    Widening the declaration alone would have been the cardinal sin: relaxing
+    an expectation until the runtime passes. What makes it legitimate is that
+    the widened check is *weaker* and this one is *stronger* — a refusal
+    naming the right dimension with a message that never mentions withdrawing
+    would now fail, where before it passed.
+    """
+
+    WITHDRAWAL = ("withdraw $40,000 a year from the portfolio",
+                  "an annual $40,000 withdrawal")
+
+    def _refusals(self, text):
+        from src.discovery.hosted_recording import RecordedHostedReader
+        from src.discovery.schema import QUANTIFY_SCHEMA
+        from src.discovery.syntax_stanza import RecordedReader
+        from src.discovery.witnesses import BOTH
+        from src.workspace.pilot import read
+
+        out = read(text, RecordedHostedReader(), schema=QUANTIFY_SCHEMA,
+                   profile=BOTH, syntax_reader=RecordedReader())
+        return [r for r in out.compiled.refusals
+                if getattr(r, "kind", "") != "UNRESOLVED_INPUT"]
+
+    @pytest.mark.parametrize("text", WITHDRAWAL)
+    def test_the_withdrawal_refusal_names_the_withdrawal(self, text):
+        """Whichever dimension carries it, the person must learn that taking
+        money out is the thing this build cannot do."""
+        refusals = self._refusals(text)
+        assert refusals, f"{text!r} was not refused at all"
+        said = " ".join(r.detail.lower() for r in refusals)
+        assert any(word in said for word in ("withdraw", "taking money out")), (
+            f"{text!r} is refused for {[r.dimension for r in refusals]} and "
+            f"the message never mentions withdrawing: {said[:120]!r}")
+
+    @pytest.mark.parametrize("text", WITHDRAWAL)
+    def test_and_nothing_executes(self, text):
+        """The half that would make this dangerous rather than imprecise. A
+        refusal with a poor name is a UX defect; an approximation that runs is
+        the thing the manifest exists to prevent."""
+        from src.discovery.hosted_recording import RecordedHostedReader
+        from src.discovery.schema import QUANTIFY_SCHEMA
+        from src.discovery.syntax_stanza import RecordedReader
+        from src.discovery.witnesses import BOTH
+        from src.workspace.pilot import read
+
+        out = read(text, RecordedHostedReader(), schema=QUANTIFY_SCHEMA,
+                   profile=BOTH, syntax_reader=RecordedReader())
+        assert getattr(out.compiled, "scenario", None) is None

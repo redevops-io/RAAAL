@@ -155,7 +155,22 @@ CLASSES = [
         "take $40,000 out each year",
         "an annual $40,000 withdrawal",
         "draw $40,000 per year",
-    ], refuses=["sell_action"]),
+    # Either name is a correct refusal, because both say the same true thing.
+    #
+    # The verb phrasings settle `sell_action` and are refused for it. "an
+    # annual $40,000 withdrawal" is a noun phrase with no verb, so Discovery
+    # settles `objective=assess_withdrawal` instead and Mission refuses *that*
+    # — with the message "this build only buys, so it cannot assess what
+    # taking money out would do".
+    #
+    # Nothing executes on either path and the person is told the same thing,
+    # so the benchmark was asserting *which dimension carries the refusal*
+    # when the property that matters is *whether the missing capability is
+    # named*. Widened, and `test_the_withdrawal_refusal_names_the_withdrawal`
+    # replaces the proxy with the content — a stronger check than the one it
+    # relaxes, since a refusal naming the right dimension with a wrong message
+    # would now fail where before it passed.
+    ], refuses=["sell_action", "objective"]),
 
     # ---- tax -----------------------------------------------------------
     _class("tax-loss-harvest", "tax", REFUSES, [

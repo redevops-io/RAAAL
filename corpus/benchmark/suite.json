@@ -182,7 +182,8 @@
       "family": "withdrawal",
       "disposition": "REFUSES",
       "refuses": [
-        "sell_action"
+        "sell_action",
+        "objective"
       ],
       "states": [],
       "note": "",

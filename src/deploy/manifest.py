@@ -49,6 +49,13 @@ PUBLIC_FIELDS: Sequence[str] = (
     "api_version", "compiler_version", "classifier_version",
     "scope_schema_version", "canonicalization_version", "observable",
 )
+# `commit` is deliberately *not* here, and the AGPL offer does not need it to
+# be. `api.source_url()` reads the private view and renders a link that carries
+# the revision, so a user is given the corresponding source without this object
+# becoming the place operational facts leak from. Adding it here was tried and
+# `test_the_public_view_carries_none_of_them` refused it — correctly, since the
+# rule is "what a client needs to know it is compatible, and nothing more" and
+# a link satisfies the entitlement without widening that.
 
 
 def code_versions() -> Dict[str, str]:

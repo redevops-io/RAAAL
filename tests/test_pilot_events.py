@@ -249,8 +249,33 @@ class TestTheProfileComesFromTheDeployment:
 
         from src.workspace.pilot_events import _profile
 
-        assert _profile() == {"parser_mode": "MODEL_ASSISTED",
-                              "pilot_reader": "HOSTED"}
+        profile = _profile()
+        assert profile["parser_mode"] == "MODEL_ASSISTED"
+        assert profile["pilot_reader"] == "HOSTED"
+        # `serving_commit` joined the profile so an observation can be tied to
+        # the code that produced it. Empty here because no deployment fact is
+        # set — the honest value, and the same case in which the build
+        # manifest reports `observable: false`.
+        assert profile["serving_commit"] == ""
+
+    def test_the_profile_carries_the_serving_commit_when_there_is_one(
+            self, monkeypatch, tmp_path):
+        """Without it a cohort spanning a deploy is one population wearing two
+        behaviours, and nothing in the data says which reading came from which
+        build."""
+        import os as _os
+
+        from src.deploy import context as deploy_context
+
+        monkeypatch.setenv("QUANTIFY_COMMIT", "e675471abcdef")
+        monkeypatch.setenv("QUANTIFY_DATABASE_URL",
+                           f"sqlite:///{tmp_path}/p.db")
+        resolved = deploy_context.resolve(dict(_os.environ))
+        monkeypatch.setattr(deploy_context, "current", lambda: resolved)
+
+        from src.workspace.pilot_events import _profile
+
+        assert _profile()["serving_commit"] == "e675471abcdef"
 
     def test_and_the_runtime_profile_reads_the_same_way(self, client):
         _journey(client)

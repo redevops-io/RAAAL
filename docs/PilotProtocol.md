@@ -35,6 +35,36 @@ No new behaviour before the cohort, with two exceptions: a correctness defect,
 or something that blocks the supported journey. Everything else waits for
 evidence that it matters.
 
+**The freeze begins at the deployment proof, not at the invitation.** What it
+protects is the join between an observation and the code that produced it, and
+that join is fixed the moment the proof succeeds. Changing the measured system
+between proof and observation defeats it whether or not anybody has typed
+anything yet.
+
+`swr-fixed-amount` is the live case. It is a real correctness defect — one
+dangerous instance in the strategy benchmark, a refusal naming the wrong
+capability — and it therefore qualifies under the first exception. The choice
+is between two honest orders and not between fixing and not fixing:
+
+    fix it, then re-run the deployment proof, then invite
+    or leave it known and out of scope for the whole cohort, and fix after
+
+What is not available is fixing it quietly between the proof and the cohort.
+That produces observations attributed to a revision that was not serving them.
+
+## Retaining the proof, not just the result
+
+The successful output of `scripts/verify_deployment_identity.py` is kept with
+the cohort evidence rather than read once and discarded.
+
+    cohort event -> serving_commit -> deployment proof -> repository revision
+
+Every pilot event already carries `serving_commit`, so this needs no
+instrumentation — only the discipline of keeping the proof. Without it the
+chain depends on the service still running that revision when somebody asks,
+which it will not be in three months. The proof is the durable half; the
+running service is the perishable one.
+
 ## The six observations, and where each one comes from
 
 These are the things worth knowing about a participant. They do not all come
@@ -152,6 +182,30 @@ person struggling and those are opposite conclusions.
 The wording read to participants, and the consent it records, are below under
 *The three modes*. `pilot_consent.withdraw(participant)` is the deletion, and it
 works today — written before the pilot rather than after somebody asks.
+
+## What the cohort is for, beyond counting questions
+
+The obvious analysis — average follow-ups, then automate the frequent ones —
+would be wrong, and wrong in the direction that costs safety. Frequency alone
+does not distinguish a question that wastes somebody's time from one that
+decides what runs.
+
+Three independent questions per frequently-clarified dimension:
+
+    was it frequent                        asked_by_dimension
+    did the answer change what would run   answering_changed_the_outcome
+    was the answer already recoverable     from deterministic evidence
+
+Only **high / low / yes** argues for another deterministic reader. That is the
+combination `quantify-trigger-semantics@1` had: asked often, answers rarely
+altering the plan, and the grammar stating the answer when the model omitted
+it.
+
+The inverse is the part worth guarding. A dimension asked constantly whose
+answers *do* change execution identity is the most valuable question in the
+product — it is information acquisition rather than friction, and automating
+it away would remove the thing that makes the plan correct. The distinction
+this analysis draws is exactly that one.
 
 ## What the telemetry answers
 
