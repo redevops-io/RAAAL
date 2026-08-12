@@ -1,0 +1,9 @@
+# Deployment identity proof
+
+at:        2026-08-12T17:36:38Z
+service:   https://quantify.club
+commit:    47730f0589641c8cd4a61a42c56798b11a8f2703
+release:   master
+image:     388062344663.dkr.ecr.us-east-1.amazonaws.com/quantify@sha256:6cbbbb72252782dcf9dfe0f8ae8991dcbcebc9d5a578faa3257afcb65ff6a59d
+
+OK: https://quantify.club serves 47730f0589641c8cd4a61a42c56798b11a8f2703 and offers its source at https://github.com/redevops-io/RAAAL/tree/47730f0589641c8cd4a61a42c56798b11a8f2703

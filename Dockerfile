@@ -15,7 +15,25 @@ WORKDIR /app
 
 # The API surface does not need the ML/RL stack.
 COPY requirements-core.txt ./
-RUN pip install --no-cache-dir -r requirements-core.txt
+
+# `git` is a *build* dependency, not a runtime one. Two requirements are
+# `git+https://` references — `runtime-contracts` and `agentic-os`, both pinned
+# by tag — and pip shells out to git to fetch them. `python:3.13-slim` has no
+# git, so this layer failed with "Cannot find command 'git'" the first time the
+# image was built from a commit that had those pins.
+#
+# It had never been built from one before: the deployed image was `3eaa5eb`,
+# which had no git dependencies at all. The pins arrived afterwards and nothing
+# rebuilt until now, so a broken Dockerfile sat behind a running service.
+#
+# Installed and removed in one layer so the served image carries neither git
+# nor the package lists. A runtime image holding build tools is a larger attack
+# surface for no benefit.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && pip install --no-cache-dir -r requirements-core.txt \
+    && apt-get purge -y --auto-remove git \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 

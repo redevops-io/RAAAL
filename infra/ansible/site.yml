@@ -23,6 +23,17 @@
     ansible_aws_ssm_bucket_name: "{{ quantify_ssm_bucket }}"
     ansible_aws_ssm_region: "{{ quantify_region }}"
 
+    # The plugin's default command timeout is 60 seconds, and pulling the
+    # image does not fit in it. The instance is in a private subnet, so the
+    # pull crosses a NAT gateway, and the task immediately before this one
+    # reclaims superseded images — so there is nothing cached and every deploy
+    # pays for the whole image.
+    #
+    # It surfaced as `UNREACHABLE` on "Pull the pinned image", which reads as a
+    # connectivity failure rather than a slow command. Twenty tasks had already
+    # succeeded over the same connection.
+    ansible_aws_ssm_timeout: 1800
+
   pre_tasks:
     - name: Require the Terraform outputs
       ansible.builtin.assert:

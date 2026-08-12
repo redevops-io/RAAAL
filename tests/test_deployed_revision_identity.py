@@ -165,20 +165,66 @@ class TestTheSupplySide:
         assert "upload-artifact" in text
         assert "deployment-proof" in text
 
-    def test_it_is_still_unproven_against_the_live_service(self):
-        """The honest state, and the reason the cohort has not been invited.
+    def test_the_chain_is_proven_against_the_live_service(self):
+        """The test this replaces asserted the opposite, and said so.
 
-        The live service reports `observable: true` — the AWS deployment does
-        supply the facts — and offers source for the repository rather than a
-        revision, because it is running `3eaa5eb`, merged as PR #3, from before
-        `source_url()` existed. Running the proof against it returns MISMATCH,
-        which is the conjunctive condition working: the service can identify
-        itself and the identity it offers is not the one deployed.
+        It read: the deploy job supplies the facts, has never executed, and a
+        green suite would otherwise imply a deployment identity no deployment
+        had produced. Its own deletion criterion was that
+        `verify_deployment_identity.py` pass against the running service —
+        both halves — and that the proof be preserved.
 
-        Delete this test when the proof passes against quantify.club and the
-        artifact is preserved beside the cohort evidence.
+        It did, and it is. `evidence/deployment-proof.txt` is the durable half
+        of
+
+            cohort event -> serving_commit -> this proof -> repository revision
+
+        because the running service will not be serving this revision in three
+        months and the artifact still says what it was.
         """
-        assert (ROOT / "evidence" / "deployment-proof.txt").exists() is False, (
-            "a deployment proof exists; run it against the live service, and "
-            "if it passes, replace this test with one that reads the "
-            "preserved proof")
+        proof = ROOT / "evidence" / "deployment-proof.txt"
+        assert proof.exists(), (
+            "the preserved deployment proof is gone; the chain from a cohort "
+            "observation to a repository revision runs through it")
+
+        text = proof.read_text()
+        assert text.startswith("# Deployment identity proof")
+        assert "OK: https://quantify.club serves" in text, (
+            "the preserved proof does not record a pass")
+
+    def test_the_proof_names_a_commit_that_exists(self):
+        """A proof naming a revision nobody can fetch is not a source offer.
+        Read from the file rather than recomputed, because the point is what
+        was *recorded* at deployment time."""
+        import re
+        import subprocess
+
+        proof = ROOT / "evidence" / "deployment-proof.txt"
+        if not proof.exists():
+            pytest.skip("no preserved proof")
+        found = re.search(r"^commit:\s+([0-9a-f]{40})$", proof.read_text(),
+                          re.M)
+        assert found, "the proof records no full commit"
+        commit = found.group(1)
+
+        known = subprocess.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+                               cwd=ROOT, capture_output=True)
+        assert known.returncode == 0, (
+            f"the proof names {commit}, which is not a commit in this "
+            "repository — the source offer would resolve to nothing")
+
+    def test_the_proof_and_the_offer_name_the_same_revision(self):
+        """The conjunctive condition, preserved rather than re-run. The two
+        halves agreeing is the whole property; a proof recording a pass while
+        naming two different revisions would be worse than no proof."""
+        import re
+
+        proof = ROOT / "evidence" / "deployment-proof.txt"
+        if not proof.exists():
+            pytest.skip("no preserved proof")
+        text = proof.read_text()
+        declared = re.search(r"^commit:\s+([0-9a-f]{40})$", text, re.M)
+        offered = re.search(r"offers its source at \S+/tree/([0-9a-f]{40})",
+                            text)
+        assert declared and offered
+        assert declared.group(1) == offered.group(1)
