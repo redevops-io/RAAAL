@@ -3,23 +3,11 @@
   "prompts": 103,
   "correct": {
     "CORRECT_EXECUTION": 28,
-    "CORRECT_REFUSAL": 42,
+    "CORRECT_REFUSAL": 43,
     "CORRECT_CLARIFICATION": 8
   },
-  "dangerous_instances": 1,
+  "dangerous_instances": 0,
   "queue": [
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "area": "swr-fixed-amount",
-      "instances": 1,
-      "examples": [
-        {
-          "prompt": "an annual $40,000 withdrawal",
-          "detail": "refused ['objective'], expected one of ['sell_action']"
-        }
-      ]
-    },
     {
       "kind": "UNNECESSARY_QUESTION",
       "layer": "Discovery",
@@ -131,13 +119,6 @@
       "class": "rebalance-annual",
       "prompt": "annually rebalance to a 60/40 target",
       "detail": "refused ['stated_weights'] and never mentioned ['periodic_rebalancing'], which the sentence also asks for"
-    },
-    {
-      "kind": "FALSE_CLAIM_OF_SUPPORT",
-      "layer": "Mission",
-      "class": "swr-fixed-amount",
-      "prompt": "an annual $40,000 withdrawal",
-      "detail": "refused ['objective'], expected one of ['sell_action']"
     },
     {
       "kind": "UNSTABLE_SAFE",
