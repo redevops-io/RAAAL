@@ -105,10 +105,20 @@ def harvested_sentences() -> list:
     return [e["text"] for e in json.loads(path.read_text())["annotations"]]
 
 
+def pilot_prompts() -> list:
+    """Sentences real people typed. Recorded with everything else, so the
+    convergence journey replays rather than calls a provider."""
+    path = Path(__file__).resolve().parent / "pilot_prompts.json"
+    if not path.exists():
+        return []
+    return [x["text"] for x in json.loads(path.read_text())["prompts"]]
+
+
 def wanted() -> list:
     texts = [c.text for c in load() if c.tier == "semantics" and c.language == "en"]
     return sorted(set(texts) | set(ACCEPTANCE) | set(strategy_family_sentences())
-                  | set(benchmark_sentences()) | set(harvested_sentences()))
+                  | set(benchmark_sentences()) | set(harvested_sentences())
+                  | set(pilot_prompts()))
 
 
 def main(argv: list) -> int:

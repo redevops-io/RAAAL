@@ -161,10 +161,33 @@ NUMERIC = frozenset({"amount", "moving_average_window"})
 SET_SEPARATOR = re.compile(r"[,;]|\band\b")
 
 
+#: Currency written beside the figure rather than in front of it. People type
+#: "1000 usd" as readily as "$1,000", and a parser that reads one and refuses
+#: the other turns an ordinary answer into an unanswerable question.
+_CURRENCY = re.compile(
+    r"\b(usd|dollars?|eur|euros?|gbp|pounds?|cad|aud|chf|jpy|yen)\b", re.I)
+
+
 def _decimal(value: Any) -> Optional[Decimal]:
+    """A stated figure, or `None` when it cannot be read as one.
+
+    `None` is never a zero — see `NUMERIC` above and rule 5 in
+    `docs/Evidence-Rules.md`. What this function decides is only whether a
+    number is *there*.
+
+    It could not read "1000 usd", and the consequence was worse than a refusal.
+    The flagship pilot sentence says "i buy 1000 usd of SP500 etf", so `amount`
+    was stated-but-unreadable, refused, and asked about — and the person's
+    answer was the same three characters and the same two letters, which was
+    equally unreadable. The clarification asked, accepted, and asked again,
+    forever. A recognition gap in one function became a non-terminating
+    product.
+    """
     if value is None:
         return None
-    text = str(value).replace(",", "").replace("$", "").strip()
+    text = _CURRENCY.sub(" ", str(value))
+    text = text.replace(",", "").replace("$", "").replace("£", "")
+    text = text.replace("€", "").strip()
     try:
         return Decimal(text)
     except (InvalidOperation, ValueError):

@@ -180,13 +180,19 @@ class TestTheLegacyReaderIsOffTheServingPath:
 class TestTheCompilerBaseline:
     """Pinned, because this reader is deterministic. It is a defect report."""
 
-    #: Back to 11, and neither 11 nor the intermediate 9 was a change in the
-    #: compiler. The instrument moved twice: scoring by carrier presence gave
-    #: 11, scoring by refusal gave 9, and folding relations into what Mission
-    #: is asked about gave 11 again — because the relation-shaped families the
-    #: compiler cannot read at all now count as reductions rather than as
-    #: schema gaps. The reader has been constant throughout.
-    SILENTLY_REDUCED = 11
+    #: 11 -> 9, and this time the move is real rather than instrumental.
+    #:
+    #: The number had moved twice before for reasons that were not the
+    #: compiler: scoring by carrier presence gave 11, scoring by refusal gave
+    #: 9, and folding relations into what Mission is asked about gave 11 again.
+    #: The reader was constant through all of it.
+    #:
+    #: It is 9 now because `evaluation_period` stopped claiming to be executed.
+    #: The manifest declared it EXECUTED and no part of `compile_intent`
+    #: consulted it, so two families that state a period were reduced silently;
+    #: they are refused by name now. A silent reduction becoming a refusal is
+    #: the direction this whole defect report exists to move in.
+    SILENTLY_REDUCED = 9
 
     def test_the_legacy_reader_still_reduces_this_many(self, compiler):
         assert compiler["by_state"].get("SILENTLY_REDUCED", 0) == \
@@ -196,14 +202,28 @@ class TestTheCompilerBaseline:
 
     @pytest.mark.parametrize("text,how", [
         ("sell VTI and buy BND", "the sell becomes a purchase of both"),
-        ("convert $30,000 from the traditional IRA to the Roth each year",
-         "indistinguishable from contributing $30,000 to a Roth annually"),
         ("withdraw 4% of the portfolio each year, adjusted for inflation",
          "reads as an annual cadence with no withdrawal"),
     ])
     def test_the_named_legacy_defects(self, compiler, text, how):
         states = {c["text"]: c["state"] for c in compiler["cases"]}
         assert states.get(text) in ("SILENTLY_REDUCED", "NOTHING_READ"), how
+
+    def test_the_roth_conversion_now_refuses_rather_than_reducing(self,
+                                                                   compiler):
+        """It was listed above as a named legacy defect: "convert $30,000 from
+        the traditional IRA to the Roth each year" was indistinguishable from
+        contributing $30,000 to a Roth annually.
+
+        It refuses now, because the period it states is refused by name rather
+        than dropped. Kept as its own assertion rather than deleted, so the
+        case cannot quietly return to reducing — a defect that stops
+        reproducing and leaves no trace is one nobody notices coming back.
+        """
+        states = {c["text"]: c["state"] for c in compiler["cases"]}
+        assert states.get(
+            "convert $30,000 from the traditional IRA to the Roth each year"
+        ) == "REFUSED"
 
 
 class TestTheServingReaderRefusesFarMore:

@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 411,
+  "count": 412,
   "parses": [
     {
       "text": "$1,000 a month weighted by inverse volatility",
@@ -25639,6 +25639,434 @@
               "relation": "obj",
               "start_char": 49,
               "end_char": 58
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA - only ones on the next business day. what would be my total return and the final cash amount over the past 5 years",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "i",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "buy",
+              "lemma": "buy",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "1000",
+              "lemma": "1000",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 6,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "usd",
+              "lemma": "usd",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 14
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": "SP500",
+              "lemma": "sp500",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "compound",
+              "start_char": 18,
+              "end_char": 23
+            },
+            {
+              "index": 7,
+              "text": "etf",
+              "lemma": "etf",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 8,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 9,
+              "relation": "det",
+              "start_char": 28,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "time",
+              "lemma": "time",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 34,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "SPY",
+              "lemma": "spy",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 39,
+              "end_char": 42
+            },
+            {
+              "index": 11,
+              "text": "index",
+              "lemma": "index",
+              "upos": "NOUN",
+              "head": 12,
+              "relation": "nsubj",
+              "start_char": 43,
+              "end_char": 48
+            },
+            {
+              "index": 12,
+              "text": "trades",
+              "lemma": "trade",
+              "upos": "VERB",
+              "head": 9,
+              "relation": "acl:relcl",
+              "start_char": 49,
+              "end_char": 55
+            },
+            {
+              "index": 13,
+              "text": "under",
+              "lemma": "under",
+              "upos": "ADP",
+              "head": 16,
+              "relation": "case",
+              "start_char": 56,
+              "end_char": 61
+            },
+            {
+              "index": 14,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 16,
+              "relation": "nmod:poss",
+              "start_char": 62,
+              "end_char": 64
+            },
+            {
+              "index": 15,
+              "text": "'s",
+              "lemma": "'s",
+              "upos": "PART",
+              "head": 14,
+              "relation": "case",
+              "start_char": 64,
+              "end_char": 66
+            },
+            {
+              "index": 16,
+              "text": "200DMA",
+              "lemma": "200dma",
+              "upos": "NOUN",
+              "head": 19,
+              "relation": "compound",
+              "start_char": 67,
+              "end_char": 73
+            },
+            {
+              "index": 17,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 18,
+              "relation": "punct",
+              "start_char": 74,
+              "end_char": 75
+            },
+            {
+              "index": 18,
+              "text": "only",
+              "lemma": "only",
+              "upos": "ADV",
+              "head": 19,
+              "relation": "advmod",
+              "start_char": 76,
+              "end_char": 80
+            },
+            {
+              "index": 19,
+              "text": "ones",
+              "lemma": "one",
+              "upos": "NOUN",
+              "head": 12,
+              "relation": "obl",
+              "start_char": 81,
+              "end_char": 85
+            },
+            {
+              "index": 20,
+              "text": "on",
+              "lemma": "on",
+              "upos": "ADP",
+              "head": 24,
+              "relation": "case",
+              "start_char": 86,
+              "end_char": 88
+            },
+            {
+              "index": 21,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 24,
+              "relation": "det",
+              "start_char": 89,
+              "end_char": 92
+            },
+            {
+              "index": 22,
+              "text": "next",
+              "lemma": "next",
+              "upos": "ADJ",
+              "head": 24,
+              "relation": "amod",
+              "start_char": 93,
+              "end_char": 97
+            },
+            {
+              "index": 23,
+              "text": "business",
+              "lemma": "business",
+              "upos": "NOUN",
+              "head": 24,
+              "relation": "compound",
+              "start_char": 98,
+              "end_char": 106
+            },
+            {
+              "index": 24,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 19,
+              "relation": "nmod",
+              "start_char": 107,
+              "end_char": 110
+            },
+            {
+              "index": 25,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 110,
+              "end_char": 111
+            }
+          ]
+        },
+        {
+          "sentence_id": 1,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "what",
+              "lemma": "what",
+              "upos": "PRON",
+              "head": 6,
+              "relation": "nsubj",
+              "start_char": 112,
+              "end_char": 116
+            },
+            {
+              "index": 2,
+              "text": "would",
+              "lemma": "would",
+              "upos": "AUX",
+              "head": 6,
+              "relation": "aux",
+              "start_char": 117,
+              "end_char": 122
+            },
+            {
+              "index": 3,
+              "text": "be",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 6,
+              "relation": "cop",
+              "start_char": 123,
+              "end_char": 125
+            },
+            {
+              "index": 4,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 6,
+              "relation": "nmod:poss",
+              "start_char": 126,
+              "end_char": 128
+            },
+            {
+              "index": 5,
+              "text": "total",
+              "lemma": "total",
+              "upos": "ADJ",
+              "head": 6,
+              "relation": "amod",
+              "start_char": 129,
+              "end_char": 134
+            },
+            {
+              "index": 6,
+              "text": "return",
+              "lemma": "return",
+              "upos": "NOUN",
+              "head": 0,
+              "relation": "root",
+              "start_char": 135,
+              "end_char": 141
+            },
+            {
+              "index": 7,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 11,
+              "relation": "cc",
+              "start_char": 142,
+              "end_char": 145
+            },
+            {
+              "index": 8,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 146,
+              "end_char": 149
+            },
+            {
+              "index": 9,
+              "text": "final",
+              "lemma": "final",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 150,
+              "end_char": 155
+            },
+            {
+              "index": 10,
+              "text": "cash",
+              "lemma": "cash",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 156,
+              "end_char": 160
+            },
+            {
+              "index": 11,
+              "text": "amount",
+              "lemma": "amount",
+              "upos": "NOUN",
+              "head": 6,
+              "relation": "conj",
+              "start_char": 161,
+              "end_char": 167
+            },
+            {
+              "index": 12,
+              "text": "over",
+              "lemma": "over",
+              "upos": "ADP",
+              "head": 16,
+              "relation": "case",
+              "start_char": 168,
+              "end_char": 172
+            },
+            {
+              "index": 13,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 16,
+              "relation": "det",
+              "start_char": 173,
+              "end_char": 176
+            },
+            {
+              "index": 14,
+              "text": "past",
+              "lemma": "past",
+              "upos": "ADJ",
+              "head": 16,
+              "relation": "amod",
+              "start_char": 177,
+              "end_char": 181
+            },
+            {
+              "index": 15,
+              "text": "5",
+              "lemma": "5",
+              "upos": "NUM",
+              "head": 16,
+              "relation": "nummod",
+              "start_char": 182,
+              "end_char": 183
+            },
+            {
+              "index": 16,
+              "text": "years",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "nmod",
+              "start_char": 184,
+              "end_char": 189
             }
           ]
         }

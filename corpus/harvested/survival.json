@@ -20,6 +20,7 @@
     "periodic_rebalancing": 3,
     "cadence": 3,
     "sell_action": 2,
+    "evaluation_period": 1,
     "objective": 1,
     "holding_period": 1
   },
@@ -271,7 +272,8 @@
     },
     {
       "stopped_by": [
-        "assets"
+        "assets",
+        "evaluation_period"
       ],
       "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
       "interpretation": "contribute $550 a month to a 401(k)",

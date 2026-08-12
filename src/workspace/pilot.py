@@ -29,7 +29,7 @@ already states for the model.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Optional, Sequence
 
 from runtime_contracts import (
@@ -82,6 +82,38 @@ class PilotReading:
 
     refusals: Sequence[Any] = ()
     profile: WitnessProfile = MODEL_ONLY
+
+    rejected_answers: Mapping[str, str] = field(default_factory=dict)
+    """Dimensions the person answered which the answer did not settle, and why.
+
+    A clarification round must strictly reduce what is unresolved, change what
+    would execute, or end in a refusal. When an answer settles nothing, the
+    page would otherwise render the identical question — and the pilot found
+    exactly that: `amount` was asked, answered "1000 usd", and asked again,
+    because the numeric reader could not read a currency suffix. The person
+    sees their own words come back as an unanswered question, forever.
+
+    Naming the rejection is what makes the round progress even when the value
+    does not: "I could not read '1000 usd' as an amount" is a different state
+    from "how much are you contributing", and the person can act on it."""
+
+    def clarification_state(self) -> tuple:
+        """What must change between rounds, or the conversation is stuck.
+
+        Deliberately the *executable* identity rather than the plan's data, so
+        two rounds differing only in how a holding was spelled do not count as
+        progress."""
+        identity = ""
+        scenario = getattr(self.compiled, "scenario", None)
+        if scenario is not None:
+            from hashlib import sha256
+            from json import dumps
+            identity = sha256(dumps(scenario.execution_form(), sort_keys=True,
+                                    default=str).encode()).hexdigest()[:16]
+        return (tuple(sorted(self.open_fields)),
+                tuple(sorted(getattr(r, "dimension", "")
+                             for r in self.refusals)),
+                identity)
     interpreter_version: str = INTERPRETER_VERSION
     reader_id: str = ""
 
@@ -331,8 +363,18 @@ def answer(reading: PilotReading, answers: Mapping[str, Any]) -> PilotReading:
                      witnesses=["user"], detail="answered on the plan page")
         for name, value in answers.items() if value not in (None, "")]
 
+    # Which answers settled nothing. Computed from the refusals the recompile
+    # produced, not from a guess: a dimension the person just answered that is
+    # still refused as unresolved input is an answer the runtime could not use.
+    rejected = {}
+    for refusal in refusals:
+        name = getattr(refusal, "dimension", "")
+        if name in answers and answers[name] not in (None, ""):
+            rejected[name] = getattr(refusal, "detail", "") or "not accepted"
+
     return PilotReading(
         text=reading.text, intent=intent, compiled=compiled,
+        rejected_answers=rejected,
         settled=tuple(settled),
         open_fields=tuple(sorted(u.dimension for u in still_open
                                  if u.dimension not in absent)),

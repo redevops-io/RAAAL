@@ -125,6 +125,35 @@ and threw the *monthly* away. Recorded in
 Absorbed by the same general rule and by widening the corpus's declared
 expectations where the corpus, not the system, was wrong.
 
+## Found by the first real user, and open
+
+Two dimensions the flagship pilot sentence states that Mission cannot consume.
+Discovery reads both correctly; the stranded-dimension check refuses them
+rather than dropping them, so the sentence terminates in an honest refusal —
+and cannot run.
+
+    i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA
+    - only ones on the next business day. what would be my total return and
+    the final cash amount over the past 5 years
+
+**`evaluation_period`.** "over the past 5 years". The manifest claimed
+EXECUTED and nothing consulted it. Honouring a stated window means *selecting*
+the prices a run sees — `period_start` and `period_end` are currently reported
+from whatever index came back, not chosen — so it is an execution-path change,
+not a compiler one. Refused by name until then.
+
+**`cadence` beside a trigger.** "only ones" is read as `cadence=once`, and the
+event-funded path does not consult cadence, so it is stranded. But "only once"
+here is not a calendar competing with the trigger — it is a *repeat limit on
+the trigger*: buy once per qualifying episode rather than on every session the
+condition holds. The model has no representation for that, and the two
+readings differ enormously in how much is contributed.
+
+Both are capability gaps rather than defects in the reading, and the second is
+the more interesting: `EventTriggered` exists, the Lean composition work
+already formalises trigger-to-flow ordering, and what is missing is the
+repeat semantics between them.
+
 ## Open, and deliberately not fixed yet
 
 **`moving_average_window` has no unit.** Syntax reads `12` from "the 12-month

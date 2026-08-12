@@ -293,7 +293,27 @@ MANIFEST: Mapping[str, Dimension] = {
              "no rates, no lots, no wash sales, no withdrawal ordering")),
 
     # ---- over what period ----------------------------------------------
-    "evaluation_period": _d("evaluation_period", EXECUTED, closed=False),
+    # Declared EXECUTED and consumed by nothing. The stranded-dimension check
+    # found it on the first realistic pilot sentence — "over the past 5 years"
+    # was read correctly, carried into the intent, and refused, because no part
+    # of `compile_intent` consults it.
+    #
+    # The engine evaluates over whatever price history it is given;
+    # `period_start` and `period_end` are *reported* from the index that came
+    # back, not *chosen* from a stated window. Honouring a stated period means
+    # selecting the prices, which is an execution-path change — and until that
+    # exists, claiming EXECUTED here is the manifest asserting a capability the
+    # compiler does not have.
+    #
+    # Refused by name, so a person asking for five years is told this build
+    # evaluates over the data it has rather than being silently given a
+    # different window. Queued in docs/Benchmark-Queue.md.
+    "evaluation_period": _d(
+        "evaluation_period", REFUSED,
+        why=("this build evaluates over the whole price history it holds and "
+             "cannot yet restrict a run to a stated window; the period you "
+             "asked for would be recorded and not honoured, and a figure "
+             "labelled with it would be wrong")),
 }
 
 

@@ -7,7 +7,7 @@
     "schema_version": "quantify-discovery-schema@6",
     "max_tokens": 8000
   },
-  "count": 415,
+  "count": 416,
   "note": "Replayed by the corpus. A recording is not an answer — fusion decides whether the model's proposal proceeds, exactly as it would for a live reply.",
   "readings": [
     {
@@ -14734,6 +14734,79 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
+      ]
+    },
+    {
+      "text": "i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA - only ones on the next business day. what would be my total return and the final cash amount over the past 5 years",
+      "reader_id": "gpt-4.1-2025-04-14@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "1",
+          "source_span": "what would be my total return and the final cash amount",
+          "note": "Explicitly requesting to know the result of following this strategy."
+        },
+        {
+          "dimension": "amount",
+          "value": "1000 usd",
+          "confidence": "1",
+          "source_span": "i buy 1000 usd",
+          "note": "Contribution amount per trigger."
+        },
+        {
+          "dimension": "assets",
+          "value": "SP500 etf",
+          "confidence": "1",
+          "source_span": "SP500 etf",
+          "note": "The asset to be bought, as written."
+        },
+        {
+          "dimension": "observed_assets",
+          "value": "SPY index",
+          "confidence": "1",
+          "source_span": "SPY index trades under it's 200DMA",
+          "note": "Condition is measured against SPY index, which may not be the bought asset."
+        },
+        {
+          "dimension": "trigger_semantics",
+          "value": "crossing_event",
+          "confidence": "1",
+          "source_span": "every time SPY index trades under it's 200DMA - only ones",
+          "note": "The word 'every time ... trades under ... only ones' strongly implies a crossing event, not a persistent condition."
+        },
+        {
+          "dimension": "execution_timing",
+          "value": "next_session_open",
+          "confidence": "1",
+          "source_span": "on the next business day",
+          "note": "'Next business day' after the trigger event."
+        },
+        {
+          "dimension": "evaluation_period",
+          "value": "trailing:5y",
+          "confidence": "1",
+          "source_span": "over the past 5 years",
+          "note": "Canonical value for 'over the past 5 years'."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "allocation_method",
+        "cadence",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "holding_period",
+        "moving_average_window",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "stated_weights"
       ]
     },
     {

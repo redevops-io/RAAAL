@@ -54,6 +54,13 @@ def main(languages: list) -> int:
     if suite.exists():
         extra += [(p, "en") for p in _json.loads(suite.read_text())["prompts"]]
 
+    # Sentences real people typed into the pilot. A regression journey
+    # replays them, so they need parses like any other measured tier.
+    pilot = Path(__file__).resolve().parent / "pilot_prompts.json"
+    if pilot.exists():
+        extra += [(x["text"], "en")
+                  for x in _json.loads(pilot.read_text())["prompts"]]
+
     # The trigger falsification set. The TriggerSemanticsReader authors a
     # contract field, so the sentences that prove it decides — and the ones
     # that prove it declines — need parses like any other measured tier.
