@@ -114,11 +114,25 @@ def pilot_prompts() -> list:
     return [x["text"] for x in json.loads(path.read_text())["prompts"]]
 
 
+def library_sentences() -> list:
+    """Every statement the strategy selector offers.
+
+    Derived from the library rather than copied beside it. The catalogue is the
+    product claiming these work; the claim is checked by running them, and it
+    can only be checked if they are recorded. Copying the sentences into a
+    fixture would mean a new entry shipped with no recording, and the test that
+    guards the catalogue would silently stop covering it.
+    """
+    from src.workspace.strategy_library import offered
+
+    return [e.text for e in offered()]
+
+
 def wanted() -> list:
     texts = [c.text for c in load() if c.tier == "semantics" and c.language == "en"]
     return sorted(set(texts) | set(ACCEPTANCE) | set(strategy_family_sentences())
                   | set(benchmark_sentences()) | set(harvested_sentences())
-                  | set(pilot_prompts()))
+                  | set(pilot_prompts()) | set(library_sentences()))
 
 
 def main(argv: list) -> int:
@@ -139,6 +153,29 @@ def main(argv: list) -> int:
         print(f"{reader.api_key_env} is not set; nothing recorded",
               file=sys.stderr)
         return 1
+
+    # Add readings under any reader; change the declaration only on purpose.
+    #
+    # `recorded_with` is what the whole corpus claims it was read by, and this
+    # script used to rewrite it to whatever reader it happened to construct.
+    # Run with no provider in the environment it picks the ambient default,
+    # which silently reassigned a corpus recorded under gpt-4.1 to
+    # claude-sonnet-5, moved a case out of the answerable set, and surfaced two
+    # files away as an unrelated-looking closure failure.
+    #
+    # The two acts are not equally dangerous and are no longer treated alike.
+    # *Adding* readings under a second reader is how a property gets shown to
+    # hold for more than one provider — the strategy catalogue is checked under
+    # both, because the corpus reader and the one a deployment serves are not
+    # the same and users meet the second. *Changing the declaration* is what
+    # reinterprets every existing row, and that still has to be asked for.
+    declared = ({} if not OUT.exists()
+                else json.loads(OUT.read_text()).get("recorded_with", {}))
+    was = declared.get("reader_id")
+    moving = "--change-reader" in argv
+    if was and was != reader.id and not moving:
+        print(f"note: recording under {reader.id!r}; this corpus stays "
+              f"declared as {was!r}. Pass --change-reader to move it.")
 
     existing = {}
     if OUT.exists():
@@ -169,10 +206,11 @@ def main(argv: list) -> int:
 
     OUT.write_text(json.dumps(
         {"schema": RECORDING_SCHEMA,
-         "recorded_with": {"reader_id": reader.id, "model": reader.model,
-                           "prompt_version": PROMPT_VERSION,
-                           "schema_version": QUANTIFY_SCHEMA.version,
-                           "max_tokens": reader.max_tokens},
+         "recorded_with": (declared if (was and was != reader.id and not moving)
+                           else {"reader_id": reader.id, "model": reader.model,
+                                 "prompt_version": PROMPT_VERSION,
+                                 "schema_version": QUANTIFY_SCHEMA.version,
+                                 "max_tokens": reader.max_tokens}),
          "count": len(recorded),
          "note": ("Replayed by the corpus. A recording is not an answer — "
                   "fusion decides whether the model's proposal proceeds, "

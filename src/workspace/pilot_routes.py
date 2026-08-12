@@ -33,6 +33,7 @@ from .pilot_events import (answers_already_in_the_prompt, attempts_by, observe,
 from .pilot_consent import may_keep_prose
 from .pilot_session import (attach, last_prompt, new_participant,
                             participant_in, record as record_transcript)
+from .strategy_library import origin_of
 
 router = APIRouter()
 
@@ -122,7 +123,8 @@ def _live_parser():
 
 def _observe_attempt(request, describe: str, reading: PilotReading,
                      answers: Optional[Dict[str, str]] = None,
-                     run: Optional[Dict[str, Any]] = None) -> str:
+                     run: Optional[Dict[str, Any]] = None,
+                     picked: str = "") -> str:
     """Everything one submission implies about the person making it.
 
     Returns the participant token so the caller can put it on the response.
@@ -151,8 +153,13 @@ def _observe_attempt(request, describe: str, reading: PilotReading,
             repeated=answers_already_in_the_prompt(describe, answers))
 
     observe(reading, participant=participant, run=run)
+    # Derived from the sentence and the pick, not taken from the form. Without
+    # it the cohort measures the catalogue: sentences we wrote, read by a
+    # reader we wrote, is a closed loop, and the rate it produces would say
+    # nothing about whether anybody's own words work.
     record_transcript(
         participant, describe, attempt=prior + 1,
+        origin=origin_of(describe, picked),
         questions=list(reading.questions),
         answered=dict(answers),
         refused=[getattr(r, "dimension", "") for r in reading.refusals],
@@ -250,7 +257,7 @@ def _refuse_unless_declared(request: Request):
         status_code=404)
 
 
-def draft(request: Request, describe: str = ""):
+def draft(request: Request, describe: str = "", picked: str = ""):
     """The pilot draft, as one implementation with two callers.
 
     `/new` reaches this when the deployment declares the runtime, which is how
@@ -269,8 +276,9 @@ def draft(request: Request, describe: str = ""):
         # record it against until after the participant's first sentence had
         # already been discarded — and the unprompted first phrasing is the
         # most informative thing they produce all session.
-        empty = TEMPLATES.TemplateResponse(request, "pilot.html",
-                                           {"text": "", "reading": None})
+        empty = TEMPLATES.TemplateResponse(
+            request, "pilot.html",
+            {"text": "", "reading": None, "picked": picked})
         attach(empty, participant_in(request) or new_participant())
         return empty
     try:
@@ -284,15 +292,18 @@ def draft(request: Request, describe: str = ""):
             status_code=503)
 
     run = execute(reading)
-    participant = _observe_attempt(request, describe, reading, run=run)
+    participant = _observe_attempt(request, describe, reading, run=run,
+                                   picked=picked)
     response = TEMPLATES.TemplateResponse(
-        request, "pilot.html", page(reading, text=describe, run=run))
+        request, "pilot.html",
+        dict(page(reading, text=describe, run=run), picked=picked))
     attach(response, participant)
     return response
 
 
 @router.get("/pilot", response_class=HTMLResponse)
-def pilot_new(request: Request, describe: str = ""):
+def pilot_new(request: Request, describe: str = "",
+              picked: str = ""):
     """Diagnostic alias for `/new` under the runtime mode.
 
     Kept for development and deliberately **not** the cohort entry point: two
@@ -303,11 +314,12 @@ def pilot_new(request: Request, describe: str = ""):
     refused = _refuse_unless_declared(request)
     if refused is not None:
         return refused
-    return draft(request, describe)
+    return draft(request, describe, picked)
 
 
 @router.post("/pilot/answer", response_class=HTMLResponse)
-async def pilot_answer(request: Request, describe: str = Form(...)):
+async def pilot_answer(request: Request, describe: str = Form(...),
+                       picked: str = Form("")):
     """One human amendment, authored `USER` and carried into the intent."""
     from .routes import TEMPLATES
 
@@ -332,9 +344,11 @@ async def pilot_answer(request: Request, describe: str = Form(...)):
 
     answered = answer(reading, answers)
     run = execute(answered)
-    participant = _observe_attempt(request, describe, answered, answers, run)
+    participant = _observe_attempt(request, describe, answered, answers, run,
+                                   picked=picked)
     response = TEMPLATES.TemplateResponse(
-        request, "pilot.html", page(answered, text=describe, run=run))
+        request, "pilot.html",
+        dict(page(answered, text=describe, run=run), picked=picked))
     attach(response, participant)
     return response
 

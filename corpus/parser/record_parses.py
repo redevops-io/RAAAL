@@ -61,6 +61,13 @@ def main(languages: list) -> int:
         extra += [(x["text"], "en")
                   for x in _json.loads(pilot.read_text())["prompts"]]
 
+    # Everything the strategy selector offers. Read from the library itself:
+    # the catalogue is the product claiming these sentences work, and a claim
+    # nothing replays is a claim nothing checks.
+    from src.workspace.strategy_library import offered
+
+    extra += [(e.text, "en") for e in offered()]
+
     # The trigger falsification set. The TriggerSemanticsReader authors a
     # contract field, so the sentences that prove it decides — and the ones
     # that prove it declines — need parses like any other measured tier.

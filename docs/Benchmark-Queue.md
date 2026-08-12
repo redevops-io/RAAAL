@@ -165,6 +165,25 @@ which is a schema change; held until the harvested corpus says which units real
 language actually uses. Tracked in `LEFT_THE_ANSWERABLE_SET` in
 `tests/test_semantics.py`.
 
+**`conditional_amount` fires on an amount that does not vary.** "invest $2,000
+into VTI whenever it drops 10% below its highest close of the last year" is a
+fixed contribution on a condition. gpt-4.1-2025-04-14 settles both `amount` and
+`conditional_amount` to `$2,000`, and the build refuses `conditional_amount` by
+name — so a plan it can run in full is refused for varying an amount that is
+the same every time. claude-sonnet-5 does not do this, which is why it went
+unnoticed: the sentence was written into the strategy selector, passed under
+the reader the recording happened to use, and was caught only once the
+catalogue was checked under both.
+
+This is a false refusal rather than a silent reduction, so it is safe and not
+on the dangerous list. It is still the most user-visible defect in the queue:
+buying after a drawdown is an ordinary thing to want, and the refusal says the
+build cannot do something it can. Held because the fix is in the reader's
+proposal rather than the compiler — `conditional_amount` should not be proposed
+when its value equals `amount` — and that is a fusion-level rule that wants a
+falsification set before it ships. The entry is out of the selector until then;
+`tests/test_strategy_library.py` is what keeps it out.
+
 ## What this does not authorise
 
 The queue is a counterexample generator, not a fifth reopen trigger. A wrong

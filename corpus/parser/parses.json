@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 412,
+  "count": 422,
   "parses": [
     {
       "text": "$1,000 a month weighted by inverse volatility",
@@ -14094,6 +14094,412 @@
       ]
     },
     {
+      "text": "buy $1,000 of SPY every time it closes below its 200 day moving average, on the next trading day",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "buy",
+              "lemma": "buy",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 4,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "1,000",
+              "lemma": "1000",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 5,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 11,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "SPY",
+              "lemma": "spy",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod",
+              "start_char": 14,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 18,
+              "end_char": 23
+            },
+            {
+              "index": 7,
+              "text": "time",
+              "lemma": "time",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl:unmarked",
+              "start_char": 24,
+              "end_char": 28
+            },
+            {
+              "index": 8,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 9,
+              "relation": "nsubj",
+              "start_char": 29,
+              "end_char": 31
+            },
+            {
+              "index": 9,
+              "text": "closes",
+              "lemma": "close",
+              "upos": "VERB",
+              "head": 7,
+              "relation": "acl:relcl",
+              "start_char": 32,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "below",
+              "lemma": "below",
+              "upos": "ADP",
+              "head": 15,
+              "relation": "case",
+              "start_char": 39,
+              "end_char": 44
+            },
+            {
+              "index": 11,
+              "text": "its",
+              "lemma": "its",
+              "upos": "PRON",
+              "head": 15,
+              "relation": "nmod:poss",
+              "start_char": 45,
+              "end_char": 48
+            },
+            {
+              "index": 12,
+              "text": "200",
+              "lemma": "200",
+              "upos": "NUM",
+              "head": 13,
+              "relation": "nummod",
+              "start_char": 49,
+              "end_char": 52
+            },
+            {
+              "index": 13,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "compound",
+              "start_char": 53,
+              "end_char": 56
+            },
+            {
+              "index": 14,
+              "text": "moving",
+              "lemma": "moving",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "compound",
+              "start_char": 57,
+              "end_char": 63
+            },
+            {
+              "index": 15,
+              "text": "average",
+              "lemma": "average",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "obl",
+              "start_char": 64,
+              "end_char": 71
+            },
+            {
+              "index": 16,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 21,
+              "relation": "punct",
+              "start_char": 71,
+              "end_char": 72
+            },
+            {
+              "index": 17,
+              "text": "on",
+              "lemma": "on",
+              "upos": "ADP",
+              "head": 21,
+              "relation": "case",
+              "start_char": 73,
+              "end_char": 75
+            },
+            {
+              "index": 18,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 21,
+              "relation": "det",
+              "start_char": 76,
+              "end_char": 79
+            },
+            {
+              "index": 19,
+              "text": "next",
+              "lemma": "next",
+              "upos": "ADJ",
+              "head": 21,
+              "relation": "amod",
+              "start_char": 80,
+              "end_char": 84
+            },
+            {
+              "index": 20,
+              "text": "trading",
+              "lemma": "trading",
+              "upos": "NOUN",
+              "head": 21,
+              "relation": "compound",
+              "start_char": 85,
+              "end_char": 92
+            },
+            {
+              "index": 21,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "obl",
+              "start_char": 93,
+              "end_char": 96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "buy $1,000 of SPY on any day it is trading below its 200 day moving average",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "buy",
+              "lemma": "buy",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 4,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "1,000",
+              "lemma": "1000",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 5,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 11,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "SPY",
+              "lemma": "spy",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod",
+              "start_char": 14,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": "on",
+              "lemma": "on",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 18,
+              "end_char": 20
+            },
+            {
+              "index": 7,
+              "text": "any",
+              "lemma": "any",
+              "upos": "DET",
+              "head": 8,
+              "relation": "det",
+              "start_char": 21,
+              "end_char": 24
+            },
+            {
+              "index": 8,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 25,
+              "end_char": 28
+            },
+            {
+              "index": 9,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 11,
+              "relation": "nsubj",
+              "start_char": 29,
+              "end_char": 31
+            },
+            {
+              "index": 10,
+              "text": "is",
+              "lemma": "be",
+              "upos": "AUX",
+              "head": 11,
+              "relation": "aux",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 11,
+              "text": "trading",
+              "lemma": "trade",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "parataxis",
+              "start_char": 35,
+              "end_char": 42
+            },
+            {
+              "index": 12,
+              "text": "below",
+              "lemma": "below",
+              "upos": "ADP",
+              "head": 17,
+              "relation": "case",
+              "start_char": 43,
+              "end_char": 48
+            },
+            {
+              "index": 13,
+              "text": "its",
+              "lemma": "its",
+              "upos": "PRON",
+              "head": 17,
+              "relation": "nmod:poss",
+              "start_char": 49,
+              "end_char": 52
+            },
+            {
+              "index": 14,
+              "text": "200",
+              "lemma": "200",
+              "upos": "NUM",
+              "head": 15,
+              "relation": "nummod",
+              "start_char": 53,
+              "end_char": 56
+            },
+            {
+              "index": 15,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 17,
+              "relation": "compound",
+              "start_char": 57,
+              "end_char": 60
+            },
+            {
+              "index": 16,
+              "text": "moving",
+              "lemma": "moving",
+              "upos": "NOUN",
+              "head": 17,
+              "relation": "compound",
+              "start_char": 61,
+              "end_char": 67
+            },
+            {
+              "index": 17,
+              "text": "average",
+              "lemma": "average",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "obl",
+              "start_char": 68,
+              "end_char": 75
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "buy $1,000 of VTI when it crosses below its 200 DMA",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -27376,6 +27782,159 @@
       ]
     },
     {
+      "text": "invest $10,000 equally into VTI and BND as a one-off purchase",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "10,000",
+              "lemma": "10000",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 14
+            },
+            {
+              "index": 4,
+              "text": "equally",
+              "lemma": "equally",
+              "upos": "ADV",
+              "head": 1,
+              "relation": "advmod",
+              "start_char": 15,
+              "end_char": 22
+            },
+            {
+              "index": 5,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 23,
+              "end_char": 27
+            },
+            {
+              "index": 6,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 28,
+              "end_char": 31
+            },
+            {
+              "index": 7,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 8,
+              "relation": "cc",
+              "start_char": 32,
+              "end_char": 35
+            },
+            {
+              "index": 8,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 6,
+              "relation": "conj",
+              "start_char": 36,
+              "end_char": 39
+            },
+            {
+              "index": 9,
+              "text": "as",
+              "lemma": "as",
+              "upos": "ADP",
+              "head": 14,
+              "relation": "case",
+              "start_char": 40,
+              "end_char": 42
+            },
+            {
+              "index": 10,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 14,
+              "relation": "det",
+              "start_char": 43,
+              "end_char": 44
+            },
+            {
+              "index": 11,
+              "text": "one",
+              "lemma": "one",
+              "upos": "NOUN",
+              "head": 14,
+              "relation": "compound",
+              "start_char": 45,
+              "end_char": 48
+            },
+            {
+              "index": 12,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 48,
+              "end_char": 49
+            },
+            {
+              "index": 13,
+              "text": "off",
+              "lemma": "off",
+              "upos": "ADP",
+              "head": 11,
+              "relation": "compound:prt",
+              "start_char": 49,
+              "end_char": 52
+            },
+            {
+              "index": 14,
+              "text": "purchase",
+              "lemma": "purchase",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 53,
+              "end_char": 61
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "invest $10,000 in VTI once",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -27443,6 +28002,109 @@
               "relation": "advmod",
               "start_char": 22,
               "end_char": 26
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "invest $10,000 into VTI as a lump sum",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "10,000",
+              "lemma": "10000",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 14
+            },
+            {
+              "index": 4,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 15,
+              "end_char": 19
+            },
+            {
+              "index": 5,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 20,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "as",
+              "lemma": "as",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 24,
+              "end_char": 26
+            },
+            {
+              "index": 7,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 9,
+              "relation": "det",
+              "start_char": 27,
+              "end_char": 28
+            },
+            {
+              "index": 8,
+              "text": "lump",
+              "lemma": "lump",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "compound",
+              "start_char": 29,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "sum",
+              "lemma": "sum",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 34,
+              "end_char": 37
             }
           ]
         }
@@ -27599,6 +28261,488 @@
               "relation": "obl",
               "start_char": 24,
               "end_char": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "invest $2,000 into VTI whenever it drops 10% below its highest close of the last year",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "2,000",
+              "lemma": "2000",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 13
+            },
+            {
+              "index": 4,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 14,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 19,
+              "end_char": 22
+            },
+            {
+              "index": 6,
+              "text": "whenever",
+              "lemma": "whenever",
+              "upos": "ADV",
+              "head": 1,
+              "relation": "advmod",
+              "start_char": 23,
+              "end_char": 31
+            },
+            {
+              "index": 7,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 8,
+              "relation": "nsubj",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 8,
+              "text": "drops",
+              "lemma": "drop",
+              "upos": "VERB",
+              "head": 1,
+              "relation": "advcl",
+              "start_char": 35,
+              "end_char": 40
+            },
+            {
+              "index": 9,
+              "text": "10",
+              "lemma": "10",
+              "upos": "NUM",
+              "head": 10,
+              "relation": "nummod",
+              "start_char": 41,
+              "end_char": 43
+            },
+            {
+              "index": 10,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 14,
+              "relation": "nmod:unmarked",
+              "start_char": 43,
+              "end_char": 44
+            },
+            {
+              "index": 11,
+              "text": "below",
+              "lemma": "below",
+              "upos": "ADP",
+              "head": 14,
+              "relation": "case",
+              "start_char": 45,
+              "end_char": 50
+            },
+            {
+              "index": 12,
+              "text": "its",
+              "lemma": "its",
+              "upos": "PRON",
+              "head": 14,
+              "relation": "nmod:poss",
+              "start_char": 51,
+              "end_char": 54
+            },
+            {
+              "index": 13,
+              "text": "highest",
+              "lemma": "high",
+              "upos": "ADJ",
+              "head": 14,
+              "relation": "amod",
+              "start_char": 55,
+              "end_char": 62
+            },
+            {
+              "index": 14,
+              "text": "close",
+              "lemma": "close",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "obl",
+              "start_char": 63,
+              "end_char": 68
+            },
+            {
+              "index": 15,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 18,
+              "relation": "case",
+              "start_char": 69,
+              "end_char": 71
+            },
+            {
+              "index": 16,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 18,
+              "relation": "det",
+              "start_char": 72,
+              "end_char": 75
+            },
+            {
+              "index": 17,
+              "text": "last",
+              "lemma": "last",
+              "upos": "ADJ",
+              "head": 18,
+              "relation": "amod",
+              "start_char": 76,
+              "end_char": 80
+            },
+            {
+              "index": 18,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 14,
+              "relation": "nmod",
+              "start_char": 81,
+              "end_char": 85
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "invest $3,000 into QQQ every quarter",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "3,000",
+              "lemma": "3000",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 13
+            },
+            {
+              "index": 4,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 14,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "QQQ",
+              "lemma": "qqq",
+              "upos": "PROPN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 19,
+              "end_char": 22
+            },
+            {
+              "index": 6,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 23,
+              "end_char": 28
+            },
+            {
+              "index": 7,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl:unmarked",
+              "start_char": 29,
+              "end_char": 36
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "invest $500 a month into VTI",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 12,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:tmod",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 20,
+              "end_char": 24
+            },
+            {
+              "index": 7,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 25,
+              "end_char": 28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "invest $500 a month split equally between VTI and BND",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 12,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod:unmarked",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "split",
+              "lemma": "split",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "acl",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "equally",
+              "lemma": "equally",
+              "upos": "ADV",
+              "head": 6,
+              "relation": "advmod",
+              "start_char": 26,
+              "end_char": 33
+            },
+            {
+              "index": 8,
+              "text": "between",
+              "lemma": "between",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 34,
+              "end_char": 41
+            },
+            {
+              "index": 9,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 6,
+              "relation": "obl",
+              "start_char": 42,
+              "end_char": 45
+            },
+            {
+              "index": 10,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 11,
+              "relation": "cc",
+              "start_char": 46,
+              "end_char": 49
+            },
+            {
+              "index": 11,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 9,
+              "relation": "conj",
+              "start_char": 50,
+              "end_char": 53
             }
           ]
         }
@@ -28057,6 +29201,149 @@
               "relation": "obl",
               "start_char": 24,
               "end_char": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "invest $750 into VTI on the first trading day of each month",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "750",
+              "lemma": "750",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 12,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 17,
+              "end_char": 20
+            },
+            {
+              "index": 6,
+              "text": "on",
+              "lemma": "on",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 21,
+              "end_char": 23
+            },
+            {
+              "index": 7,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 10,
+              "relation": "det",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 8,
+              "text": "first",
+              "lemma": "first",
+              "upos": "ADJ",
+              "head": 10,
+              "relation": "amod",
+              "start_char": 28,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "trading",
+              "lemma": "trading",
+              "upos": "NOUN",
+              "head": 10,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 41
+            },
+            {
+              "index": 10,
+              "text": "day",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 42,
+              "end_char": 45
+            },
+            {
+              "index": 11,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 13,
+              "relation": "case",
+              "start_char": 46,
+              "end_char": 48
+            },
+            {
+              "index": 12,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 49,
+              "end_char": 53
+            },
+            {
+              "index": 13,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 10,
+              "relation": "nmod",
+              "start_char": 54,
+              "end_char": 59
             }
           ]
         }
@@ -32253,6 +33540,89 @@
               "relation": "obl",
               "start_char": 21,
               "end_char": 24
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "put $100 into VOO every week",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "put",
+              "lemma": "put",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 3
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 4,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "100",
+              "lemma": "100",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 5,
+              "end_char": 8
+            },
+            {
+              "index": 4,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 5,
+              "relation": "case",
+              "start_char": 9,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "VOO",
+              "lemma": "voo",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 14,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 18,
+              "end_char": 23
+            },
+            {
+              "index": 7,
+              "text": "week",
+              "lemma": "week",
+              "upos": "NOUN",
+              "head": 1,
+              "relation": "obl:unmarked",
+              "start_char": 24,
+              "end_char": 28
             }
           ]
         }

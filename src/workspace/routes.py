@@ -101,6 +101,18 @@ TEMPLATES.env.globals["data_notice"] = lambda: _data_notice()
 TEMPLATES.env.globals["source_url"] = lambda: __import__(
     "src.api", fromlist=["source_url"]).source_url()
 
+#: The strategy selector, by the same mechanism and for a third time the same
+#: reason. `pilot.html` is rendered from six call sites — the draft, the answer,
+#: two failure paths, the save and the reopen — and passing the catalogue
+#: through each context would mean the selector was present on five of them.
+#: The one it went missing from would be a failure page, which is exactly where
+#: somebody most needs a working example to pick.
+TEMPLATES.env.globals["strategy_library"] = lambda: __import__(
+    "src.workspace.strategy_library",
+    fromlist=["LIBRARY"]).LIBRARY
+TEMPLATES.env.globals["unsupported_strategies"] = lambda: __import__(
+    "src.workspace.strategy_library", fromlist=["unsupported"]).unsupported()
+
 PRICES = Path("data/history/prices.parquet")
 BENCHMARK_RULE = "benchmark-policy/public-default@1"
 
@@ -673,7 +685,7 @@ def _template_confirmation(request: Request, describe: str, stage1):
 
 
 @router.get("/new", response_class=HTMLResponse)
-def new_plan(request: Request, describe: str = ""):
+def new_plan(request: Request, describe: str = "", picked: str = ""):
     """The confirmation screen. Nothing is saved and nothing is committed.
 
     A request with no description is a blank form, not a journey, and opens no
@@ -691,7 +703,7 @@ def new_plan(request: Request, describe: str = ""):
     from .pilot_routes import deployment_uses_the_runtime, draft as pilot_draft
 
     if deployment_uses_the_runtime():
-        return pilot_draft(request, describe)
+        return pilot_draft(request, describe, picked)
 
     if not describe.strip():
         return TEMPLATES.TemplateResponse(request, "new.html", {"result": None})
