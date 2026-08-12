@@ -226,7 +226,8 @@ def classify(case, recorded: RecordedReader,
     common = {"field": wanted, "witnesses": witnesses,
               "value": produced, "expected": expected, "compared_as": rule,
               "matches_expected": (produced is not None and expected is not None
-                                   and same_value(produced, expected, rule))}
+                                   and same_value(produced, expected, rule,
+                                                  dimension=wanted))}
 
     if decision.outcome is Fusion.AMBIGUOUS_BY_LANGUAGE:
         return {"state": AMBIGUOUS_BY_LANGUAGE, "reason": decision.detail,

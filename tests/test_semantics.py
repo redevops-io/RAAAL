@@ -176,7 +176,11 @@ def test_the_pipeline_produces_the_field_and_the_value(case, request):
     _, decision = run(case)
     assert decision.outcome is Fusion.AGREE, decision.detail
     rule = REQUIREMENTS.get(decision.dimension, Requirement()).compare_as
-    assert same_value(decision.value, case.asserts["value"], rule), (
+    # The dimension is passed, not just the rule. `12m` is twelve million
+    # for an amount and twelve periods for a window, and a comparison that
+    # does not know which is being asked reports one of them wrongly.
+    assert same_value(decision.value, case.asserts["value"], rule,
+                      dimension=decision.dimension), (
         f"{case.text!r} -> {decision.value!r}, expected "
         f"{case.asserts['value']!r} (compared as {rule}). {case.note}")
 

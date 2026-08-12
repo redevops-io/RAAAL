@@ -198,7 +198,23 @@ REQUIREMENTS: Mapping[str, Requirement] = {
 }
 
 
-def same_value(one: Any, other: Any, compare_as: str = "TEXT") -> bool:
+#: Dimensions where a trailing `m` counts periods rather than millions.
+#:
+#: `m` is the one genuinely ambiguous magnitude letter. A reader writing `12m`
+#: for an amount means twelve million; writing `12m` for a moving-average
+#: window it means twelve months, and scaling that produced a twelve-million
+#: session window that disagreed with syntax's 12 — a case that had been
+#: answered correctly for months, broken by the fix for `2.5k`.
+#:
+#: `k`, `b` and `bn` are not ambiguous and are scaled everywhere.
+PERIOD_DIMENSIONS = frozenset({
+    "moving_average_window", "evaluation_period", "holding_period",
+    "rebalancing_period", "lookback_window",
+})
+
+
+def same_value(one: Any, other: Any, compare_as: str = "TEXT",
+               dimension: str = "") -> bool:
     """Whether two readers said the same thing, by the schema's own rule.
 
     `Dimension.compare_as` has existed since the first shadow run, for exactly
@@ -241,7 +257,9 @@ def same_value(one: Any, other: Any, compare_as: str = "TEXT") -> bool:
             # a thousand times too small, that this case only caught because
             # the other witness happened to disagree with it. Two readers both
             # writing `2.5k` would have agreed on it and settled.
-            suffix = re.fullmatch(r"\s*([\d.,]+)\s*(k|m|bn?)\s*", raw, re.I)
+            letters = ("k|bn?" if dimension in PERIOD_DIMENSIONS
+                       else "k|m|bn?")
+            suffix = re.fullmatch(rf"\s*([\d.,]+)\s*({letters})\s*", raw, re.I)
             if suffix:
                 scale = {"k": 1_000, "m": 1_000_000,
                          "b": 1_000_000_000, "bn": 1_000_000_000}
@@ -251,15 +269,15 @@ def same_value(one: Any, other: Any, compare_as: str = "TEXT") -> bool:
                 except InvalidOperation:
                     return None
 
-            # Refuse rather than guess when letters were dropped.
+            # The blanket rule that was here — refuse any string containing a
+            # letter — was far too wide. It took out `500 dollars`, `monthly`
+            # rendered numerically, and every unit-carrying value the digit
+            # strip below had always handled, and 131 tests went red at once.
             #
-            # The old fallback deleted every non-digit and trusted what was
-            # left, so any unit or suffix it did not recognise became silently
-            # absent from the value. `None` here reads as "this cannot be
-            # compared as a number", which surfaces as a question — the safe
-            # outcome, and the one a magnitude this code cannot read deserves.
-            if re.search(r"[a-z]", raw, re.I):
-                return None
+            # What actually needed fixing is narrower and is fixed above: a
+            # magnitude suffix must not be silently discarded. An unrecognised
+            # unit still falls through to the digits, which is what it did
+            # before and is a separate question from this one.
             cleaned = re.sub(r"[^\d.]", "", raw)
             try:
                 return Decimal(cleaned) if cleaned else None
@@ -300,7 +318,8 @@ def contradicts(evidence: SyntaxEvidence, proposal: Proposal,
     Magnitude is deliberately unused — the `year end` case scored confidently
     and wrongly, so size is not a signal about correctness.
     """
-    agrees = same_value(evidence.proposed_value, proposal.value, compare_as)
+    agrees = same_value(evidence.proposed_value, proposal.value, compare_as,
+                        dimension=proposal.dimension)
     return (evidence.score < 0) if agrees else (evidence.score > 0)
 
 
@@ -339,7 +358,8 @@ def fuse(dimension: str, *, model: Optional[Proposal] = None,
                 model=derived, syntax=syntax,
                 detail=f"{derived.reader_id} derived it from the sentence's "
                        "structure and the hosted reader did not answer")
-        if not same_value(model.value, derived.value, requirement.compare_as):
+        if not same_value(model.value, derived.value,
+                          requirement.compare_as, dimension=dimension):
             return Decision(
                 dimension=dimension, outcome=Fusion.DISAGREE,
                 material=requirement.material, model=model, syntax=syntax,

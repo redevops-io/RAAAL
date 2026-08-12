@@ -54,20 +54,67 @@ class TestAMagnitudeSuffixIsNotDiscarded:
         assert not same_value("1k", "1m", "NUMBER")
 
 
-class TestUnreadableUnitsRefuseRatherThanGuess:
-    """`None` from the numeric reading surfaces as a question. A unit this code
-    cannot read deserves one; what it does not deserve is to be deleted and the
-    remaining digits trusted."""
+class TestTheAmbiguousLetterIsReadByDimension:
+    """`m` is the one magnitude letter that means two things, and the fix for
+    `2.5k` broke a case that had been answered correctly for months.
 
-    @pytest.mark.parametrize("written", [
-        "500 shares", "3 lakh", "12 units", "40bp",
-    ])
-    def test_an_unrecognised_unit_does_not_become_its_digits(self, written):
+    A reader wrote `12m` for a moving-average window — twelve months — and the
+    new suffix rule scaled it to twelve million, which disagreed with syntax's
+    12 and dropped the case out of the answerable set. The lesson is the one
+    this project keeps relearning: a new literal class collides with its
+    neighbours, so the neighbours get tested.
+    """
+
+    def test_a_window_reads_it_as_periods(self):
+        assert same_value("12m", "12", "NUMBER", "moving_average_window")
+
+    def test_an_amount_reads_it_as_millions(self):
+        assert same_value("12m", "12000000", "NUMBER", "amount")
+        assert not same_value("12m", "12", "NUMBER", "amount")
+
+    def test_the_unambiguous_letters_scale_everywhere(self):
+        """`k`, `b` and `bn` mean one thing wherever they appear, so the
+        dimension does not change them. If it did, a window would be the place
+        `2.5k` silently became 2.5 again."""
+        for dimension in ("amount", "moving_average_window", ""):
+            assert same_value("2.5k", "2500", "NUMBER", dimension), dimension
+            assert not same_value("2.5k", "2.5", "NUMBER", dimension), dimension
+
+    @pytest.mark.parametrize("written", ["12m", "12mo", "6w", "3y"])
+    def test_an_abbreviated_period_keeps_its_count(self, written):
         digits = "".join(c for c in written if c.isdigit())
-        assert not same_value(written, digits, "NUMBER"), (
-            f"{written!r} compared equal to {digits!r}; the unit was deleted "
-            "and what was left was trusted")
+        assert same_value(written, digits, "NUMBER", "moving_average_window")
+
+    def test_a_spelled_out_unit_is_still_the_open_schema_gap(self):
+        """`12 months` does *not* compare equal to `12`, and this test asserts
+        that rather than hiding it.
+
+        The normaliser answers first and reads it as a duration of 360 days,
+        which for a window dimension with no declared unit is one defensible
+        reading of two. Making it equal here would be choosing the unit in the
+        comparison layer, which is the wrong place and the wrong authority —
+        `moving_average_window has no unit` is in docs/Benchmark-Queue.md, and
+        it stays a schema question.
+        """
+        assert not same_value("12 months", "12", "NUMBER",
+                              "moving_average_window")
+
+
+class TestWhatIsAndIsNotGuaranteed:
+    """The scope of the fix, stated so nobody reads more into it.
+
+    Recognised magnitude suffixes are honoured. An unrecognised unit still
+    falls through to its digits, exactly as it always did — `500 shares`
+    compares equal to `500`. That is a separate defect from this one, it is not
+    fixed here, and an attempt to fix it in the same place took out 131 tests:
+    refusing every value containing a letter refuses most of the corpus.
+    """
 
     def test_a_plain_number_is_unaffected(self):
         assert same_value("2500", Decimal(2_500), "NUMBER")
         assert same_value("2,500", "2500", "NUMBER")
+
+    def test_an_unrecognised_unit_still_falls_through_to_its_digits(self):
+        """Recorded rather than asserted as desirable. If this ever changes,
+        it should change deliberately and this test should say so."""
+        assert same_value("500 shares", "500", "NUMBER")
