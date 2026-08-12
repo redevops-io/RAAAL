@@ -115,8 +115,12 @@ class TestTheOpenItemsAreStillOpen:
         # reader to expect. It is an operational blocker like the others — the
         # deployment has not said which provider it serves — rather than a
         # semantic condition failing.
+        # `closure report was produced by` joined when the gate began checking
+        # that its second evidence file came from the same reader as the
+        # first. Operational like the rest: a report needs regenerating, not a
+        # semantic condition failing.
         allowed = ("not the scheduled lane", "days old", "and this build is",
-                   "not declared")
+                   "not declared", "closure report was produced by")
         assert all(any(a in b for a in allowed) for b in gate.blockers), \
             gate.blockers
 

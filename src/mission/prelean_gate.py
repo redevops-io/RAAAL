@@ -249,7 +249,24 @@ def verdict(*, drift_path: Optional[Path] = None,
         closure = json.loads(closure_path.read_text())
         reduced = closure.get("by_state", {}).get("SILENTLY_REDUCED", 0)
         evidence["silently_reduced"] = reduced
-        evidence["closure_witness"] = closure.get("witness")
+        witness = closure.get("witness")
+        evidence["closure_witness"] = witness
+
+        # Checked, not printed. The gate blocks on `silently_reduced` from this
+        # report, so the report is evidence — and it was produced by a reader
+        # the deployment no longer serves: a GPT drift artifact was being
+        # combined with a Claude closure report to reach one verdict. The gate
+        # already refuses a drift artifact whose reader does not match; a
+        # second evidence file feeding the same decision needs the same rule,
+        # or the identity is pinned on whichever input somebody remembered.
+        expected = _current_versions()["hosted_model_id"]
+        if witness != expected:
+            blockers.append(
+                f"the serving closure report was produced by {witness!r} and "
+                f"this build serves with {expected!r}; re-run "
+                "corpus/parser/strategy_closure.py. Two readers' evidence "
+                "reaching one verdict is not one experiment")
+
         if reduced:
             blockers.append(
                 f"{reduced} known unsupported intent(s) still collapse into an "
