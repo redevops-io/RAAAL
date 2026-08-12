@@ -140,3 +140,42 @@ class TestRemovingItReintroducesTheInstability:
         out = fuse("trigger_semantics", model=model, derived=derived)
         assert out.outcome is Fusion.DISAGREE
         assert not out.proceeds
+
+
+class TestTheDocumentDescribesTheReaderThatExists:
+    """`docs/Reader-Authority.md` states the rule this module is an instance
+    of. A document that drifts from the code becomes a claim about a system
+    nobody has, which is the failure `FormalCore.md` was written against."""
+
+    DOC = ROOT / "docs" / "Reader-Authority.md"
+
+    def test_it_names_the_reader_and_its_one_field(self):
+        text = self.DOC.read_text()
+        assert TRIGGER_READER_ID in text
+        for field in AUTHORS:
+            assert field in text
+
+    def test_it_records_both_defects_falsification_found(self):
+        """They are the argument, not decoration. Without them this reads as a
+        design note rather than as a rule with a price attached."""
+        lowered = self.DOC.read_text().lower()
+        assert "negat" in lowered
+        assert "crosses below and stays below" in lowered
+
+    def test_the_four_fusion_rules_it_states_are_the_four_implemented(self):
+        from src.discovery.fusion import Fusion, Proposal, fuse
+
+        model = Proposal("trigger_semantics", "crossing_event", "hosted")
+        derived = Proposal("trigger_semantics", "crossing_event",
+                           TRIGGER_READER_ID)
+        other = Proposal("trigger_semantics", "persistent_condition",
+                         TRIGGER_READER_ID)
+
+        assert fuse("trigger_semantics", model=model,
+                    derived=derived).outcome is Fusion.AGREE
+        assert fuse("trigger_semantics", model=None,
+                    derived=derived).outcome is Fusion.AGREE
+        assert fuse("trigger_semantics", model=model,
+                    derived=other).outcome is not Fusion.AGREE
+        assert fuse("trigger_semantics", model=None,
+                    derived=None).outcome is not Fusion.AGREE
