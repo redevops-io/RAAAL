@@ -1,0 +1,36 @@
+{
+  "schema": "quantify-trigger-falsification@1",
+  "note": "Sentences the TriggerSemanticsReader must decide or must decline. Kept as their own file so the reader's contract is falsifiable independently of the corpora that happen to contain triggers.",
+  "cases": [
+    {
+      "text": "buy VOO when SPY crosses below its 200-day moving average",
+      "expect": "crossing_event",
+      "why": "an explicit transition verb"
+    },
+    {
+      "text": "buy VOO while SPY stays below its 200-day moving average",
+      "expect": "persistent_condition",
+      "why": "a state verb under `while`"
+    },
+    {
+      "text": "buy VOO when SPY crosses below and stays below its 200-day moving average",
+      "expect": null,
+      "why": "both readings are present; picking one is a guess"
+    },
+    {
+      "text": "buy VOO when SPY does not fall below its 200-day moving average",
+      "expect": null,
+      "why": "negation inverts the condition and the reader has no rule for it"
+    },
+    {
+      "text": "buy VOO and sell BND when SPY falls below its 200-day moving average",
+      "expect": "crossing_event",
+      "why": "a coordinated action clause does not change the trigger"
+    },
+    {
+      "text": "buy VOO when QQQ falls below its 200-day moving average",
+      "expect": "crossing_event",
+      "why": "held and observed instruments differ; the trigger is unaffected"
+    }
+  ]
+}

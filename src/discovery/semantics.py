@@ -234,6 +234,13 @@ class DerivationFamily:
 _DYNAMIC = frozenset({"cross", "drop", "fall", "rise", "break", "go", "move",
                       "dip", "climb", "decline"})
 
+#: Verbs that describe *remaining* in a state — the state itself, as opposed
+#: to the change into it. Symmetric with `_DYNAMIC`, and needed because the
+#: copula is not the only way English says a condition persists: "stays below"
+#: and "remains under" are states with no `be` in them, and the persistent
+#: family recognised neither until a falsification case asked it to.
+_STATE = frozenset({"stay", "remain", "sit", "hold", "keep"})
+
 #: Prepositions that mark a comparison against a level. Necessary and never
 #: sufficient: what separates an event from a state is the verb beside them.
 _COMPARISON = frozenset({"below", "under", "above", "beneath", "over"})
@@ -266,6 +273,16 @@ DERIVATIONS: Sequence[DerivationFamily] = (
         value="persistent_condition",
         value_kinds=frozenset({"duration", "moving_average_window"}),
         needs_any_modifier=_COMPARISON, needs_modifiers=frozenset({"be"}),
+        forbids_modifiers=_DYNAMIC),
+    # The same state, said with a verb instead of a copula. Mirrors the
+    # crossing family's shape — the governing verb decides — rather than
+    # widening the copula rule, so "stays below" and "is below" reach the same
+    # reading by the same kind of evidence.
+    DerivationFamily(
+        name="persistent condition by state verb", field="trigger_semantics",
+        value="persistent_condition",
+        value_kinds=frozenset({"duration", "moving_average_window"}),
+        needs_any_modifier=_COMPARISON, needs_target=_STATE,
         forbids_modifiers=_DYNAMIC),
 
     # day_rule — an ordinal on the period noun

@@ -184,7 +184,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "b008e03c71a6646b"
+      "plan": "c9d8eab3baec1f8c"
     },
     "$1,000 into VTI each time it breaks below its 200 day moving average": {
       "text": "$1,000 into VTI each time it breaks below its 200 day moving average",
@@ -201,7 +201,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e125db01ba108e4"
+      "plan": "721de30712f894e5"
     },
     "$1,000 into VTI on every day it stays below the 200-day average": {
       "text": "$1,000 into VTI on every day it stays below the 200-day average",
@@ -217,7 +217,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "3f64c3cfa7c1e782"
+      "plan": "1615baa7556dd0e4"
     },
     "$1,000 monthly, sixty percent VTI, forty percent BND": {
       "text": "$1,000 monthly, sixty percent VTI, forty percent BND",
@@ -252,7 +252,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "67a0ae7379040794"
+      "plan": "40074a5865eede8a"
     },
     "$500/month into VTI": {
       "text": "$500/month into VTI",
@@ -267,7 +267,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "I want to add $500 to VTI every month": {
       "text": "I want to add $500 to VTI every month",
@@ -283,7 +283,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI": {
       "text": "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI",
@@ -299,7 +299,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "Invest $500 monthly into VTI.": {
       "text": "Invest $500 monthly into VTI.",
@@ -315,7 +315,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "a 20% allocation tilted to small-cap value": {
       "text": "a 20% allocation tilted to small-cap value",
@@ -384,7 +384,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "80fb33d20a82aa63"
+      "plan": "1f2052648eda9b97"
     },
     "allocate $1,000 monthly by inverse volatility across VTI and BND": {
       "text": "allocate $1,000 monthly by inverse volatility across VTI and BND",
@@ -525,7 +525,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e125db01ba108e4"
+      "plan": "721de30712f894e5"
     },
     "buy $1,000 of VTI when it crosses below its 200-day moving average": {
       "text": "buy $1,000 of VTI when it crosses below its 200-day moving average",
@@ -543,7 +543,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e125db01ba108e4"
+      "plan": "721de30712f894e5"
     },
     "buy $1,000 of VTI whenever it is below its 200-day moving average": {
       "text": "buy $1,000 of VTI whenever it is below its 200-day moving average",
@@ -561,7 +561,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "3f64c3cfa7c1e782"
+      "plan": "1615baa7556dd0e4"
     },
     "buy $10,000 of VTI, just once": {
       "text": "buy $10,000 of VTI, just once",
@@ -576,7 +576,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "80fb33d20a82aa63"
+      "plan": "1f2052648eda9b97"
     },
     "buy $100 of VTI every week": {
       "text": "buy $100 of VTI every week",
@@ -592,7 +592,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "67a0ae7379040794"
+      "plan": "40074a5865eede8a"
     },
     "buy $500 of VTI each month": {
       "text": "buy $500 of VTI each month",
@@ -608,7 +608,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "buy VTI and BND": {
       "text": "buy VTI and BND",
@@ -622,7 +622,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "ce9b9fa201f3ed9a"
+      "plan": "c4e8a57a4a6cdf34"
     },
     "buy VTI below its 200-day moving average": {
       "text": "buy VTI below its 200-day moving average",
@@ -674,7 +674,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "convert $30,000 from the Roth to the traditional IRA": {
       "text": "convert $30,000 from the Roth to the traditional IRA",
@@ -961,7 +961,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "3f64c3cfa7c1e782"
+      "plan": "1615baa7556dd0e4"
     },
     "invest $1,000 in VTI the day it drops beneath the 200-day average": {
       "text": "invest $1,000 in VTI the day it drops beneath the 200-day average",
@@ -978,7 +978,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "0e125db01ba108e4"
+      "plan": "721de30712f894e5"
     },
     "invest $1,000 monthly into VTI": {
       "text": "invest $1,000 monthly into VTI",
@@ -994,7 +994,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "c33ca0e472f5ad2b"
+      "plan": "e3bf212303b1c2fd"
     },
     "invest $1,000 monthly split equally between BND and VTI": {
       "text": "invest $1,000 monthly split equally between BND and VTI",
@@ -1011,7 +1011,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "b008e03c71a6646b"
+      "plan": "c9d8eab3baec1f8c"
     },
     "invest $1,000 monthly split equally between VTI and BND": {
       "text": "invest $1,000 monthly split equally between VTI and BND",
@@ -1028,7 +1028,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "b008e03c71a6646b"
+      "plan": "c9d8eab3baec1f8c"
     },
     "invest $1,000 monthly, 40% VTI and 60% BND": {
       "text": "invest $1,000 monthly, 40% VTI and 60% BND",
@@ -1102,7 +1102,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "80fb33d20a82aa63"
+      "plan": "1f2052648eda9b97"
     },
     "invest $100 weekly into VTI": {
       "text": "invest $100 weekly into VTI",
@@ -1118,7 +1118,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "67a0ae7379040794"
+      "plan": "40074a5865eede8a"
     },
     "invest $1k monthly into VTI": {
       "text": "invest $1k monthly into VTI",
@@ -1154,7 +1154,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "5646db990f331952"
+      "plan": "abdabbcbc9c95697"
     },
     "invest $500 monthly into VTI": {
       "text": "invest $500 monthly into VTI",
@@ -1170,7 +1170,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "invest $500 weekly into VTI": {
       "text": "invest $500 weekly into VTI",
@@ -1186,7 +1186,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "3327ba5a9b0dbdef"
+      "plan": "0de2456c291d9015"
     },
     "keep bonds in my IRA, equities in taxable": {
       "text": "keep bonds in my IRA, equities in taxable",
@@ -1234,7 +1234,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "b008e03c71a6646b"
+      "plan": "c9d8eab3baec1f8c"
     },
     "monthly $1,000 weighted 60/40 across VTI and BND": {
       "text": "monthly $1,000 weighted 60/40 across VTI and BND",
@@ -1269,7 +1269,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "monthly, buy the better performer of VTI or BND": {
       "text": "monthly, buy the better performer of VTI or BND",
@@ -1352,7 +1352,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "80fb33d20a82aa63"
+      "plan": "1f2052648eda9b97"
     },
     "overweight small cap value by 20%": {
       "text": "overweight small cap value by 20%",
@@ -1408,7 +1408,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "b008e03c71a6646b"
+      "plan": "c9d8eab3baec1f8c"
     },
     "put $10,000 into VTI as a lump sum": {
       "text": "put $10,000 into VTI as a lump sum",
@@ -1424,7 +1424,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "80fb33d20a82aa63"
+      "plan": "1f2052648eda9b97"
     },
     "put $100 a week into VTI": {
       "text": "put $100 a week into VTI",
@@ -1440,7 +1440,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "67a0ae7379040794"
+      "plan": "40074a5865eede8a"
     },
     "put $500 into VTI every month": {
       "text": "put $500 into VTI every month",
@@ -1456,7 +1456,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "put a grand into VTI on the day it falls through its 200-day average": {
       "text": "put a grand into VTI on the day it falls through its 200-day average",
@@ -1721,7 +1721,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "003a686d55706f25"
+      "plan": "797a965278ec41bc"
     },
     "shift 1% from stocks to bonds every year as I get older": {
       "text": "shift 1% from stocks to bonds every year as I get older",
@@ -1908,7 +1908,7 @@
       "needs_input": [],
       "sealed": true,
       "executable": true,
-      "plan": "67a0ae7379040794"
+      "plan": "40074a5865eede8a"
     },
     "whenever VTI crosses under the 200 DMA, invest $1,000": {
       "text": "whenever VTI crosses under the 200 DMA, invest $1,000",

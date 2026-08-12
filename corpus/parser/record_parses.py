@@ -54,6 +54,14 @@ def main(languages: list) -> int:
     if suite.exists():
         extra += [(p, "en") for p in _json.loads(suite.read_text())["prompts"]]
 
+    # The trigger falsification set. The TriggerSemanticsReader authors a
+    # contract field, so the sentences that prove it decides — and the ones
+    # that prove it declines — need parses like any other measured tier.
+    falsification = Path(__file__).resolve().parent / "trigger_falsification.json"
+    if falsification.exists():
+        extra += [(c["text"], "en")
+                  for c in _json.loads(falsification.read_text())["cases"]]
+
     # The harvested corpus. Same reason again: a sentence the fused path is
     # measured on needs a parse, or the measurement quietly falls back to one
     # witness and reports a single-reader result as though it were fused.
