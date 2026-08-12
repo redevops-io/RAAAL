@@ -58,17 +58,6 @@ class TestThePageOffersIt:
         for case in offered():
             assert case.key in page, f"{case.key!r} is offered and unreachable"
 
-    def test_the_refused_list_is_shown_with_its_reasons(self, pilot_client):
-        """Somebody looking for momentum has to find it here. Finding nothing
-        is what sends them off to write a paragraph that gets refused."""
-        page = pilot_client.get("/workspace/new").text
-        assert "Momentum" in page
-        assert "Relative value" in page
-        # The engine's own words, not a paraphrase written into the template.
-        from src.mission.capability import MANIFEST
-
-        assert MANIFEST["selection_rule"].why[:40] in page
-
     def test_it_survives_onto_the_result_page(self, pilot_client):
         """Rendered from a template global rather than threaded through six
         contexts, so a page that reads a sentence still offers the list. The

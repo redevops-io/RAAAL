@@ -61,18 +61,6 @@
   })();
 </script>
 
-<details class="quiet">
-  <summary>Strategies this build will not run</summary>
-  {# Listed rather than omitted. Somebody looking for momentum should find it
-     here and read why, instead of not finding it, writing a paragraph, and
-     meeting the refusal three screens later. Each reason is the engine's own
-     words, read from the capability manifest at render time. #}
-  <dl>
-    {% for heading, reason in unsupported_strategies() %}
-      <dt>{{ heading }}</dt><dd>{{ reason }}</dd>
-    {% endfor %}
-  </dl>
-</details>
 
 {% if unavailable %}
   {# A refusal, not a degraded reading. The deployment declares one

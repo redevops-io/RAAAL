@@ -1,4 +1,4 @@
-"""Well-formed statements to pick from, and the ones this build will not take.
+"""Well-formed statements to pick from and edit.
 
 The harvest found that real strategy statements routinely omit what to buy —
 "I contribute $750/month to my 401k" is a complete thought to the person writing
@@ -17,15 +17,13 @@ claim of support, and worse than the user typing the same sentence unprompted,
 because we suggested it. `tests/test_strategy_library.py` runs every offered
 entry through the whole pipeline and fails if one does not produce a plan.
 
-**Everything refused is shown, with the engine's reason.** The obvious
-catalogue for this domain is momentum, value, relative value — and this build
-models none of them: ranking holdings is `selection_rule`, which is not
-modelled, and a short leg is `sell_action`, which is refused. Leaving them out
-would send somebody looking for momentum away to type it themselves and meet
-the refusal three screens later, having invested a paragraph in it. They are
-listed here, unselectable, carrying the manifest's own words — and the list is
-derived from the manifest, not written out beside it, so it cannot drift into
-describing a boundary the engine has moved.
+**Nothing here advertises what the engine cannot do.** A list of refused
+strategies was rendered beside this one for exactly one revision. It was the
+wrong answer to a real problem: the fix for "this build cannot evaluate
+momentum" is to evaluate momentum, not to explain the gap more clearly. A
+sentence the engine will not run is still refused by name when somebody writes
+it, which is where the boundary belongs — at the point of the request, not as a
+standing advertisement of absence.
 """
 from __future__ import annotations
 
@@ -132,72 +130,6 @@ LIBRARY: Tuple[Group, ...] = (
         ),
     ),
 )
-
-
-#: Concepts a catalogue in this domain would obviously carry, mapped to the
-#: manifest dimension that decides them. The heading is ours — somebody looking
-#: for "momentum" is not looking for `selection_rule` — and the reason shown
-#: beside it is the engine's, read at render time.
-#:
-#: This is a mapping to dimension *names*, not to sentences. A hand-written
-#: explanation here would be a second account of the boundary, and the two
-#: would part company the first time the engine gained a capability.
-#:
-#: `dimension:value` where the boundary is inside a dimension the engine
-#: otherwise executes. `allocation_method` is the case that forced this: it
-#: *is* executed — equally, at purchase — and refuses risk parity as one of its
-#: values. Mapping the heading at the dimension would have told users the
-#: engine cannot allocate, which is both wrong and the opposite of the mistake
-#: this list exists to prevent.
-UNSUPPORTED: Mapping[str, str] = {
-    "Momentum — buying what has been rising": "selection_rule",
-    "Value — buying what screens as cheap": "selection_rule",
-    "Relative value — long one holding, short another": "sell_action",
-    "A stated split, such as 60/40": "stated_weights",
-    "Rebalancing back to target weights": "periodic_rebalancing",
-    "Selling, withdrawing or taking profits": "sell_action",
-    "Whether you could retire or live off this": "objective:assess_withdrawal",
-    "Paying down a debt instead of investing": "objective:assess_debt_repayment",
-    "Holding for a set period, then exiting": "holding_period",
-    "Risk parity or volatility targeting": "allocation_method:risk_parity",
-    "Contributing more when the signal is stronger": "conditional_amount",
-    "Choosing which account each holding sits in": "asset_location",
-    "Anything whose answer depends on tax": "tax_treatment",
-    "Restricting the run to a stated window": "evaluation_period",
-}
-
-
-def _reason(name: str) -> Tuple[str, str]:
-    """Resolve `dimension` or `dimension:value` to the engine's own words."""
-    from ..mission.capability import MANIFEST
-
-    dimension_name, _, value = name.partition(":")
-    dimension = MANIFEST.get(dimension_name)
-    if dimension is None:
-        raise KeyError(
-            f"{name!r} names {dimension_name!r}, which the capability manifest "
-            "does not have; the reason shown to a user would be missing and "
-            "nothing else would notice")
-    if value:
-        if value not in dimension.refuses:
-            raise KeyError(
-                f"{name!r} names a value {dimension_name!r} does not refuse; "
-                "the heading would claim a boundary the engine has moved")
-        return dimension_name, dimension.refuses[value]
-    return dimension_name, (dimension.why
-                            or next(iter(dimension.refuses.values()), ""))
-
-
-def unsupported() -> Tuple[Tuple[str, str], ...]:
-    """The refused catalogue, with each reason read from the manifest.
-
-    Raises if a heading names a dimension the manifest does not have. A silent
-    skip would let this list decay into headings with no reason behind them,
-    which is the failure the derivation was meant to prevent — and it would
-    decay invisibly, because a missing entry renders as nothing at all.
-    """
-    return tuple((heading, _reason(name)[1])
-                 for heading, name in UNSUPPORTED.items())
 
 
 def entry(key: str) -> Optional[Entry]:

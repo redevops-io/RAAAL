@@ -110,8 +110,6 @@ TEMPLATES.env.globals["source_url"] = lambda: __import__(
 TEMPLATES.env.globals["strategy_library"] = lambda: __import__(
     "src.workspace.strategy_library",
     fromlist=["LIBRARY"]).LIBRARY
-TEMPLATES.env.globals["unsupported_strategies"] = lambda: __import__(
-    "src.workspace.strategy_library", fromlist=["unsupported"]).unsupported()
 
 PRICES = Path("data/history/prices.parquet")
 BENCHMARK_RULE = "benchmark-policy/public-default@1"

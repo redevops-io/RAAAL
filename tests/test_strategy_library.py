@@ -16,8 +16,7 @@ from __future__ import annotations
 import pytest
 
 from src.workspace.strategy_library import (EDITED, LIBRARY, PICKED, TYPED,
-                                            UNSUPPORTED, entry, offered,
-                                            origin_of, unsupported)
+                                            entry, offered, origin_of)
 
 
 def readers() -> list:
@@ -99,66 +98,6 @@ class TestEverythingOfferedRuns:
             "to a runnable "
             "plan")
         assert reading.compiled is not None
-
-
-def heading_for(name: str) -> str:
-    return next(h for h, n in UNSUPPORTED.items() if n == name)
-
-
-class TestTheRefusedListStaysTiedToTheEngine:
-    def test_every_heading_names_a_real_dimension(self):
-        """`unsupported()` raises rather than skipping, so this is the test
-        that a heading pointing at a renamed dimension is caught here and not
-        by a user reading a blank reason."""
-        assert len(unsupported()) == len(UNSUPPORTED)
-
-    def test_every_reason_is_the_engines_own_words(self):
-        """Not paraphrased into the catalogue. The refusal a user reads has to
-        be the one the engine would give, or the selector becomes a second
-        account of the boundary that drifts from the first."""
-        from src.mission.capability import MANIFEST
-
-        for heading, reason in unsupported():
-            assert reason, f"{heading!r} shows an empty reason"
-            name = UNSUPPORTED[heading].partition(":")[0]
-            dimension = MANIFEST[name]
-            assert reason in (dimension.why,
-                              *dimension.refuses.values()), heading
-
-    def test_nothing_refused_is_also_offered(self):
-        """The contradiction that would matter most. If a dimension is listed
-        as unsupported and an offered sentence settles it, one of the two is
-        lying to the user."""
-        from src.mission.capability import MANIFEST
-
-        for name in set(UNSUPPORTED.values()):
-            dimension_name, _, value = name.partition(":")
-            dimension = MANIFEST[dimension_name]
-            if value:
-                # A boundary inside an executed dimension. The claim is
-                # narrower — this *value* is refused — and that is what gets
-                # checked, or the heading could name any value it liked.
-                assert value in dimension.refuses, (
-                    f"{heading_for(name)!r} says {value!r} is refused and the "
-                    f"manifest does not refuse it")
-                continue
-            assert dimension.support != "EXECUTED", (
-                f"{name!r} is shown to users as not supported and the "
-                "manifest says it executes; the catalogue is understating "
-                "what the engine does")
-
-    def test_the_headings_are_in_a_users_words(self):
-        """Somebody looking for momentum searches for "momentum", not for
-        `selection_rule`. Internal vocabulary in this list would make the
-        entries unfindable by the people they exist for."""
-        from src.discovery.schema import QUANTIFY_SCHEMA
-
-        names = {d.name for d in QUANTIFY_SCHEMA.dimensions}
-        for heading in UNSUPPORTED:
-            words = set(heading.lower().replace("—", " ").split())
-            assert not (words & names), (
-                f"{heading!r} uses schema vocabulary; the internal name is "
-                "already carried in the mapping's value")
 
 
 class TestTheCatalogueIsWellFormed:
