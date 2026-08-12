@@ -277,6 +277,7 @@ def contradicts(evidence: SyntaxEvidence, proposal: Proposal,
 
 def fuse(dimension: str, *, model: Optional[Proposal] = None,
          syntax: Sequence[SyntaxEvidence] = (),
+         derived: Optional[Proposal] = None,
          requirement: Optional[Requirement] = None,
          bound: bool = False,
          available: Sequence[str] = ()) -> Decision:
@@ -295,6 +296,32 @@ def fuse(dimension: str, *, model: Optional[Proposal] = None,
     """
     requirement = requirement or REQUIREMENTS.get(dimension, Requirement())
     syntax = tuple(syntax)
+
+    # A derived reader is a reader. Its claim is weighed against the model's by
+    # the ordinary rules — agreement settles, disagreement asks — and neither
+    # wins by being what it is. That is what "no privileged reader" means: a
+    # source type does not decide a disagreement, not that a material fact
+    # needs two witnesses before it may exist.
+    if derived is not None:
+        if model is None:
+            return Decision(
+                dimension=dimension, outcome=Fusion.AGREE,
+                value=derived.value, material=requirement.material,
+                model=derived, syntax=syntax,
+                detail=f"{derived.reader_id} derived it from the sentence's "
+                       "structure and the hosted reader did not answer")
+        if not same_value(model.value, derived.value, requirement.compare_as):
+            return Decision(
+                dimension=dimension, outcome=Fusion.DISAGREE,
+                material=requirement.material, model=model, syntax=syntax,
+                detail=f"the hosted reader read {model.value!r} and "
+                       f"{derived.reader_id} derived {derived.value!r} from "
+                       "the structure. Two readers, two answers, and the "
+                       "difference changes how often the strategy fires")
+        return Decision(
+            dimension=dimension, outcome=Fusion.AGREE, value=model.value,
+            material=requirement.material, model=model, syntax=syntax,
+            detail=f"the hosted reader and {derived.reader_id} agree")
 
     ambiguous = _ambiguity(dimension, model, syntax, available)
     if ambiguous is not None:

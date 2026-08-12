@@ -62,10 +62,20 @@ def _drift(tmp_path, versions, *, unsafe=(), draws=3, age_days=0,
     return path
 
 
-def _closure(tmp_path, *, reduced=0):
+def _closure(tmp_path, *, reduced=0, witness=None):
+    """The witness defaults to the reader this deployment serves with.
+
+    It was the literal `claude-sonnet-5@1`, which made every test here assert
+    that a gate fed a *Claude* closure report opens — and it did, because the
+    gate printed that field without checking it. Once the gate started
+    comparing, these fixtures were the first thing to fail, correctly: they
+    described an experiment run by two different readers.
+    """
+    from src.mission.prelean_gate import _current_versions
+
     path = tmp_path / "closure.json"
     path.write_text(json.dumps({
-        "witness": "claude-sonnet-5@1",
+        "witness": witness or _current_versions()["hosted_model_id"],
         "by_state": {"REFUSED": 30, "SILENTLY_REDUCED": reduced}}))
     return path
 
@@ -525,3 +535,30 @@ class TestTheGateKnowsWhichReaderItIsCheckingFor:
         path = _drift(tmp_path, versions)
         out = verdict(drift_path=path, require_ci=True)
         assert not any("not declared" in b for b in out.blockers), out.blockers
+
+
+
+class TestTheClosureReportIsCheckedNotJustPrinted:
+    """The gate blocks on `silently_reduced` from the closure report, which
+    makes that report evidence — and it was being combined with a drift
+    artifact from a different reader to reach one verdict."""
+
+    def test_a_closure_report_from_another_reader_blocks(self, tmp_path,
+                                                         versions):
+        from src.mission.prelean_gate import verdict
+
+        out = verdict(drift_path=_drift(tmp_path, versions),
+                      closure_path=_closure(tmp_path,
+                                            witness="some-other-reader@1"),
+                      require_ci=True)
+        assert not out.open
+        assert any("closure report was produced by" in b
+                   for b in out.blockers), out.blockers
+
+    def test_and_one_from_the_serving_reader_does_not(self, tmp_path, versions):
+        from src.mission.prelean_gate import verdict
+
+        out = verdict(drift_path=_drift(tmp_path, versions),
+                      closure_path=_closure(tmp_path), require_ci=True)
+        assert not any("closure report was produced by" in b
+                       for b in out.blockers), out.blockers

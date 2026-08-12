@@ -121,11 +121,26 @@ def read(text: str, parse: Parse, model_reading: ReadingSet, schema: Schema,
     fields = sorted((set(model_by_field)
                      | {c.field for c in candidates if c.is_contract_field}))
 
+    # Deterministic readers derive their one field from the same candidates.
+    # They are added to `fields` so a sentence whose structure states the
+    # answer is decided even when the hosted reader omitted the dimension —
+    # which is the case the drift lane found, three draws in five.
+    from .derived_readers import DERIVED_READERS
+
+    derived_by_field = {}
+    for _reader_id, derive in DERIVED_READERS:
+        found = derive(candidates, parse)
+        if found is not None:
+            derived_by_field[found.dimension] = found
+
+    fields = sorted(set(fields) | set(derived_by_field))
+
     decisions = []
     for name in fields:
         proposal = model_by_field.get(name)
         supporting = [as_evidence(c) for c in candidates if c.field == name]
         decisions.append(fuse(name, model=proposal, syntax=supporting,
+                              derived=derived_by_field.get(name),
                               available=fields))
 
     return Read(text=text, values=values, bindings=bindings,

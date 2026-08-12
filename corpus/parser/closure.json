@@ -330,7 +330,7 @@
       "text": "when SPY crosses below its 200-day average",
       "language": "en",
       "state": "AGREE",
-      "reason": "syntax supports the reading",
+      "reason": "the hosted reader and quantify-trigger-semantics@1 agree",
       "field": "trigger_semantics",
       "witnesses": [
         "model",
@@ -347,7 +347,7 @@
       "text": "whenever SPY drops under the 200-day",
       "language": "en",
       "state": "DISAGREE",
-      "reason": "the model read 'persistent_condition'; syntax argues otherwise ('crossing_event' scored +1). Not resolved by score: a parser can be confident and wrong",
+      "reason": "the hosted reader read 'persistent_condition' and quantify-trigger-semantics@1 derived 'crossing_event' from the structure. Two readers, two answers, and the difference changes how often the strategy fires",
       "field": "trigger_semantics",
       "witnesses": [
         "model",
@@ -396,7 +396,7 @@
       "text": "buy any time SPY is below the 200-day average",
       "language": "en",
       "state": "AGREE",
-      "reason": "syntax supports the reading",
+      "reason": "the hosted reader and quantify-trigger-semantics@1 agree",
       "field": "trigger_semantics",
       "witnesses": [
         "model",

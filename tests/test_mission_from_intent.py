@@ -341,3 +341,46 @@ class TestTheTwoLayersAgreeOnWhatASetMemberIs:
                                      default=str).encode()).hexdigest()
 
         assert digest("VTI and BND") == digest("BND and VTI")
+
+
+class TestExecutionIdentityIsNotOrthography:
+    """`VerifiedIntent` keeps what was said and `canonical_form()` keeps what
+    the plan holds. Plan identity is a third thing, and the live drift lane
+    found the last place it was still coupled to spelling."""
+
+    def _digest(self, assets):
+        import json
+        from hashlib import sha256
+
+        out = compile_intent(intent(assets=assets), benchmark_rule=RULE)
+        return sha256(json.dumps(out.scenario.execution_form(), sort_keys=True,
+                                 default=str).encode()).hexdigest()
+
+    def test_a_leading_article_does_not_change_the_plan(self):
+        """The blocker, measured in CI: a serving reader returned
+        `"the index fund"` on four draws of one sentence and `"index fund"` on
+        the fifth, and the two compiled to different plan digests. Same money,
+        same instrument, two identities — which the gate correctly called
+        `UNSTABLE_EXECUTABLE`, because by its definition a draw had changed
+        what executes."""
+        assert self._digest("the index fund") == self._digest("index fund")
+
+    def test_a_resolved_phrase_collapses_to_the_registry_subject(self):
+        """`S&P 500` and `the S&P` are one subject because the resolver says
+        so, not because a rule here strips words."""
+        assert self._digest("S&P 500") == self._digest("the S&P")
+
+    def test_but_different_holdings_are_still_different_plans(self):
+        """The discriminating half. A canonicaliser that made everything equal
+        would pass the tests above and destroy the property they exist for."""
+        assert self._digest("VTI") != self._digest("BND")
+
+    def test_and_the_plan_still_holds_what_was_written(self):
+        """The seam this was first implemented in by mistake.
+        `canonical_form()` is consumed as data — `representation.py` and
+        `to_json()` read it — so canonicalising there turned `SPY` into `spy`,
+        the engine found no prices, and sixteen tests failed on absent
+        signals."""
+        out = compile_intent(intent(assets="SPY"), benchmark_rule=RULE)
+        held = out.scenario.canonical_form()["methodology"]["allocation_rule"]
+        assert held["assets"] == ["SPY"]

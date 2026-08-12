@@ -1,0 +1,97 @@
+# Authority is earned per semantic claim, not per parser
+
+Stanza is not authoritative. The hosted model is not authoritative. Even
+`quantify-trigger-semantics@1` is not *generally* authoritative.
+
+A deterministic derivation may author a contract field only inside the grammar
+its contract recognises and its falsification suite constrains. Outside that
+envelope it returns no claim at all.
+
+This is the rule that stops a narrow reader becoming a compiler one field at a
+time, which is how `quantify-compiler@2` happened and why deleting it took
+months.
+
+## What "no privileged reader" does and does not mean
+
+    it means      provenance does not settle a disagreement
+    it does not   every material fact needs two witnesses to exist
+
+The second reading is the tempting one and it is wrong in an expensive way. If
+a field may only be settled when two independent readers speak, then stochastic
+model participation becomes *mandatory* for understanding sentences whose
+grammar states the answer outright — and the product asks a follow-up question
+every time a provider happens to omit a dimension.
+
+That is not hypothetical. The live drift lane measured "buy VOO when SPY falls
+below its 200-day moving average" executing on two draws of five and asking on
+the other three, purely because the hosted reader emits `trigger_semantics`
+inconsistently. Neither obvious response was acceptable:
+
+- **Always ask.** Converges, and turns a supported journey into a follow-up on
+  every event-triggered sentence. Nineteen tests failed when it was tried.
+- **Let syntax carry the field.** Converges, and makes the parser an authority
+  on meaning.
+
+The third way is to name the thing in between: a reader with an id, a version,
+a contract naming exactly one field, and a falsification suite that says where
+it must stay silent.
+
+## Deterministic is not the same as authoritative
+
+The falsification suite is what converts a derivation into a reader, and it
+earned that role immediately by finding two defects worse than the feature.
+
+**Negation.** `"buy VOO when SPY does not fall below its 200-day moving
+average"` derived `crossing_event`. A dynamic verb and a comparison
+preposition were both present and nothing looked at `not`.
+
+That defect had existed for as long as the derivation had, and it was
+*harmless* — because the derivation was evidence, and evidence never carried a
+field. Promoting the same rule to authority would have converted a latent
+evidence bug into an authoritative inverted trigger: the plan fires on exactly
+the condition the sentence excludes.
+
+> A derivation's defects are bounded by its authority. Granting authority
+> retroactively promotes every one of them.
+
+**Hidden candidates.** `"crosses below and stays below"` was supposed to be
+caught by two readings disagreeing. It was not. The level binds to one
+governing verb, so exactly one family fires and a sentence carrying both
+readings arrives looking unanimous.
+
+> Candidate agreement is insufficient when the extraction can hide a candidate.
+
+The check moved to the parse, which is the only place both verbs are visible.
+
+## The contract this reader holds
+
+    id            quantify-trigger-semantics@1
+    authors       trigger_semantics, and nothing else
+    speaks when   the grammar states a transition or a state, unambiguously
+    declines when both readings appear, the clause is negated, or neither fires
+
+Fusion then weighs its claim against the hosted reader's by the ordinary rules:
+
+    both agree                     settle
+    derived speaks, model silent   settle
+    both speak and disagree        ask
+    neither speaks                 ask
+
+The restriction to one field is asserted from the AST rather than remembered,
+and the id is versioned because a derivation whose rules changed under a fixed
+id would make two runs look comparable when they are not.
+
+## Adding another one
+
+The same shape generalises — `from IRA → to Roth` could feed an
+`AccountTransitionReader` while generic parser output stays evidence. The bar
+is the falsification suite, not the plausibility of the rules:
+
+1. Name the single field it may author, and assert it structurally.
+2. Write the cases where it must **decline** before the ones where it decides.
+   A falsification set in which everything resolves proves the reader answers,
+   not that it knows when not to.
+3. Include negation, coordination, and any construction where the extraction
+   could hide a competing reading.
+4. Prove that deleting the reader reintroduces the instability it was added
+   for. A reader that changes nothing when removed is one nothing depends on.
