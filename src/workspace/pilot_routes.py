@@ -60,18 +60,11 @@ def configured_reader():
 
         return RecordedHostedReader()
 
-    from ..deploy.context import PROVIDER_DEFAULT_MODEL, ParserProvider
-    from ..discovery.readers_quantify import HostedReader, OpenAIReader
+    from ..discovery.readers_quantify import configured_hosted_reader
 
-    # Dispatch on the declared provider, with the model defaulting per
-    # provider. Naming the class from the *model string* would have been
-    # shorter and wrong: `gpt-4.1` and `claude-sonnet-5` are values a
-    # deployment sets, and inferring a transport from them means a typo picks a
-    # provider instead of failing.
-    reader = (OpenAIReader if model.provider is ParserProvider.OPENAI
-              else HostedReader)
-    return reader(model=model.model or PROVIDER_DEFAULT_MODEL[model.provider],
-                  max_tokens=model.max_tokens)
+    # One selector, shared. This logic lived here, in the recorder and in the
+    # gate, and a fourth place that needed it never got it.
+    return configured_hosted_reader()
 
 
 def _declared_profile():

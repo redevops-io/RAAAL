@@ -195,7 +195,7 @@ def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
     """
     sys.path.insert(0, str(HERE.parent.parent))
 
-    from src.discovery.readers_quantify import HostedReader
+    from src.discovery.readers_quantify import configured_hosted_reader
     from src.discovery.schema import QUANTIFY_SCHEMA
     from src.discovery.syntax_stanza import StanzaReader
     from src.discovery.witnesses import BOTH
@@ -204,7 +204,7 @@ def run(draws: int = 3, escalate_to: int = 5, texts=None) -> dict:
     cases = json.loads(CASES.read_text())["cases"]
     supported = {c["text"]: c["must_be"] == "RECOGNISED" for c in cases}
     texts = texts or [c["text"] for c in cases]
-    model = HostedReader()
+    model = configured_hosted_reader()
     if not model.available():
         raise SystemExit(f"{model.api_key_env} is not set; this lane calls the "
                          "provider by design and cannot run without it")

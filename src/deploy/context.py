@@ -175,6 +175,7 @@ def _model_target(source: Mapping[str, str]) -> "ModelTarget":
         provider = ParserProvider.ANTHROPIC
     return ModelTarget(
         provider=provider,
+        provider_declared=bool(raw_provider),
         _api_key=source.get(PROVIDER_KEY_VARS[provider]),
         model=source.get("QUANTIFY_PARSER_MODEL"),
         mode=mode, fallback=fallback, declared=bool(raw_mode),
@@ -310,6 +311,16 @@ class ModelTarget:
     """Which provider hosts the reader. The credential variable and the default
     model follow from it, so a deployment names one thing rather than three
     that can disagree."""
+
+    provider_declared: bool = False
+    """Whether anybody actually said so.
+
+    The same distinction `declared` makes for `mode`, and it exists because the
+    fallback is silent. The pre-Lean gate compares an artifact's reader against
+    the configured one — but with nothing declared it configured *a default*,
+    so running the gate locally checked the artifact against `claude-sonnet-5`
+    while CI checked it against `gpt-4.1`. Two verdicts about the same file,
+    differing by an environment variable nobody set."""
     model: Optional[str] = None
     mode: "ParserMode" = ParserMode.DETERMINISTIC
     fallback: "ParserFallback" = ParserFallback.REFUSE
