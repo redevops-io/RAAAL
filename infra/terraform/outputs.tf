@@ -54,7 +54,7 @@ output "ansible_variables" {
     quantify_region                = var.region
     quantify_instance_id           = aws_instance.app.id
     quantify_database_host         = aws_db_instance.main.address
-    quantify_image                 = var.application_image
+    quantify_image                 = local.application_image
     quantify_registry_host         = var.registry_host
     quantify_domain                = var.domain_name
     quantify_data_policy           = var.pilot_data_policy

@@ -76,19 +76,30 @@ variable "root_volume_gb" {
 
 variable "application_image" {
   description = <<-EOT
-    The application image, pinned by digest.
+    Optional override for the application image, pinned by digest.
 
-    A tag is a moving target: `:latest` resolves to whatever was pushed last,
-    so the acceptance record would name a configuration that no longer
-    describes what is running. The build identity the preflight refuses to
-    start without is only meaningful if the image it describes is fixed.
+    Normally empty. The image is resolved from `build_commit` — see
+    `image.tf` — because supplying it separately is how a deployment comes to
+    run one revision while declaring another.
+
+    Left here for the case the resolution cannot serve: an image pushed under
+    no commit tag, or a rollback to something the tag no longer points at.
+    Overriding means asserting by hand that this image is that commit, and
+    nothing can check it for you.
   EOT
   type        = string
+  default     = ""
 
   validation {
-    condition     = can(regex("@sha256:[0-9a-f]{64}$", var.application_image))
+    condition     = var.application_image == "" || can(regex("@sha256:[0-9a-f]{64}$", var.application_image))
     error_message = "Pin the image by digest: registry/name@sha256:<64 hex>. A tag is not a deployment identity."
   }
+}
+
+variable "ecr_repository" {
+  description = "ECR repository holding the application image."
+  type        = string
+  default     = "quantify"
 }
 
 variable "registry_host" {

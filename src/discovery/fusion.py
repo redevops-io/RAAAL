@@ -231,6 +231,35 @@ def same_value(one: Any, other: Any, compare_as: str = "TEXT") -> bool:
                 if value.kind in ("money", "duration", "percentage",
                                   "moving_average_window"):
                     return Decimal(str(value.canonical))
+
+            # A bare magnitude suffix, with no currency symbol in front of it.
+            #
+            # The normaliser knows `£2.5k`; it does not know `2.5k`, and a
+            # reader that returns the amount without the currency — which
+            # gpt-5.4 does — landed on the fallback below, which stripped the
+            # `k` and produced 2.5. Not a failure to compare: a *wrong number*,
+            # a thousand times too small, that this case only caught because
+            # the other witness happened to disagree with it. Two readers both
+            # writing `2.5k` would have agreed on it and settled.
+            suffix = re.fullmatch(r"\s*([\d.,]+)\s*(k|m|bn?)\s*", raw, re.I)
+            if suffix:
+                scale = {"k": 1_000, "m": 1_000_000,
+                         "b": 1_000_000_000, "bn": 1_000_000_000}
+                try:
+                    return (Decimal(suffix.group(1).replace(",", ""))
+                            * scale[suffix.group(2).lower()])
+                except InvalidOperation:
+                    return None
+
+            # Refuse rather than guess when letters were dropped.
+            #
+            # The old fallback deleted every non-digit and trusted what was
+            # left, so any unit or suffix it did not recognise became silently
+            # absent from the value. `None` here reads as "this cannot be
+            # compared as a number", which surfaces as a question — the safe
+            # outcome, and the one a magnitude this code cannot read deserves.
+            if re.search(r"[a-z]", raw, re.I):
+                return None
             cleaned = re.sub(r"[^\d.]", "", raw)
             try:
                 return Decimal(cleaned) if cleaned else None

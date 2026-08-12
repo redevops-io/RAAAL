@@ -355,6 +355,42 @@
       The running deployment does not report the commit this playbook
       deployed, or did not reach READY. Something else is serving on this host.
 
+# What the container is, asked of Docker rather than of the deployment.
+#
+# The assertion above compares the startup proof against
+# `quantify_build_commit`, and the proof takes its commit from that same
+# variable by way of the environment file. It is the deployment agreeing with
+# itself, and it passed on 2026-08-12 while the host ran an image from an
+# earlier build: `application_image` had drifted from `build_commit`, so the
+# container reported a revision whose code it was not running.
+#
+# Docker is the independent witness. It knows which bytes it started, and it
+# has no opinion about which commit anybody intended.
+- name: Read the image the container is actually running
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker inspect --format '{{ '{{' }}.Image{{ '}}' }}' quantify-api-1 2>/dev/null \
+      || docker compose -f /opt/quantify/docker-compose.yml images -q api
+    echo "---"
+    docker image inspect --format '{{ '{{' }}index .RepoDigests 0{{ '}}' }}' \
+      "{{ quantify_image }}"
+  args:
+    executable: /bin/bash
+  become: true
+  register: running_image
+  changed_when: false
+  failed_when: false
+
+- name: Confirm the running container is the planned image
+  ansible.builtin.assert:
+    that:
+      - quantify_image.split('@')[1] in running_image.stdout
+    fail_msg: >-
+      The container is not running {{ quantify_image.split('@')[1] }}. The
+      deployment declares a commit whose image is not what started, which is
+      how a service comes to serve one revision and report another.
+    success_msg: "running the planned image {{ quantify_image.split('@')[1][:19] }}"
+
 # The parser is checked separately because the startup proof does not carry
 # it. The proof reports build, database and result — asserting a parser mode
 # against it failed against a deployment that was configured correctly, which
