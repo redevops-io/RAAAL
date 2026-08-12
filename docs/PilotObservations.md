@@ -335,3 +335,50 @@ Neither is a defect in the emitter. Both come from counting form submissions
 and calling them answers, which is why this was settled as a definition rather
 than patched — and why the metric now means the same thing regardless of which
 buttons somebody presses.
+
+
+## The seven questions, audited before the cohort rather than after
+
+Instrumentation added later cannot describe what already happened, so each
+question was checked against what is actually recorded. Three were not
+answerable and they differed in kind.
+
+| question | answerable from |
+|---|---|
+| which dimensions most often cause clarification | `asked_by_dimension` |
+| how many questions before a seal | `intent_sealed.questions_before_sealing` |
+| which questions changed the execution identity | **added**: `intent_sealed.execution_identity` |
+| which answers Discovery could have derived | `answer_was_already_in_the_prompt` (a proxy) |
+| which material facts were never asked about | `never_asked_by_dimension` |
+| abandonment after a clarification | **derived**: asked, never sealed |
+| whether phrasings differ in burden | **not from telemetry** — see below |
+
+**The one real gap was the third.** The ledger could say how many questions
+were asked and not whether any of them changed what would run, and that is the
+question deciding whether a dimension deserves a deterministic reader or simply
+a better default. `intent_sealed` now carries the *execution* identity — a
+digest, so it stays countable, and the execution form specifically, so two
+seals differing only in how somebody spelled a holding do not read as a
+follow-up having changed the outcome.
+
+**Abandonment needed no new event.** It is an absence, and nothing can be
+emitted by the thing that did not happen. A participant asked something who
+never sealed is found by subtraction, in analysis.
+
+**Phrasing equivalence cannot come from telemetry at all.** Deciding which
+utterances are "the same strategy" is a judgement, and no event can carry it.
+That is a transcript-and-annotation task under the retention declaration —
+said here so it is not mistaken later for a gap somebody forgot to close.
+
+## What would justify another deterministic reader
+
+`quantify-trigger-semantics@1` earned its existence from measured stochastic
+omission plus decisive structural evidence. The bar for the next one is the
+same and the cohort is what supplies it:
+
+    the dimension is asked about often                asked_by_dimension
+    the answer rarely changes what runs              answering_changed_the_outcome
+    the grammar states it when the model does not    a falsification suite
+
+A dimension asked constantly whose answers *do* change the outcome does not
+want a reader — it wants a better question.

@@ -22,6 +22,12 @@ that absence is the architecture working rather than a recognition gap. What is
 still open is whether it asks the *minimum useful* follow-up, and that is a
 question only the cohort can answer.
 
+**What this cannot answer, said here rather than discovered later.** Whether
+two different phrasings of one strategy cost different follow-up burden needs
+somebody to decide which utterances *are* one strategy. No event can carry that
+judgement, so it is a transcript-and-annotation task under the retention
+declaration, not a telemetry gap to close.
+
 **Proxies are labelled as proxies.** "Unnecessary" here means the participant's
 answer restated something their original sentence already contained, which is
 evidence and not proof — a person may restate something the runtime was right
@@ -71,6 +77,8 @@ def summarise(rows) -> Mapping[str, Any]:
     # who could not answer.
     asked_per: dict = {}
     answered_per: dict = {}
+    sealed_by: set = set()
+    identities_by: dict = {}
     never_asked: dict = {}
     restated: dict = {}
     sealed = 0
@@ -99,6 +107,11 @@ def summarise(rows) -> Mapping[str, Any]:
 
         elif row["kind"] == INTENT_SEALED:
             sealed += 1
+            if who:
+                sealed_by.add(who)
+            identity = detail.get("execution_identity")
+            if who and identity:
+                identities_by.setdefault(who, set()).add(identity)
 
         elif row["kind"] == PLAN_RESUBMITTED:
             for dimension in detail.get("repeated_from_prompt", ()):
@@ -117,6 +130,20 @@ def summarise(rows) -> Mapping[str, Any]:
     asked = by_dimension(asked_per)
     answered = by_dimension(answered_per)
 
+    # Abandonment is an absence, so it is derived rather than recorded. A
+    # participant who was asked something and never sealed anything left
+    # mid-conversation — and an event for "did not come back" cannot be
+    # emitted by the thing that did not happen.
+    abandoned = sorted(set(asked_per) - sealed_by - {""})
+
+    # Whether the follow-ups a person answered changed what would run. Two
+    # seals by one participant with different execution identities means the
+    # answering moved the outcome; the same identity twice means it did not.
+    # This is the question that decides whether a dimension deserves a
+    # deterministic reader or simply a better default.
+    moved_the_outcome = sorted(w for w, ids in identities_by.items()
+                               if len(ids) > 1)
+
     # Asked and never settled. Not a failure on its own — somebody may have
     # abandoned the session, which is itself worth seeing — but it is the
     # difference between a question that did its job and one that stopped
@@ -125,7 +152,7 @@ def summarise(rows) -> Mapping[str, Any]:
                   if asked[d] > answered.get(d, 0)}
 
     return {
-        "schema": "quantify-follow-up-burden@2",
+        "schema": "quantify-follow-up-burden@3",
         "participants": len(participants),
         "sealed_intents": sealed,
         "people_who_were_asked_something": len(asked_per),
@@ -136,6 +163,8 @@ def summarise(rows) -> Mapping[str, Any]:
         "asked_and_never_settled": ranked(unanswered),
         "answer_was_already_in_the_prompt": ranked(restated),
         "never_asked_by_dimension": ranked(never_asked),
+        "asked_then_abandoned": len(abandoned),
+        "answering_changed_the_outcome": len(moved_the_outcome),
         "reading_note": (
             "The unit is a dimension per participant, not a form submission. "
             "`asked_by_dimension` is the burden; `answered_by_dimension` is "
@@ -157,7 +186,7 @@ def report() -> Mapping[str, Any]:
         # Named rather than swallowed. An empty report and an unreachable
         # table look identical, and one of them means the pilot is running
         # fine while its instrumentation is not.
-        return {"schema": "quantify-follow-up-burden@2",
+        return {"schema": "quantify-follow-up-burden@3",
                 "unavailable": f"{type(failure).__name__}: {failure}"}
 
 

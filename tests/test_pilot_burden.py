@@ -182,3 +182,61 @@ def _run(observe_answers, recorded, *, settled, asked, already):
         observe_answers(Reading(settled), participant="p1")
     finally:
         events._dimensions_seen, events.record = original_seen, original_record
+
+
+class TestTheCohortQuestionsAreAnswerable:
+    """Audited before the cohort rather than after. Instrumentation added
+    afterwards cannot describe what already happened, so a question nobody can
+    answer is a question whose data was never collected."""
+
+    def test_whether_answering_changed_what_would_run(self):
+        """The question that decides whether a dimension deserves a
+        deterministic reader or merely a better default. Two seals by one
+        participant with different execution identities means the answering
+        moved the outcome."""
+        rows = [
+            {"kind": INTENT_SEALED, "participant": "p1",
+             "detail": {"execution_identity": "aaaa"}},
+            {"kind": INTENT_SEALED, "participant": "p1",
+             "detail": {"execution_identity": "bbbb"}},
+            {"kind": INTENT_SEALED, "participant": "p2",
+             "detail": {"execution_identity": "cccc"}},
+            {"kind": INTENT_SEALED, "participant": "p2",
+             "detail": {"execution_identity": "cccc"}},
+        ]
+        out = summarise(rows)
+        assert out["answering_changed_the_outcome"] == 1, (
+            "p1 sealed two different executions and p2 sealed the same one "
+            "twice; only p1's follow-ups moved anything")
+
+    def test_abandonment_is_derived_from_an_absence(self):
+        """No event can be emitted by the thing that did not happen, so a
+        participant asked something who never sealed is found by subtraction."""
+        out = summarise([
+            asked(["assets"], participant="stayed"),
+            {"kind": INTENT_SEALED, "participant": "stayed",
+             "detail": {"execution_identity": "aaaa"}},
+            asked(["assets"], participant="left"),
+        ])
+        assert out["asked_then_abandoned"] == 1
+
+    def test_the_identity_is_an_execution_identity_not_a_plan_dump(self):
+        """Two seals differing only in how a holding was spelled are the same
+        execution, and must not read as a question having changed anything."""
+        from src.workspace.pilot_events import _execution_identity
+
+        class Reading:
+            def __init__(self, assets):
+                from src.mission.scenario import AllocationRule
+                self.compiled = type("C", (), {"scenario": type("S", (), {
+                    "execution_form": lambda self, a=assets: {
+                        "assets": AllocationRule(assets=a).execution_form()}
+                })()})()
+
+        assert _execution_identity(Reading(("the index fund",))) == \
+            _execution_identity(Reading(("index fund",)))
+
+    def test_a_reading_that_compiled_nothing_carries_no_identity(self):
+        from src.workspace.pilot_events import _execution_identity
+
+        assert _execution_identity(type("R", (), {"compiled": None})()) == ""

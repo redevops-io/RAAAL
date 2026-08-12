@@ -336,6 +336,27 @@ def observe_answers(reading, *, participant: str = "") -> None:
                dimension=dimension)
 
 
+def _execution_identity(reading) -> str:
+    """The compiled plan's identity, or "" when nothing compiled.
+
+    Deliberately the *execution* form rather than the canonical one. Two seals
+    differing only in how somebody spelled a holding are the same execution and
+    must not read as a question having changed the outcome — which is the
+    distinction `execution_form()` exists for.
+    """
+    from hashlib import sha256
+    from json import dumps
+
+    scenario = getattr(getattr(reading, "compiled", None), "scenario", None)
+    if scenario is None:
+        return ""
+    try:
+        form = dumps(scenario.execution_form(), sort_keys=True, default=str)
+    except Exception:                                          # noqa: BLE001
+        return ""
+    return sha256(form.encode()).hexdigest()[:16]
+
+
 def observe_discovery(reading, *, plan_id: str = "",
                       participant: str = "") -> None:
     """What Discovery asked, what it sealed, and what it should have asked.
@@ -365,9 +386,19 @@ def observe_discovery(reading, *, plan_id: str = "",
                **{NOT_ASKED_ABOUT: unasked})
 
     if reading.executable:
+        # The execution identity travels with the seal. Without it the ledger
+        # can say how many questions were asked and not whether any of them
+        # changed what would run — and "which follow-ups actually matter" is
+        # the question that decides whether a dimension deserves a
+        # deterministic reader or a better default.
+        #
+        # A digest, so it stays on the countable side of the split: it cannot
+        # carry a sentence, and two seals are comparable without either being
+        # readable.
         record(INTENT_SEALED, plan_id=plan_id, participant=participant,
                settled_count=len(list(reading.settled)),
-               questions_before_sealing=len(questions))
+               questions_before_sealing=len(questions),
+               execution_identity=_execution_identity(reading))
 
     # After the questions above are on record, so a dimension asked and
     # answered within one request is still seen as a transition rather than
