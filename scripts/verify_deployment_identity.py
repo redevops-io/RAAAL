@@ -39,22 +39,40 @@ import urllib.error
 import urllib.request
 
 
+#: Identifies the checker. The default `python-urllib/x.y` is refused by the
+#: CDN in front of the service — `/health` answered 200 to curl and 403 here,
+#: which would have read as "the deployment is unreachable" when it was
+#: serving perfectly. A checker that cannot be told apart from a scraper gets
+#: treated as one.
+USER_AGENT = "quantify-deployment-identity-check/1"
+
+
 def fetch(url: str, timeout: float) -> dict:
-    with urllib.request.urlopen(url, timeout=timeout) as response:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
+                                                   "Accept": "application/json"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode())
 
 
 def verify(base: str, expected: str, *, timeout: float = 20.0) -> int:
     base = base.rstrip("/")
+
+    # Two endpoints, because the two facts live in two places and the first
+    # version of this script assumed one. `/health` carries the build view —
+    # can this deployment identify itself — and `/info` carries the licence
+    # offer. Reading `build` from `/info` reported NOT OBSERVABLE against a
+    # service that was observable, which is this repository's recurring defect
+    # appearing inside the tool written to catch it.
     try:
+        health = fetch(f"{base}/health", timeout)
         info = fetch(f"{base}/info", timeout)
     except (urllib.error.URLError, OSError) as unreachable:
-        print(f"UNREACHABLE {base}/info: {unreachable}", file=sys.stderr)
+        print(f"UNREACHABLE {base}: {unreachable}", file=sys.stderr)
         return 2
 
     licence = info.get("license") or {}
     source = licence.get("source") or ""
-    build = info.get("build") or {}
+    build = health.get("build") or {}
 
     # `observable` is the service's own statement about whether it can identify
     # itself. A deployment that says no has failed this check already, and
@@ -70,6 +88,11 @@ def verify(base: str, expected: str, *, timeout: float = 20.0) -> int:
     # source offer is what carries the revision. That is not a workaround: the
     # public view answers "can I interact with this deployment" and the offer
     # answers "which code is answering me", and they are different questions.
+    #
+    # It is also why the two halves are not redundant. `observable` is the
+    # service saying it *can* identify itself; the offer is the identity it
+    # reports. A service can be observable and serve a stale offer — which is
+    # exactly what quantify.club did the first time this ran.
     if not source.endswith(f"/tree/{expected}"):
         print(f"MISMATCH: the source offer is {source!r} and the deployment "
               f"supplied commit {expected!r}. Either the running service is "

@@ -1,0 +1,134 @@
+name: Deploy to AWS
+
+# Replaces `daily-deploy.yml`, which was written for a Proxmox host: it rsynced
+# research artifacts into a directory on a self-hosted runner and restarted a
+# docker-compose service. The deployment is AWS now — Terraform owns the
+# infrastructure, Ansible owns the host — and that workflow had no executor
+# anyway, because the repository has no registered self-hosted runner.
+#
+# **This workflow is not what makes a deployment correct.** The refusals that
+# do that live in `infra/` and run wherever the deployment runs: Terraform
+# refuses an image not pinned by digest, Ansible refuses a database behind the
+# code's migration head, and the host refuses to start without a model key. See
+# `infra/README.md` for the full table. What this adds is that the same
+# procedure runs from a commit rather than from somebody's shell, and that its
+# result is *proved* rather than assumed.
+#
+# **The proof is the last step and it is not optional.** A deployment job that
+# ends when Ansible exits has reported that a playbook ran, not that the
+# service is serving the revision it was given. Those differ every time an
+# image fails to pull, a container restarts into an old layer, or a health
+# check passes against the previous process.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'tfvars file under infra/terraform/environments'
+        required: false
+        default: 'test'
+
+# Least privilege, and `id-token` for OIDC when the account is wired for it.
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: quantify
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: us-east-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Refuse to deploy a dirty or ambiguous revision
+        run: |
+          # The commit is the deployment's identity, so it must be exactly the
+          # one being built. A tag or a branch name would let two deployments
+          # claim one identity.
+          echo "COMMIT=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "SHORT=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "deploying ${GITHUB_SHA} from ${GITHUB_REF_NAME}"
+
+      # Credentials through the environment rather than through
+      # `aws-actions/configure-aws-credentials`. The repository's Actions
+      # policy is `selected` with one named third party, and this workflow was
+      # blocked by it on the first attempt — correctly. Widening the allowlist
+      # to run a deployment is the wrong direction, and the AWS CLI and
+      # Terraform both read these variables natively, so the action buys
+      # nothing here but another supply chain.
+
+      - name: Build and push the image, pinned by digest
+        id: image
+        run: |
+          set -euo pipefail
+          REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"
+          aws ecr get-login-password --region "$AWS_REGION" \
+            | docker login --username AWS --password-stdin "$REGISTRY"
+
+          docker build -t "${REGISTRY}/${ECR_REPOSITORY}:${SHORT}" .
+          docker push "${REGISTRY}/${ECR_REPOSITORY}:${SHORT}"
+
+          # The digest, not the tag. A tag is a mutable pointer and Terraform
+          # refuses one — an image that can move under a fixed name is the
+          # same class of defect as a model alias under a fixed reader id.
+          DIGEST="$(aws ecr describe-images --region "$AWS_REGION" \
+            --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$SHORT" \
+            --query 'imageDetails[0].imageDigest' --output text)"
+          echo "image=${REGISTRY}/${ECR_REPOSITORY}@${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "pinned ${DIGEST}"
+
+      - name: Terraform apply
+        working-directory: infra/terraform
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+          TFVARS: ${{ github.event.inputs.environment || 'test' }}
+        run: |
+          set -euo pipefail
+          terraform init -backend-config=backend.hcl -input=false
+          terraform apply -input=false -auto-approve \
+            -var-file="environments/${TFVARS}.tfvars" \
+            -var "application_image=${IMAGE}" \
+            -var "build_commit=${COMMIT}" \
+            -var "build_release_ref=${GITHUB_REF_NAME}"
+
+      - name: Ansible deploy
+        working-directory: infra/ansible
+        run: |
+          set -euo pipefail
+          ansible-galaxy install -r requirements.yml
+          terraform -chdir=../terraform output -json ansible_variables > /tmp/quantify.json
+          ansible-playbook -i inventory.aws_ec2.yml site.yml -e @/tmp/quantify.json
+
+      - name: Prove the running service is this revision
+        run: |
+          set -euo pipefail
+          # Both halves, and neither substitutes for the other: the service must
+          # be able to identify itself, and the identity it offers must be the
+          # commit this run deployed. Anything else means a user is handed a
+          # different program than the one answering them.
+          python scripts/verify_deployment_identity.py \
+            --url "https://quantify.club" --expect-commit "${COMMIT}" \
+            | tee deployment-proof.txt
+
+      - name: Preserve the proof
+        # Kept because a cohort observation joins to code through it:
+        #   cohort event -> serving_commit -> this proof -> repository revision
+        # The running service is the perishable half; this file is the durable
+        # one, and it must outlive the deployment it describes.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: deployment-proof-${{ github.sha }}
+          path: deployment-proof.txt
+          retention-days: 90

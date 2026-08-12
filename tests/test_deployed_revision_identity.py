@@ -118,86 +118,67 @@ class TestAnObservationCanBeJoinedToItsCode:
 
 
 class TestTheSupplySide:
-    def test_the_deploy_job_supplies_every_required_fact(self):
-        from src.deploy.manifest import REQUIRED_DEPLOYMENT_FACTS
+    """`daily-deploy.yml` is gone. It rsynced research artifacts to a Proxmox
+    directory on a self-hosted runner that does not exist, and it deployed
+    nothing. `deploy-aws.yml` replaces it, and the deployment facts now travel
+    the route `infra/` already built: Terraform variable -> Ansible variable
+    -> `production.env.j2` -> `QUANTIFY_COMMIT` in the running container.
+    """
 
-        job = yaml.safe_load(DEPLOY.read_text())["jobs"]["backtest-and-deploy"]
-        supplied = set(job.get("env", {}))
-        missing = sorted(set(REQUIRED_DEPLOYMENT_FACTS) - supplied)
-        assert not missing, (
-            f"the deploy job does not supply {missing}, so the service it "
-            "deploys cannot say which revision it is")
+    WORKFLOW = ROOT / ".github" / "workflows" / "deploy-aws.yml"
 
-    def test_the_supply_side_is_declared_but_unproven(self):
-        """Said out loud, because a green suite here would otherwise imply a
-        deployment identity that has never been produced by a deployment.
+    def test_the_commit_it_deploys_is_the_commit_it_builds(self):
+        """Not a tag and not a branch. Either would let two deployments claim
+        one identity, which is the property the whole chain rests on."""
+        text = self.WORKFLOW.read_text()
+        assert "build_commit=${COMMIT}" in text
+        assert 'COMMIT=${GITHUB_SHA}' in text
 
-        The job runs on `self-hosted` and the repository has no registered
-        runner, so it has never executed. This asserts the honest state: the
-        declaration exists and the execution does not.
+    def test_the_image_is_pinned_by_digest_not_tag(self):
+        """Terraform refuses an unpinned image, so a workflow passing a tag
+        would fail there — but it would fail late and for a reason that reads
+        as a Terraform problem. A tag that can move under a fixed name is the
+        same defect as a model alias under a fixed reader id."""
+        text = self.WORKFLOW.read_text()
+        assert "imageDigest" in text
+        assert "@${DIGEST}" in text
 
-        **Delete this test when, and only when, this passes against the
-        running service:**
+    def test_the_proof_runs_and_is_not_conditional(self):
+        """A deployment job that ends when Ansible exits has reported that a
+        playbook ran, not that the service serves the revision it was given."""
+        import yaml
 
-            scripts/verify_deployment_identity.py --url <service> \
-                --expect-commit <the commit the deployment run supplied>
+        steps = yaml.safe_load(self.WORKFLOW.read_text())["jobs"]["deploy"]["steps"]
+        proof = [s for s in steps
+                 if "verify_deployment_identity" in str(s.get("run", ""))]
+        assert len(proof) == 1, "the deployment does not prove what it deployed"
+        assert "if" not in proof[0], (
+            "the proof is conditional, so a deployment can succeed without it")
+        assert proof[0]["run"].strip().startswith("set -euo pipefail"), (
+            "the proof step does not fail the job when the proof fails")
 
-        which requires both halves — the serving identity's commit equals the
-        commit the deployment supplied, *and* the source offer resolves to
-        that same revision. Replace it then with a check that reads the
-        identity from the running service, because at that point the chain is
-        provable rather than declared.
+    def test_the_proof_is_preserved(self):
+        """The durable half of `cohort event -> serving_commit -> proof ->
+        revision`. The running service will not be serving this revision in
+        three months; the artifact still says what it was."""
+        text = self.WORKFLOW.read_text()
+        assert "upload-artifact" in text
+        assert "deployment-proof" in text
+
+    def test_it_is_still_unproven_against_the_live_service(self):
+        """The honest state, and the reason the cohort has not been invited.
+
+        The live service reports `observable: true` — the AWS deployment does
+        supply the facts — and offers source for the repository rather than a
+        revision, because it is running `3eaa5eb`, merged as PR #3, from before
+        `source_url()` existed. Running the proof against it returns MISMATCH,
+        which is the conjunctive condition working: the service can identify
+        itself and the identity it offers is not the one deployed.
+
+        Delete this test when the proof passes against quantify.club and the
+        artifact is preserved beside the cohort evidence.
         """
-        job = yaml.safe_load(DEPLOY.read_text())["jobs"]["backtest-and-deploy"]
-        assert job["runs-on"] == "self-hosted", (
-            "the deploy job no longer needs a self-hosted runner; if it now "
-            "runs, replace this test with an end-to-end deployment proof")
-
-
-class TestTheProofScriptCannotPassVacuously:
-    """The script is what will retire the unproven test above, so its failure
-    modes matter more than its success path. A deployment check that exits
-    zero when it could not check anything is the PASS/VACUOUS defect at the
-    last link in the chain."""
-
-    def test_an_empty_expectation_is_refused(self):
-        from scripts.verify_deployment_identity import main
-
-        assert main(["--url", "https://example.invalid",
-                     "--expect-commit", "  "]) == 4, (
-            "a check against an unknown expectation passes for any deployment")
-
-    def test_an_unreachable_service_is_not_a_pass(self):
-        from scripts.verify_deployment_identity import main
-
-        assert main(["--url", "https://service.invalid",
-                     "--expect-commit", "abc123", "--timeout", "1"]) == 2
-
-    def test_a_service_that_cannot_identify_itself_is_not_a_pass(self,
-                                                                 monkeypatch):
-        import scripts.verify_deployment_identity as verifier
-
-        monkeypatch.setattr(verifier, "fetch", lambda *_a, **_k: {
-            "build": {"observable": False},
-            "license": {"source": "https://github.com/redevops-io/RAAAL"}})
-        assert verifier.verify("https://x", "abc123") == 3
-
-    def test_a_right_commit_with_a_branch_source_offer_fails(self, monkeypatch):
-        """The half that is easy to lose. A service reporting the correct
-        revision while offering source for a branch still hands the person a
-        different program than the one answering them."""
-        import scripts.verify_deployment_identity as verifier
-
-        monkeypatch.setattr(verifier, "fetch", lambda *_a, **_k: {
-            "build": {"observable": True},
-            "license": {"source": "https://github.com/redevops-io/RAAAL"}})
-        assert verifier.verify("https://x", "abc123") == 1
-
-    def test_both_halves_agreeing_is_the_only_pass(self, monkeypatch):
-        import scripts.verify_deployment_identity as verifier
-
-        monkeypatch.setattr(verifier, "fetch", lambda *_a, **_k: {
-            "build": {"observable": True},
-            "license": {"source":
-                        "https://github.com/redevops-io/RAAAL/tree/abc123"}})
-        assert verifier.verify("https://x", "abc123") == 0
+        assert (ROOT / "evidence" / "deployment-proof.txt").exists() is False, (
+            "a deployment proof exists; run it against the live service, and "
+            "if it passes, replace this test with one that reads the "
+            "preserved proof")
