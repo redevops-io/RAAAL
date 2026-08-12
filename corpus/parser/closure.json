@@ -1,7 +1,7 @@
 {
   "schema": "quantify-parser-closure@2",
   "cases": 52,
-  "pending": 1,
+  "pending": 3,
   "excluded_from_pending": {
     "state": "INTERMEDIATE_SEMANTIC",
     "count": 6,
@@ -18,16 +18,15 @@
     "why": "They assert semantics this pipeline computes and the contract does not carry. Counting them as pending measured the wrong boundary; the history is recorded here so the change is visible rather than quiet."
   },
   "by_state": {
-    "AGREE": 13,
-    "MODEL_ONLY_ACCEPTED": 30,
-    "DISAGREE": 1,
+    "AGREE": 12,
+    "MODEL_ONLY_ACCEPTED": 29,
+    "DISAGREE": 2,
+    "NO_FIELD_MAPPING": 1,
     "INTERMEDIATE_SEMANTIC": 6,
     "SCHEMA_GAP": 2
   },
-  "agreed_and_correct": 42,
-  "agreed_but_wrong_value": [
-    "sema-negation-changes_the_value-002"
-  ],
+  "agreed_and_correct": 41,
+  "agreed_but_wrong_value": [],
   "by_property": {
     "assets.stay_as_written": {
       "MODEL_ONLY_ACCEPTED": 3
@@ -67,7 +66,8 @@
     "trigger.semantics": {
       "AGREE": 2,
       "DISAGREE": 1,
-      "MODEL_ONLY_ACCEPTED": 2
+      "MODEL_ONLY_ACCEPTED": 1,
+      "NO_FIELD_MAPPING": 1
     },
     "weighting.method": {
       "MODEL_ONLY_ACCEPTED": 3
@@ -85,8 +85,9 @@
       "INTERMEDIATE_SEMANTIC": 2
     },
     "window.moving_average": {
-      "AGREE": 2,
-      "MODEL_ONLY_ACCEPTED": 1
+      "AGREE": 1,
+      "MODEL_ONLY_ACCEPTED": 1,
+      "DISAGREE": 1
     }
   },
   "owner": {
@@ -221,7 +222,7 @@
         "model",
         "syntax"
       ],
-      "value": "$500",
+      "value": "500",
       "expected": "500",
       "compared_as": "NUMBER",
       "matches_expected": true
@@ -255,7 +256,7 @@
         "model",
         "syntax"
       ],
-      "value": "$2.5k",
+      "value": "2.5k",
       "expected": "2500",
       "compared_as": "NUMBER",
       "matches_expected": true
@@ -379,16 +380,12 @@
       "property": "trigger.semantics",
       "text": "as long as SPY is under trend",
       "language": "en",
-      "state": "MODEL_ONLY_ACCEPTED",
-      "reason": "the model read it and syntax was silent",
-      "field": "trigger_semantics",
-      "witnesses": [
-        "model"
+      "state": "NO_FIELD_MAPPING",
+      "reason": "readings were produced for ['observed_assets'] and none for 'trigger_semantics', which is what this case asserts",
+      "proposed": [
+        "observed_assets"
       ],
-      "value": "persistent_condition",
-      "expected": "persistent_condition",
-      "compared_as": "TEXT",
-      "matches_expected": true
+      "intermediate": []
     },
     {
       "id": "sema-trigger-semantics-005",
@@ -541,17 +538,17 @@
       "property": "window.moving_average",
       "text": "add when it trades beneath the 12-month moving average",
       "language": "en",
-      "state": "AGREE",
-      "reason": "syntax supports the reading",
+      "state": "DISAGREE",
+      "reason": "the model read '12-month'; syntax argues otherwise (12 scored +1). Not resolved by score: a parser can be confident and wrong",
       "field": "moving_average_window",
       "witnesses": [
         "model",
         "syntax"
       ],
-      "value": "12m",
+      "value": null,
       "expected": "12",
       "compared_as": "NUMBER",
-      "matches_expected": true
+      "matches_expected": false
     },
     {
       "id": "sema-window-holding_period-001",
@@ -590,7 +587,7 @@
       "witnesses": [
         "model"
       ],
-      "value": "ETF",
+      "value": "an ETF",
       "expected": "an ETF",
       "compared_as": "SET",
       "matches_expected": true
@@ -606,10 +603,10 @@
       "witnesses": [
         "model"
       ],
-      "value": "ETF",
+      "value": "the index",
       "expected": "the index",
       "compared_as": "SET",
-      "matches_expected": false
+      "matches_expected": true
     },
     {
       "id": "sema-funding-amount_kind-001",
@@ -819,7 +816,7 @@
       "witnesses": [
         "model"
       ],
-      "value": "core index fund",
+      "value": "a core index fund",
       "expected": "a core index fund",
       "compared_as": "SET",
       "matches_expected": true
@@ -835,7 +832,7 @@
       "witnesses": [
         "model"
       ],
-      "value": "S&P 500 tracker",
+      "value": "the S&P 500 tracker",
       "expected": "S&P 500 tracker",
       "compared_as": "SET",
       "matches_expected": true

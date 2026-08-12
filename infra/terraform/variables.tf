@@ -189,6 +189,25 @@ variable "parser_mode" {
   }
 }
 
+variable "parser_provider" {
+  description = <<-EOT
+    Which hosted reader this deployment serves: ANTHROPIC or OPENAI.
+
+    Declared rather than inferred from the model name. The secret in
+    `model_api_key` is injected under whichever environment variable that
+    provider reads, so the two must agree — a deployment naming an OpenAI model
+    with an Anthropic key in the secret refuses at startup, which is the right
+    outcome and a confusing one to debug from the model name alone.
+  EOT
+  type        = string
+  default     = "ANTHROPIC"
+
+  validation {
+    condition     = contains(["ANTHROPIC", "OPENAI"], var.parser_provider)
+    error_message = "parser_provider must be ANTHROPIC or OPENAI."
+  }
+}
+
 variable "parser_model" {
   description = "Pinned exactly. An unpinned model changes what a description means."
   type        = string

@@ -59,6 +59,7 @@ output "ansible_variables" {
     quantify_domain                = var.domain_name
     quantify_data_policy           = var.pilot_data_policy
     quantify_parser_mode           = var.parser_mode
+    quantify_parser_provider       = var.parser_provider
     quantify_parser_model          = var.parser_model
     quantify_parser_prompt_version = var.parser_prompt_version
     quantify_parser_fallback       = var.parser_fallback

@@ -106,17 +106,39 @@ DRIFTED: set = set()
 #: still has no unit; nothing about the schema improved. A reader that happens
 #: to agree is not the same as an ambiguity being resolved, which is why the
 #: queue entry in docs/Benchmark-Queue.md stays.
+#: `sema-negation-changes_the_value-002` was listed here and is answered again.
+#:
+#: It is the reason the corpus moved to gpt-5.4-2026-03-05. Under
+#: gpt-4.1-2025-04-14 `buy the index rather than through an ETF` read as
+#: `assets='ETF'` — the model dropped the negation and returned the instrument
+#: the sentence rejects, which reverses what is held. That is a wrong
+#: executable meaning, the most dangerous class in the benchmark taxonomy, and
+#: gpt-5.4 reads it correctly. The expectation was never edited to match the
+#: reader that got it wrong; the reader changed.
 LEFT_THE_ANSWERABLE_SET = {
-    "sema-negation-changes_the_value-002":
-        "the serving reader changed provider, and this is the one case of 43 "
-        "that did not survive it. `buy the index rather than through an ETF` "
-        "reads as `assets='ETF'` under gpt-4.1-2025-04-14 and as `the index` "
-        "under claude-sonnet-5. The model dropped the negation and returned "
-        "the instrument the sentence rejects, which reverses what is held. "
-        "The expectation is NOT edited to match: the corpus asserts what the "
-        "sentence means, and a reader that reads it backwards is the finding. "
-        "Recorded again in MODEL_IS_WRONG in tests/test_closure.py, where the "
-        "fusion outcome that let it through is described.",
+    "sema-trigger-semantics-004":
+        "`as long as SPY is under trend` settles no `trigger_semantics` under "
+        "gpt-5.4-2026-03-05: the reader answers `observed_assets` and is "
+        "silent on the dimension the case asserts, and the deterministic "
+        "TriggerSemanticsReader declines too — `under trend` names no crossing "
+        "and no persistence in the structure it reads. The outcome is safe. "
+        "Nothing is settled, so the pipeline asks rather than guessing between "
+        "`crossing_event` and `persistent_condition`, which are different "
+        "strategies and would fire on different days. What is lost is a case "
+        "that used to be answered, and the loss is a precision one on a "
+        "phrasing with no explicit signal in it. Not repaired by editing the "
+        "expectation: the sentence does mean the persistent reading to a "
+        "person, and a build that cannot get there should say so.",
+    "sema-window-moving_average-013":
+        "the unit gap again, and the third reader to land on a different side "
+        "of it. Syntax reads `12` from `the 12-month moving average`; gpt-5.4 "
+        "returns `12-month`, which the normaliser reads as a duration of 360 "
+        "days. Both are defensible readings of a field that never says what it "
+        "counts, so fusion refuses to settle it — the safe outcome, and why "
+        "this is not on the dangerous list. Deliberately not fixed in the "
+        "comparison layer: making `12-month` equal `12` there would be "
+        "choosing the unit in the wrong place and on no authority. It is a "
+        "schema change, and it is queued in docs/Benchmark-Queue.md.",
 }
 
 

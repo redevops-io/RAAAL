@@ -39,3 +39,24 @@ locals {
     : "${var.registry_host}/${var.ecr_repository}@${data.aws_ecr_image.app[0].image_digest}"
   )
 }
+
+
+# The provider and the model must name the same vendor.
+#
+# They are two variables and nothing related them, which is the same shape as
+# the `build_commit` / `application_image` drift above. A deployment declaring
+# ANTHROPIC and a `gpt-` model would put the secret under `ANTHROPIC_API_KEY`,
+# the OpenAI reader would find no key, and the container would refuse at
+# startup complaining about a missing credential — sending whoever debugs it to
+# Secrets Manager rather than to the two lines that disagree.
+resource "terraform_data" "parser_identity" {
+  lifecycle {
+    precondition {
+      condition = (
+        (var.parser_provider == "OPENAI" && startswith(var.parser_model, "gpt-")) ||
+        (var.parser_provider == "ANTHROPIC" && startswith(var.parser_model, "claude-"))
+      )
+      error_message = "parser_provider ${var.parser_provider} does not match parser_model ${var.parser_model}: an OPENAI deployment serves a gpt- model and an ANTHROPIC one a claude- model. The secret is injected under the provider's own key variable, so a mismatched pair cannot start."
+    }
+  }
+}

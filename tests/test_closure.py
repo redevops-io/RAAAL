@@ -80,16 +80,15 @@ class TestAgreementIsNotAssumed:
     #: Rewriting the case would make the corpus assert whatever the reader last
     #: said, which is the one thing a regression corpus must not do.
     MODEL_IS_WRONG: dict = {
-        "sema-negation-changes_the_value-002":
-            "read `ETF` for 'buy the index rather than through an ETF' — the "
-            "instrument the sentence explicitly rejects. Dropping the negation "
-            "reverses which holding the plan buys. Appeared when the serving "
-            "reader moved to gpt-4.1-2025-04-14; claude-sonnet-5 read it "
-            "correctly. Worth more than the value being wrong: fusion recorded "
-            "MODEL_ONLY_ACCEPTED, so a single witness settled a holding with "
-            "no second reader to disagree — syntax was silent on this sentence "
-            "and had nothing to contribute. The architecture's protection here "
-            "is the corpus, not the fusion policy.",
+        # `sema-negation-changes_the_value-002` was here and is read
+        # correctly now. It is the reason the corpus moved to
+        # gpt-5.4-2026-03-05: gpt-4.1-2025-04-14 read `buy the index rather
+        # than through an ETF` as `ETF`, the instrument the sentence rejects,
+        # and dropping the negation reverses which holding the plan buys.
+        # Worse than a wrong value — fusion recorded MODEL_ONLY_ACCEPTED, so a
+        # single witness settled a holding with no second reader to disagree,
+        # syntax having been silent on the sentence. The protection was the
+        # corpus, not the fusion policy, which is why the entry existed at all.
         # The `day_rule` entries that used to be here are gone, and the
         # history is kept because it is the shape this list is for.
         #
@@ -170,9 +169,15 @@ class TestBothDirectionsOfTheAsymmetry:
     #:
     #: Under claude-sonnet-5 the corpus contained cases where syntax spoke and
     #: the model did not, so the reciprocal branch of the fusion policy was
-    #: exercised by real evidence. Under gpt-4.1-2025-04-14 it is not: the
-    #: reader answers everything syntax answers, and `SYNTAX_ONLY_UNRESOLVED`
-    #: has no live witness.
+    #: exercised by real evidence. Under gpt-4.1-2025-04-14 it was not, and
+    #: under gpt-5.4-2026-03-05 it is not either: the reader answers everything
+    #: syntax answers, and `SYNTAX_ONLY_UNRESOLVED` has no live witness.
+    #:
+    #: Two providers and three readers now agree on that, which makes it a
+    #: property of capable readers rather than a quirk of one. The branch is
+    #: not therefore dead — it is what a provider outage or a longer sentence
+    #: falls into — and being covered only synthetically is a real gap, said
+    #: out loud here rather than inferred from a count of zero.
     #:
     #: That is a fact about the reader, not an improvement. The branch still
     #: has to be right — a future reader, a longer sentence or a provider
@@ -180,7 +185,7 @@ class TestBothDirectionsOfTheAsymmetry:
     #: synthetic tests in `tests/test_fusion.py`. Declared here so the gap is
     #: visible in the file that measures coverage rather than inferred from a
     #: count of zero.
-    SYNTAX_ONLY_HAS_NO_LIVE_WITNESS = "gpt-4.1-2025-04-14@1"
+    SYNTAX_ONLY_HAS_NO_LIVE_WITNESS = "gpt-5.4-2026-03-05@1"
 
     def test_syntax_alone_cannot(self):
         """The reciprocal, and the one that was being mislabelled. It was

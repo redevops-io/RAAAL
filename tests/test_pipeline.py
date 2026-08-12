@@ -92,10 +92,30 @@ class TestARecordingIsNotAuthority:
 
 class TestNeitherWitnessIsPrivileged:
     def test_the_model_alone_proceeds(self):
-        """`objective` has no deterministic producer at all, and the model's
-        reading of it still settles — silence from syntax is not an argument."""
+        """`periodic_rebalancing` has no deterministic producer here, and the
+        model's reading of it still settles — silence from syntax is not an
+        argument.
+
+        This asserted `objective` until the corpus moved to
+        gpt-5.4-2026-03-05, and why it stopped working is worth keeping. For
+        "contribute $500 monthly, rebalanced annually" gpt-4.1-2025-04-14
+        returned `objective=plan_contributions`; gpt-5.4 returns no objective
+        at all. The sentence does not state one, so the newer reader declining
+        to supply it is the behaviour this project asks for everywhere else —
+        the same rule as "missing material quantity → unresolved". The test
+        needed a different vehicle, not a different expectation.
+
+        The property is checked rather than assumed: the assertion below
+        requires syntax to have contributed nothing, so if a deterministic
+        producer ever appears for this dimension the test fails instead of
+        quietly proving something weaker.
+        """
         result = run(BOTH_CADENCES)
-        assert result.by_field["objective"].outcome is Fusion.AGREE
+        decision = result.by_field["periodic_rebalancing"]
+        assert not decision.syntax, (
+            "syntax now speaks for this dimension, so it no longer "
+            "demonstrates that the model alone can settle one")
+        assert decision.outcome is Fusion.AGREE
 
     def test_no_contract_field_is_currently_proposed_by_syntax_alone(self):
         """Recorded because it is the result of the alignment pass, not a gap.

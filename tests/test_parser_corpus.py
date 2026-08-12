@@ -47,20 +47,37 @@ RECORDED = RecordedReader()
 #: Neither was waiting on code.
 #:
 #: It is one now, and the reader is why rather than any work here. Under
-#: `gpt-4.1-2025-04-14@1` the units case — "the 12-month moving average" — is
-#: read as 12 and agrees with syntax, so it leaves the queue. That is not the
-#: ambiguity being resolved: the dimension still carries no unit, and a reader
-#: that happens to agree with the deterministic path is a coincidence this
-#: corpus should not be relieved by. The queue entry in
-#: docs/Benchmark-Queue.md stays for that reason.
+#: Three, under `gpt-5.4-2026-03-05@1`. It was one under gpt-4.1, and the two
+#: it gained are the price of the move — worth naming, because a count that
+#: goes up reads as a regression and this one is a trade the corpus made
+#: deliberately.
 #:
-#: What remains is the trigger-semantics case: crosses-below is an event and
-#: stays-below is a state, and collapsing them changes how often a strategy
+#: `sema-trigger-semantics-002` has always been here: crosses-below is an event
+#: and stays-below is a state, and collapsing them changes how often a strategy
 #: fires.
+#:
+#: `sema-window-moving_average-013` returns, and its return is the honest
+#: outcome. Under gpt-4.1 the reader happened to read "the 12-month moving
+#: average" as 12 and agree with syntax, so the case left the queue — a
+#: coincidence this corpus should never have been relieved by, since the
+#: dimension still carries no unit. gpt-5.4 returns `12-month`, the normaliser
+#: reads 360 days, and the ambiguity is visible again where it belongs.
+#:
+#: `sema-trigger-semantics-004` is new: "as long as SPY is under trend" settles
+#: no trigger semantics under this reader, and the deterministic reader
+#: declines it too. Safe — the pipeline asks rather than guessing between two
+#: strategies that fire on different days — and a real loss of precision on a
+#: phrasing with no explicit signal in it.
+#:
+#: What the move bought is in `MODEL_IS_WRONG` in tests/test_closure.py, which
+#: is now empty: gpt-4.1 read `buy the index rather than through an ETF` as the
+#: instrument the sentence rejects, and gpt-5.4 does not. A wrong executable
+#: meaning traded for two unresolved ones is the trade this project's whole
+#: taxonomy says to take.
 #: Fourteen semantics cases are run end to end by `tests/test_semantics.py`,
 #: and `corpus/parser/closure.json` says who owns each of the rest rather
 #: than leaving them a single number.
-AWAITING_A_PARSER = 1
+AWAITING_A_PARSER = 3
 
 #: Semantics cases the deterministic path answers, asserted elsewhere. Read
 #: from the closure report because that is where the classification lives; the
