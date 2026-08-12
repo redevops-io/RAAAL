@@ -41,7 +41,8 @@ from src.discovery import (  # noqa: E402
     matrix,
     render,
 )
-from src.discovery.readers_quantify import CompilerReader, HostedReader  # noqa: E402
+from src.discovery.readers_quantify import (CompilerReader,
+                                            configured_hosted_reader)  # noqa: E402
 
 
 def schema_fingerprint(schema) -> str:
@@ -241,7 +242,7 @@ def main() -> int:
         rows = rows[:args.limit]
 
     compiler = CompilerReader()
-    hosted = HostedReader()
+    hosted = configured_hosted_reader()
     suffix = ""
     if args.dry_run:
         hosted.api_key_env = "DEFINITELY_NOT_SET"

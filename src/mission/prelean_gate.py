@@ -101,17 +101,17 @@ def _current_versions() -> dict:
             "hosted_model_id": _configured_reader_id()}
 
 
+def _provider_is_declared() -> bool:
+    from ..deploy.context import current
+
+    return bool(getattr(current().model, "provider_declared", False))
+
+
 def _configured_reader_id() -> str:
     """The id of the reader this deployment declares it serves with."""
-    from ..deploy.context import (PROVIDER_DEFAULT_MODEL, ParserProvider,
-                                  current)
-    from ..discovery.readers_quantify import HostedReader, OpenAIReader
+    from ..discovery.readers_quantify import configured_hosted_reader
 
-    model = current().model
-    reader = (OpenAIReader if model.provider is ParserProvider.OPENAI
-              else HostedReader)
-    return reader(model=model.model
-                  or PROVIDER_DEFAULT_MODEL[model.provider]).id
+    return configured_hosted_reader().id
 
 
 def _staleness(drift: Mapping[str, Any], *, now=None) -> Sequence[str]:
@@ -184,6 +184,21 @@ def verdict(*, drift_path: Optional[Path] = None,
     else:
         drift = json.loads(drift_path.read_text())
         blockers.extend(_staleness(drift, now=now))
+
+        # Before any identity is compared: was the reader identity *chosen*?
+        #
+        # `_current_versions()` asks the deployment which reader it serves
+        # with, and an undeclared provider answers with a default. So the same
+        # artifact passed the reader check on a laptop and would have failed
+        # it in CI, differing only by an environment variable nobody set —
+        # which is a verdict about the checker's environment wearing the
+        # clothes of a verdict about the evidence.
+        if not _provider_is_declared():
+            blockers.append(
+                "QUANTIFY_PARSER_PROVIDER is not declared, so the reader this "
+                "artifact is being compared against is a default rather than "
+                "a choice. Declare the provider and re-run: a gate whose "
+                "answer depends on the shell it ran in is not a gate")
 
         producer = drift.get("provenance", {}).get("producer", "unknown")
         evidence["producer"] = producer

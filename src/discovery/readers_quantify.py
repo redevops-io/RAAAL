@@ -325,6 +325,28 @@ class OpenAIReader(HostedReader):
         return reply.choices[0].message.content or ""
 
 
+def configured_hosted_reader():
+    """The hosted reader this deployment declared, built once and named once.
+
+    This selection existed in four places — the pilot route, the recorder, the
+    pre-Lean gate — and in a fifth that never got it: `drift_lane.py` built
+    `HostedReader()` directly, so after the provider moved to OpenAI the lane
+    checked for `ANTHROPIC_API_KEY`, found none, and refused to run in CI with
+    the OpenAI key sitting in its environment.
+
+    That is the same defect as the workflow pointing at the wrong provider,
+    one file over, and it cost a dispatch to find. A rule duplicated four
+    times is a rule that will be applied three times.
+    """
+    from ..deploy.context import PROVIDER_DEFAULT_MODEL, ParserProvider, current
+
+    model = current().model
+    cls = (OpenAIReader if model.provider is ParserProvider.OPENAI
+           else HostedReader)
+    return cls(model=model.model or PROVIDER_DEFAULT_MODEL[model.provider],
+               max_tokens=model.max_tokens)
+
+
 def _extract_json(raw: str) -> Optional[dict]:
     """The outermost JSON object, fences or prose notwithstanding."""
     text = raw.strip()

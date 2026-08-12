@@ -111,7 +111,12 @@ class TestTheOpenItemsAreStillOpen:
         # gathered about a build that no longer exists. That is the artifact
         # being self-describing rather than a semantic condition breaking, so
         # it belongs in this list beside provenance and age.
-        allowed = ("not the scheduled lane", "days old", "and this build is")
+        # `not declared` joined the list when the gate stopped guessing which
+        # reader to expect. It is an operational blocker like the others — the
+        # deployment has not said which provider it serves — rather than a
+        # semantic condition failing.
+        allowed = ("not the scheduled lane", "days old", "and this build is",
+                   "not declared")
         assert all(any(a in b for a in allowed) for b in gate.blockers), \
             gate.blockers
 

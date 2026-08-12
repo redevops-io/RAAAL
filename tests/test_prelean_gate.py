@@ -16,9 +16,27 @@ files rather than measuring.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timedelta, timezone
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _a_declared_deployment(monkeypatch):
+    """Every test here asks "given this deployment, is this artifact
+    admissible", which presumes a deployment that has said what it is.
+
+    Without this they inherited whatever the shell had, and the gate's own
+    undeclared-provider blocker fired in all of them — a real signal about the
+    environment, arriving as noise in tests about the evidence. The undeclared
+    case gets its own test below rather than contaminating these.
+    """
+    from src.deploy import context
+
+    monkeypatch.setenv("QUANTIFY_PARSER_PROVIDER", "OPENAI")
+    resolved = context.resolve(dict(os.environ))
+    monkeypatch.setattr(context, "current", lambda: resolved)
 
 
 @pytest.fixture
@@ -472,3 +490,38 @@ class TestLocalEvidenceIsNotACIGuarantee:
 
         assert drift_lane._provenance(_Reader(), _Reader(), ["a"], 3)[
             "producer"] == "local"
+
+
+
+class TestTheGateKnowsWhichReaderItIsCheckingFor:
+    """The pin on `hosted_model_id` closed "the gate does not check the
+    reader". This closes the one underneath it: "the gate decides for itself
+    which reader to expect"."""
+
+    def test_an_undeclared_provider_blocks(self, tmp_path, versions,
+                                           monkeypatch):
+        """Found while capturing the gate's state before a real dispatch. The
+        same artifact passed the reader check locally and would have failed it
+        in CI, differing only by an environment variable nobody had set — a
+        verdict about the checker's shell wearing the clothes of a verdict
+        about the evidence.
+        """
+        from src.deploy import context
+        from src.mission.prelean_gate import verdict
+
+        monkeypatch.delenv("QUANTIFY_PARSER_PROVIDER", raising=False)
+        resolved = context.resolve({k: v for k, v in os.environ.items()
+                                    if k != "QUANTIFY_PARSER_PROVIDER"})
+        monkeypatch.setattr(context, "current", lambda: resolved)
+
+        path = _drift(tmp_path, versions)
+        out = verdict(drift_path=path, require_ci=True)
+        assert not out.open
+        assert any("not declared" in b for b in out.blockers), out.blockers
+
+    def test_and_a_declared_one_does_not(self, tmp_path, versions):
+        from src.mission.prelean_gate import verdict
+
+        path = _drift(tmp_path, versions)
+        out = verdict(drift_path=path, require_ci=True)
+        assert not any("not declared" in b for b in out.blockers), out.blockers

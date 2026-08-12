@@ -121,14 +121,10 @@ def main(argv: list) -> int:
     # keyed by reader id, so a recorder that always built the Anthropic reader
     # would write one provider's answers under another's key the moment the
     # serving provider changed.
-    from src.deploy.context import (PROVIDER_DEFAULT_MODEL,       # noqa: E402
-                                    ParserProvider, current)
+    from src.discovery.readers_quantify import (                  # noqa: E402
+        configured_hosted_reader)
 
-    declared = current().model
-    cls = (OpenAIReader if declared.provider is ParserProvider.OPENAI
-           else HostedReader)
-    reader = cls(model=declared.model
-                 or PROVIDER_DEFAULT_MODEL[declared.provider])
+    reader = configured_hosted_reader()
     if not reader.available():
         print(f"{reader.api_key_env} is not set; nothing recorded",
               file=sys.stderr)
