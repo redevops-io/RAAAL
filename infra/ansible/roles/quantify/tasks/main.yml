@@ -597,6 +597,28 @@
   changed_when: false
   failed_when: false
 
+# What the provider says about itself, when it never answered.
+#
+# The first time this fired, the reason was a stuck migration: an earlier run
+# died mid-step on an empty masterkey, left `03_default_instance` marked as
+# started and never finished, and every later boot waited five seconds at a
+# time for an instance that no longer existed. The container was Up, the port
+# was open, and nothing was listening on it.
+#
+# Reading the log here turns "not serving after five minutes" into the actual
+# sentence, so whoever is looking does not have to know to go and find it.
+- name: Read why the identity provider is not answering
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker logs quantify-identity-1 2>&1 | tail -5
+  args:
+    executable: /bin/bash
+  become: true
+  register: identity_why
+  changed_when: false
+  failed_when: false
+
 - name: Fail if the identity provider never came up
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.assert:
@@ -604,8 +626,15 @@
     fail_msg: >-
       The identity provider is not serving its discovery document after five
       minutes. The deployment is otherwise fine and auth.quantify.club will
-      return 502. Read the reason with:
-      docker logs quantify-identity-1
+      return 502.
+
+      Its last words: {{ identity_why.stdout_lines | default([]) | join(" | ") }}
+
+      If those say "migration already started", a previous run died mid-step and
+      left the marker behind; the provider will wait forever for an instance
+      that is gone. Recreating its database clears it, and is safe while no
+      accounts exist — the step that creates the first organisation is the one
+      that is stuck, so nothing has been created yet.
     success_msg: "identity provider serving OIDC discovery"
 
 - name: Confirm the proxy is serving the deployed configuration
