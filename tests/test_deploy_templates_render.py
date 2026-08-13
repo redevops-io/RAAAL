@@ -281,3 +281,64 @@ class TestTheRenderScriptExportsWhatItSubstitutes:
             if line.startswith("export "):
                 assert "export" not in line[len("export "):], (
                     f"two export statements fused onto one line: {line!r}")
+
+
+class TestNoCheckRunsABinaryInsideADistrolessImage:
+    """A check that can never pass is worse than no check.
+
+    The identity wait ran `docker compose exec identity curl`. That image is
+    distroless — no shell, no curl, no printenv — so the command failed with
+    "executable file not found" on every boot, healthy or not. It fired once
+    while the provider was genuinely stuck on a migration, which read as the
+    check working, and it went on failing after the provider recovered.
+
+    The right question goes through the proxy, on the route a browser takes:
+    that covers the service, the proxy's routing, and its header rewriting,
+    rather than a port inside a container nobody can reach.
+    """
+
+    ROLE = (Path(__file__).resolve().parent.parent / "infra" / "ansible"
+            / "roles" / "quantify" / "tasks" / "main.yml")
+
+    #: Images with no userland. The application's own image is a normal Python
+    #: base and `exec api python -c ...` is fine, which is why this is a list of
+    #: services rather than a ban on `exec`.
+    DISTROLESS = ("identity",)
+
+    def commands(self):
+        """Every shell/command body in the role, comments removed.
+
+        Parsed rather than grepped. The first version of this test searched the
+        file as text and matched the sentence above explaining the bug — a
+        check asserting a structural property has to read the structure, or
+        prose about the fault counts as the fault.
+        """
+        import yaml
+
+        if not self.ROLE.exists():
+            pytest.skip("no ansible role here")
+        tasks = yaml.safe_load(self.ROLE.read_text()) or []
+        bodies = []
+        for task in tasks:
+            for key in ("ansible.builtin.shell", "ansible.builtin.command",
+                        "shell", "command"):
+                body = task.get(key) if isinstance(task, dict) else None
+                if isinstance(body, str):
+                    bodies.append("\n".join(
+                        line for line in body.splitlines()
+                        if not line.strip().startswith("#")))
+        assert bodies, "found no shell tasks; this check is stale"
+        return bodies
+
+    def test_no_task_execs_a_tool_into_one(self):
+        import re
+
+        for body in self.commands():
+            for service in self.DISTROLESS:
+                found = re.findall(
+                    rf"exec\s+(?:-T\s+)?{service}\s+(?!true\b)(\S+)", body)
+                assert not found, (
+                    f"a deploy task runs {sorted(set(found))} inside the "
+                    f"{service!r} container, whose image is distroless and has "
+                    "no userland. The command fails identically whether the "
+                    "service is healthy or dead. Ask through the proxy instead")

@@ -580,20 +580,32 @@
 #
 # Its own database migrations run on first boot and take a couple of minutes,
 # so this waits rather than checking once.
+# Asked through the proxy, from the host, on the route a browser takes.
+#
+# The first version of this ran `docker compose exec identity curl`. The image
+# is distroless and has no curl, so the check could never pass — it failed
+# identically whether the provider was healthy or dead, and the one time it
+# fired the provider happened to be genuinely stuck, which is how a check that
+# always fails passes for a competent one.
+#
+# Through the proxy is also the better question. It covers the provider, the
+# proxy's routing by Host, and the header rewriting below — the whole path a
+# login actually travels — instead of a port inside a container that no user
+# can reach. It prints the issuer, so the assert below has something to check.
 - name: Wait for the identity provider to answer
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.shell: |
     set -euo pipefail
-    docker compose -f /opt/quantify/docker-compose.yml exec -T identity \
-      curl -sf -o /dev/null -w "%{http_code}" \
-      http://localhost:8080/.well-known/openid-configuration
+    curl -sf --max-time 20 -H "Host: {{ quantify_identity_domain }}" \
+      http://127.0.0.1/.well-known/openid-configuration \
+      | python3 -c "import json,sys; print(json.load(sys.stdin)['issuer'])"
   args:
     executable: /bin/bash
   become: true
   register: identity_ready
   retries: 30
   delay: 10
-  until: identity_ready.rc == 0 and "200" in identity_ready.stdout
+  until: identity_ready.rc == 0
   changed_when: false
   failed_when: false
 
@@ -641,42 +653,22 @@
 #
 # It published `http://auth.quantify.club` while the application was configured
 # for `https://`, because TLS terminates at the edge and the request reaching
-# the provider is genuinely plaintext. Every token would then have carried an
-# `iss` the verifier rejects, and the symptom arrives as "login is broken" long
-# after the deploy reported success.
-#
-# Asked through the proxy, with the Host header that selects the identity site,
-# because the header that fixes it is set by the proxy and the provider alone
-# never sees it.
-- name: Read the issuer the provider publishes
-  when: quantify_identity_domain | default("") | length > 0
-  ansible.builtin.shell: |
-    set -euo pipefail
-    curl -sf --max-time 30 -H "Host: {{ quantify_identity_domain }}" \
-      http://127.0.0.1/.well-known/openid-configuration \
-      | python3 -c "import json,sys; print(json.load(sys.stdin)['issuer'])"
-  args:
-    executable: /bin/bash
-  become: true
-  register: published_issuer
-  changed_when: false
-  retries: 10
-  delay: 15
-  until: published_issuer.rc == 0
-
+# the provider is genuinely plaintext. Every token would then carry an `iss`
+# the verifier rejects, and the symptom arrives as "login is broken" long after
+# the deploy reported success.
 - name: Confirm the published issuer is the one the application trusts
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.assert:
     that:
-      - published_issuer.stdout | trim == "https://" ~ quantify_identity_domain
+      - identity_ready.stdout | trim == "https://" ~ quantify_identity_domain
     fail_msg: >-
-      The provider publishes {{ published_issuer.stdout | trim }} but the
+      The provider publishes {{ identity_ready.stdout | trim }} but the
       application verifies tokens against
       https://{{ quantify_identity_domain }}. Tokens signed under one issuer do
       not verify against the other, so login would fail for everybody with a
       signature error. TLS terminates at the edge; the proxy has to pass the
       browser scheme on as X-Forwarded-Proto.
-    success_msg: "Issuer: {{ published_issuer.stdout | trim }}"
+    success_msg: "Issuer: {{ identity_ready.stdout | trim }}"
 
 - name: Confirm the proxy is serving the deployed configuration
   ansible.builtin.uri:
