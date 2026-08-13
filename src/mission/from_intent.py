@@ -211,7 +211,24 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
                    "guess"),))
 
     declared = {n: f.value for n, f in intent.fields.items()}
-    refusals = list(refusals_for(declared))
+
+    # Saying you never sell is not selling.
+    #
+    # "I put $500 a month into VTI and never sold any of it" was refused by
+    # name for `sell_action`, on a build whose entire behaviour is buying and
+    # never selling. The reader extracts the span correctly — the span is
+    # "never sold any of it" — and `decide()` refuses any value of a REFUSED
+    # dimension, so the polarity never reached it. The person described this
+    # build exactly and was told it could not be run.
+    #
+    # It is not dropped either. A negated disposal is a positive statement
+    # about the holdings policy, and it is honoured as one: `sells_allowed`
+    # is already False for every plan this build compiles, so the sentence
+    # agrees with the engine rather than asking anything of it.
+    negated = {n for n, v in declared.items()
+               if n in NEGATABLE_DISPOSALS and _is_negated(v)}
+    refusals = list(refusals_for({n: v for n, v in declared.items()
+                                  if n not in negated}))
     for open_dimension in intent.blocking:
         refusals.append(Refusal(
             kind="UNRESOLVED_INPUT", dimension=open_dimension.dimension,
@@ -414,6 +431,40 @@ def _assets(intent: VerifiedIntent) -> Sequence[str]:
         return ()
     return tuple(part.strip() for part in SET_SEPARATOR.split(str(stated.value))
                  if part.strip())
+
+
+#: Dimensions whose *absence* is what this build does natively, so a negated
+#: statement of them is agreement rather than a request.
+#:
+#: Only disposal. A negated cadence or a negated amount is not agreement with
+#: anything — "I don't contribute monthly" leaves the question open — and
+#: treating every negation as assent would turn refusals off wholesale.
+NEGATABLE_DISPOSALS = frozenset({"sell_action"})
+
+#: The shared vocabulary, plus the one word that only negates a disposal.
+#:
+#: `without` is not in the derived readers' set and is not added to it: there it
+#: would change how triggers are read, and "buy without waiting for a dip" does
+#: not deny the dip. Denying a *disposal* is unambiguous — "without selling"
+#: means no sale — so the extra word lives here, where its only effect is on
+#: this one question.
+from ..discovery.derived_readers import _NEGATIONS as _SHARED_NEGATIONS  # noqa: E402
+
+_NEGATION_WORDS = frozenset(_SHARED_NEGATIONS) | {"without"}
+
+
+def _is_negated(value: Any) -> bool:
+    """Whether a stated span denies what it names.
+
+    Word-boundary matching over the span, not a substring test: "another"
+    contains "not" and "nonetheless" contains "no", and either would have made
+    an ordinary sale read as a refusal to sell — the failure this check exists
+    to prevent, running backwards.
+    """
+    if value is None:
+        return False
+    words = re.findall(r"[a-z']+", str(value).lower())
+    return any(w in _NEGATION_WORDS or w.endswith("n't") for w in words)
 
 
 def _rebalancing_cadence(stated: Any) -> str:

@@ -557,6 +557,21 @@
       build offers is whole-workspace erasure. Verify by hand in a browser —
       docs/Runbook.md, deployment sequence step 8.
 
+# The second sentence lost "starting in January 2015", and the deletion is the
+# finding rather than a convenience.
+#
+# It stated an evaluation window, which this build refuses by name — it runs
+# over the whole price history it holds and cannot restrict a run to a period.
+# So the journey asserted that a sentence the engine correctly declines would
+# save, and it had been passing only because the legacy compiler ignored the
+# window silently. The first deploy of the pilot interpreter refused it, which
+# is the right answer to the question the sentence asks.
+#
+# "never sold any of it" stays, deliberately. It was the *other* refusal on
+# that run and it was false: a plan that never sells is exactly what this build
+# does, and refusing it was `UNNECESSARY_REFUSAL` against the most common
+# phrasing anybody uses for buy-and-hold. Keeping the clause here means the
+# journey proves the fix on a host every time it deploys.
 - name: Run both launch journeys against the deployment
   when: quantify_workspace_empty | bool
   ansible.builtin.shell: |
@@ -575,8 +590,7 @@
          'I contribute \$7,000 a year to a Roth IRA in VOO on the first '
          'trading day of January, reinvesting dividends, and I never sell.'),
         ('Historical replay',
-         'I put \$500 a month into VTI starting in January 2015 and never '
-         'sold any of it.'),
+         'I put \$500 a month into VTI and never sold any of it.'),
     ]
 
     store = WorkspaceStore(os.environ['QUANTIFY_DATABASE_URL'])
