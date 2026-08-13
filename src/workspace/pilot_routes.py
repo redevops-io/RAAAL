@@ -233,7 +233,22 @@ def page(reading: PilotReading, *, text: str,
         "derivation": {} if compiled is None else dict(compiled.derivation),
         "applied_defaults": [] if compiled is None else list(
             compiled.applied_defaults),
+        # The comparison, drawn. Every run already computes the plan's path and
+        # five benchmark paths; the page printed one number and discarded them.
+        "chart": _chart(run),
     }
+
+
+def _chart(run):
+    """None rather than a raised error. A figure is the best part of the page
+    and not the part worth failing it for: a plan that ran and produced a
+    number should still show the number if the drawing fails."""
+    try:
+        from .comparison_chart import build
+
+        return build(run)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _refuse_unless_declared(request: Request):

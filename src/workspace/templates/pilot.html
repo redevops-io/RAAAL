@@ -16,6 +16,13 @@
      textarea as ordinary text and not in a hidden field. #}
   {% include "_strategy_picker.html" %}
 
+  <label for="describe">What do you want to work out?</label>
+  <textarea id="describe" name="describe" rows="3"
+            placeholder="invest $500 a month into VTI">{{ text or "" }}</textarea>
+  <p class="quiet">Pick one and change it, or ignore the list and write your
+  own. Both are read the same way.</p>
+  <button type="submit">Read it</button>
+</form>
 
 {% if unavailable %}
   {# A refusal, not a degraded reading. The deployment declares one
@@ -92,6 +99,19 @@
         This figure was produced from the plan you confirmed. Reopening it
         recompiles from that same plan and does not read your sentence again.
       </p>
+      {# The comparison chart is built (`workspace/comparison_chart.py`) and is
+         deliberately NOT embedded yet.
+
+         Bokeh mints a fresh element id and fresh model ids on every render, so
+         two reopens of one plan produced different HTML — and
+         `test_describe_clarify_save_figure_reopen` refused it, correctly. The
+         page promises that reopening a plan recompiles from the confirmed
+         intent and shows the same figure; markup that differs per render is a
+         weaker promise wearing the same words, and the test exists because
+         that property is the whole point of sealing an intent.
+
+         It ships once the ids are derived from the plan rather than from a
+         counter. #}
     </section>
   {% elif strategy_not_executed %}
     {# A refusal is a result. The figure is absent and the reason is the
