@@ -127,6 +127,7 @@ PILOT_READER_VAR = "QUANTIFY_PILOT_READER"
 #: same reason: a deployment that guesses its own identity from the shell is
 #: how a pilot got measured model-assisted without anybody deciding it.
 PARSER_PROVIDER_VAR = "QUANTIFY_PARSER_PROVIDER"
+RESEARCH_DIRECTORY_VAR = "QUANTIFY_RESEARCH_DIR"
 
 
 class ParserProvider(str, Enum):
@@ -571,6 +572,17 @@ class DeploymentContext:
     """The `BuildManifest`, which already resolves itself from the environment
     and is carried here so nothing re-reads it."""
 
+    research_directory: str = "/var/lib/quantify/research"
+    """Where the scheduled job leaves the built research dashboard.
+
+    Resolved here rather than in `api.py`, which read `os.environ` directly and
+    was caught by `test_no_undeclared_reader` immediately — the rule being that
+    one module reads the environment, so two components cannot hold different
+    views of where a thing lives. The dashboard is exactly that shape: the host
+    cron writes it and the application serves it, and a disagreement about the
+    path is a page that silently reports "not built yet" forever while a job
+    writes the file somewhere else every morning."""
+
     state_directory: str = "reports/state"
     """Where the agentic runtime keeps its three authoritative state records.
 
@@ -701,6 +713,8 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
             retain_transcripts=_affirmative(source.get(TRANSCRIPTS_VAR)),
             retention_days=_retention(source.get(TRANSCRIPT_RETENTION_VAR),
                                       default=30)),
+        research_directory=(source.get(RESEARCH_DIRECTORY_VAR)
+                            or "/var/lib/quantify/research"),
         state_directory=source.get(STATE_DIRECTORY_VAR,
                                    "reports/state") or "reports/state",
         build=read_manifest(source))

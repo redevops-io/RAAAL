@@ -80,6 +80,15 @@ MANIFEST: Sequence[EndpointBoundary] = (
     EndpointBoundary("/info", Exposure.INFRASTRUCTURE,
                      "Build and capability metadata. Carries no artifacts."),
     EndpointBoundary("/health", Exposure.INFRASTRUCTURE, "Liveness."),
+    # The nightly research dashboard, built on the host and served from the
+    # mounted volume. PUBLIC because it always was: it is the same Bokeh
+    # document the platform published before the daily job was replaced, it
+    # contains published research rather than anything a user wrote, and it is
+    # the surface the library's figures are drawn from.
+    EndpointBoundary("/research", Exposure.PUBLIC,
+                     "The research dashboard, rebuilt daily from the run "
+                     "history. Published output; carries nothing a user "
+                     "entered and nothing from the private workspace."),
     # Readiness is separate from liveness: a failed preflight makes an
     # instance unready without making it indistinguishable from a dead
     # process. It carries the outcome and nothing about why — a client learns

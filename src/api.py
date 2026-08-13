@@ -25,7 +25,7 @@ from contextlib import asynccontextmanager
 import logging
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from .evaluation import ProtocolRegistry
 from .ledger import Ledger
@@ -304,6 +304,40 @@ app = FastAPI(
 from .web.failure import install as install_failure_handling  # noqa: E402
 
 install_failure_handling(app)
+
+
+# --- the research dashboard ------------------------------------------------
+#
+# Served from a directory the deployment writes rather than from the image.
+# The dashboard is a 6MB Bokeh document rebuilt from the day's history, so it
+# is data, not code: baking it into an image would pin research output to a
+# release, and every rebuild would ship a stale chart until the next deploy.
+#
+# It went missing when `daily-deploy.yml` was replaced. That workflow ran the
+# backtest, built this document and rsynced it onto the Proxmox host, which
+# mounted it at /research. The replacement deployed the application and nothing
+# else, so the route 404'd and the graphs simply stopped existing.
+#
+# `/var/lib/quantify` is already mounted into the container, so the host's cron
+# writes here and the application serves whatever is present. When nothing has
+# been built the page says so rather than 404ing: a missing dashboard is a
+# pipeline that has not run, and "not built yet" is a different thing to tell
+# somebody than "no such page".
+@app.get("/research", response_class=HTMLResponse)
+def research() -> HTMLResponse:
+    from .deploy.context import current
+
+    built = Path(current().research_directory) / "regime_dashboard.html"
+    if not built.exists():
+        return HTMLResponse(
+            "<!doctype html><meta charset=utf-8>"
+            "<title>Research dashboard — Quantify</title>"
+            "<h1>The research dashboard has not been built yet.</h1>"
+            "<p>It is rebuilt from the day's history by a scheduled job on the "
+            "host. If this persists past the next run, the job is failing "
+            "rather than the page being missing.</p>",
+            status_code=503)
+    return HTMLResponse(built.read_text())
 
 
 # --- service metadata ------------------------------------------------------

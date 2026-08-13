@@ -539,6 +539,75 @@
 # There is deliberately no scheduling subsystem in the application. A cron
 # entry is the whole requirement, and installing it at deploy time is the
 # difference between a documented procedure and a running one.
+# --- the research dashboard ------------------------------------------------
+
+- name: Create the research directory
+  ansible.builtin.file:
+    path: /var/lib/quantify/research
+    state: directory
+    mode: "0755"
+  become: true
+
+# Rebuild the dashboard daily, on the host, from the day's history.
+#
+# This is what `daily-deploy.yml` did three times a day before it was replaced,
+# and replacing it deployed the application and nothing else — so the backtest
+# stopped running, the Bokeh document stopped being built, and /research went
+# from a dashboard to a 404. The code was never removed; it was unwired.
+#
+# `/var/lib/quantify` is already mounted into the container, so the output lands
+# where the application serves it from and survives a restart. The history
+# parquets are regenerated first because they are not in the image: they are
+# data the pipeline produces, not source, and shipping a copy would freeze the
+# charts at whatever the last release happened to hold.
+#
+# 04:20 rather than on the hour. A backtest and a 6MB document on a t3.small is
+# minutes of CPU, and the trace purge already owns 03:17.
+- name: Install the research dashboard cron job
+  ansible.builtin.cron:
+    name: quantify-research-dashboard
+    minute: "20"
+    hour: "4"
+    job: >-
+      cd /opt/quantify && /usr/bin/docker compose exec -T api sh -c
+      'python -m src.history --start 2016-01-01 --end $(date +%%Y-%%m-%%d) &&
+      python -m src.visualization.bokeh_app
+      --output /var/lib/quantify/research/regime_dashboard.html'
+      >> /var/log/quantify-research.log 2>&1
+    user: root
+  become: true
+
+# Build it once now, so the page is not empty until tomorrow morning.
+#
+# Deliberately not fatal. The backtest is the one step in this playbook that
+# depends on data the image does not carry, and a deployment that refuses
+# because a chart could not be drawn would be weighing the dashboard above the
+# service. What it must not do is fail silently: the result is reported either
+# way, and /research says "not built yet" rather than 404 until it succeeds.
+- name: Build the research dashboard once
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T api sh -c '
+      python -m src.history --start 2016-01-01 --end $(date +%Y-%m-%d) &&
+      python -m src.visualization.bokeh_app \
+        --output /var/lib/quantify/research/regime_dashboard.html'
+  args:
+    executable: /bin/bash
+  become: true
+  register: dashboard_build
+  changed_when: false
+  failed_when: false
+  timeout: 1800
+
+- name: Report whether the dashboard built
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'RESEARCH_OK — /research is serving a freshly built dashboard'
+         if dashboard_build.rc == 0 else
+         'RESEARCH_NOT_BUILT (rc=' ~ dashboard_build.rc ~ ') — /research will
+          say so rather than 404. Last lines: '
+         ~ (dashboard_build.stderr_lines | default([]))[-3:] | join(' | ') }}
+
 - name: Install the trace purge cron job
   ansible.builtin.cron:
     name: quantify-trace-purge
