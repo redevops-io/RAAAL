@@ -82,9 +82,21 @@ def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
     edit this function.
     """
     scope = dict(scope or {})
-    declared = {
-        "dividend_policy": scenario.holdings_policy.dividend_policy,
-    }
+    # Keyed by what is unsimulated, which is no longer the same as the
+    # dimension. `dividend_policy` used to be wholly unmodelled; reinvestment
+    # is now run on the snapshot's total-return series and only `held_as_cash`
+    # remains. Keying on the dimension would disclose a limitation that no
+    # longer applies to the common case — a false disclosure, which is worse
+    # than none, because it teaches a reader to discount the true ones.
+    declared = {}
+    # Only the policy that is still unsimulated. `dividend_policy` used to be
+    # disclosed whatever it said, because neither reading was honoured;
+    # reinvestment now runs on the total-return series, and disclosing a
+    # limitation that no longer applies teaches a reader to discount the ones
+    # that do.
+    policy = scenario.holdings_policy.dividend_policy
+    if policy == "held_as_cash":
+        declared["dividend_policy"] = policy
     # The event program was absent from this dict while the docstring above
     # claimed the disclosure was derived rather than hardcoded. It was derived
     # — from a dict with one entry — so a plan whose entire strategy went
@@ -148,6 +160,20 @@ def market_data_for(scenario, *, context: str, plan_id: str = ""):
     return _market_data(context, plan_id=plan_id, scenario=scenario)
 
 
+def _reinvests(scenario) -> bool:
+    """Whether this plan's figure should credit distributions.
+
+    Read from the scenario the user confirmed rather than from a constant. The
+    two policies are materially different strategies over a long horizon —
+    reinvesting compounds the position, holding as cash does not — and the
+    engine ran both on price series only, so they produced the same number and
+    the choice was recorded without being honoured.
+    """
+    policy = getattr(getattr(scenario, "holdings_policy", None),
+                     "dividend_policy", "")
+    return str(policy) == "reinvested"
+
+
 def _market_data(context: str, *, plan_id: str = "", scenario=None,
                  ran_at: str = ""):
     """The frame, its provenance and the record of this delivery, together.
@@ -165,7 +191,8 @@ def _market_data(context: str, *, plan_id: str = "", scenario=None,
     run_id = (run_id_for(plan_id, scenario.content_hash, ran_at)
               if plan_id and scenario is not None and ran_at else None)
     return resolve(context=context, run_id=run_id,
-                   request_id=f"{context}:{plan_id or 'anonymous'}")
+                   request_id=f"{context}:{plan_id or 'anonymous'}",
+                   reinvested=scenario is not None and _reinvests(scenario))
 
 def _flows_from(schedule, sessions: pd.DatetimeIndex) -> List[CashFlow]:
     """Turn a declared schedule into dated contributions.

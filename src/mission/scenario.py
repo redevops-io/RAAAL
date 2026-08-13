@@ -178,11 +178,19 @@ UNSIMULATED = {
         "is the figure for holding the instruments, not for following the "
         "rule, and reads as though the rule had been evaluated."
     ),
+    # `dividend_policy` was here and is gone for `reinvested`, which the engine
+    # now honours by running on the snapshot's total-return series. What remains
+    # unsimulated is the other reading — holding distributions as cash — and it
+    # is disclosed by `holdings_policy` rather than by this entry, because a
+    # blanket "dividends are not modelled" is now false for the common case and
+    # a false disclosure is worse than none.
     "dividend_policy": (
-        "The engine runs on price series only, so dividends are neither paid "
-        "nor reinvested. The choice is recorded and distinguishes two "
-        "strategies from each other; it does not yet change a simulated "
-        "figure, and any result reading as though it did would be wrong."
+        "Reinvested distributions are credited — the run uses the snapshot's "
+        "total-return series rather than price series only. Holding them as "
+        "cash is not modelled: there is no path that pays a distribution out "
+        "and leaves it uninvested, so a plan stating it would be run as though "
+        "the dividends had been reinvested, which is a different and "
+        "better-performing strategy."
     ),
 }
 

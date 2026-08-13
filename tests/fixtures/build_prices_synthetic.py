@@ -98,6 +98,49 @@ DISCONTINUITY = ("MGK", "2021-03-15", 0.25)
 
 TRADING_DAYS = 252.0
 
+#: Annual distribution yield per symbol, for the total-return twin.
+#:
+#: Declared rather than derived, so the gap between the two series is a stated
+#: fact somebody can check instead of an artefact of how they were generated.
+#: The spread is deliberate: bond proxies distribute more than growth equity,
+#: and a couple of symbols pay nothing at all — a build where every asset yields
+#: the same would let a total-return bug hide as a uniform scale factor.
+YIELDS = {
+    "BND": 0.038, "AGG": 0.036, "TLT": 0.034, "LQD": 0.042, "HYG": 0.058,
+    "TIP": 0.028, "BIL": 0.045, "SPY": 0.015, "VOO": 0.015, "VTI": 0.014,
+    "IWM": 0.011, "RSP": 0.016, "VXUS": 0.031, "QQQ": 0.006, "MGK": 0.004,
+    "GLD": 0.0, "DBC": 0.0, "BTC-USD": 0.0, "BRK-B": 0.0, "SH": 0.0,
+    "TBT": 0.0, "^VIX": 0.0, "^VVIX": 0.0,
+}
+
+
+def total_return(prices: pd.DataFrame) -> pd.DataFrame:
+    """The same series with distributions reinvested at the close.
+
+    A daily accrual of the declared annual yield, compounded onto the price
+    path. Not a model of when real funds distribute — they pay quarterly, in
+    lumps — and deliberately so: this fixture exists to prove the engine reads
+    the right series and credits it, and a lumpy schedule would let an
+    off-by-one in the payment date masquerade as a total-return defect.
+
+    An asset with no declared yield returns exactly its price series, which is
+    what a non-distributing instrument does and is the control for every
+    assertion about the others.
+    """
+    out = {}
+    for symbol in prices.columns:
+        rate = YIELDS.get(symbol, 0.0)
+        series = prices[symbol]
+        if not rate:
+            out[symbol] = series
+            continue
+        accrual = np.power(1.0 + rate, 1.0 / TRADING_DAYS)
+        factor = pd.Series(accrual, index=series.index).cumprod()
+        # The factor only applies where the asset exists; a late inception must
+        # not accrue distributions before it started trading.
+        out[symbol] = (series * factor.where(series.notna())).round(2)
+    return pd.DataFrame(out, index=prices.index)
+
 
 def build() -> pd.DataFrame:
     sessions = CalendarRegistry().resolve("nyse@1").sessions(
@@ -132,6 +175,11 @@ def build() -> pd.DataFrame:
 def main() -> None:
     frame = build()
     frame.to_parquet(OUT, compression="zstd", index=True)
+
+    reinvested = total_return(frame)
+    twin = OUT.with_suffix(".total-return.parquet")
+    reinvested.to_parquet(twin, compression="zstd", index=True)
+    print(f"{twin}  total-return twin")
     digest = hashlib.sha256(OUT.read_bytes()).hexdigest()
     print(f"{OUT}  {frame.shape[0]} sessions x {frame.shape[1]} assets  "
           f"{OUT.stat().st_size / 1024:.0f} KiB")

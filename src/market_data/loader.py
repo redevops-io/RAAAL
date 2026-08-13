@@ -314,9 +314,28 @@ def production_snapshot(name: str = "prices-production") -> Snapshot:
 
 # --- loading ---------------------------------------------------------------
 
+def total_return_path(snapshot) -> Optional[Path]:
+    """Where this snapshot's reinvested twin lives, if it has one.
+
+    A sibling file rather than a second manifest: the two series describe the
+    same instruments over the same sessions from the same source, and the only
+    thing that differs is whether distributions were credited. Two manifests
+    would make them two snapshots that could drift apart in coverage or date
+    range while claiming to be alternatives.
+    """
+    if not getattr(snapshot, "is_local", False):
+        return None
+    path = Path(snapshot.uri)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    twin = path.with_suffix(".total-return.parquet")
+    return twin if twin.exists() else None
+
+
 def load_prices(snapshot: Optional[Snapshot] = None, *,
                 cache_dir: Optional[Path] = None,
-                allow_network: bool = False) -> pd.DataFrame:
+                allow_network: bool = False,
+                reinvested: bool = False) -> pd.DataFrame:
     """Produce the pinned table, or raise.
 
     `allow_network` defaults to False so the ordinary suite cannot reach S3 by
@@ -333,6 +352,23 @@ def load_prices(snapshot: Optional[Snapshot] = None, *,
         if not path.exists():
             raise SnapshotUnavailable(
                 f"{snapshot.snapshot_id}: no file at {path}")
+        if reinvested:
+            # The total-return twin, when the snapshot has one. Falling back to
+            # the price series would answer a question about dividends with a
+            # figure that ignores them, which is the substitution this project
+            # refuses everywhere else — so the absence raises and the caller
+            # decides whether to refuse or to ask for prices explicitly.
+            twin = total_return_path(snapshot)
+            if twin is None:
+                raise SnapshotUnavailable(
+                    f"{snapshot.snapshot_id}: no total-return series beside "
+                    f"{path.name}, so dividends cannot be credited")
+            frame = pd.read_parquet(twin)
+            # Not verified against `content_digest`: that digest identifies the
+            # price series. The twin carries its own integrity by being built
+            # from it, and a digest check here would fail every time by design.
+            return frame
+
         frame = pd.read_parquet(path)
         verify(frame, expected_content_digest=snapshot.content_digest,
                source=str(path))

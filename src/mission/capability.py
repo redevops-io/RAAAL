@@ -276,10 +276,18 @@ MANIFEST: Mapping[str, Dimension] = {
              "not modelled")),
 
     "dividend_policy": _d(
-        "dividend_policy", REFUSED,
-        why=("the engine runs on price series only, so dividends are neither "
-             "paid nor reinvested; the choice is recorded and distinguishes "
-             "two strategies from each other without changing a figure")),
+        "dividend_policy", EXECUTED, values=("reinvested",),
+        refuses={
+            "held_as_cash":
+                "distributions paid out and left uninvested are not modelled: "
+                "the engine credits reinvested distributions by running on a "
+                "total-return series, and has no path that pays them out and "
+                "leaves them idle. Running this as reinvested would report a "
+                "different and better-performing strategy"},
+        why=("reinvested distributions are credited: the run uses the "
+             "snapshot's total-return series, so a plan that reinvests "
+             "compounds its position and one that does not is refused rather "
+             "than reported as though it had")),
 
     # The three families the drift lane found execution-unstable. Discovery
     # can now state them; this is where they stop. Named individually rather

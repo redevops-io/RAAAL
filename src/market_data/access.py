@@ -85,8 +85,8 @@ class MarketDataAccess:
 
 
 def resolve(*, context: str, accessed_at: Optional[str] = None,
-            request_id: Optional[str] = None, run_id: Optional[str] = None
-            ) -> "MarketDataAccess":
+            request_id: Optional[str] = None, run_id: Optional[str] = None,
+            reinvested: bool = False) -> "MarketDataAccess":
     """Prices, their provenance and the record of this delivery, together.
 
     Returned as one object so a caller cannot obtain a figure without the
@@ -156,10 +156,16 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
             access_decision_reason=str(refusal)[:200], accessed_at=stamp))
 
     try:
-        frame = load_prices(snapshot)
-    except Exception:
+        frame = load_prices(snapshot, reinvested=reinvested)
+    except Exception as unavailable:
+        # The reason, not a generic failure. A snapshot with no total-return
+        # twin cannot answer a plan that reinvests dividends, and "could not be
+        # loaded" would send whoever reads it looking for a missing file rather
+        # than at the series the plan asked for.
         return MarketDataAccess(None, not_recorded(
-            f"snapshot {snapshot.snapshot_id} could not be loaded"))
+            f"snapshot {snapshot.snapshot_id} could not be loaded"
+            f"{' with dividends reinvested' if reinvested else ''}: "
+            f"{unavailable}"))
 
     # Sorted first, then digested, then described — in that order, over one
     # object. The frame handed to the caller and the frame the digest describes

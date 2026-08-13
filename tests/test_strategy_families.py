@@ -192,7 +192,21 @@ class TestTheCompilerBaseline:
     #: consulted it, so two families that state a period were reduced silently;
     #: they are refused by name now. A silent reduction becoming a refusal is
     #: the direction this whole defect report exists to move in.
-    SILENTLY_REDUCED = 9
+    #: 9 -> 10, and this move is a loss rather than a correction.
+    #:
+    #: `dividend_policy` stopped being refused wholesale when the engine began
+    #: crediting reinvested distributions from the snapshot's total-return
+    #: series. That refusal had been catching `dividend_income-02` — "live off
+    #: the dividends and never touch the principal" — and it was catching it
+    #: for the wrong reason: living off income is a *withdrawal* strategy, and
+    #: what should decline it is `sell_action` or an `assess_withdrawal`
+    #: objective, not a dimension about whether distributions compound.
+    #:
+    #: So a refusal that happened to be load-bearing was removed, and the
+    #: family it was covering now reduces silently on the legacy path. Recorded
+    #: rather than papered over: the number is the point of this baseline, and
+    #: docs/Benchmark-Queue.md carries the gap.
+    SILENTLY_REDUCED = 10
 
     def test_the_legacy_reader_still_reduces_this_many(self, compiler):
         assert compiler["by_state"].get("SILENTLY_REDUCED", 0) == \

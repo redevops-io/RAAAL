@@ -184,6 +184,19 @@ when its value equals `amount` — and that is a fusion-level rule that wants a
 falsification set before it ships. The entry is out of the selector until then;
 `tests/test_strategy_library.py` is what keeps it out.
 
+**`dividend_income` lost the refusal that was covering it.** "live off the
+dividends and never touch the principal" was declined because `dividend_policy`
+was refused wholesale. It is not any more — reinvested distributions are
+credited from the total-return series — and the family now passes the legacy
+compiler unrefused, taking the silent-reduction baseline from 9 to 10.
+
+The refusal was right and its reason was wrong. Living off income is a
+withdrawal strategy: what should decline it is `sell_action`, or an objective of
+`assess_withdrawal`, neither of which the reader currently returns for this
+phrasing. Held because the fix is in what the reader recognises rather than in
+what the engine refuses, and a dimension added to the manifest to re-catch it
+would be restoring an accident.
+
 ## What this does not authorise
 
 The queue is a counterexample generator, not a fifth reopen trigger. A wrong

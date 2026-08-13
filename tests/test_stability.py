@@ -140,7 +140,11 @@ class TestRecognizedIsNotRepresented:
 
         entry = scope["declared_but_not_simulated"]["dividend_policy"]
         assert entry["declared"] == "held_as_cash"
-        assert "price series only" in entry["why"]
+        # The wording moved with the capability: the engine no longer runs
+        # on price series only, and reinvestment is credited. What must
+        # still be said is that *this* policy is not honoured.
+        assert "not modelled" in entry["why"]
+        assert "reinvested" in entry["why"]
         assert "dividend_policy" in UNSIMULATED
 
     def test_every_unsimulated_declaration_is_disclosed(self):
@@ -158,8 +162,15 @@ class TestRecognizedIsNotRepresented:
         from src.mission.spec import ScenarioAmendment
         from src.workspace.routes import declare_unsimulated
 
+        # "holding the dividends as cash", not "reinvesting them". The
+        # fixture said the latter while both readings were unsimulated; the
+        # engine now credits reinvestment from the snapshot's total-return
+        # series, so a description choosing it discloses nothing about
+        # dividends — correctly. To exercise the registry entry the
+        # description has to state the reading that is still not modelled,
+        # which is the test doing its job rather than being appeased.
         compiled = compile_scenario(
-            self.BASE.format(d="reinvesting the dividends")
+            self.BASE.format(d="holding the dividends as cash")
             + " I also buy $500 more every time VTI crosses below its 200-day "
               "moving average.",
             name="s", version=1, benchmark_rule=BENCHMARK_RULE,
