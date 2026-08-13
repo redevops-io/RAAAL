@@ -160,8 +160,25 @@
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.shell: |
     set -euo pipefail
-    set -a; . /opt/quantify/.env; set +a
-    export PGPASSWORD="${QUANTIFY_DB_PASSWORD:-$POSTGRES_PASSWORD}"
+    # The password from Secrets Manager, not from /opt/quantify/.env.
+    #
+    # That file is the env format compose reads, which is not shell: values
+    # are unquoted, and sourcing it ran the database URL as a command the
+    # moment a password contained a character bash treats specially. Compose
+    # parses it correctly because compose is what it is written for.
+    #
+    # No apostrophes below this line. Ansible splits a shell block into
+    # arguments before bash ever sees it, and one inside a comment reads as an
+    # unbalanced quote — which is how the previous version of this comment
+    # failed the playbook rather than the command.
+    PGPASSWORD="$(aws secretsmanager get-secret-value \
+      --region '{{ quantify_region }}' \
+      --secret-id '{{ quantify_secret_database }}' \
+      --query SecretString --output text)"
+    export PGPASSWORD
+
+    # `CREATE DATABASE` is not transactional and has no IF NOT EXISTS, so this
+    # asks first. Re-runnable by construction, like every task here.
     exists=$(docker run --rm -e PGPASSWORD postgres:16-alpine \
       psql -h '{{ quantify_database_host }}' -U quantify -d quantify -tAc \
       "SELECT 1 FROM pg_database WHERE datname='zitadel'")
@@ -178,6 +195,12 @@
   become: true
   register: identity_database
   changed_when: "'CREATED' in identity_database.stdout"
+  no_log: true
+
+- name: Report the identity database
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.debug:
+    msg: "identity database {{ 'created' if identity_database.changed else 'already present' }}"
 
 - name: Install the compose file
   ansible.builtin.template:

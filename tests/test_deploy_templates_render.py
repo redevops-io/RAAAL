@@ -111,3 +111,65 @@ def test_no_template_contains_a_bash_length_expansion():
     assert not offenders, (
         f"{offenders} use bash's parameter-length expansion, whose first two "
         "characters open a Jinja comment. Use `wc -c` instead")
+
+
+class TestTheShellBlocksSurviveAnsiblesParser:
+    """Two deploys have now been lost to a comment.
+
+    The first put bash parameter-length expansion in a Jinja template, whose
+    opening characters start a Jinja comment. The second put an apostrophe in a
+    shell comment — Ansible splits a `shell:` block into arguments before bash
+    sees it, so one unbalanced quote fails the whole playbook, and the error
+    names the task rather than the word.
+
+    Both are mechanical, both cost a round-trip to a host, and neither is the
+    kind of thing care prevents twice.
+    """
+
+    ROLE = (Path(__file__).resolve().parent.parent / "infra" / "ansible"
+            / "roles" / "quantify" / "tasks" / "main.yml")
+
+    def blocks(self):
+        """Every `shell:` block in the role, as text."""
+        import re
+
+        if not self.ROLE.exists():
+            pytest.skip("no ansible role here")
+        text = self.ROLE.read_text()
+        return re.findall(r"ansible\.builtin\.shell:\s*\|\s*\n((?:[ ]{4,}.*\n|\n)+)",
+                          text)
+
+    def test_there_are_some(self):
+        assert self.blocks(), "found no shell blocks; this file is stale"
+
+    def test_no_block_has_an_unbalanced_single_quote(self):
+        """Counted over the whole block, not per line.
+
+        Per line was the first rule and it was wrong: `sh -c \'` legitimately
+        opens a quote that closes several lines later, and the check failed on
+        working code the moment it was written. Ansible balances across the
+        argument it is splitting, so that is the unit — which still catches an
+        apostrophe in prose, because one stray quote makes the whole block odd.
+        """
+        for block in self.blocks():
+            assert block.count("'") % 2 == 0, (
+                "a shell block has an unbalanced single quote. Ansible splits "
+                "these into arguments before bash sees them, so an apostrophe "
+                "in a comment fails the playbook:\n"
+                + "\n".join(line for line in block.splitlines()
+                            if line.count("'") % 2))
+
+    def test_the_playbook_parses(self):
+        """The general check behind the specific one. `--syntax-check` loads
+        every task file and is the thing that would have caught both faults."""
+        import shutil
+        import subprocess
+
+        if shutil.which("ansible-playbook") is None:
+            pytest.skip("ansible is not installed here")
+        root = Path(__file__).resolve().parent.parent / "infra" / "ansible"
+        done = subprocess.run(
+            ["ansible-playbook", "--syntax-check",
+             "-i", str(root / "inventory.aws_ec2.yml"), str(root / "site.yml")],
+            capture_output=True, text=True, timeout=300)
+        assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
