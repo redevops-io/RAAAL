@@ -66,38 +66,69 @@ CASES = [(e, r) for e in offered() for r in readers()]
 IDS = [f"{e.key}-{r}" for e, r in CASES]
 
 
-class TestEverythingOfferedRuns:
-    """The property the catalogue exists to keep. Nothing here is skipped for
-    a missing recording: an entry with no recorded reading is an entry the
-    product offers and nothing has ever run, which is the defect."""
+class TestEveryEntryResolves:
+    """Execute, or refuse by name with a reason. Silence is the only failure.
+
+    This class used to require every entry to run, and the catalogue carried
+    only what did. That made the product look smaller than it is and made its
+    gaps invisible: a strategy nobody can select is one nobody asks for, and one
+    nobody asks for never gets built. All twenty families are offered now, and
+    what the engine cannot do it says so about — which turns each selection into
+    a recorded request for the thing that is missing.
+
+    What must never happen is the third outcome: a sentence that neither runs
+    nor explains itself. That is the state a person cannot act on and cannot
+    report, and it is what these assertions exist to make impossible.
+    """
 
     @pytest.mark.parametrize("case,reader", CASES, ids=IDS)
-    def test_it_reads_without_a_question(self, case, reader):
+    def test_it_either_runs_or_says_why_not(self, case, reader):
         reading = _read(case.text, reader)
-        assert not reading.questions, (
-            f"{case.key!r} under {reader} is offered and comes back asking "
-            f"for {sorted(reading.questions)}. A suggested sentence that does "
-            "not settle sends the user into the clarification loop on a "
-            "sentence they did not write")
+        if reading.executable:
+            return
+        reasons = [getattr(r, "detail", "") for r in reading.refusals]
+        assert reasons or reading.questions, (
+            f"{case.key!r} under {reader} neither ran, refused, nor asked. The "
+            "page shows a plan that did nothing and says nothing about why")
+        for detail in reasons:
+            assert detail.strip(), (
+                f"{case.key!r} under {reader} is refused with an empty reason. "
+                "A dimension named with no explanation is worse than no "
+                "refusal: the reader is told something is wrong and not what")
 
     @pytest.mark.parametrize("case,reader", CASES, ids=IDS)
-    def test_it_is_not_refused(self, case, reader):
+    def test_a_refusal_names_a_dimension(self, case, reader):
+        """By name, never a generic decline. The dimension is what lets a
+        refusal be counted, queued and eventually fixed."""
         reading = _read(case.text, reader)
-        refused = [getattr(r, "dimension", "") for r in reading.refusals]
-        assert not refused, (
-            f"{case.key!r} under {reader} is offered and the engine refuses "
-            f"{refused}. "
-            "Offering a strategy this build will not run is a claim of support "
-            "the product makes on its own initiative")
+        for refusal in reading.refusals:
+            assert getattr(refusal, "dimension", ""), (
+                f"{case.key!r} under {reader} refuses without naming what it "
+                "refused")
 
-    @pytest.mark.parametrize("case,reader", CASES, ids=IDS)
-    def test_it_compiles_to_something_executable(self, case, reader):
-        reading = _read(case.text, reader)
-        assert reading.executable, (
-            f"{case.key!r} under {reader} reads cleanly and does not compile "
-            "to a runnable "
-            "plan")
-        assert reading.compiled is not None
+
+class TestTheCatalogueSpansTheKnownFamilies:
+    def test_every_sampled_family_is_offered(self):
+        """The corpus sampled twenty strategy families from cited sources. All
+        twenty are selectable, including the ones this build declines — that is
+        the point of offering them."""
+        import json
+        from pathlib import Path
+
+        sampled = {c["family"] for c in json.loads(
+            (Path(__file__).resolve().parent.parent / "corpus" / "parser"
+             / "strategy_families.json").read_text())["cases"]}
+        offered_families = {e.family for e in offered()}
+        assert sampled - offered_families == set(), (
+            f"{sorted(sampled - offered_families)} were sampled from cited "
+            "sources and cannot be selected")
+
+    def test_every_entry_cites_where_it_came_from(self):
+        """Attested rather than invented, the same rule the harvested corpus
+        follows. A sentence somebody made up that sounds plausible teaches the
+        reader nothing about how people actually write."""
+        for case in offered():
+            assert case.source.startswith("http"), case.key
 
 
 class TestTheCatalogueIsWellFormed:
@@ -109,12 +140,13 @@ class TestTheCatalogueIsWellFormed:
         for group in LIBRARY:
             assert group.entries, f"{group.key!r} is an empty heading"
 
-    def test_every_entry_says_what_it_demonstrates(self):
-        """The catalogue is small and will be edited by someone who was not
-        here. An entry with no stated purpose is one nobody can tell the
-        difference between keeping and deleting."""
+    def test_every_entry_names_its_family(self):
+        """`demonstrates` was here and is gone with the hand-written entries.
+        The family is the better answer to the same question: it says which
+        strategy the sentence is an instance of, and it is what lets a refusal
+        be traced back and counted rather than read once and forgotten."""
         for case in offered():
-            assert case.demonstrates.strip()
+            assert case.family.strip(), case.key
 
 
 class TestOriginIsDerivedNotDeclared:

@@ -11,19 +11,27 @@ sentence lands in it as ordinary editable text.
 Two rules hold this together, and both exist because a catalogue is the easiest
 place in a product to make a claim nobody checks.
 
-**Everything offered must execute.** An entry in a dropdown is the product
-saying "this works". Offering a strategy that compiles to a refusal is a false
-claim of support, and worse than the user typing the same sentence unprompted,
-because we suggested it. `tests/test_strategy_library.py` runs every offered
-entry through the whole pipeline and fails if one does not produce a plan.
+**Everything is offered; what cannot run is refused by name.** The catalogue
+used to carry only what executed, on the reasoning that a dropdown entry is the
+product claiming "this works". That rule made the product look smaller than it
+is and, worse, made its gaps invisible: a strategy nobody can select is a
+strategy nobody asks for, and one nobody asks for never gets built.
 
-**Nothing here advertises what the engine cannot do.** A list of refused
-strategies was rendered beside this one for exactly one revision. It was the
-wrong answer to a real problem: the fix for "this build cannot evaluate
-momentum" is to evaluate momentum, not to explain the gap more clearly. A
-sentence the engine will not run is still refused by name when somebody writes
-it, which is where the boundary belongs — at the point of the request, not as a
-standing advertisement of absence.
+So all twenty families are here, and the engine answers each one honestly. A
+refusal names the dimension and gives the reason — this build only buys, it
+computes no tax, it holds one pool rather than buckets — which turns the
+catalogue into a map of what is supported and what is not, and turns each
+selection into a recorded request for the thing that is missing.
+
+`tests/test_strategy_library.py` no longer requires every entry to run. It
+requires every entry to *resolve*: execute, or refuse by name with a reason a
+person can act on. Silence is the only failure.
+
+**Refusal happens at the point of the request.** Selecting an entry the
+engine cannot run puts the sentence in the box like any other; the refusal
+arrives when it is read, naming the dimension and the reason. The catalogue
+does not pre-emptively grey anything out — what this build supports is a
+property of the engine on the day you ask, not a list maintained beside it.
 """
 from __future__ import annotations
 
@@ -44,9 +52,13 @@ class Entry:
     key: str
     title: str
     text: str
-    #: What this entry exists to demonstrate. Shown to nobody — it is the
-    #: reason the entry is in the catalogue, for whoever edits it next.
-    demonstrates: str
+    #: The strategy family this belongs to, as the corpus names it. Carried so
+    #: a refusal can be traced back to the family it came from and counted.
+    family: str = ""
+    #: Where the phrasing came from. Every entry is a strategy people actually
+    #: describe, taken from a cited definition rather than invented here — the
+    #: same rule the harvested corpus follows, for the same reason.
+    source: str = ""
 
 
 @dataclass(frozen=True)
@@ -66,67 +78,103 @@ class Group:
 #: act on, and every group but one would be empty.
 LIBRARY: Tuple[Group, ...] = (
     Group(
-        key="regular",
-        title="Money in on a schedule",
-        note="A fixed amount on a calendar. The most common shape by far, and "
-             "the one the engine models most directly.",
+        key='money-in',
+        title='Putting money in',
+        note='Contributions, on a calendar or on a market condition.',
         entries=(
-            Entry("monthly-single", "Monthly into one fund",
-                  "invest $500 a month into VTI",
-                  "the baseline: one asset, one cadence, one amount"),
-            Entry("monthly-pair", "Monthly, split between two funds",
-                  "invest $500 a month split equally between VTI and BND",
-                  "a SET-valued holding; equal split is what the engine does"),
-            Entry("weekly-single", "Weekly into one fund",
-                  "put $100 into VOO every week",
-                  "a non-monthly cadence, phrased as a person would"),
-            Entry("quarterly-single", "Quarterly into one fund",
-                  "invest $3,000 into QQQ every quarter",
-                  "a cadence with a thousands separator in the amount"),
-            Entry("first-of-month", "Monthly, on the first trading day",
-                  "invest $750 into VTI on the first trading day of each month",
-                  "day_rule stated explicitly rather than defaulted"),
+            Entry('scheduled-funding', 'Contribute a fixed amount on a schedule',
+                  'invest $500 monthly into VTI',
+                  family='scheduled_funding', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging'),
+            Entry('event-triggered-funding', 'Buy when the market hits a condition',
+                  'buy VOO when SPY falls below its 200-day moving average',
+                  family='event_triggered_funding', source='https://www.investopedia.com/terms/m/movingaverage.asp'),
         ),
     ),
     Group(
-        key="triggered",
-        title="Money in when the market does something",
-        note="A condition rather than a date. The engine fills on the next "
-             "session's open — never the close that produced the signal.",
+        key='allocation',
+        title='Choosing and holding the mix',
+        note='What the money buys, in what proportions, and whether that is restored over time.',
         entries=(
-            Entry("below-ma", "Buy when it falls below its moving average",
-                  "buy $1,000 of SPY every time it closes below its 200 day "
-                  "moving average, on the next trading day",
-                  "crossing_event, and the sentence the first pilot user "
-                  "actually typed"),
-            Entry("stays-below", "Buy while it stays below its average",
-                  "buy $1,000 of SPY on any day it is trading below its 200 "
-                  "day moving average",
-                  "persistent_condition — the other reading of the same shape, "
-                  "and a different strategy"),
-            # A drawdown entry — "invest $2,000 into VTI whenever it drops 10%
-            # below its highest close of the last year" — was written here and
-            # removed. It runs under claude-sonnet-5 and is refused under
-            # gpt-4.1-2025-04-14, which reads the fixed $2,000 as a
-            # `conditional_amount` and refuses a strategy whose amount does not
-            # in fact vary. Offering a sentence that works on one provider is
-            # offering a coin toss, so it is out until the false refusal is
-            # fixed; docs/Benchmark-Queue.md carries it.
+            Entry('stated-weights', 'Hold a stated split, such as 60/40',
+                  'a 60/40 portfolio',
+                  family='stated_weights', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation'),
+            Entry('rebalancing', 'Rebalance back to the target weights',
+                  'rebalance back to 60/40 every year',
+                  family='rebalancing', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing'),
+            Entry('risk-based-allocation', 'Allocate by risk rather than by dollars',
+                  'allocate by inverse volatility',
+                  family='risk_based_allocation', source='https://www.investopedia.com/terms/r/risk-parity.asp'),
+            Entry('factor-tilt', 'Tilt toward a factor',
+                  'tilt 20% toward small cap value',
+                  family='factor_tilt', source='https://www.investopedia.com/terms/s/smallcap.asp'),
+            Entry('glidepath', 'Shift from stocks to bonds as you age',
+                  'shift 1% from stocks to bonds every year as I get older',
+                  family='glidepath', source='https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf'),
         ),
     ),
     Group(
-        key="one-off",
-        title="A single purchase",
-        note="One amount, once. Useful as a baseline to compare a "
-             "contribution plan against.",
+        key='money-out',
+        title='Taking money out',
+        note='Withdrawals, income and the order accounts are drawn down in.',
         entries=(
-            Entry("lump-sum", "Invest a lump sum now",
-                  "invest $10,000 into VTI as a lump sum",
-                  "cadence=once; the phrase that broke the clarification loop"),
-            Entry("lump-sum-pair", "A lump sum across two funds",
-                  "invest $10,000 equally into VTI and BND as a one-off "
-                  "purchase",
-                  "once + SET holding together"),
+            Entry('safe-withdrawal-rate', 'Withdraw a fixed percentage each year',
+                  'withdraw 4% of the portfolio each year, adjusted for '
+                  'inflation',
+                  family='safe_withdrawal_rate', source='https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement'),
+            Entry('withdrawal-ordering', 'Draw accounts down in a chosen order',
+                  'spend the taxable account first, then the IRA, then the Roth',
+                  family='withdrawal_ordering', source='https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement'),
+            Entry('required-minimum-distribution', 'Take required minimum distributions',
+                  'take the required minimum distribution starting at 73',
+                  family='required_minimum_distribution', source='https://www.irs.gov/retirement-plans/retirement-plan-and-ira-required-minimum-distributions-faqs'),
+            Entry('annuitisation', 'Annuitise part of the portfolio',
+                  'annuitize a third of the portfolio at 70',
+                  family='annuitisation', source='https://gainbridge.com/post/decumulation-strategy'),
+            Entry('dividend-income', 'Live off the dividends',
+                  'live off the dividends and never touch the principal',
+                  family='dividend_income', source='https://www.investopedia.com/terms/d/dividend.asp'),
+        ),
+    ),
+    Group(
+        key='accounts',
+        title='Accounts and tax',
+        note='Where holdings sit, and moves whose whole effect is a tax one.',
+        entries=(
+            Entry('asset-location', 'Put particular holdings in particular accounts',
+                  'hold the bonds in the IRA and the stocks in the taxable '
+                  'account',
+                  family='asset_location', source='https://www.tencap.com/blog/6-asset-location-strategies-place-investments/'),
+            Entry('roth-conversion', 'Convert between account types',
+                  'convert $30,000 from the traditional IRA to the Roth each '
+                  'year',
+                  family='roth_conversion', source='https://www.themoneypocket.com/articles/roth-conversion-ladder-strategy-retirement-tax-planning'),
+            Entry('tax-loss-harvesting', 'Harvest losses',
+                  'harvest losses whenever a position falls 10% below its cost '
+                  'basis',
+                  family='tax_loss_harvesting', source='https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN'),
+        ),
+    ),
+    Group(
+        key='other',
+        title='Cash, leverage and everything else',
+        note='Positions this engine values differently, or does not value at all.',
+        entries=(
+            Entry('cash-reserve', 'Keep a cash reserve before investing',
+                  'keep six months of expenses in cash before investing '
+                  'anything',
+                  family='cash_reserve', source='https://www.investor.gov/introduction-investing/getting-started/emergency-fund'),
+            Entry('bucket-strategy', 'Split into near-term and long-term buckets',
+                  'keep three years of expenses in cash and the rest in stocks',
+                  family='bucket_strategy', source='https://blincoe.uk/the-blincoe-blog/retirement-income-bucketing-strategy'),
+            Entry('leverage', 'Use leverage on part of the portfolio',
+                  'hold 2x leverage on the equity sleeve',
+                  family='leverage', source='https://www.investopedia.com/terms/l/leverage.asp'),
+            Entry('option-income', 'Sell options for income',
+                  'sell covered calls one strike out of the money each month',
+                  family='option_income', source='https://www.investopedia.com/terms/c/coveredcall.asp'),
+            Entry('non-market-alternative', 'Compare against paying down a debt',
+                  'pay off the mortgage instead of investing',
+                  family='non_market_alternative', source='https://www.investopedia.com/articles/pf/07/mortgage_investment.asp'),
         ),
     ),
 )
