@@ -95,7 +95,20 @@ if [ -z "$TUNNEL_TOKEN" ]; then
   exit 1
 fi
 
-export QUANTIFY_DB_PASSWORD QUANTIFY_MODEL_KEY{% if quantify_identity_domain | default('') | length > 0 %} QUANTIFY_IDENTITY_MASTERKEY{% endif %}
+# Exported unconditionally, including when it is unset.
+#
+# This line ended in an inline conditional, and Ansible renders with
+# trim_blocks — so the closing tag swallowed the newline and the next `export`
+# fused onto the variable name. Bash exported QUANTIFY_IDENTITY_MASTERKEYexport,
+# the real variable was never exported, and envsubst wrote an empty masterkey.
+# Valid shell, wrong meaning, and nothing complained.
+#
+# No template tags in these comments, either. Writing one here to describe the
+# fault reintroduces it — which has now happened three times in this role.
+#
+# Exporting an unset variable costs nothing, and the template only carries the
+# line that uses it when identity is configured.
+export QUANTIFY_DB_PASSWORD QUANTIFY_MODEL_KEY QUANTIFY_IDENTITY_MASTERKEY
 export QUANTIFY_BASIC_AUTH_USER QUANTIFY_BASIC_AUTH_HASH
 
 CHANGED=0
@@ -117,7 +130,7 @@ render() {
   CHANGED=1
 }
 
-render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY}{% if quantify_identity_domain | default('') | length > 0 %} ${QUANTIFY_IDENTITY_MASTERKEY}{% endif %}'
+render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY} ${QUANTIFY_IDENTITY_MASTERKEY}'
 render "$CADDY_TEMPLATE" "$CADDY_TARGET" 0644 '${QUANTIFY_BASIC_AUTH_USER} ${QUANTIFY_BASIC_AUTH_HASH}'
 
 # The tunnel token, written directly rather than through a template: it is one

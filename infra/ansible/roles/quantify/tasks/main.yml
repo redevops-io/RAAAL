@@ -571,6 +571,43 @@
   ansible.builtin.debug:
     msg: "{{ library_render.stdout_lines }}"
 
+# The identity provider has to answer, or this deploy did not do what it said.
+#
+# Twice now the play has reported failed=0 while the provider restarted every
+# minute — once on a blank database password, once on a blank masterkey. Both
+# times the recap was green and the discovery endpoint was a 502, which is the
+# exact pattern this playbook spends its other forty tasks refusing to allow.
+#
+# Its own database migrations run on first boot and take a couple of minutes,
+# so this waits rather than checking once.
+- name: Wait for the identity provider to answer
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T identity \
+      curl -sf -o /dev/null -w "%{http_code}" \
+      http://localhost:8080/.well-known/openid-configuration
+  args:
+    executable: /bin/bash
+  become: true
+  register: identity_ready
+  retries: 30
+  delay: 10
+  until: identity_ready.rc == 0 and "200" in identity_ready.stdout
+  changed_when: false
+  failed_when: false
+
+- name: Fail if the identity provider never came up
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.assert:
+    that: identity_ready.rc == 0 and "200" in identity_ready.stdout
+    fail_msg: >-
+      The identity provider is not serving its discovery document after five
+      minutes. The deployment is otherwise fine and auth.quantify.club will
+      return 502. Read the reason with:
+      docker logs quantify-identity-1
+    success_msg: "identity provider serving OIDC discovery"
+
 - name: Confirm the proxy is serving the deployed configuration
   ansible.builtin.uri:
     url: http://127.0.0.1:80/

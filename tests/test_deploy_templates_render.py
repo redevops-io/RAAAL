@@ -63,8 +63,12 @@ VARIABLES = {
 def environment():
     from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+    # `trim_blocks=True` because that is how Ansible renders. Without it a
+    # closing tag keeps the newline after it, and the concatenation fault below
+    # does not reproduce — the check would pass here and fail on a host.
     env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
-                      undefined=StrictUndefined, keep_trailing_newline=True)
+                      undefined=StrictUndefined, keep_trailing_newline=True,
+                      trim_blocks=True)
     # Ansible ships filters plain Jinja does not. Stubbed rather than skipped,
     # because a template using one still has to parse — and the parse is what
     # this file is about.
@@ -223,3 +227,57 @@ class TestNothingDependsOnComposeInterpolation:
             assert service.get("env_file"), (
                 f"service {name!r} does not read /opt/quantify/.env, so its "
                 "configuration lives somewhere this deployment does not render")
+
+
+class TestTheRenderScriptExportsWhatItSubstitutes:
+    """`envsubst` replaces only variables that are exported.
+
+    The masterkey line ended in an inline conditional, Ansible renders with
+    trim_blocks, and the closing tag swallowed the newline — so the next
+    `export` fused onto the variable name. Bash exported
+    `QUANTIFY_IDENTITY_MASTERKEYexport`, the real variable was never exported,
+    envsubst substituted nothing, and the identity provider refused to start
+    with "masterkey must be 32 bytes, but is 0".
+
+    Every layer was individually valid. The shell parsed, the template
+    rendered, the deploy reported success, and the value was empty.
+    """
+
+    def rendered(self, **overrides):
+        return environment().get_template("render-env.sh.j2").render(
+            **{**VARIABLES, **overrides})
+
+    def substituted(self, script):
+        """Every variable named in an `envsubst` argument list."""
+        import re
+
+        lists = re.findall(r"render\s+\S+\s+\S+\s+\d+\s+'([^']*)'", script)
+        assert lists, "found no render calls; this check is stale"
+        return {name for group in lists
+                for name in re.findall(r"\$\{([A-Z_]+)\}", group)}
+
+    @pytest.mark.parametrize("identity", ["auth.quantify.club", ""])
+    def test_every_substituted_variable_is_exported(self, identity):
+        import re
+
+        script = self.rendered(quantify_identity_domain=identity)
+        exported = set()
+        for line in script.splitlines():
+            if line.startswith("export "):
+                exported.update(line[len("export "):].split())
+
+        for name in self.substituted(script):
+            assert name in exported, (
+                f"{name} is substituted into a rendered file and never "
+                f"exported as a whole word. Exported names: {sorted(exported)}. "
+                "envsubst replaces it with nothing, and the file it lands in "
+                "looks complete")
+
+    def test_no_export_line_ends_in_a_fused_word(self):
+        """The specific shape, named. `export A Bexport C` is valid shell and
+        exports a variable nobody meant."""
+        script = self.rendered()
+        for line in script.splitlines():
+            if line.startswith("export "):
+                assert "export" not in line[len("export "):], (
+                    f"two export statements fused onto one line: {line!r}")
