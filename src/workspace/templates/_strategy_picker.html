@@ -1,43 +1,74 @@
-{# The strategy selector, as one definition with two callers.
+{# The strategy selector: category first, then a strategy within it.
 
-   It was written into `pilot.html` only, which is `/workspace/new` — the page
-   you reach *after* submitting something. The page people actually arrive at is
-   `/workspace/`, which has its own prompt box, so somebody landing on the site
-   saw a bare textarea and no list at all. A selector that exists to tell people
-   what to write has to be on the page where they have not written anything yet.
+   One list of twenty was the thing to fix. Twenty entries under five headings
+   is a wall a person scans rather than a choice they make, and the headings
+   carried the useful distinction — what the strategy does to the money — while
+   being the part you could not act on. Choosing the category first turns that
+   heading into the first decision and leaves five or fewer options behind it.
 
-   A partial rather than a second copy: two copies of a dropdown drift, and the
-   one that drifts is the one nobody is looking at. `strategy_library()` and the
-   origin recording behind it are shared by both callers already.
+   Both selects are always rendered with every option present. The second is
+   filtered by script, and with scripting off it degrades to exactly the list
+   that was there before: grouped by `optgroup`, all twenty selectable, the
+   textarea still the real input. Nobody is locked out of a product whose whole
+   input is a sentence.
 
-   The including page owns the surrounding form. This renders the select and the
-   script that fills the box, and expects a textarea with id `describe` beside
-   it — which is the id both forms already use. #}
-<label for="pick">Start from a strategy</label>
+   The including page owns the surrounding form. This renders the two selects
+   and the script that fills the box, and expects a textarea with id `describe`
+   beside it — the id both forms already use. #}
+<label for="pick-group">Kind of strategy</label>
+<select id="pick-group">
+  <option value="">All kinds</option>
+  {% for group in strategy_library() %}
+    <option value="{{ group.key }}" title="{{ group.note }}">{{ group.title }}</option>
+  {% endfor %}
+</select>
+
+<label for="pick">Strategy</label>
 <select id="pick" name="picked">
   <option value="">Write my own</option>
   {% for group in strategy_library() %}
-    <optgroup label="{{ group.title }}">
+    <optgroup label="{{ group.title }}" data-group="{{ group.key }}">
       {% for item in group.entries %}
         <option value="{{ item.key }}" data-text="{{ item.text }}"
+                data-group="{{ group.key }}"
                 {% if picked is defined and picked == item.key %}selected{% endif %}>{{ item.title }}</option>
       {% endfor %}
     </optgroup>
   {% endfor %}
 </select>
 
-{# No framework and no build step. The whole behaviour is "put the chosen
-   sentence in the box", and it degrades to a plain form with a select that does
-   nothing if scripting is off — the textarea is still the real input, so nobody
-   is locked out. #}
+{# No framework and no build step. Two behaviours: narrow the strategy list to
+   the chosen kind, and put the chosen sentence in the box. #}
 <script>
   (function () {
+    var kind = document.getElementById("pick-group");
     var pick = document.getElementById("pick");
     var box = document.getElementById("describe");
-    if (!pick || !box) return;
+    if (!kind || !pick || !box) return;
+
+    // Options are hidden by detaching their group, not by `display:none` — a
+    // hidden <option> is still selectable by keyboard in several browsers, and
+    // a filter you can arrow past is not a filter.
+    var groups = Array.prototype.slice.call(pick.getElementsByTagName("optgroup"));
+    var parent = pick;
+
+    function narrow() {
+      var wanted = kind.value;
+      groups.forEach(function (group) {
+        var matches = !wanted || group.getAttribute("data-group") === wanted;
+        if (matches && !group.parentNode) parent.appendChild(group);
+        if (!matches && group.parentNode) group.parentNode.removeChild(group);
+      });
+      // A strategy from a kind that is no longer shown must not stay selected:
+      // the box would keep a sentence the visible list cannot explain.
+      if (pick.selectedIndex < 0 || !pick.options[pick.selectedIndex]) pick.value = "";
+    }
+
+    kind.addEventListener("change", narrow);
+
     pick.addEventListener("change", function () {
       var chosen = pick.options[pick.selectedIndex];
-      var text = chosen.getAttribute("data-text");
+      var text = chosen && chosen.getAttribute("data-text");
       // Never silently overwrite something the person wrote. Losing a typed
       // sentence to a mis-click is a worse failure than an extra confirm.
       if (!text) return;
@@ -49,5 +80,13 @@
       box.value = text;
       box.focus();
     });
+
+    // If the page came back with a strategy selected, show its kind rather
+    // than "All kinds" — the second attempt should look like the first.
+    var current = pick.options[pick.selectedIndex];
+    if (current && current.getAttribute("data-group")) {
+      kind.value = current.getAttribute("data-group");
+    }
+    narrow();
   })();
 </script>

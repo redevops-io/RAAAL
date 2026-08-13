@@ -39,6 +39,31 @@ def pilot_client(monkeypatch, tmp_path):
 
 
 class TestThePageOffersIt:
+    def test_the_kind_selector_comes_first(self, pilot_client):
+        """Category, then strategy. Twenty entries under five headings is a
+        wall somebody scans rather than a choice they make; the heading was the
+        useful distinction and the part you could not act on."""
+        page = pilot_client.get("/workspace/").text
+        assert 'id="pick-group"' in page, "no kind selector"
+        assert page.index('id="pick-group"') < page.index('id="pick"'), (
+            "the strategy list comes before the kind that narrows it")
+        for group in __import__("src.workspace.strategy_library",
+                                fromlist=["LIBRARY"]).LIBRARY:
+            assert f'value="{group.key}"' in page, group.key
+
+    def test_every_option_declares_its_kind(self, pilot_client):
+        """The filter is driven by the markup, not by a second list in script.
+        An option with no kind is one the narrowing cannot place, and it would
+        vanish from every category including its own."""
+        import re
+
+        page = pilot_client.get("/workspace/").text
+        options = re.findall(r'<option value="([a-z-]+)"[^>]*>', page)
+        for key in [e.key for e in offered()]:
+            assert key in options, key
+            block = page[page.index(f'value="{key}"'):][:220]
+            assert "data-group=" in block, f"{key} declares no kind"
+
     def test_the_selector_is_on_the_empty_page(self, pilot_client):
         """The empty page is where somebody with no idea what to type lands.
         A selector that only appeared after a first attempt would arrive one
