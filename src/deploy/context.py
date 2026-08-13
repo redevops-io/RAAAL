@@ -448,7 +448,22 @@ class ModelTarget:
         provenance already follows.
         """
         return {"mode": self.mode.value,
-                "provider": "anthropic" if self.model_assisted else "",
+                # From the resolved provider, not a literal.
+                #
+                # This read `"anthropic" if self.model_assisted else ""`,
+                # written when Anthropic was the only provider and left behind
+                # when one became declarable. Every plan recorded `anthropic`
+                # whoever had actually read it, and the deployment of d074390
+                # printed `"provider": "anthropic", "model":
+                # "gpt-5.4-2026-03-05"` — a contradiction inside one object,
+                # while the reader that answered was OpenAI's.
+                #
+                # A stored plan's whole purpose is to say how it was
+                # interpreted. Naming the wrong house is worse than naming
+                # none: it is a provenance record that reads as authoritative
+                # and is false.
+                "provider": (self.provider.value.lower()
+                             if self.model_assisted and self.provider else ""),
                 "model": self.model if self.model_assisted else "",
                 "prompt_version": self.prompt_version}
 

@@ -418,6 +418,15 @@
     that:
       - quantify_parser_mode in parser_identity.stdout
       - quantify_parser_model in parser_identity.stdout
+      # The provider too, and lowercased because the identity is what a plan
+      # stores rather than what Terraform declares.
+      #
+      # Checking only the model passed the deploy of d074390 on an identity
+      # that read `"provider": "anthropic", "model": "gpt-5.4-2026-03-05"` —
+      # two halves of one object naming different vendors, while the reader
+      # that answered was OpenAI's. The model matched, so the assertion was
+      # satisfied by exactly the half that was right.
+      - '"\"provider\": \"" ~ (quantify_parser_provider | lower) ~ "\"" in parser_identity.stdout'
     fail_msg: >-
       The running container resolved a different parser than this playbook
       deployed. A plan saved now would record an interpretation nobody chose.
