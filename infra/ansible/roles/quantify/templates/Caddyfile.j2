@@ -18,7 +18,19 @@
 # one accounts exist to replace.
 http://{{ quantify_identity_domain }} {
 	encode gzip
-	reverse_proxy identity:8080
+	reverse_proxy identity:8080 {
+		# TLS terminates at Cloudflare, so every hop after it is plain HTTP and
+		# the provider was told so — it published its issuer as
+		# `http://auth.quantify.club`, and the application verifies `iss`
+		# exactly, so every token it minted would have been rejected.
+		#
+		# `ZITADEL_EXTERNALSECURE=true` was set and is not the answer: the
+		# provider builds the issuer from the request it receives, and the
+		# request genuinely arrives over HTTP. What it needs is the scheme the
+		# *browser* used, which is what this header is for.
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Port 443
+	}
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options nosniff

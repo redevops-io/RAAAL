@@ -637,6 +637,47 @@
       that is stuck, so nothing has been created yet.
     success_msg: "identity provider serving OIDC discovery"
 
+# The issuer the provider publishes must be the one the application verifies.
+#
+# It published `http://auth.quantify.club` while the application was configured
+# for `https://`, because TLS terminates at the edge and the request reaching
+# the provider is genuinely plaintext. Every token would then have carried an
+# `iss` the verifier rejects, and the symptom arrives as "login is broken" long
+# after the deploy reported success.
+#
+# Asked through the proxy, with the Host header that selects the identity site,
+# because the header that fixes it is set by the proxy and the provider alone
+# never sees it.
+- name: Read the issuer the provider publishes
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -sf --max-time 30 -H "Host: {{ quantify_identity_domain }}" \
+      http://127.0.0.1/.well-known/openid-configuration \
+      | python3 -c "import json,sys; print(json.load(sys.stdin)['issuer'])"
+  args:
+    executable: /bin/bash
+  become: true
+  register: published_issuer
+  changed_when: false
+  retries: 10
+  delay: 15
+  until: published_issuer.rc == 0
+
+- name: Confirm the published issuer is the one the application trusts
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.assert:
+    that:
+      - published_issuer.stdout | trim == "https://" ~ quantify_identity_domain
+    fail_msg: >-
+      The provider publishes {{ published_issuer.stdout | trim }} but the
+      application verifies tokens against
+      https://{{ quantify_identity_domain }}. Tokens signed under one issuer do
+      not verify against the other, so login would fail for everybody with a
+      signature error. TLS terminates at the edge; the proxy has to pass the
+      browser scheme on as X-Forwarded-Proto.
+    success_msg: "Issuer: {{ published_issuer.stdout | trim }}"
+
 - name: Confirm the proxy is serving the deployed configuration
   ansible.builtin.uri:
     url: http://127.0.0.1:80/
