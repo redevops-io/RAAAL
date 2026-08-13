@@ -601,10 +601,25 @@
             assert response.status_code == 303, (name, response.status_code)
             assert plan_id, name
             runs = store.runs_for(plan_id, 'pilot')
-            assert runs, name + ': the plan saved with no run, so there is no figure'
+            assert runs, name + ': the plan saved with no run at all'
             worksheet = store.worksheet_for_scenario(plan_id, 'pilot')
             assert worksheet is not None, name + ': no worksheet'
-            print('JOURNEY_OK=' + name + ' plan=' + plan_id)
+            # A run row is not a figure.
+            #
+            # This asserted only that a run existed, and a run exists when the
+            # engine declines too: an image built without market data read the
+            # sentence, compiled the plan, sealed the intent, recorded a run
+            # saying no figure could be produced — and this passed. The
+            # deployment was serving a product that cannot answer the question
+            # it is for, and every check including this one was green.
+            figures = [r for r in runs if getattr(r, 'final_value', None)
+                       not in (None, 0)]
+            assert figures, (
+                name + ': the plan ran and produced no figure. The engine '
+                'declined — market data, a refusal, or an empty result — so '
+                'this deployment cannot answer what it is for')
+            print('JOURNEY_OK=' + name + ' plan=' + plan_id
+                  + ' value=' + str(figures[0].final_value))
     "
   args:
     executable: /bin/bash

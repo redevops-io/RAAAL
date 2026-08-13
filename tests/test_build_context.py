@@ -103,6 +103,40 @@ def test_what_the_deploy_runs_in_the_container_is_in_the_image():
             "identity check passes, and the playbook fails on the host")
 
 
+def test_no_tracked_data_is_excluded_from_the_image():
+    """Runtime data the application reads must survive the build context.
+
+    `data/snapshots/` was excluded on the reasoning that snapshots are mounted
+    at runtime. Nothing mounts them — the host mounts telemetry and nothing
+    else — so the image read sentences, compiled plans and sealed intents, then
+    reported "market data is not available in this deployment" for every one.
+    The product's entire output, removed by a build rule, while every
+    deployment check passed and the launch journey passed with it.
+
+    Tracked is the line. Files under `data/` that git carries are source the
+    application resolves; `cache/`, `history/` and the `.db` files are local
+    and are meant to go. `infra/` is tracked and excluded deliberately, which
+    is why this rule is scoped to the data the runtime reads rather than to
+    everything in the repository.
+    """
+    tracked = subprocess.run(["git", "ls-files", "data/"],
+                             cwd=ROOT, capture_output=True, text=True)
+    if tracked.returncode != 0 or not tracked.stdout.strip():
+        pytest.skip("no tracked data in this checkout")
+
+    rules = {line.strip().rstrip("/")
+             for line in DOCKERIGNORE.read_text().splitlines()
+             if line.strip() and not line.startswith("#")}
+
+    directories = {"/".join(path.split("/")[:2])
+                   for path in tracked.stdout.split()}
+    excluded = sorted(d for d in directories if d in rules or f"{d}/" in rules)
+    assert not excluded, (
+        f"{excluded} are tracked in git and excluded from the image. The "
+        "application reads them at runtime and nothing mounts them, so the "
+        "container starts, passes every check, and cannot do its job")
+
+
 def test_docker_agrees_that_they_are_excluded():
     """The rules are checked above by reading them, which assumes this file
     means to Docker what it reads like. This asks Docker.

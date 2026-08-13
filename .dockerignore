@@ -33,12 +33,21 @@ formal/.lake/
 # image is deployed; shipping them inside it is circular.
 infra/
 
-# Local data. Snapshots, databases and generated reports are mounted or
-# fetched at runtime, never baked in.
+# Local data only — the untracked kind.
+#
+# `data/snapshots/` was in this list and must not be: it is tracked source, it
+# is 2.3MB, and it is the market data the application resolves at runtime. The
+# host mounts nothing but telemetry, so excluding it shipped an image that
+# reads a sentence, compiles a plan, seals an intent — and then says "market
+# data is not available in this deployment, so no figure can be produced". The
+# product's entire output, removed by a build rule, on the reasoning that
+# snapshots are "mounted at runtime". Nothing mounts them.
+#
+# The rule that separates these: tracked is source the application reads,
+# untracked is a local cache. `tests/test_build_context.py` enforces it.
 data/cache/
 data/history/
 data/models/
-data/snapshots/
 data/*.db
 reports/
 evidence/
