@@ -1,0 +1,53 @@
+{# The strategy selector, as one definition with two callers.
+
+   It was written into `pilot.html` only, which is `/workspace/new` — the page
+   you reach *after* submitting something. The page people actually arrive at is
+   `/workspace/`, which has its own prompt box, so somebody landing on the site
+   saw a bare textarea and no list at all. A selector that exists to tell people
+   what to write has to be on the page where they have not written anything yet.
+
+   A partial rather than a second copy: two copies of a dropdown drift, and the
+   one that drifts is the one nobody is looking at. `strategy_library()` and the
+   origin recording behind it are shared by both callers already.
+
+   The including page owns the surrounding form. This renders the select and the
+   script that fills the box, and expects a textarea with id `describe` beside
+   it — which is the id both forms already use. #}
+<label for="pick">Start from a strategy</label>
+<select id="pick" name="picked">
+  <option value="">Write my own</option>
+  {% for group in strategy_library() %}
+    <optgroup label="{{ group.title }}">
+      {% for item in group.entries %}
+        <option value="{{ item.key }}" data-text="{{ item.text }}"
+                {% if picked is defined and picked == item.key %}selected{% endif %}>{{ item.title }}</option>
+      {% endfor %}
+    </optgroup>
+  {% endfor %}
+</select>
+
+{# No framework and no build step. The whole behaviour is "put the chosen
+   sentence in the box", and it degrades to a plain form with a select that does
+   nothing if scripting is off — the textarea is still the real input, so nobody
+   is locked out. #}
+<script>
+  (function () {
+    var pick = document.getElementById("pick");
+    var box = document.getElementById("describe");
+    if (!pick || !box) return;
+    pick.addEventListener("change", function () {
+      var chosen = pick.options[pick.selectedIndex];
+      var text = chosen.getAttribute("data-text");
+      // Never silently overwrite something the person wrote. Losing a typed
+      // sentence to a mis-click is a worse failure than an extra confirm.
+      if (!text) return;
+      if (box.value.trim() && box.value.trim() !== text &&
+          !confirm("Replace what you have written?")) {
+        pick.value = "";
+        return;
+      }
+      box.value = text;
+      box.focus();
+    });
+  })();
+</script>

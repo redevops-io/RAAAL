@@ -14,52 +14,7 @@
      so the value of this list is showing the shape of a sentence that works.
      Picking one is a starting point to edit, which is why it lands in the
      textarea as ordinary text and not in a hidden field. #}
-  <label for="pick">Start from a strategy</label>
-  <select id="pick" name="picked">
-    <option value="">Write my own</option>
-    {% for group in strategy_library() %}
-      <optgroup label="{{ group.title }}">
-        {% for item in group.entries %}
-          <option value="{{ item.key }}" data-text="{{ item.text }}"
-                  {% if picked == item.key %}selected{% endif %}>{{ item.title }}</option>
-        {% endfor %}
-      </optgroup>
-    {% endfor %}
-  </select>
-
-  <label for="describe">What do you want to work out?</label>
-  <textarea id="describe" name="describe" rows="3"
-            placeholder="invest $500 a month into VTI">{{ text or "" }}</textarea>
-  <p class="quiet">Pick one and change it, or ignore the list and write your
-  own. Both are read the same way.</p>
-  <button type="submit">Read it</button>
-</form>
-
-{# No framework and no build step. The whole behaviour is "put the chosen
-   sentence in the box", and it degrades to a plain form with a select that
-   does nothing if scripting is off — the textarea is still the real input, so
-   nobody is locked out. #}
-<script>
-  (function () {
-    var pick = document.getElementById("pick");
-    var box = document.getElementById("describe");
-    if (!pick || !box) return;
-    pick.addEventListener("change", function () {
-      var chosen = pick.options[pick.selectedIndex];
-      var text = chosen.getAttribute("data-text");
-      // Never silently overwrite something the person wrote. Losing a typed
-      // sentence to a mis-click is a worse failure than an extra confirm.
-      if (!text) return;
-      if (box.value.trim() && box.value.trim() !== text &&
-          !confirm("Replace what you have written?")) {
-        pick.value = "";
-        return;
-      }
-      box.value = text;
-      box.focus();
-    });
-  })();
-</script>
+  {% include "_strategy_picker.html" %}
 
 
 {% if unavailable %}

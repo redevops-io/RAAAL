@@ -58,6 +58,31 @@ class TestThePageOffersIt:
         for case in offered():
             assert case.key in page, f"{case.key!r} is offered and unreachable"
 
+    def test_it_is_on_the_page_people_actually_arrive_at(self, pilot_client):
+        """`/workspace/`, not `/workspace/new`.
+
+        The selector was written into `pilot.html` only, which is the page you
+        reach *after* submitting something. The landing page has its own prompt
+        box, so somebody arriving at the site saw a bare textarea and no list —
+        which is exactly the person the list exists for. Reported by a user
+        hard-refreshing and finding nothing.
+        """
+        page = pilot_client.get("/workspace/").text
+        assert 'id="pick"' in page, (
+            "the landing page offers no strategy selector, so the first thing "
+            "a new visitor sees is a blank box")
+        for case in offered():
+            assert case.key in page
+
+    def test_both_pages_render_one_definition(self, pilot_client):
+        """A second copy of the dropdown drifts, and the copy that drifts is
+        the one nobody is looking at. Both pages include the same partial, so
+        an entry added to the library reaches both or neither."""
+        landing = pilot_client.get("/workspace/").text
+        draft = pilot_client.get("/workspace/new").text
+        for case in offered():
+            assert (case.key in landing) == (case.key in draft), case.key
+
     def test_it_survives_onto_the_result_page(self, pilot_client):
         """Rendered from a template global rather than threaded through six
         contexts, so a page that reads a sentence still offers the list. The

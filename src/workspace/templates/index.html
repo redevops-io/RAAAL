@@ -11,8 +11,12 @@
 
 <div class="panel">
   <form action="/workspace/new" method="get">
+    {% include "_strategy_picker.html" %}
+
     <label class="small muted" for="describe">Describe a plan</label>
     <textarea id="describe" name="describe" placeholder="I buy $2,000 of VTI every month. Whenever SPY is below its 200-day average, buy AMZN and NVDA equally at purchase. Never sell."></textarea>
+    <p class="small muted">Pick one and change it, or ignore the list and
+    write your own. Both are read the same way.</p>
     <button type="submit">See what that means</button>
   </form>
 </div>
