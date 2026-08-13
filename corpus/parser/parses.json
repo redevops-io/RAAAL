@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 422,
+  "count": 424,
   "parses": [
     {
       "text": "$1,000 a month weighted by inverse volatility",
@@ -28626,6 +28626,129 @@
       ]
     },
     {
+      "text": "invest $500 a month into VTI and BND, 60/40",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 12,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod:unmarked",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 20,
+              "end_char": 24
+            },
+            {
+              "index": 7,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 1,
+              "relation": "obl",
+              "start_char": 25,
+              "end_char": 28
+            },
+            {
+              "index": 8,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 9,
+              "relation": "cc",
+              "start_char": 29,
+              "end_char": 32
+            },
+            {
+              "index": 9,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 7,
+              "relation": "conj",
+              "start_char": 33,
+              "end_char": 36
+            },
+            {
+              "index": 10,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 11,
+              "relation": "punct",
+              "start_char": 36,
+              "end_char": 37
+            },
+            {
+              "index": 11,
+              "text": "60/40",
+              "lemma": "60/40",
+              "upos": "NUM",
+              "head": 1,
+              "relation": "parataxis",
+              "start_char": 38,
+              "end_char": 43
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "invest $500 a month split equally between VTI and BND",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -28743,6 +28866,169 @@
               "relation": "conj",
               "start_char": 50,
               "end_char": 53
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "invest $500 a month, 60% in VTI and 40% in BND",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 0,
+              "end_char": 6
+            },
+            {
+              "index": 2,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 1,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 5,
+              "relation": "det",
+              "start_char": 12,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "nmod:unmarked",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 8,
+              "relation": "punct",
+              "start_char": 19,
+              "end_char": 20
+            },
+            {
+              "index": 7,
+              "text": "60",
+              "lemma": "60",
+              "upos": "NUM",
+              "head": 8,
+              "relation": "nummod",
+              "start_char": 21,
+              "end_char": 23
+            },
+            {
+              "index": 8,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "appos",
+              "start_char": 23,
+              "end_char": 24
+            },
+            {
+              "index": 9,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 25,
+              "end_char": 27
+            },
+            {
+              "index": 10,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 8,
+              "relation": "nmod",
+              "start_char": 28,
+              "end_char": 31
+            },
+            {
+              "index": 11,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 13,
+              "relation": "cc",
+              "start_char": 32,
+              "end_char": 35
+            },
+            {
+              "index": 12,
+              "text": "40",
+              "lemma": "40",
+              "upos": "NUM",
+              "head": 13,
+              "relation": "nummod",
+              "start_char": 36,
+              "end_char": 38
+            },
+            {
+              "index": 13,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 8,
+              "relation": "conj",
+              "start_char": 38,
+              "end_char": 39
+            },
+            {
+              "index": 14,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 15,
+              "relation": "case",
+              "start_char": 40,
+              "end_char": 42
+            },
+            {
+              "index": 15,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 13,
+              "relation": "nmod",
+              "start_char": 43,
+              "end_char": 46
             }
           ]
         }

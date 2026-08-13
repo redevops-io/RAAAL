@@ -192,7 +192,7 @@ REQUIREMENTS: Mapping[str, Requirement] = {
     "evaluation_period": Requirement(material=True),
     "periodic_rebalancing": Requirement(material=False),
     "objective": Requirement(material=True),
-    "stated_weights": Requirement(material=True, compare_as="SET"),
+    "stated_weights": Requirement(material=True, compare_as="WEIGHTS"),
     "account_allocation": Requirement(material=True, binds="account"),
     "dividend_policy": Requirement(material=False),
 }
@@ -285,6 +285,22 @@ def same_value(one: Any, other: Any, compare_as: str = "TEXT",
                 return None
         a, b = number(left), number(right)
         return a is not None and b is not None and a == b
+    if compare_as == "WEIGHTS":
+        # A split and the same split with its holdings attached are the same
+        # reading, not a disagreement.
+        #
+        # The hosted reader returns `60/40`; `weight_binding` returns
+        # `VTI=60,BND=40` for the same sentence. Compared as text those differ,
+        # and fusion asked a question about a split both witnesses had read
+        # identically — the derived one simply also says which side is which.
+        # What must still disagree is a different split: 60/40 against 70/30.
+        def shares(raw: str):
+            found = re.findall(r"(\d+(?:\.\d+)?)", str(raw))
+            return [Decimal(v) for v in found]
+
+        left_shares, right_shares = shares(left), shares(right)
+        return bool(left_shares) and left_shares == right_shares
+
     if compare_as == "SET":
         split = re.compile(r"[,;]|\band\b")
 
@@ -367,10 +383,22 @@ def fuse(dimension: str, *, model: Optional[Proposal] = None,
                        f"{derived.reader_id} derived {derived.value!r} from "
                        "the structure. Two readers, two answers, and the "
                        "difference changes how often the strategy fires")
+        # The derived value, not the model's, when the two agree.
+        #
+        # A derived reader is the declared author of its dimension, and where it
+        # speaks it says something the hosted reader did not: `60/40` and
+        # `VTI=60,BND=40` agree about the split, and only one of them says which
+        # holding takes which share. Settling the model's value here discarded
+        # the binding and left the compiler refusing a split it had been handed.
+        #
+        # Safe precisely because they agree — `same_value` has just established
+        # the two readings are the same reading, so preferring the richer one
+        # cannot change what the plan means, only how much of it survives.
         return Decision(
-            dimension=dimension, outcome=Fusion.AGREE, value=model.value,
+            dimension=dimension, outcome=Fusion.AGREE, value=derived.value,
             material=requirement.material, model=model, syntax=syntax,
-            detail=f"the hosted reader and {derived.reader_id} agree")
+            detail=f"the hosted reader and {derived.reader_id} agree; the "
+                   f"derived reading is kept because it carries the binding")
 
     ambiguous = _ambiguity(dimension, model, syntax, available)
     if ambiguous is not None:

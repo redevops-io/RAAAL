@@ -65,7 +65,13 @@ NOT_EXECUTABLE = frozenset({"objective"})
 #: than through the `value` closure. Named here so the stranded-dimension check
 #: sees both access paths; `tests/test_stranded_dimensions.py` asserts this
 #: stays in step with the module rather than drifting into a stale list.
-READ_DIRECTLY = frozenset({"assets", "trigger_semantics", "observed_assets"})
+#: `stated_weights` joins them because `_weights` reads `intent.fields` rather
+#: than the `value` closure — it needs the bound form the derived reader wrote,
+#: not a defaulted one. Without it here the split reached the allocation rule
+#: and the stranded check refused the plan anyway, reporting that nothing
+#: carried an instruction it had just carried.
+READ_DIRECTLY = frozenset({"assets", "trigger_semantics", "observed_assets",
+                           "stated_weights"})
 
 
 def _read_directly(intent: Any) -> set:
@@ -319,6 +325,12 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
     # the user never described, and rebalancing sells: the difference between
     # annual and quarterly is a different set of trades, a different figure,
     # and on a monotone run a materially different outcome.
+    # The unbound-split refusal lives in `capability.decide`, not here.
+    # Every consumer asks that function — `executable_check`, the family
+    # sweep, the pilot — and a rule living in this one caller is a rule the
+    # others do not have. It also stopped this compiler emitting a second
+    # refusal for the same fact, which reads on the page as two problems.
+
     rebalancing = intent.fields.get("periodic_rebalancing")
     if rebalancing is not None and not _rebalancing_cadence(rebalancing.value):
         refusals.append(Refusal(
@@ -467,6 +479,30 @@ def _is_negated(value: Any) -> bool:
     return any(w in _NEGATION_WORDS or w.endswith("n't") for w in words)
 
 
+def _weights(intent: VerifiedIntent) -> Dict[str, Decimal]:
+    """A stated split, attached to the holdings it belongs to.
+
+    Reads only the bound form `TICKER=weight,TICKER=weight` that
+    `discovery.derived_readers.weight_binding` authors from the sentence. A
+    bare ratio is deliberately not accepted: `60/40` beside two instruments
+    could mean either assignment, and picking one runs 40/60 under the name
+    60/40 — a wrong executable meaning, which is worse than the refusal it
+    would replace.
+    """
+    stated = intent.fields.get("stated_weights")
+    if stated is None:
+        return {}
+
+    weights: Dict[str, Decimal] = {}
+    for part in str(stated.value).split(","):
+        name, _, figure = part.partition("=")
+        amount = _decimal(figure)
+        if not name.strip() or amount is None:
+            return {}
+        weights[name.strip()] = amount
+    return weights if len(weights) > 1 else {}
+
+
 def _rebalancing_cadence(stated: Any) -> str:
     """The cadence inside a free-text rebalancing instruction, or "".
 
@@ -491,7 +527,8 @@ def _funding(intent: VerifiedIntent, value):
     amount = _decimal(value("amount")) or Decimal("0")
     assets = _assets(intent)
     allocation = AllocationRule(
-        assets=assets, weighting=str(value("allocation_method")))
+        assets=assets, weighting=str(value("allocation_method")),
+        weights={k: float(v) for k, v in _weights(intent).items()})
 
     if condition is None:
         return Scheduled(cadence=str(value("cadence") or "once"),

@@ -81,7 +81,14 @@ class Dimension:
     closed: bool = True
     refuses: Mapping[str, str] = field(default_factory=dict)
     """value -> why. Populated for values the vocabulary offers, or that users
-    demonstrably write, which this build will not run."""
+    demonstrably write, which this build will not run.
+
+    A key wrapped in angle brackets names a *shape* rather than a literal —
+    `<a split with no holding named>` — for dimensions whose refusal depends on
+    the form of the value instead of its content. `decide` matches literals, so
+    such a key never fires by lookup; it is here because a dimension that
+    refuses something has to say so where every reader of the manifest looks,
+    and "executes, refuses nothing" was not true of `stated_weights`."""
 
     why: str = ""
     """Why the dimension itself is refused or unmodelled. Read by a user."""
@@ -206,7 +213,11 @@ MANIFEST: Mapping[str, Dimension] = {
 
     "allocation_method": _d(
         "allocation_method", EXECUTED,
-        values=("equal_weight_at_purchase",),
+        # `stated_weights` joins the executable set: the engine divides each
+        # purchase by a split whenever the sentence attaches one to its
+        # holdings. It was refused while nothing could bind `60/40` to VTI and
+        # BND, and that was a fact about the compiler rather than the executor.
+        values=("equal_weight_at_purchase", "stated_weights"),
         refuses={
             "inverse_volatility": "this build allocates equally at purchase",
             "risk_parity": "this build allocates equally at purchase",
@@ -217,13 +228,18 @@ MANIFEST: Mapping[str, Dimension] = {
         }),
 
     "stated_weights": _d(
-        "stated_weights", REFUSED,
-        why=("a split such as 60/40 is read but not attached to anything: the "
-             "sentences that state one usually name no holdings, and `60/40` "
-             "with nothing saying which side is which cannot be executed. The "
-             "engine divides a purchase by stated weights when it has them — "
-             "what is missing is the relation between the numbers and the "
-             "holdings, not the arithmetic")),
+        "stated_weights", EXECUTED, closed=False,
+        refuses={
+            "<a split with no holding named>":
+                "a bare ratio such as 60/40 could mean either assignment, and "
+                "guessing runs 40/60 under the name 60/40 — a wrong figure "
+                "nothing downstream can detect. Naming the holdings, as in "
+                "'60% in VTI and 40% in BND', is what makes it executable"},
+        why=("each purchase is divided by the stated weights. The split has to "
+             "say which holding takes which share — '60% in VTI and 40% in "
+             "BND' rather than a bare '60/40', which names no holdings and "
+             "could mean either assignment. An unattachable split is refused "
+             "by name rather than guessed at")),
 
     # ---- what happens to holdings -------------------------------------
     # Named as `coverage` names it, so the two range over one vocabulary.
@@ -407,6 +423,23 @@ def decide(name: str, value: Any = None) -> Optional[Refusal]:
     if d.support in (REFUSED, NOT_MODELLED):
         return Refusal(kind=UNSUPPORTED_DIMENSION, dimension=name,
                        stated_value=value, detail=d.why)
+
+    # A split that names no holding, on a dimension that otherwise executes.
+    #
+    # `stated_weights` runs — the engine divides each purchase by the weights —
+    # and what it cannot do is decide which side of `60/40` is which. That is a
+    # property of the *value*, not of the dimension, so it is refused here
+    # rather than in the compiler: `executable_check`, the family sweep and the
+    # pilot all ask this function, and a rule living in one caller is a rule the
+    # others do not have.
+    if name == "stated_weights" and value is not None and "=" not in str(value):
+        return Refusal(
+            kind=UNSUPPORTED_VALUE, dimension=name, stated_value=value,
+            detail=f"{str(value)!r} states a split without saying which "
+                   "holding takes which share. Writing it as '60% in VTI and "
+                   "40% in BND' would let this plan run — this build divides "
+                   "each purchase by stated weights, and will not guess which "
+                   "way round they go")
 
     if value is not None and not d.executes(value):
         return Refusal(

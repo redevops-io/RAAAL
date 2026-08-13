@@ -76,8 +76,11 @@ class TestItCannotGrowIntoACompiler:
     """`quantify-compiler@2` began as a few narrow rules and took months to
     delete. The restriction is structural rather than remembered."""
 
-    def test_it_authors_one_field_and_names_it(self):
-        assert AUTHORS == {"trigger_semantics"}
+    def test_each_reader_authors_one_field_and_names_it(self):
+        """Two readers now, one field each. The restriction was never "one
+        field in the module" — it is that no single reader may grow into a
+        compiler by claiming a second."""
+        assert AUTHORS == {"trigger_semantics", "stated_weights"}
 
     def test_every_proposal_it_makes_is_for_that_field(self):
         for case in CASES:
@@ -149,9 +152,15 @@ class TestTheDocumentDescribesTheReaderThatExists:
 
     DOC = ROOT / "docs" / "Reader-Authority.md"
 
-    def test_it_names_the_reader_and_its_one_field(self):
+    def test_it_names_every_reader_and_the_field_each_authors(self):
+        from src.discovery.derived_readers import DERIVED_READERS
+
         text = self.DOC.read_text()
         assert TRIGGER_READER_ID in text
+        for reader_id, _ in DERIVED_READERS:
+            assert reader_id in text, (
+                f"{reader_id} authors a contract field and the authority "
+                "document does not mention it")
         for field in AUTHORS:
             assert field in text
 

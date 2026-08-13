@@ -7,7 +7,7 @@
     "schema_version": "quantify-discovery-schema@6",
     "max_tokens": 8000
   },
-  "count": 653,
+  "count": 657,
   "note": "Replayed by the corpus. A recording is not an answer — fusion decides whether the model's proposal proceeds, exactly as it would for a live reply.",
   "readings": [
     {
@@ -16560,6 +16560,73 @@
       ]
     },
     {
+      "text": "invest $500 a month into VTI and BND, 60/40",
+      "reader_id": "gpt-4.1-2025-04-14@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "1",
+          "source_span": "invest $500 a month into VTI and BND, 60/40",
+          "note": "Describes a plan for contributions."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "$500 a month",
+          "note": "Contribution frequency."
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": "Contribution amount."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "1",
+          "source_span": "VTI and BND",
+          "note": "Assets as written."
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "1",
+          "source_span": "60/40",
+          "note": "Explicit weights given."
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "1",
+          "source_span": "60/40",
+          "note": "Directly stated."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
+        "trigger_semantics"
+      ]
+    },
+    {
       "text": "invest $500 a month split equally between VTI and BND",
       "reader_id": "gpt-4.1-2025-04-14@1",
       "schema_version": "quantify-discovery-schema@6",
@@ -16617,6 +16684,73 @@
         "selection_rule",
         "sell_action",
         "stated_weights",
+        "trigger_semantics"
+      ]
+    },
+    {
+      "text": "invest $500 a month, 60% in VTI and 40% in BND",
+      "reader_id": "gpt-4.1-2025-04-14@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "evaluate_investment_strategy",
+          "confidence": "1",
+          "source_span": "invest $500 a month",
+          "note": "States an investment plan"
+        },
+        {
+          "dimension": "amount",
+          "value": "$500",
+          "confidence": "1",
+          "source_span": "$500",
+          "note": "Contribution amount per period"
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "1",
+          "source_span": "a month",
+          "note": "Frequency clearly stated"
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI, BND",
+          "confidence": "1",
+          "source_span": "VTI and 40% in BND",
+          "note": "Assets specified as VTI and BND"
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "1",
+          "source_span": "60% in VTI and 40% in BND",
+          "note": "Explicit weights given"
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60% in VTI and 40% in BND",
+          "confidence": "1",
+          "source_span": "60% in VTI and 40% in BND",
+          "note": "Explicit weights repeated"
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "conditional_amount",
+        "day_rule",
+        "dividend_policy",
+        "evaluation_period",
+        "execution_timing",
+        "holding_period",
+        "moving_average_window",
+        "observed_assets",
+        "periodic_rebalancing",
+        "selection_rule",
+        "sell_action",
         "trigger_semantics"
       ]
     },
@@ -26087,6 +26221,64 @@
       ]
     },
     {
+      "text": "invest $500 a month into VTI and BND, 60/40",
+      "reader_id": "gpt-5.4-2026-03-05@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.97",
+          "source_span": "invest $500 a month into VTI and BND, 60/40",
+          "note": "States an investment contribution plan."
+        },
+        {
+          "dimension": "amount",
+          "value": "500",
+          "confidence": "0.99",
+          "source_span": "$500",
+          "note": "Per contribution amount."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.99",
+          "source_span": "a month",
+          "note": "Contribution frequency."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI and BND",
+          "confidence": "0.98",
+          "source_span": "VTI and BND",
+          "note": "Named holdings to buy."
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.96",
+          "source_span": "60/40",
+          "note": "Explicit allocation given."
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.96",
+          "source_span": "60/40",
+          "note": "Weights correspond to the assets in named order: VTI, then BND."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "day_rule",
+        "dividend_policy",
+        "periodic_rebalancing"
+      ]
+    },
+    {
       "text": "invest $500 a month split equally between VTI and BND",
       "reader_id": "gpt-5.4-2026-03-05@1",
       "schema_version": "quantify-discovery-schema@6",
@@ -26134,6 +26326,65 @@
         "account_type",
         "day_rule",
         "dividend_policy"
+      ]
+    },
+    {
+      "text": "invest $500 a month, 60% in VTI and 40% in BND",
+      "reader_id": "gpt-5.4-2026-03-05@1",
+      "schema_version": "quantify-discovery-schema@6",
+      "prompt_version": "quantify-hosted-prompt@1",
+      "failed": null,
+      "readings": [
+        {
+          "dimension": "objective",
+          "value": "plan_contributions",
+          "confidence": "0.98",
+          "source_span": "invest $500 a month, 60% in VTI and 40% in BND",
+          "note": "Describes a contribution/investment plan."
+        },
+        {
+          "dimension": "amount",
+          "value": "500",
+          "confidence": "0.99",
+          "source_span": "$500 a month",
+          "note": "Per-contribution amount."
+        },
+        {
+          "dimension": "cadence",
+          "value": "monthly",
+          "confidence": "0.99",
+          "source_span": "a month",
+          "note": "Contribution frequency."
+        },
+        {
+          "dimension": "assets",
+          "value": "VTI, BND",
+          "confidence": "0.99",
+          "source_span": "VTI and BND",
+          "note": "Holdings named in order."
+        },
+        {
+          "dimension": "allocation_method",
+          "value": "stated_weights",
+          "confidence": "0.99",
+          "source_span": "60% in VTI and 40% in BND",
+          "note": "Money is divided by explicit weights."
+        },
+        {
+          "dimension": "stated_weights",
+          "value": "60/40",
+          "confidence": "0.99",
+          "source_span": "60% in VTI and 40% in BND",
+          "note": "Weights correspond to the named assets in order: VTI, BND."
+        }
+      ],
+      "relations": [],
+      "unread": [
+        "account_type",
+        "day_rule",
+        "dividend_policy",
+        "execution_timing",
+        "periodic_rebalancing"
       ]
     },
     {

@@ -81,6 +81,35 @@ The restriction to one field is asserted from the AST rather than remembered,
 and the id is versioned because a derivation whose rules changed under a fixed
 id would make two runs look comparable when they are not.
 
+## The second one: `quantify-weight-binding@1`
+
+Authors `stated_weights`, and the field it authors is the argument for it. The
+hosted reader returns the split — `60/40` — which is the whole fact for anybody
+reading the sentence and half of it for anything executing one. Which holding
+takes which share is not in that value, and the engine divides each purchase by
+weights it has to be able to attach.
+
+So this reader reads the pairing off the sentence: a percentage, at most a
+preposition, then the holding. `60% in VTI and 40% in BND` binds; `a 60/40
+portfolio` does not, and neither does a ratio sitting beside a list of
+instruments. That silence is the point. Pairing positionally would mean
+deciding that the first number belongs to the first instrument, and getting it
+backwards runs 40/60 under the name 60/40 — a wrong executable meaning, on a
+figure nothing downstream can check, because both readings produce a perfectly
+ordinary number.
+
+It reads the **text**, not the parse, and that is deliberate rather than
+convenient. The deployment that serves users has no deterministic parser
+installed; a reader that needed one would be correct in the suite and absent in
+production, which is the shape of every gap this project has found in its own
+deployment.
+
+Where it and the hosted reader agree, fusion now keeps *its* value rather than
+the model's. That is not authority over a disagreement — `same_value` has
+already established the two are the same reading — it is keeping the one that
+carries the binding, because settling the model's `60/40` discarded it and left
+the compiler refusing a split it had just been handed.
+
 ## Adding another one
 
 The same shape generalises — `from IRA → to Roth` could feed an

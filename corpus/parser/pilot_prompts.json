@@ -1,11 +1,21 @@
 {
-  "schema": "quantify-pilot-prompts@1",
-  "note": "Sentences real people typed into the pilot, kept verbatim — misspellings, apostrophes and all. They are recorded like any other measured tier so a regression journey can replay them without calling a provider, and they are not rewritten into schema vocabulary: what makes them valuable is that nobody who built the runtime chose the words.",
-  "prompts": [
-    {
-      "text": "i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA - only ones on the next business day. what would be my total return and the final cash amount over the past 5 years",
-      "found": "the first realistic sentence typed into the deployed pilot",
-      "defect": "`amount` was asked, answered '1000 usd', and asked again. The numeric reader could read `$1,000` and `1000` and not a currency suffix, so the clarification never converged."
-    }
-  ]
+ "schema": "quantify-pilot-prompts@1",
+ "note": "Sentences real people typed into the pilot, kept verbatim — misspellings, apostrophes and all. They are recorded like any other measured tier so a regression journey can replay them without calling a provider, and they are not rewritten into schema vocabulary: what makes them valuable is that nobody who built the runtime chose the words.",
+ "prompts": [
+  {
+   "text": "i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA - only ones on the next business day. what would be my total return and the final cash amount over the past 5 years",
+   "found": "the first realistic sentence typed into the deployed pilot",
+   "defect": "`amount` was asked, answered '1000 usd', and asked again. The numeric reader could read `$1,000` and `1000` and not a currency suffix, so the clarification never converged."
+  },
+  {
+   "text": "invest $500 a month, 60% in VTI and 40% in BND",
+   "found": "a stated split with each share attached to its holding",
+   "defect": ""
+  },
+  {
+   "text": "invest $500 a month into VTI and BND, 60/40",
+   "found": "a bare ratio beside two holdings — unattachable, and refused",
+   "defect": ""
+  }
+ ]
 }

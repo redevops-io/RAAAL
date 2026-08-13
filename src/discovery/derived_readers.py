@@ -38,6 +38,8 @@ months to delete.
 """
 from __future__ import annotations
 
+import re
+
 from typing import Optional, Sequence
 
 from .fusion import Proposal
@@ -47,7 +49,7 @@ from .fusion import Proposal
 TRIGGER_READER_ID = "quantify-trigger-semantics@1"
 
 #: The only field this module may ever claim.
-AUTHORS = frozenset({"trigger_semantics"})
+AUTHORS = frozenset({"trigger_semantics", "stated_weights"})
 
 
 #: Words that invert a condition. The reader has no rule for what a negated
@@ -96,7 +98,8 @@ def _is_negated(parse) -> bool:
     return False
 
 
-def trigger_semantics(candidates: Sequence, parse=None) -> Optional[Proposal]:
+def trigger_semantics(candidates: Sequence, parse=None,
+                      text: str = "") -> Optional[Proposal]:
     """The one claim, or silence.
 
     Reads the candidates `semantics.propose` already derives — `crossing_event`
@@ -129,6 +132,57 @@ def trigger_semantics(candidates: Sequence, parse=None) -> Optional[Proposal]:
                     reader_id=TRIGGER_READER_ID)
 
 
+WEIGHTS_READER_ID = "quantify-weight-binding@1"
+
+#: `60% in VTI`, `40% VTI`, `25% into BND`. A percentage and the holding it is
+#: attached to, in that order, with at most a preposition between them.
+#:
+#: Deliberately narrow. A bare ratio — "a 60/40 portfolio", "rebalance to 70/30"
+#: — carries no binding at all, and the sentences in the corpus that state one
+#: name no holdings whatever. Pairing those positionally would mean deciding
+#: that the first number belongs to the first instrument, which is a coin toss
+#: on a dimension where getting it backwards runs 40/60 under the name 60/40:
+#: a wrong executable meaning, the class this project spends most of its effort
+#: refusing to produce.
+_ADJACENT_WEIGHT = re.compile(
+    r"(\d+(?:\.\d+)?)\s*%\s*(?:in|into|to|of|toward|towards)?\s+"
+    r"([A-Z][A-Z0-9.\-]{1,9})\b")
+
+
+def weight_binding(candidates: Sequence, parse=None,
+                   text: str = "") -> Optional[Proposal]:
+    """Which holding each stated weight belongs to, or silence.
+
+    Read from the sentence rather than from the parse, because the deployment
+    that serves users has no deterministic parser installed — a reader that
+    needed one would be correct in the suite and absent in production, which is
+    the shape of every gap this project has found in its own deployment.
+
+    Returns the binding as `TICKER=weight` pairs so the compiler receives an
+    answer rather than a fact it has to re-derive. Silence when fewer than two
+    holdings carry a weight: one weight is not a split, and a split nobody can
+    attach to a holding is `stated_weights` with no relation — which is exactly
+    what the manifest refuses and should keep refusing.
+    """
+    if not text:
+        return None
+
+    pairs = []
+    for weight, ticker in _ADJACENT_WEIGHT.findall(text):
+        if ticker in dict(pairs):
+            # The same holding weighted twice is a sentence nobody can execute
+            # without deciding which mention wins.
+            return None
+        pairs.append((ticker, weight))
+
+    if len(pairs) < 2:
+        return None
+    return Proposal(dimension="stated_weights",
+                    value=",".join(f"{t}={w}" for t, w in pairs),
+                    reader_id=WEIGHTS_READER_ID)
+
+
 #: Every derived reader, so the pipeline does not name them one at a time and
 #: a new one cannot be added without appearing in the structural test.
-DERIVED_READERS = ((TRIGGER_READER_ID, trigger_semantics),)
+DERIVED_READERS = ((TRIGGER_READER_ID, trigger_semantics),
+                   (WEIGHTS_READER_ID, weight_binding))

@@ -129,7 +129,7 @@ def read(text: str, parse: Parse, model_reading: ReadingSet, schema: Schema,
 
     derived_by_field = {}
     for _reader_id, derive in DERIVED_READERS:
-        found = derive(candidates, parse)
+        found = derive(candidates, parse, text)
         if found is not None:
             derived_by_field[found.dimension] = found
 

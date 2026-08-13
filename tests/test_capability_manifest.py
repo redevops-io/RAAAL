@@ -121,9 +121,23 @@ class TestEveryRefusedClaimIsActuallyRefused:
         assert not any("rebalanc" in f.lower()
                        for f in ScenarioSpecification.__dataclass_fields__)
 
-    def test_the_allocation_method_the_engine_runs_is_the_only_one_claimed(self):
-        assert tuple(cap.MANIFEST["allocation_method"].values) == \
-            ("equal_weight_at_purchase",)
+    def test_every_claimed_allocation_method_is_one_the_engine_runs(self):
+        """Two now. `stated_weights` joined when the compiler gained a way to
+        attach a split to its holdings — before that the engine could divide a
+        purchase by weights and nothing could tell it which weight went where.
+
+        Claimed *and* exercised: the manifest says the engine does this, so the
+        test makes it do it rather than reading the claim back."""
+        from src.mission.rebalance import normalised
+
+        assert tuple(cap.MANIFEST["allocation_method"].values) == (
+            "equal_weight_at_purchase", "stated_weights")
+
+        # equal_weight_at_purchase
+        assert normalised(["A", "B"]) == {"A": 0.5, "B": 0.5}
+        # stated_weights
+        assert normalised(["A", "B"], {"A": 60, "B": 40}) == {"A": 0.6,
+                                                              "B": 0.4}
 
     def test_execution_timing_refuses_what_the_engine_refuses(self):
         """`same_session_close` is refused because acting on the close that
