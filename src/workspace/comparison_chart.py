@@ -141,5 +141,42 @@ def build(run: Dict[str, Any]) -> Optional[Dict[str, str]]:
     plot.legend.border_line_alpha = 0.0
     plot.legend.label_text_font_size = "11px"
 
-    script, div = components(plot)
+    return _stable(*components(plot), series)
+
+
+def _stable(script: str, div: str, series) -> Dict[str, str]:
+    """Rewrite Bokeh's generated ids so the same plan renders the same markup.
+
+    Bokeh mints a UUID for the container and sequential `pNNNN` ids for every
+    model, both fresh on each call. Two reopens of one plan therefore produced
+    different HTML, and `test_describe_clarify_save_figure_reopen` refused it —
+    the page promises that reopening recompiles from the confirmed intent and
+    shows the same figure, and markup that differs per render is a weaker
+    promise wearing the same words.
+
+    The ids are opaque tokens: nothing outside this pair of strings refers to
+    them, so renaming every occurrence consistently preserves the document and
+    removes the only thing in it that was not a function of the data. The new
+    names are derived from the series themselves, so two runs of the same plan
+    agree and two different plans do not collide.
+    """
+    import re
+    from hashlib import sha256
+
+    seed = sha256(repr([(s["name"], s["values"][:4], s["values"][-4:])
+                        for s in series]).encode()).hexdigest()[:12]
+
+    combined = script + div
+    # First appearance order, so the mapping is itself deterministic.
+    seen: List[str] = []
+    for token in re.findall(r"\bp\d{4,}\b|\b[0-9a-f]{8}-[0-9a-f]{4}-"
+                            r"[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
+                            combined):
+        if token not in seen:
+            seen.append(token)
+
+    for index, token in enumerate(seen):
+        replacement = f"q{seed}{index:04d}"
+        script = script.replace(token, replacement)
+        div = div.replace(token, replacement)
     return {"script": script, "div": div}

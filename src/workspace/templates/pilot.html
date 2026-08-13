@@ -99,19 +99,20 @@
         This figure was produced from the plan you confirmed. Reopening it
         recompiles from that same plan and does not read your sentence again.
       </p>
-      {# The comparison chart is built (`workspace/comparison_chart.py`) and is
-         deliberately NOT embedded yet.
+      {% if chart %}
+        {# The comparison the product exists for: this strategy against the
+           same contributions made elsewhere. Every benchmark receives the same
+           money on the same days, so the only difference left is the rule.
 
-         Bokeh mints a fresh element id and fresh model ids on every render, so
-         two reopens of one plan produced different HTML — and
-         `test_describe_clarify_save_figure_reopen` refused it, correctly. The
-         page promises that reopening a plan recompiles from the confirmed
-         intent and shows the same figure; markup that differs per render is a
-         weaker promise wearing the same words, and the test exists because
-         that property is the whole point of sealing an intent.
-
-         It ships once the ids are derived from the plan rather than from a
-         counter. #}
+           Bokeh's generated ids are rewritten from the series data before this
+           reaches the page — see `comparison_chart._stable`. Without that, two
+           reopens of one plan rendered different markup and the journey test
+           refused it, because reopening is supposed to show the same figure the
+           confirmed intent produced. #}
+        <script src="https://cdn.bokeh.org/bokeh/release/bokeh-3.5.0.min.js"></script>
+        {{ chart.div | safe }}
+        {{ chart.script | safe }}
+      {% endif %}
     </section>
   {% elif strategy_not_executed %}
     {# A refusal is a result. The figure is absent and the reason is the
