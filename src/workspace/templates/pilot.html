@@ -79,7 +79,11 @@
           <label for="answer_{{ field }}">{{ field }}</label>
           <input id="answer_{{ field }}" name="answer_{{ field }}" type="text">
         {% endfor %}
-        <button type="submit">Answer and save</button>
+        {# One round. `pilot.answer` re-fuses with the answers as USER-authored
+           readings and the result page follows immediately — there is no second
+           pass that could ask again, which is the convergence property
+           `test_clarification_converges` pins. #}
+        <button type="submit">Answer and see the result</button>
       </form>
     </section>
   {% else %}

@@ -78,7 +78,18 @@
         return;
       }
       box.value = text;
-      box.focus();
+
+      // Selecting a strategy submits it. The spec is "once selected, answer
+      // anything outstanding, then see the result" — and a Read-it button
+      // between the choice and the answer is a step that asks the person to
+      // confirm a decision they already made.
+      //
+      // Editing is not lost: the sentence comes back in this same box on the
+      // result page, where it can be changed and read again. What moves is
+      // *when* editing happens — after seeing what the engine made of it,
+      // which is the point at which somebody knows what to change.
+      var form = pick.form;
+      if (form) form.submit(); else box.focus();
     });
 
     // If the page came back with a strategy selected, show its kind rather

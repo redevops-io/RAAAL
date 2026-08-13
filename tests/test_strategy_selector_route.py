@@ -64,6 +64,30 @@ class TestThePageOffersIt:
             block = page[page.index(f'value="{key}"'):][:220]
             assert "data-group=" in block, f"{key} declares no kind"
 
+    @pytest.mark.parametrize("path", ["/workspace/", "/workspace/new"])
+    def test_the_picker_is_inside_a_form(self, pilot_client, path):
+        """Selecting a strategy submits it, and `pick.form` is how the script
+        finds what to submit. A picker rendered outside a form leaves that null
+        and the choice does nothing — the failure would be silent, because the
+        sentence still lands in the box and the page simply never advances."""
+        import re
+
+        page = pilot_client.get(path).text
+        select = page.index('id="pick"')
+        opened = page.rfind("<form", 0, select)
+        closed = page.rfind("</form>", 0, select)
+        assert opened > closed, (
+            f"{path} renders the strategy picker outside any form, so "
+            "selecting a strategy cannot submit it")
+
+    def test_selecting_a_strategy_submits_it(self, pilot_client):
+        """The step the spec removes: a Read-it button between the choice and
+        the answer asks somebody to confirm a decision they already made."""
+        page = pilot_client.get("/workspace/").text
+        assert "form.submit()" in page, (
+            "selecting a strategy no longer submits; the flow is back to "
+            "pick, then click, then answer")
+
     def test_the_selector_is_on_the_empty_page(self, pilot_client):
         """The empty page is where somebody with no idea what to type lands.
         A selector that only appeared after a first attempt would arrive one
