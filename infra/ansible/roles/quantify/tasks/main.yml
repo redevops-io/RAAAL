@@ -480,6 +480,42 @@
   ansible.builtin.debug:
     msg: "{{ provider_live.stdout_lines | select('search', 'PROVIDER_OK') | list }}"
 
+# Render the library once, so the first visitor does not pay for it.
+#
+# The index runs a backtest per methodology version and memoises the result.
+# That makes every request after the first cheap and leaves the first one
+# expensive — 36s on this instance, which a browser presents as a link that
+# does not open. Whoever loads it first would be a user; this makes it the
+# deploy.
+#
+# It doubles as evidence. The page is otherwise unproven on the host: the
+# identity proof reads /health and /info, and the journeys drive the workspace,
+# so nothing has ever asked whether the research library renders at all.
+- name: Render the research library once and time it
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml exec -T api python -c "
+    import time, urllib.request
+    started = time.monotonic()
+    with urllib.request.urlopen('http://localhost:8000/ui/', timeout=180) as page:
+        body = page.read()
+    print('LIBRARY_OK status=%d bytes=%d cold=%.1fs' % (page.status, len(body), time.monotonic() - started))
+    started = time.monotonic()
+    with urllib.request.urlopen('http://localhost:8000/ui/', timeout=60) as page:
+        page.read()
+    print('LIBRARY_WARM=%.2fs' % (time.monotonic() - started))
+    "
+  args:
+    executable: /bin/bash
+  become: true
+  register: library_render
+  changed_when: false
+  failed_when: "'LIBRARY_OK status=200' not in library_render.stdout"
+
+- name: Show how long the library took
+  ansible.builtin.debug:
+    msg: "{{ library_render.stdout_lines }}"
+
 - name: Confirm the proxy is serving the deployed configuration
   ansible.builtin.uri:
     url: http://127.0.0.1:80/

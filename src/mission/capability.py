@@ -412,8 +412,32 @@ def decide(name: str, value: Any = None) -> Optional[Refusal]:
         return Refusal(
             kind=UNSUPPORTED_VALUE, dimension=name, stated_value=value,
             executable_values=tuple(d.values),
-            detail=d.refuses.get(value, ""))
+            detail=d.refuses.get(value) or _why_not(name, value, d))
     return None
+
+
+def _why_not(name: str, value: Any, dimension: "Dimension") -> str:
+    """A reason for a value nobody wrote a reason for.
+
+    `refuses` carries the values somebody anticipated. A reader can return one
+    nobody did — gpt-5.4 answered `day_rule` with `calendar_first_rolled_forward`,
+    which is a perfectly sensible English description of a rule this build does
+    not have — and the detail was then the empty string. The page rendered
+    "day_rule:" followed by nothing: a refusal by name with no name given for
+    the refusing, which is worse than no refusal at all, because the reader is
+    told something is wrong and not what.
+    
+    Everything needed is already on the dimension. Refusing by name means
+    saying which name, and a closed set is the most useful thing to say next.
+    """
+    executable = ", ".join(str(v) for v in dimension.values)
+    if executable:
+        return (f"{value!r} is not something this build executes for "
+                f"{name}. It runs {executable} — stating one of those would "
+                "let this plan run")
+    return (f"{value!r} was stated for {name} and this build does not execute "
+            "it. Nothing is substituted, because a plan that ran on a "
+            "different rule would answer a question you did not ask")
 
 
 def refusals_for(declared: Mapping[str, Any]) -> Sequence[Refusal]:

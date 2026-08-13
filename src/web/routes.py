@@ -141,8 +141,57 @@ def _lineage_returns(methodology, protocol, prices) -> Optional[pd.DataFrame]:
     return frame
 
 
+#: Evaluations already run in this process, keyed by everything they depend on.
+#:
+#: The library index calls `_evaluate_full` for every version of every concept,
+#: and each call is a backtest: measured at 1.9s per version, four versions, so
+#: the page took 8.5s locally and 36s on the deployment's t3.small. It looked to
+#: a user like a link that does not open, because a browser spinning for half a
+#: minute is indistinguishable from one that is stuck.
+#:
+#: Correct rather than merely faster. The result is a function of the
+#: methodology version, the protocol, the price snapshot and the ledger state,
+#: so the key carries all four. The snapshot is pinned into the image and cannot
+#: change while the process lives — a new one arrives only with a new
+#: deployment, which restarts it — and the ledger's contribution is its trial
+#: breakdown and errata, both of which cost about 11ms to read.
+_EVALUATIONS: Dict[str, Dict[str, Any]] = {}
+
+
+def _evaluation_key(methodology, protocol, ledger) -> str:
+    from json import dumps
+
+    return dumps({
+        "version": getattr(methodology, "version_id", None),
+        "protocol": getattr(protocol, "version_id", None) or str(protocol),
+        # What the ledger contributes to the answer. `trial_count` scales the
+        # deflated Sharpe denominator, so a recorded trial changes the verdict
+        # and must change the key.
+        "trials": ledger.trial_breakdown(getattr(methodology, "concept", "")),
+        "errata": len(ledger.list_errata()),
+    }, sort_keys=True, default=str)
+
+
 def _evaluate_full(methodology, protocol, prices, ledger, policies) -> Dict[str, Any]:
-    """Run the three layers for one methodology, tolerating missing data."""
+    """Run the three layers for one methodology, tolerating missing data.
+
+    Memoised per process. See `_EVALUATIONS`: this is a backtest, the index
+    page runs one per version, and nothing about a version changes between two
+    requests that the key does not carry.
+    """
+    if prices is not None and protocol is not None:
+        key = _evaluation_key(methodology, protocol, ledger)
+        cached = _EVALUATIONS.get(key)
+        if cached is not None:
+            return cached
+        computed = _evaluate_uncached(methodology, protocol, prices, ledger,
+                                      policies)
+        _EVALUATIONS[key] = computed
+        return computed
+    return _evaluate_uncached(methodology, protocol, prices, ledger, policies)
+
+
+def _evaluate_uncached(methodology, protocol, prices, ledger, policies) -> Dict[str, Any]:
     out: Dict[str, Any] = {
         "result": None, "assessment": None, "policy_eval": None,
         "publication": None, "audit": None, "periods": None,
