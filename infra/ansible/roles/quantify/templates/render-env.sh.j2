@@ -37,8 +37,16 @@ QUANTIFY_IDENTITY_MASTERKEY="$(printf '%s' "$IDENTITY_SECRET" | python3 -c 'impo
 # here on each deploy — a fresh masterkey on the second run would leave every
 # existing account unreadable. Terraform creates the secret empty; somebody
 # sets it once and keeps it.
-if [ ${#QUANTIFY_IDENTITY_MASTERKEY} -ne 32 ]; then
-  echo "The identity masterkey must be exactly 32 bytes and is ${#QUANTIFY_IDENTITY_MASTERKEY}." >&2
+# `wc -c` rather than bash's parameter-length expansion.
+#
+# This file is a Jinja template before it is a shell script, and that expansion
+# opens with the two characters Jinja reads as the start of a comment. The
+# template failed to render with "Missing end of comment tag", naming neither
+# the variable nor the line that meant it — and the first version of this
+# comment reintroduced the fault by quoting the syntax it was warning about.
+masterkey_length="$(printf '%s' "$QUANTIFY_IDENTITY_MASTERKEY" | wc -c | tr -d ' ')"
+if [ "$masterkey_length" -ne 32 ]; then
+  echo "The identity masterkey must be exactly 32 bytes and is $masterkey_length." >&2
   echo "Generate one and set it — once, and keep it. Replacing it later makes" >&2
   echo "every existing account unreadable:" >&2
   echo "  aws secretsmanager put-secret-value --region $REGION \\" >&2
