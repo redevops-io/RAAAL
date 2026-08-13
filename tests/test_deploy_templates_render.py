@@ -173,3 +173,53 @@ class TestTheShellBlocksSurviveAnsiblesParser:
              "-i", str(root / "inventory.aws_ec2.yml"), str(root / "site.yml")],
             capture_output=True, text=True, timeout=300)
         assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+
+
+class TestNothingDependsOnComposeInterpolation:
+    """`${VAR}` in a compose file is substituted by compose, not by the shell.
+
+    Compose resolves its env file relative to the working directory, and the
+    deploy invokes it with `-f /opt/quantify/docker-compose.yml` from wherever
+    the playbook happens to be. The substitution produced an empty string, the
+    identity provider connected with a blank password, and it restarted every
+    minute for ten minutes reporting "password authentication failed" — a
+    message about credentials for a fault in file resolution.
+
+    Values belong in the env file, which `env_file:` hands to the container
+    verbatim. That is how the API service has always been configured, and it is
+    why the API service never had this problem.
+    """
+
+    COMPOSE = (Path(__file__).resolve().parent.parent / "infra" / "ansible"
+               / "roles" / "quantify" / "templates" / "docker-compose.yml.j2")
+
+    def test_the_compose_file_interpolates_no_secrets(self):
+        import re
+
+        if not self.COMPOSE.exists():
+            pytest.skip("no compose template here")
+        found = re.findall(r"\$\{[A-Z_]+\}", self.COMPOSE.read_text())
+        assert not found, (
+            f"{sorted(set(found))} are interpolated by compose, which resolves "
+            "its env file against the working directory. Put them in the env "
+            "file and let `env_file:` deliver them")
+
+    def test_every_service_reads_the_env_file(self):
+        """The positive form. A service configured some other way is one whose
+        configuration is not where anybody looks for it."""
+        if not self.COMPOSE.exists():
+            pytest.skip("no compose template here")
+        rendered = environment().get_template(self.COMPOSE.name).render(**VARIABLES)
+        import yaml
+
+        services = yaml.safe_load(rendered)["services"]
+        for name, service in services.items():
+            if name in {"proxy", "tunnel"}:
+                # Neither reads application configuration: one is a reverse
+                # proxy over a file, the other takes a token on its command
+                # line. Naming them is the point — a new service that skipped
+                # the env file would have to be added here deliberately.
+                continue
+            assert service.get("env_file"), (
+                f"service {name!r} does not read /opt/quantify/.env, so its "
+                "configuration lives somewhere this deployment does not render")

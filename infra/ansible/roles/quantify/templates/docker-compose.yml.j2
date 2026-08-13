@@ -61,24 +61,6 @@ services:
     restart: unless-stopped
     command: >-
       start-from-init --masterkeyFromEnv --tlsMode external
-    environment:
-      ZITADEL_EXTERNALDOMAIN: "{{ quantify_identity_domain }}"
-      ZITADEL_EXTERNALPORT: "443"
-      ZITADEL_EXTERNALSECURE: "true"
-      ZITADEL_DATABASE_POSTGRES_HOST: "{{ quantify_database_host }}"
-      ZITADEL_DATABASE_POSTGRES_PORT: "5432"
-      ZITADEL_DATABASE_POSTGRES_DATABASE: "zitadel"
-      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: "quantify"
-      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: "${QUANTIFY_DB_PASSWORD}"
-      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: "require"
-      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: "quantify"
-      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: "${QUANTIFY_DB_PASSWORD}"
-      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: "require"
-      ZITADEL_MASTERKEY: "${QUANTIFY_IDENTITY_MASTERKEY}"
-      # Free self-service registration. The pilot is open to anybody with an
-      # email; what the account buys is a plan of their own, not a paid tier.
-      ZITADEL_DEFAULTINSTANCE_LOGINPOLICY_ALLOWREGISTER: "true"
-      ZITADEL_DEFAULTINSTANCE_LOGINPOLICY_ALLOWUSERNAMEPASSWORD: "true"
     env_file: [/opt/quantify/.env]
     expose: ["8080"]
     logging:
