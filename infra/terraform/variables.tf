@@ -179,13 +179,24 @@ variable "pilot_data_policy" {
 }
 
 variable "parser_mode" {
-  description = "Declared, never inferred. Production refuses an unset mode."
+  description = <<-EOT
+    Declared, never inferred. Production refuses an unset mode.
+
+    RUNTIME is the pilot interpreter — hosted reader, fusion, VerifiedIntent,
+    `compile_intent` — and it was missing from this list, which meant the
+    infrastructure could not express the mode the product was being built for.
+    `/workspace/new` branches on it, so quantify.club served the legacy
+    `compile_scenario` path and every surface behind RUNTIME was unreachable:
+    the strategy selector, the clarification-convergence work, refusal by name
+    from the capability manifest. Nothing failed. The deployment served a
+    different program from the one under development and reported success.
+  EOT
   type        = string
   default     = "MODEL_ASSISTED"
 
   validation {
-    condition     = contains(["MODEL_ASSISTED", "DETERMINISTIC"], var.parser_mode)
-    error_message = "parser_mode must be MODEL_ASSISTED or DETERMINISTIC."
+    condition     = contains(["MODEL_ASSISTED", "DETERMINISTIC", "RUNTIME"], var.parser_mode)
+    error_message = "parser_mode must be MODEL_ASSISTED, DETERMINISTIC or RUNTIME."
   }
 }
 
