@@ -116,12 +116,18 @@ resource "aws_iam_role_policy" "secrets" {
       {
         Effect = "Allow"
         Action = ["secretsmanager:GetSecretValue"]
-        Resource = [
+        # The identity masterkey joins by `concat` over the resource's own
+        # instances rather than by a conditional ARN: a `""` in a policy names
+        # nothing, which reads at a glance like a grant and denies at runtime.
+        Resource = concat([
           aws_secretsmanager_secret.database_password.arn,
           aws_secretsmanager_secret.model_api_key.arn,
           aws_secretsmanager_secret.workspace_basic_auth.arn,
           aws_secretsmanager_secret.tunnel_token.arn,
-        ]
+          ], [
+          for secret in aws_secretsmanager_secret.identity_masterkey :
+          secret.arn
+        ])
       },
       {
         Effect   = "Allow"

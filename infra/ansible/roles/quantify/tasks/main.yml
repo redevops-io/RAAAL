@@ -147,6 +147,38 @@
   ansible.builtin.debug:
     msg: "configuration {{ 'changed' if rendered.changed else 'unchanged' }}"
 
+# The identity provider's own database, inside the RDS instance that already
+# exists. Created here rather than in Terraform because Terraform holds no
+# database credentials — RDS gives it an endpoint, not a session — and adding a
+# Postgres provider to reach inside would put the master password into the
+# state file.
+#
+# `CREATE DATABASE` is not transactional and has no IF NOT EXISTS, so this asks
+# first. Re-runnable by construction, which every task in this playbook has to
+# be.
+- name: Create the identity provider's database
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    set -a; . /opt/quantify/.env; set +a
+    export PGPASSWORD="${QUANTIFY_DB_PASSWORD:-$POSTGRES_PASSWORD}"
+    exists=$(docker run --rm -e PGPASSWORD postgres:16-alpine \
+      psql -h '{{ quantify_database_host }}' -U quantify -d quantify -tAc \
+      "SELECT 1 FROM pg_database WHERE datname='zitadel'")
+    if [ "$exists" != "1" ]; then
+      docker run --rm -e PGPASSWORD postgres:16-alpine \
+        psql -h '{{ quantify_database_host }}' -U quantify -d quantify \
+        -c "CREATE DATABASE zitadel"
+      echo CREATED
+    else
+      echo PRESENT
+    fi
+  args:
+    executable: /bin/bash
+  become: true
+  register: identity_database
+  changed_when: "'CREATED' in identity_database.stdout"
+
 - name: Install the compose file
   ansible.builtin.template:
     src: docker-compose.yml.j2

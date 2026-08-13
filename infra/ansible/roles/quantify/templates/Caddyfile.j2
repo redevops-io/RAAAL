@@ -6,6 +6,31 @@
 # single `pilot` owner holds every plan. `deploy/acceptance.py` checks it, and
 # an ALB has no equivalent, so removing this proxy would delete a control
 # while leaving every other part of the deployment looking correct.
+{% if quantify_identity_domain | default("") | length > 0 %}
+# The identity provider, matched by Host before anything else.
+#
+# A separate site block rather than a path on the application's: the issuer in
+# every token is this hostname, and serving it from a subpath would make the
+# discovery document advertise an address that does not answer.
+#
+# Deliberately outside the basic-auth block below. A login page behind a shared
+# password is a door in front of a door, and the credential it asks for is the
+# one accounts exist to replace.
+http://{{ quantify_identity_domain }} {
+	encode gzip
+	reverse_proxy identity:8080
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+{% endif %}
 :80 {
 	encode gzip
 

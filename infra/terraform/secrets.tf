@@ -107,3 +107,30 @@ resource "aws_secretsmanager_secret_version" "tunnel_token" {
     token = cloudflare_zero_trust_tunnel_cloudflared.pilot.tunnel_token
   })
 }
+
+
+# Zitadel's masterkey, which encrypts everything it stores.
+#
+# Created empty and never known to Terraform, the same rule the model key
+# follows. Losing this value is worse than losing a password: it decrypts the
+# provider's own secrets, so a rotation is a migration rather than an edit.
+# Ansible refuses to deploy the provider while it is empty.
+resource "aws_secretsmanager_secret" "identity_masterkey" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  name        = "${local.name}/identity-masterkey"
+  description = "Zitadel masterkey. Exactly 32 bytes. Value set out of band — see infra/README.md."
+
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "identity_masterkey" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  secret_id     = aws_secretsmanager_secret.identity_masterkey[0].id
+  secret_string = jsonencode({ masterkey = "" })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}

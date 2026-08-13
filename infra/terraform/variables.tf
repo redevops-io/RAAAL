@@ -43,6 +43,24 @@ variable "domain_name" {
   type        = string
 }
 
+variable "identity_domain_name" {
+  description = <<-EOT
+    Hostname the identity provider is served on, e.g. auth.quantify.club.
+
+    Empty disables it: no DNS record, no tunnel rule, and the application
+    declares no OIDC issuer, which is the configuration the pilot ran under for
+    months. That has to stay expressible — a deployment with no accounts serves
+    everybody, and one with a half-configured provider must serve nobody.
+
+    Its own hostname rather than a path on the application's, because a token's
+    issuer is part of the token: every JWT carries it as `iss` and the
+    application checks it, so moving the provider later invalidates everything
+    already issued.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "cloudflare_account_id" {
   description = "Cloudflare account that owns the tunnel."
   type        = string

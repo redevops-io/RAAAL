@@ -59,6 +59,8 @@ output "ansible_variables" {
     quantify_domain                = var.domain_name
     quantify_data_policy           = var.pilot_data_policy
     quantify_parser_mode           = var.parser_mode
+    quantify_identity_domain       = var.identity_domain_name
+    quantify_secret_identity_key   = try(aws_secretsmanager_secret.identity_masterkey[0].name, "")
     quantify_parser_provider       = var.parser_provider
     quantify_parser_model          = var.parser_model
     quantify_parser_prompt_version = var.parser_prompt_version

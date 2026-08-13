@@ -47,6 +47,24 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
       }
     }
 
+    # The identity provider, on its own hostname through the same tunnel and
+    # the same load balancer. Caddy on the host routes by Host header, so this
+    # adds a name rather than a second ingress path — and Zitadel's issuer must
+    # be a hostname it is reached by, because OIDC discovery publishes it and
+    # every token carries it as `iss`.
+    dynamic "ingress_rule" {
+      for_each = var.identity_domain_name == "" ? [] : [1]
+      content {
+        hostname = var.identity_domain_name
+        service  = "http://${aws_lb.main.dns_name}:80"
+
+        origin_request {
+          connect_timeout = "30s"
+          no_tls_verify   = false
+        }
+      }
+    }
+
     # Required terminal rule.
     ingress_rule {
       service = "http_status:404"
@@ -75,4 +93,18 @@ resource "cloudflare_record" "pilot" {
   # recorded in evidence/dns-record-replaced.json. It only affects
   # quantify.club; the other hostnames on that tunnel are untouched.
   allow_overwrite = true
+}
+
+
+# The identity provider's own name. Separate from the application's because a
+# token's issuer is part of its identity: moving the provider under a path on
+# the main hostname would make every issued token invalid the day it moved.
+resource "cloudflare_record" "identity" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  zone_id = var.cloudflare_zone_id
+  name    = var.identity_domain_name
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.pilot.id}.cfargotunnel.com"
+  type    = "CNAME"
+  proxied = true
 }

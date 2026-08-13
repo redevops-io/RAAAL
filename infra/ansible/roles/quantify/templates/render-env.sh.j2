@@ -28,6 +28,26 @@ QUANTIFY_DB_PASSWORD="$(secret '{{ quantify_secret_database }}')"
 MODEL_SECRET="$(secret '{{ quantify_secret_model_key }}')"
 QUANTIFY_MODEL_KEY="$(printf '%s' "$MODEL_SECRET" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("api_key",""))')"
 
+{% if quantify_identity_domain | default("") | length > 0 %}
+IDENTITY_SECRET="$(secret '{{ quantify_secret_identity_key }}')"
+QUANTIFY_IDENTITY_MASTERKEY="$(printf '%s' "$IDENTITY_SECRET" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("masterkey",""))')"
+
+# The same refusal the model key gets, and for a stronger reason. This value
+# encrypts everything the identity provider stores, so it cannot be generated
+# here on each deploy — a fresh masterkey on the second run would leave every
+# existing account unreadable. Terraform creates the secret empty; somebody
+# sets it once and keeps it.
+if [ ${#QUANTIFY_IDENTITY_MASTERKEY} -ne 32 ]; then
+  echo "The identity masterkey must be exactly 32 bytes and is ${#QUANTIFY_IDENTITY_MASTERKEY}." >&2
+  echo "Generate one and set it — once, and keep it. Replacing it later makes" >&2
+  echo "every existing account unreadable:" >&2
+  echo "  aws secretsmanager put-secret-value --region $REGION \\" >&2
+  echo "    --secret-id {{ quantify_secret_identity_key }} \\" >&2
+  echo "    --secret-string \"{\\\"masterkey\\\":\\\"$(openssl rand -base64 24 | cut -c1-32)\\\"}\"" >&2
+  exit 1
+fi
+{% endif %}
+
 {% if quantify_parser_mode == "MODEL_ASSISTED" %}
 # Fail here rather than at startup. Terraform creates this secret empty on
 # purpose — `terraform apply` must not be the thing that knows the key — so an
@@ -67,7 +87,7 @@ if [ -z "$TUNNEL_TOKEN" ]; then
   exit 1
 fi
 
-export QUANTIFY_DB_PASSWORD QUANTIFY_MODEL_KEY
+export QUANTIFY_DB_PASSWORD QUANTIFY_MODEL_KEY{% if quantify_identity_domain | default('') | length > 0 %} QUANTIFY_IDENTITY_MASTERKEY{% endif %}
 export QUANTIFY_BASIC_AUTH_USER QUANTIFY_BASIC_AUTH_HASH
 
 CHANGED=0
@@ -89,7 +109,7 @@ render() {
   CHANGED=1
 }
 
-render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY}'
+render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY}{% if quantify_identity_domain | default('') | length > 0 %} ${QUANTIFY_IDENTITY_MASTERKEY}{% endif %}'
 render "$CADDY_TEMPLATE" "$CADDY_TARGET" 0644 '${QUANTIFY_BASIC_AUTH_USER} ${QUANTIFY_BASIC_AUTH_HASH}'
 
 # The tunnel token, written directly rather than through a template: it is one

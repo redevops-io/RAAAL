@@ -45,6 +45,51 @@ services:
         awslogs-stream: "api"
         awslogs-create-group: "false"
 
+{% if quantify_identity_domain | default("") | length > 0 %}
+  # The identity provider. Same host, same database server, its own database.
+  #
+  # `--tlsMode external` because TLS terminates at Cloudflare and the hop from
+  # the tunnel to here is inside the VPC — Zitadel refuses to start if it
+  # believes it is serving plaintext to the public, and telling it the truth is
+  # better than giving it a certificate it does not need.
+  #
+  # `EXTERNALDOMAIN` is what it publishes as its issuer and what every token
+  # carries as `iss`. It has to be the name the browser uses, or discovery
+  # advertises an address nobody can reach.
+  identity:
+    image: ghcr.io/zitadel/zitadel:v2.65.1
+    restart: unless-stopped
+    command: >-
+      start-from-init --masterkeyFromEnv --tlsMode external
+    environment:
+      ZITADEL_EXTERNALDOMAIN: "{{ quantify_identity_domain }}"
+      ZITADEL_EXTERNALPORT: "443"
+      ZITADEL_EXTERNALSECURE: "true"
+      ZITADEL_DATABASE_POSTGRES_HOST: "{{ quantify_database_host }}"
+      ZITADEL_DATABASE_POSTGRES_PORT: "5432"
+      ZITADEL_DATABASE_POSTGRES_DATABASE: "zitadel"
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: "quantify"
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: "${QUANTIFY_DB_PASSWORD}"
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: "require"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: "quantify"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: "${QUANTIFY_DB_PASSWORD}"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: "require"
+      ZITADEL_MASTERKEY: "${QUANTIFY_IDENTITY_MASTERKEY}"
+      # Free self-service registration. The pilot is open to anybody with an
+      # email; what the account buys is a plan of their own, not a paid tier.
+      ZITADEL_DEFAULTINSTANCE_LOGINPOLICY_ALLOWREGISTER: "true"
+      ZITADEL_DEFAULTINSTANCE_LOGINPOLICY_ALLOWUSERNAMEPASSWORD: "true"
+    env_file: [/opt/quantify/.env]
+    expose: ["8080"]
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: "{{ quantify_region }}"
+        awslogs-group: "{{ quantify_log_group }}"
+        awslogs-stream: "identity"
+        awslogs-create-group: "false"
+
+{% endif %}
   proxy:
     image: caddy:2
     restart: unless-stopped
