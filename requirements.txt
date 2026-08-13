@@ -48,3 +48,9 @@ agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.3
 # recordings, so the core image and the everyday suite need neither this nor
 # its models. Deliberately absent from requirements-core.txt.
 stanza>=1.14
+# OIDC token verification. The crypto extra brings the RSA
+# backend PyJWT needs for RS256 — the algorithm Zitadel signs
+# with. Verification is not hand-rolled here: parsing a JWT is
+# easy and verifying one correctly is not, and the failure mode
+# of getting it slightly wrong is an accepted forgery.
+pyjwt[crypto]>=2.8

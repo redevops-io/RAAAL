@@ -128,6 +128,9 @@ PILOT_READER_VAR = "QUANTIFY_PILOT_READER"
 #: how a pilot got measured model-assisted without anybody deciding it.
 PARSER_PROVIDER_VAR = "QUANTIFY_PARSER_PROVIDER"
 RESEARCH_DIRECTORY_VAR = "QUANTIFY_RESEARCH_DIR"
+OIDC_ISSUER_VAR = "OIDC_ISSUER"
+OIDC_AUDIENCE_VAR = "OIDC_AUDIENCE"
+OIDC_CLIENT_ID_VAR = "OIDC_CLIENT_ID"
 
 
 class ParserProvider(str, Enum):
@@ -484,6 +487,37 @@ class ModelTarget:
 
 
 @dataclass(frozen=True)
+class IdentityTarget:
+    """Who this deployment can recognise, and by whose authority.
+
+    Declared like everything else here rather than read at the call site. The
+    surface asks whether identity is configured before it offers a login, and a
+    request handler deciding that for itself is how one instance comes to have
+    accounts while another serves the same pages anonymously.
+
+    Empty means no accounts. That is a legitimate configuration — the pilot ran
+    for months on one shared credential — and it must be distinguishable from a
+    misconfigured issuer, because the first serves everybody and the second must
+    serve nobody.
+    """
+
+    issuer: str = ""
+    audience: str = ""
+    client_id: str = ""
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.issuer and self.audience)
+
+    def to_json(self) -> Dict[str, Any]:
+        # The client id is public by construction — it travels to the browser
+        # to start a login. The audience and issuer are not secrets either;
+        # what never appears here is a token or a client secret.
+        return {"configured": self.configured, "issuer": self.issuer,
+                "audience": self.audience, "client_id": self.client_id}
+
+
+@dataclass(frozen=True)
 class TelemetryTarget:
     """Where operational traces go, and whether they go anywhere.
 
@@ -571,6 +605,9 @@ class DeploymentContext:
     build: Any
     """The `BuildManifest`, which already resolves itself from the environment
     and is carried here so nothing re-reads it."""
+
+    identity: "IdentityTarget" = field(default_factory=lambda: IdentityTarget())
+    """The OIDC provider this deployment trusts, or nothing."""
 
     research_directory: str = "/var/lib/quantify/research"
     """Where the scheduled job leaves the built research dashboard.
@@ -713,6 +750,10 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
             retain_transcripts=_affirmative(source.get(TRANSCRIPTS_VAR)),
             retention_days=_retention(source.get(TRANSCRIPT_RETENTION_VAR),
                                       default=30)),
+        identity=IdentityTarget(
+            issuer=(source.get(OIDC_ISSUER_VAR) or "").rstrip("/"),
+            audience=source.get(OIDC_AUDIENCE_VAR) or "",
+            client_id=source.get(OIDC_CLIENT_ID_VAR) or ""),
         research_directory=(source.get(RESEARCH_DIRECTORY_VAR)
                             or "/var/lib/quantify/research"),
         state_directory=source.get(STATE_DIRECTORY_VAR,
