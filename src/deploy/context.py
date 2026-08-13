@@ -462,9 +462,23 @@ class ModelTarget:
                 # interpreted. Naming the wrong house is worse than naming
                 # none: it is a provenance record that reads as authoritative
                 # and is false.
+                # `needs_a_model`, not `model_assisted`.
+                #
+                # RUNTIME calls a hosted reader exactly as MODEL_ASSISTED does,
+                # and this recorded neither provider nor model for it — a plan
+                # read by gpt-5.4 saying no model was consulted. The mirror of
+                # the hardcoded `anthropic` two lines up: one named a reader
+                # that did not read, this named none when one did.
+                #
+                # The property already existed and already carried the warning:
+                # "adding RUNTIME to the enum without adding it here would have
+                # let a deployment declare the pilot interpreter with no API
+                # key". The preflight was updated for the third mode and this
+                # was not, so the deploy of 1fb3a6c refused — correctly, and
+                # only because the playbook checks the model appears at all.
                 "provider": (self.provider.value.lower()
-                             if self.model_assisted and self.provider else ""),
-                "model": self.model if self.model_assisted else "",
+                             if self.needs_a_model and self.provider else ""),
+                "model": self.model if self.needs_a_model else "",
                 "prompt_version": self.prompt_version}
 
 
