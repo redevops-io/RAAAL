@@ -35,7 +35,14 @@ DESCRIPTION = "Configured by the Quantify deploy from Secrets Manager"
 
 
 def call(path: str, token: str, body: dict | None = None,
-         method: str | None = None) -> dict:
+         method: str | None = None, absent_ok: bool = False) -> dict:
+    """One admin-API call.
+
+    `absent_ok` turns a 404 into an empty answer. The provider returns 404
+    from the *list* endpoint when nothing is configured yet — "SMTP
+    configuration not found" — rather than an empty list, so treating every
+    404 as fatal made the first run the one run that could never succeed.
+    """
     request = urllib.request.Request(
         f"{PROVIDER}{path}",
         data=None if body is None else json.dumps(body).encode(),
@@ -48,6 +55,8 @@ def call(path: str, token: str, body: dict | None = None,
         with urllib.request.urlopen(request, timeout=60) as response:
             return json.loads(response.read() or b"{}")
     except urllib.error.HTTPError as error:
+        if error.code == 404 and absent_ok:
+            return {}
         detail = error.read().decode(errors="replace")[:400]
         raise SystemExit(f"The provider refused {path}: {error.code} {detail}")
 
@@ -91,7 +100,8 @@ def main() -> int:
         "description": DESCRIPTION,
     }
 
-    existing = call("/admin/v1/email/providers", token).get("result") or []
+    existing = call("/admin/v1/email/providers", token,
+                    absent_ok=True).get("result") or []
     for provider in existing:
         smtp = provider.get("smtp") or {}
         # The password is never returned, so it cannot be compared. Everything
@@ -104,8 +114,8 @@ def main() -> int:
         if same:
             state = provider.get("state", "")
             if "ACTIVE" not in state:
-                call("/admin/v1/email/provider/activate", token,
-                     {"id": provider.get("id")})
+                call(f"/admin/v1/email/{provider.get('id')}/_activate", token,
+                     {})
                 print(f"MAIL_ACTIVATED sender={wanted['senderAddress']}")
                 return 0
             print(f"MAIL_OK sender={wanted['senderAddress']} host={host}")
@@ -113,8 +123,21 @@ def main() -> int:
 
     created = call("/admin/v1/email/smtp", token, wanted)
     identifier = created.get("id") or created.get("details", {}).get("id")
-    if identifier:
-        call("/admin/v1/email/provider/activate", token, {"id": identifier})
+    if not identifier:
+        # Some versions return only the change details. The provider was
+        # created either way, so find it rather than assume the response
+        # shape — an unactivated provider sends no mail and would look
+        # configured.
+        for provider in (call("/admin/v1/email/providers", token,
+                              absent_ok=True).get("result") or []):
+            if (provider.get("smtp") or {}).get("host") == wanted["host"]:
+                identifier = provider.get("id")
+                break
+    if not identifier:
+        raise SystemExit(
+            "the provider was created and did not report an id, so it cannot "
+            "be activated; check the console")
+    call(f"/admin/v1/email/{identifier}/_activate", token, {})
     print(f"MAIL_CONFIGURED sender={wanted['senderAddress']} host={host}")
     return 0
 
