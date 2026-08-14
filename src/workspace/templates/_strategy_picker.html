@@ -41,6 +41,19 @@
    the chosen kind, and put the chosen sentence in the box. #}
 <script>
   (function () {
+    // Wait for the rest of the form.
+    //
+    // This script is included above the textarea it fills, so at parse time
+    // that element does not exist yet and the guard below returned
+    // immediately — leaving two dropdowns that looked like a selector and did
+    // nothing. Choosing a kind narrowed nothing; choosing a strategy filled
+    // nothing. Both symptoms, one cause, and neither visible from the server's
+    // HTML, which is why every test passed.
+    //
+    // Deferring rather than moving the include: a partial that only works
+    // below the field it drives is a partial that will be included above it
+    // again.
+    function start() {
     var kind = document.getElementById("pick-group");
     var pick = document.getElementById("pick");
     var box = document.getElementById("describe");
@@ -99,5 +112,12 @@
       kind.value = current.getAttribute("data-group");
     }
     narrow();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", start);
+    } else {
+      start();
+    }
   })();
 </script>
