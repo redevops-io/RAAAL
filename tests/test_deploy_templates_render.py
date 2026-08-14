@@ -421,3 +421,64 @@ class TestTheProviderCommandsAreRealCommands:
                     f"{subcommand} does not accept {name}. Its flags:\n"
                     + "\n".join(line for line in text.splitlines()
                                  if line.strip().startswith("-")))
+
+
+class TestTheProviderCanWriteWhatItIsGiven:
+    """A bind mount the provider cannot write is a failed migration.
+
+    The service-account token is written during the first-instance migration.
+    The directory was created root-owned and 0700; the image runs as `zitadel`,
+    uid 1000; and the whole migration died on `open /machinekey/pat.txt:
+    permission denied` — after three other causes had been found and cleared.
+
+    Checked structurally: the compose file says which host paths are mounted
+    into the provider, and the role says who owns them.
+    """
+
+    ROLE = (Path(__file__).resolve().parent.parent / "infra" / "ansible"
+            / "roles" / "quantify" / "tasks" / "main.yml")
+    COMPOSE = (Path(__file__).resolve().parent.parent / "infra" / "ansible"
+               / "roles" / "quantify" / "templates" / "docker-compose.yml.j2")
+
+    def mounted_directories(self):
+        """Host paths bind-mounted into the identity service, read-write."""
+        if not self.COMPOSE.exists():
+            pytest.skip("no compose template here")
+        import yaml
+
+        rendered = environment().get_template(self.COMPOSE.name).render(**VARIABLES)
+        identity = yaml.safe_load(rendered)["services"].get("identity")
+        if not identity:
+            pytest.skip("no identity service in this configuration")
+        found = []
+        for mount in identity.get("volumes") or []:
+            source = str(mount).split(":")[0]
+            if source.startswith("/") and not str(mount).endswith(":ro"):
+                found.append(source)
+        return found
+
+    def test_there_is_at_least_one(self):
+        assert self.mounted_directories(), (
+            "the provider mounts no writable host path; this check is stale")
+
+    def test_each_is_owned_by_the_image_user_not_root(self):
+        import yaml
+
+        if not self.ROLE.exists():
+            pytest.skip("no ansible role here")
+        tasks = yaml.safe_load(self.ROLE.read_text()) or []
+        owners = {}
+        for task in tasks:
+            spec = task.get("ansible.builtin.file") if isinstance(task, dict) else None
+            if isinstance(spec, dict) and spec.get("state") == "directory":
+                owners[str(spec.get("path"))] = str(spec.get("owner"))
+
+        for path in self.mounted_directories():
+            assert path in owners, (
+                f"{path} is bind-mounted into the provider and no task in this "
+                "role creates it, so its ownership is whatever Docker invents")
+            assert owners[path] != "root", (
+                f"{path} is created root-owned and bind-mounted into the "
+                "provider, which runs as uid 1000. It writes its "
+                "service-account token there during the first-instance "
+                "migration, and cannot")
