@@ -60,6 +60,39 @@ _BODY = ("payload", "content_hash")
 TABLE_MUTABILITY: Mapping[str, Mutability] = {
     one.table: one for one in (
         Mutability(
+            table="pilot_plans", kind=TableClass.IMMUTABLE_ARTIFACT,
+            immutable_columns=("text", "artifact", "created_at"),
+            rationale="A pinned reading of a sentence, and the sentence it "
+                      "came from. Reopening recompiles from the artifact and "
+                      "never re-reads the prose — editing either would change "
+                      "what a plan means after somebody read and confirmed "
+                      "it, which is the failure the runtime exists to avoid. "
+                      "A revision is a new plan, not an overwrite."),
+        Mutability(
+            table="pilot_consent", kind=TableClass.MUTABLE_LIFECYCLE,
+            immutable_columns=("participant",),
+            rationale="Consent is granted and withdrawn, so state, `at` and "
+                      "the notice version all move; the transitions are in "
+                      "`pilot_events`. What must never move is who the row is "
+                      "about — an UPDATE that changed `participant` would "
+                      "transfer one person's permission to another silently, "
+                      "and the study would read as consented on the strength "
+                      "of somebody else's answer. Naming it rather than "
+                      "leaving the tuple empty, because a classification that "
+                      "protects no column enforces nothing — the mistake "
+                      "`run_invalidation` records a few entries below."),
+        Mutability(
+            table="pilot_events", kind=TableClass.IMMUTABLE_ARTIFACT,
+            immutable_columns=("at", "kind", "detail"),
+            rationale="What happened, when. An event edited afterwards is not "
+                      "a record of anything."),
+        Mutability(
+            table="pilot_transcripts", kind=TableClass.IMMUTABLE_ARTIFACT,
+            immutable_columns=("at", "text", "detail", "attempt"),
+            rationale="What a participant typed on a given attempt. The whole "
+                      "value of a transcript is that it says what was said, "
+                      "not what would have been clearer."),
+        Mutability(
             table="worksheet", kind=TableClass.IMMUTABLE_ARTIFACT,
             immutable_columns=("payload", "canonical_hash"),
             rationale="One row per revision. An UPDATE that changed a revision "

@@ -330,6 +330,68 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
             contains_sensitive_financial_data=True,
             contains_model_content=False,
             sensitive_fields=("original_value", "final_value")),
+
+        # The runtime's four tables.
+        #
+        # Undeclared until now — created by their own modules on first use,
+        # which is how `pilot_plans` came to exist in a production database
+        # that nothing had told about it. Classified here because they hold
+        # what a participant typed and what was made of it, which is precisely
+        # the material this registry exists to account for.
+        RecordClass(
+            table="pilot_plans",
+            data_class=DataClass.PERSONAL_RECORD,
+            # No owner column. The runtime pilot is single-tenant: every plan
+            # belongs to the one participant the deployment serves, and there
+            # is no column to scope by. That changes when plans move onto a
+            # verified subject, and the scope changes with it.
+            # Scoped like every other personal record. The table had no owner
+            # column because the runtime pilot served one participant; that is
+            # a reason for the column to have been absent, not a reason for
+            # erasure to guess. The migration adds it and backfills the pilot
+            # owner, so a deletion reaches these rows by the same declared
+            # path as everything else.
+            owner_scope=OwnerScope.DIRECT, owner_column="owner",
+            retention_policy=ACTIVE_ACCOUNT,
+            deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
+            export_behaviour="included in a workspace export",
+            contains_sensitive_financial_data=True,
+            # The stored artifact is what the hosted reader made of a
+            # sentence: its reading, its refusals, its settled quantities.
+            contains_model_content=True,
+            sensitive_fields=("text", "artifact")),
+        RecordClass(
+            table="pilot_consent",
+            data_class=DataClass.PERSONAL_RECORD,
+            owner_scope=OwnerScope.DIRECT, owner_column="participant",
+            retention_policy=ACTIVE_ACCOUNT,
+            # Deliberately not deleted with the owner. A consent record is the
+            # evidence that permission was given, and erasing it on request
+            # would erase the only proof of the state the study relied on.
+            deletion_behaviour=DeletionBehaviour.RETAIN,
+            export_behaviour="included in a workspace export",
+            contains_sensitive_financial_data=False,
+            contains_model_content=False),
+        RecordClass(
+            table="pilot_events",
+            data_class=DataClass.PERSONAL_TELEMETRY,
+            owner_scope=OwnerScope.DIRECT, owner_column="participant",
+            retention_policy=ACTIVE_ACCOUNT,
+            deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
+            export_behaviour="included in a workspace export",
+            contains_sensitive_financial_data=False,
+            contains_model_content=False),
+        RecordClass(
+            table="pilot_transcripts",
+            data_class=DataClass.PERSONAL_RECORD,
+            owner_scope=OwnerScope.DIRECT, owner_column="participant",
+            retention_policy=ACTIVE_ACCOUNT,
+            deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
+            export_behaviour="included in a workspace export",
+            # A description of somebody's money, in their own words.
+            contains_sensitive_financial_data=True,
+            contains_model_content=True,
+            sensitive_fields=("text", "detail")),
     )
 }
 

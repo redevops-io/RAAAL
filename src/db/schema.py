@@ -65,6 +65,70 @@ plan = Table(
     Column("parse", JsonText),
 )
 
+# The runtime's own plans, kept apart from `plan` on purpose — see
+# `workspace/pilot_store.py` for why one row must not mean two things
+# depending on which interpreter wrote it.
+#
+# Declared here because it exists in the database. It was created by a
+# `CREATE TABLE IF NOT EXISTS` in the store and by no migration, so the first
+# person to save a runtime plan added a table nothing had declared. The
+# deployment then served happily until the next restart, at which point the
+# schema-parity preflight — correctly — refused to start against a database it
+# could not account for. A table that appears when a feature is first used is a
+# landmine with a delay measured in whenever somebody deploys next.
+pilot_plan = Table(
+    "pilot_plans", metadata,
+    # Owner first, like `plan_run`. Part of the identity, by the standing rule: a table with an owner keys
+    # by it, or two tenants cannot hold the same id and an upsert lets one
+    # overwrite the other. The table shipped without an owner because the
+    # runtime pilot served one participant — a reason for the column to have
+    # been absent, not a reason to key without it now that it exists.
+    Column("owner", Text, primary_key=True),
+    Column("plan_id", Text, primary_key=True),
+    Column("created_at", Text, nullable=False),
+    # The sentence, stored beside the intent rather than as the thing the plan
+    # is made of.
+    Column("text", Text, nullable=False),
+    # The pinned artifact: intent, settled record, refusals by name.
+    Column("artifact", Text, nullable=False),
+)
+
+# The rest of the runtime's own tables, declared for the same reason. Each is
+# created by its module on first use, so each appeared — or would appear — in a
+# database partway through a deployment's life. `pilot_plans` is the one that
+# actually fired; these three had not been used yet on this deployment, which
+# is the only reason they had not.
+pilot_consent = Table(
+    "pilot_consent", metadata,
+    Column("participant", Text, primary_key=True),
+    Column("state", Text, nullable=False),
+    Column("at", Text, nullable=False),
+    Column("notice_version", Text, nullable=False),
+)
+
+pilot_event = Table(
+    "pilot_events", metadata,
+    Column("event_id", Text, primary_key=True),
+    Column("at", Text, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("plan_id", Text),
+    # Nullable, and added after the first version of this table — see
+    # `pilot_events.ADDED_COLUMNS`, which repairs a database that has the
+    # older shape.
+    Column("participant", Text),
+    Column("detail", Text, nullable=False),
+)
+
+pilot_transcript = Table(
+    "pilot_transcripts", metadata,
+    Column("entry_id", Text, primary_key=True),
+    Column("participant", Text, nullable=False),
+    Column("at", Text, nullable=False),
+    Column("attempt", Integer, nullable=False),
+    Column("text", Text, nullable=False),
+    Column("detail", Text, nullable=False),
+)
+
 proposal = Table(
     "proposal", metadata,
     Column("proposal_id", Text, primary_key=True),

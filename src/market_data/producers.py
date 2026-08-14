@@ -171,6 +171,24 @@ PRODUCERS: Mapping[str, Producer] = {
             table="confirmation_event", ownership=ProvenanceOwnership.NOT_APPLICABLE,
             reason="Confirmation-screen telemetry. It records an interaction, "
                    "not a figure."),
+        Producer(
+            table="pilot_plans", ownership=ProvenanceOwnership.NOT_APPLICABLE,
+            reason="A pinned intent and the refusals that went with it. Like "
+                   "`plan`, it states what to do and holds no result — the "
+                   "provenance question belongs to whatever is run from it."),
+        Producer(
+            table="pilot_consent", ownership=ProvenanceOwnership.NOT_APPLICABLE,
+            reason="Whether a participant agreed to be studied, and against "
+                   "which notice. A permission, not a figure."),
+        Producer(
+            table="pilot_events", ownership=ProvenanceOwnership.NOT_APPLICABLE,
+            reason="Study telemetry: what happened and when. It records "
+                   "interactions with the runtime and carries no price, value "
+                   "or quantity."),
+        Producer(
+            table="pilot_transcripts", ownership=ProvenanceOwnership.NOT_APPLICABLE,
+            reason="What a participant typed, and what the reader made of it. "
+                   "Evidence about the interpreter rather than about a market."),
     )
 }
 

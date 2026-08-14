@@ -74,6 +74,26 @@ class TestTheModelMatchesTheShippedSchema:
     #: as a declaration rather than by widening the comparison — an accidental
     #: table still fails.
     DELIBERATELY_ADDED_TABLES = {
+        # The runtime's four tables. Each was created by its own module with a
+        # `CREATE TABLE IF NOT EXISTS` on first use and declared nowhere, so
+        # `pilot_plans` appeared in a production database partway through a
+        # deployment's life and the schema-parity preflight — correctly —
+        # refused to start at the next restart. They are declared now; this is
+        # the record that they postdate the shipped DDL rather than having gone
+        # missing from it.
+        "pilot_plans":
+            "a pinned runtime intent, its refusals and the sentence it came "
+            "from. Kept apart from `plan`, which recompiles from prose on "
+            "every read — one row must not mean two things depending on which "
+            "interpreter wrote it.",
+        "pilot_consent":
+            "whether a participant agreed to be studied, and against which "
+            "notice.",
+        "pilot_events":
+            "study telemetry: which runtime interactions happened, and when.",
+        "pilot_transcripts":
+            "what a participant typed and what the reader made of it — "
+            "evidence about the interpreter rather than about a market.",
         "market_data_access_event":
             "the factual record that one execution received one realized "
             "frame. A stored run previously cited only what its producer "
@@ -149,8 +169,18 @@ class TestTheModelMatchesTheShippedSchema:
             if table in self.DELIBERATELY_ADDED_TABLES:
                 # Asserted directly, for the same reason as `plan_run` below:
                 # there is no shipped key to compare against.
-                assert schema.primary_key_columns(table)[0] == "owner", (
-                    f"{table} is not keyed by owner first")
+                #
+                # Owner-first where there is an owner. The runtime's study
+                # tables scope by `participant` and have no owner column at
+                # all — see the retention registry, which is where their
+                # ownership is declared — so demanding an owner in their key
+                # would be demanding a column they do not have. What every
+                # added table must have is *some* identity.
+                key = schema.primary_key_columns(table)
+                assert key, f"{table} has no primary key"
+                if "owner" in schema.metadata.tables[table].columns:
+                    assert key[0] == "owner", (
+                        f"{table} is not keyed by owner first")
                 continue
             if table == "plan_run":
                 # Had no owner column at all before the ownership migration,
