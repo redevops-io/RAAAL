@@ -131,6 +131,10 @@ RESEARCH_DIRECTORY_VAR = "QUANTIFY_RESEARCH_DIR"
 OIDC_ISSUER_VAR = "OIDC_ISSUER"
 OIDC_AUDIENCE_VAR = "OIDC_AUDIENCE"
 OIDC_CLIENT_ID_VAR = "OIDC_CLIENT_ID"
+#: The address this deployment is reached at. Used to build the OIDC redirect
+#: URI, which an authorization server matches by string equality and which must
+#: therefore be the registered one rather than whatever Host header arrived.
+PUBLIC_BASE_URL_VAR = "PUBLIC_BASE_URL"
 
 
 class ParserProvider(str, Enum):
@@ -504,6 +508,9 @@ class IdentityTarget:
     issuer: str = ""
     audience: str = ""
     client_id: str = ""
+    #: Where this application is reached. Part of the identity target because
+    #: the redirect URI is registered with the provider: the two are one fact.
+    public_base_url: str = ""
 
     @property
     def configured(self) -> bool:
@@ -753,7 +760,8 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
         identity=IdentityTarget(
             issuer=(source.get(OIDC_ISSUER_VAR) or "").rstrip("/"),
             audience=source.get(OIDC_AUDIENCE_VAR) or "",
-            client_id=source.get(OIDC_CLIENT_ID_VAR) or ""),
+            client_id=source.get(OIDC_CLIENT_ID_VAR) or "",
+            public_base_url=(source.get(PUBLIC_BASE_URL_VAR) or "").rstrip("/")),
         research_directory=(source.get(RESEARCH_DIRECTORY_VAR)
                             or "/var/lib/quantify/research"),
         state_directory=source.get(STATE_DIRECTORY_VAR,

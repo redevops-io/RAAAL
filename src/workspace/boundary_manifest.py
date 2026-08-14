@@ -94,6 +94,22 @@ MANIFEST: Sequence[EndpointBoundary] = (
     # process. It carries the outcome and nothing about why — a client learns
     # that the service cannot serve, not which host it could not reach or
     # which revision its schema is at.
+    # Signing in. INFRASTRUCTURE rather than PRIVATE: these routes carry no
+    # artifact of either kind, and they have to be reachable by somebody who is
+    # not yet anybody — a login behind the private boundary is a door that can
+    # only be opened from inside.
+    #
+    # What they do carry is a token, which is why the cookie is HttpOnly,
+    # Secure and SameSite=Lax, and why the callback verifies before it writes.
+    EndpointBoundary("/auth/login", Exposure.INFRASTRUCTURE,
+                     "Starts a sign-in. Redirects to the identity provider "
+                     "with a PKCE challenge; carries no artifact."),
+    EndpointBoundary("/auth/callback", Exposure.INFRASTRUCTURE,
+                     "Completes a sign-in. Verifies the token before any "
+                     "session exists; carries no artifact."),
+    EndpointBoundary("/auth/logout", Exposure.INFRASTRUCTURE,
+                     "Ends the session on this deployment. Clears the cookie "
+                     "and carries no artifact."),
     EndpointBoundary("/health/live", Exposure.INFRASTRUCTURE,
                      "Liveness. The process exists. Says nothing about whether "
                      "it can serve — a port answering is not readiness."),

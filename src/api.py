@@ -360,6 +360,12 @@ from .workspace.pilot_session import note_departures  # noqa: E402
 
 app.include_router(pilot_router)
 
+# Sign-in. Mounted always; each route checks whether this deployment declares a
+# provider, so a build without one refuses with a sentence rather than a 404.
+from .workspace.auth_routes import router as auth_router  # noqa: E402
+
+app.include_router(auth_router)
+
 # A pilot participant reaching the legacy workspace is the strongest negative
 # signal the study can collect, and the only one no counter would otherwise
 # show: `plan_compiled` staying flat looks the same whether people tried the
