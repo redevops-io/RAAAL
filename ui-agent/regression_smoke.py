@@ -266,16 +266,38 @@ async def run(base: str, email: str, password: str, report: Report) -> None:
             option = pick.locator("optgroup option").first
             sentence = await option.get_attribute("data-text") or ""
             await pick.select_option(await option.get_attribute("value"))
-            await page.wait_for_timeout(1200)
+
+            # Selecting submits, and the page it submits to reads the sentence
+            # with a hosted model before it renders — seconds, not
+            # milliseconds. Waiting a fixed 1200ms reported "textarea stayed
+            # empty" for a page that had not arrived, which is a different
+            # fault from the one this check exists to catch and must not be
+            # reported as it.
+            try:
+                await page.wait_for_load_state("networkidle", timeout=45000)
+            except Exception:  # noqa: BLE001 - a slow page is not yet a failure
+                pass
+            try:
+                await page.wait_for_selector("#describe", timeout=15000)
+            except Exception:  # noqa: BLE001
+                pass
+
             box = page.locator("#describe")
-            written = await box.input_value() if await box.count() else ""
-            if not written and page.url != f"{base}/workspace/":
-                # Selecting submits the form, so the sentence may already have
-                # travelled to the next page. That is a pass, not a miss.
-                written = sentence if sentence in await page.content() else ""
+            arrived = bool(await box.count())
+            written = await box.input_value() if arrived else ""
+            if not written and sentence and sentence in await page.content():
+                # The sentence reached the next page even if that page shows
+                # it somewhere other than a textarea. Still a pass: it
+                # travelled.
+                written = sentence
             check.passed = bool(written.strip())
-            check.detail = (f"box got {written[:60]!r}" if written
-                            else "textarea stayed empty after selecting")
+            check.detail = (
+                f"box got {written[:60]!r}" if written
+                else ("the page it submitted to never rendered a textarea "
+                      f"(at {page.url[:70]}) — the sentence may not have "
+                      "travelled, or the page is still working"
+                      if not arrived else
+                      "textarea rendered and stayed empty after selecting"))
         except Exception as error:  # noqa: BLE001
             check.passed = False
             check.detail = f"{type(error).__name__}: {error}"
