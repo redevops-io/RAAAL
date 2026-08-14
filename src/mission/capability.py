@@ -111,7 +111,22 @@ class Dimension:
             return False
         if not self.closed:
             return True
-        return value in self.values
+        if value in self.values:
+            return True
+        # A parameterised value: `calendar_day:15` is the `calendar_day` rule
+        # carrying the day it names. The family is what the manifest declares,
+        # because the day is the user's and cannot be enumerated.
+        #
+        # Only the family is checked here. Whether *this* day is one the engine
+        # can honour is the engine's question, and `schedule.day_of_month`
+        # answers it — a rule naming day 99 is not executable and must not
+        # reach a simulation by passing a prefix test.
+        if isinstance(value, str) and ":" in value:
+            family, _, _ = value.partition(":")
+            if family in self.values:
+                from .schedule import day_of_month
+                return day_of_month(value) is not None
+        return False
 
     def to_json(self) -> Dict[str, Any]:
         return {"name": self.name, "support": self.support,

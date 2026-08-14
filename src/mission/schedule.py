@@ -20,7 +20,7 @@ day and the day moves the money-weighted return.
 """
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, Sequence
+from typing import Callable, List, Mapping, Optional, Sequence
 
 import pandas as pd
 
@@ -60,9 +60,19 @@ EVERY_SESSION = "daily"
 #: fallback that used to absorb everything unrecognised.
 SINGLE = "once"
 
+#: A contribution on a named day of the month, written `calendar_day:15`.
+#:
+#: Parameterised because the day is the whole point: "the 15th" and "the 1st"
+#: are different plans, and a vocabulary that can only say first-or-last has no
+#: word for either. Somebody who wrote "on the same day each month — the 15th"
+#: was read as `calendar_first_rolled_forward` and then refused for asking for
+#: the first of the month, which is not what they said and not what the record
+#: should show.
+CALENDAR_DAY = "calendar_day"
+
 #: Which session within a period the money lands on.
 EXECUTABLE_DAY_RULES: Sequence[str] = (
-    "first_session_of_period", "last_session_of_period")
+    "first_session_of_period", "last_session_of_period", CALENDAR_DAY)
 
 #: **The manifest's source for `cadence`.** Derived, not restated.
 EXECUTABLE_CADENCES: Sequence[str] = tuple(
@@ -107,6 +117,44 @@ def expand(schedule, sessions: pd.DatetimeIndex, *, cash_flow) -> List:
             "plan run.")
 
     groups = sessions.to_series().groupby(PERIOD_KEYS[cadence](sessions))
-    dates = (groups.max() if schedule.day_rule == "last_session_of_period"
-             else groups.min())
+    nominated = day_of_month(schedule.day_rule)
+    if nominated is not None:
+        dates = groups.apply(lambda period: _on_or_after(period, nominated))
+    elif schedule.day_rule == "last_session_of_period":
+        dates = groups.max()
+    else:
+        dates = groups.min()
     return [cash_flow(d, schedule.amount, "contribution") for d in dates]
+
+
+def day_of_month(day_rule: str) -> Optional[int]:
+    """The day a `calendar_day:15` rule names, or None for the session rules.
+
+    Refuses a day outside 1–31 by returning None rather than guessing, so an
+    unreadable rule falls through to the first session and is caught by the
+    manifest rather than silently landing money on a date nobody named.
+    """
+    if not isinstance(day_rule, str) or not day_rule.startswith(CALENDAR_DAY + ":"):
+        return None
+    _, _, stated = day_rule.partition(":")
+    try:
+        day = int(stated)
+    except ValueError:
+        return None
+    return day if 1 <= day <= 31 else None
+
+
+def _on_or_after(period: pd.Series, day: int):
+    """The first session in this period on or after the nominated day.
+
+    Rolled forward, because a market is shut on the 15th about two months in
+    seven and money does not land on a closed exchange.
+
+    A period with no such session — the 31st of a thirty-day month, the 30th of
+    February — takes that period's last session instead. The alternative is
+    rolling into the next month, which puts two contributions in one month and
+    none in another; "monthly" means once a month, and landing late within the
+    month keeps that true.
+    """
+    on_or_after = period[period.dt.day >= day]
+    return on_or_after.min() if len(on_or_after) else period.max()

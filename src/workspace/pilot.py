@@ -203,13 +203,42 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         # existed — nothing downstream simply had anything to refuse.
         decisions.extend(as_decisions(parse, decisions))
     else:
+        # The derived readers run here too, and until now they did not.
+        #
+        # `pipeline.read` runs them, and this branch never calls it — so on a
+        # deployment with no deterministic parser, which is every deployment
+        # this project actually serves, no derived reader had ever run. Three
+        # of them: trigger semantics, weight binding, day of month. Built,
+        # tested, and unreachable by a single user.
+        #
+        # `weight_binding` was rewritten to read from the sentence rather than
+        # from a parse *because* production has no Stanza. It then sat behind
+        # the branch that only runs when Stanza is present. A reader nobody
+        # reaches is the same defect as a login route nothing links to, and
+        # this is the third of its kind found by somebody using the site.
+        #
+        # They take no candidates and no parse here, which is what reading
+        # from the sentence means. A reader that needs a parse simply returns
+        # nothing, exactly as it does when the parse is silent.
+        from ..discovery.derived_readers import DERIVED_READERS
+
         proposals = [Proposal(dimension=r.dimension, value=r.value,
                               reader_id=reading.reader_id,
                               source_span=r.source_span)
                      for r in reading.readings]
-        fields = sorted({p.dimension for p in proposals})
-        decisions = [fuse(p.dimension, model=p, available=fields)
-                     for p in proposals]
+        model_by_field = {p.dimension: p for p in proposals}
+
+        derived_by_field = {}
+        for _reader_id, derive in DERIVED_READERS:
+            found = derive((), None, text)
+            if found is not None:
+                derived_by_field[found.dimension] = found
+
+        fields = sorted(set(model_by_field) | set(derived_by_field))
+        decisions = [fuse(name, model=model_by_field.get(name),
+                          derived=derived_by_field.get(name),
+                          available=fields)
+                     for name in fields]
 
     settled = record(decisions, profile)
 

@@ -77,10 +77,10 @@ class TestItCannotGrowIntoACompiler:
     delete. The restriction is structural rather than remembered."""
 
     def test_each_reader_authors_one_field_and_names_it(self):
-        """Two readers now, one field each. The restriction was never "one
+        """Three readers now, one field each. The restriction was never "one
         field in the module" — it is that no single reader may grow into a
         compiler by claiming a second."""
-        assert AUTHORS == {"trigger_semantics", "stated_weights"}
+        assert AUTHORS == {"trigger_semantics", "stated_weights", "day_rule"}
 
     def test_every_proposal_it_makes_is_for_that_field(self):
         for case in CASES:

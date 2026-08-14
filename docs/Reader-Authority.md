@@ -124,3 +124,59 @@ is the falsification suite, not the plausibility of the rules:
    could hide a competing reading.
 4. Prove that deleting the reader reintroduces the instability it was added
    for. A reader that changes nothing when removed is one nothing depends on.
+
+
+## The third one: `quantify-day-of-month@1`
+
+Authors `day_rule`, and it exists because the vocabulary could not say what
+somebody wrote. The schema offers three day rules — first session of the
+period, last session, and a calendar-first variant — and none of them can
+express "the 15th".
+
+So a person who wrote *"I invest $200 into NVDA every month, on the same day
+each month — the 15th for the past 5 years"* had it read as
+`calendar_first_rolled_forward`, the **first** of the period, and was then
+refused for asking for a rule this build does not run. They had not asked for
+it. That is worse than a refusal and worse than a silence: a wrong reading
+arrived wearing a refusal's clothes, and the record showed them requesting a
+plan they never described.
+
+The hosted reader was not being careless. Asked for a value from a closed
+vocabulary that has no word for the thing in the sentence, it answered with the
+nearest thing it could say. The gap was representational, which is the same
+diagnosis that produced schema `@4`.
+
+It reads an **ordinal** — `the 15th`, `on the 3rd` — because every neighbouring
+dimension in these sentences is a bare number and the cost of confusing them is
+money landing on a date nobody named:
+
+    $200 into NVDA                an amount
+    the past 5 years              an evaluation period
+    its 200-day moving average    a window
+    every month                   a cadence
+
+None of those wears an ordinal suffix. It is silent on two ordinals — "the 1st
+and the 15th" is twice a month, not a day — and silent on "the 1st **trading**
+day", which is the first-session rule this build already executes and which
+this reader must not overwrite.
+
+The engine executes it. A named day lands on the first session on or after that
+date, rolled forward off a closed market, because the 15th is a weekend about
+two months in seven. A month that never reaches the day — the 31st of a
+thirty-day month — takes that month's last session rather than rolling into the
+next one, because "monthly" means once a month and landing late within it keeps
+that true.
+
+### It had never run
+
+All three of these readers are invoked by `pipeline.read`, and `pilot.read`
+only calls that when a deterministic parser is present. No deployment this
+project serves declares one. So none of them had ever run for a single user —
+including `quantify-weight-binding@1`, which had been rewritten to read the
+*text* rather than the parse precisely because production has no Stanza, and
+then sat behind the branch that requires one.
+
+Reachability is the recurring defect here and it is never visible in a test
+that calls the thing directly. `tests/test_day_of_month.py` now reads a
+sentence through the path production takes, with no parser, and fails if the
+day is not read.

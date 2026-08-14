@@ -48,8 +48,9 @@ from .fusion import Proposal
 #: under a fixed id would make two runs look comparable when they are not.
 TRIGGER_READER_ID = "quantify-trigger-semantics@1"
 
-#: The only field this module may ever claim.
-AUTHORS = frozenset({"trigger_semantics", "stated_weights"})
+#: The only fields this module may ever claim. One per reader, and named here
+#: so a reader cannot quietly claim a second and become a compiler.
+AUTHORS = frozenset({"trigger_semantics", "stated_weights", "day_rule"})
 
 
 #: Words that invert a condition. The reader has no rule for what a negated
@@ -182,7 +183,65 @@ def weight_binding(candidates: Sequence, parse=None,
                     reader_id=WEIGHTS_READER_ID)
 
 
+DAY_READER_ID = "quantify-day-of-month@1"
+
+#: A day of the month, stated as an ordinal: "the 15th", "on the 3rd".
+#:
+#: Anchored on `the` or `on the` and requiring the ordinal suffix, because the
+#: neighbours are all bare numbers and the cost of confusing them is a plan
+#: that runs on a date nobody named:
+#:
+#:   "$200 into NVDA"            an amount
+#:   "the past 5 years"          an evaluation period
+#:   "its 200-day moving average" a window
+#:   "every month"               a cadence
+#:
+#: None of those wears an ordinal suffix, and the suffix is what this reads.
+_DAY_OF_MONTH = re.compile(
+    r"\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b", re.IGNORECASE)
+
+#: Ordinals that name a position in a sequence rather than a date. "the 1st of
+#: the month" is a day; "the 1st trading day" is the first-session rule, which
+#: this build already executes and which this reader must not overwrite.
+_NOT_A_DATE = re.compile(
+    r"\b(?:on\s+)?the\s+\d{1,2}(?:st|nd|rd|th)\s+"
+    r"(?:trading|business|market|session|of\s+(?:those|these))\b",
+    re.IGNORECASE)
+
+
+def day_of_month(candidates: Sequence, parse=None,
+                 text: str = "") -> Optional[Proposal]:
+    """The day of the month a contribution lands on, or silence.
+
+    The vocabulary could not state one. Somebody who wrote "on the same day
+    each month - the 15th" had it read as `calendar_first_rolled_forward` — the
+    *first* of the period — and was then refused for asking for something they
+    had not asked for. A reading that drops the day and substitutes a different
+    rule is worse than no reading: it puts a plan on the record that the person
+    never described.
+
+    Silent unless exactly one day is named. Two ordinals in a sentence is a
+    schedule this cannot resolve — "the 1st and the 15th" is twice a month, not
+    a day — and choosing one of them would be the coin toss this project
+    exists to refuse.
+    """
+    if not text:
+        return None
+    if _NOT_A_DATE.search(text):
+        return None
+
+    days = {int(found) for found in _DAY_OF_MONTH.findall(text)}
+    if len(days) != 1:
+        return None
+    day = days.pop()
+    if not 1 <= day <= 31:
+        return None
+    return Proposal(dimension="day_rule", value=f"calendar_day:{day}",
+                    reader_id=DAY_READER_ID)
+
+
 #: Every derived reader, so the pipeline does not name them one at a time and
 #: a new one cannot be added without appearing in the structural test.
 DERIVED_READERS = ((TRIGGER_READER_ID, trigger_semantics),
-                   (WEIGHTS_READER_ID, weight_binding))
+                   (WEIGHTS_READER_ID, weight_binding),
+                   (DAY_READER_ID, day_of_month))
