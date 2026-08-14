@@ -134,3 +134,47 @@ resource "aws_secretsmanager_secret_version" "identity_masterkey" {
     ignore_changes = [secret_string]
   }
 }
+
+
+# The identity provider's first administrator.
+#
+# Zitadel creates one at first boot whether or not it is told to, and its
+# default is `zitadel-admin@zitadel.<domain>` with the password `Password1!`
+# and a change-required flag. That is a documented default on a login page
+# facing the internet: whoever reaches the console first claims the instance,
+# and the change-required flag helps them rather than us.
+#
+# Generated here rather than left empty, unlike the masterkey. The masterkey
+# cannot be rotated without a migration, so it is worth the manual step; this
+# is an ordinary password on one account, and a generated one that nobody ever
+# has to type beats a documented one everybody knows.
+resource "random_password" "identity_admin" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  length = 32
+  # Zitadel's default password policy requires all four classes. Restricted to
+  # symbols that survive an env file, an envsubst pass and a shell export
+  # without quoting games — `$` in particular would be substituted on the way
+  # through and the account would be created with a password nobody holds.
+  override_special = "!@#%^*-_=+"
+  min_upper        = 2
+  min_lower        = 2
+  min_numeric      = 2
+  min_special      = 2
+}
+
+resource "aws_secretsmanager_secret" "identity_admin" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  name        = "${local.name}/identity-admin-password"
+  description = "Password for the identity provider's first administrator."
+
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "identity_admin" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  secret_id     = aws_secretsmanager_secret.identity_admin[0].id
+  secret_string = jsonencode({ password = random_password.identity_admin[0].result })
+}

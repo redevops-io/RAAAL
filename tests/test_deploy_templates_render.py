@@ -53,6 +53,7 @@ VARIABLES = {
     "quantify_secret_basic_auth": "quantify-test/workspace-basic-auth",
     "quantify_secret_database": "quantify-test/database-password",
     "quantify_secret_identity_key": "quantify-test/identity-masterkey",
+    "quantify_secret_identity_admin": "quantify-test/identity-admin-password",
     "quantify_secret_model_key": "quantify-test/model-api-key",
     "quantify_secret_tunnel_token": "quantify-test/cloudflare-tunnel-token",
     "quantify_ssm_bucket": "quantify-test-deploy-transfer",

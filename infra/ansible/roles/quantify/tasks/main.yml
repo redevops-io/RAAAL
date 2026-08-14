@@ -103,6 +103,42 @@
 
 # --- configuration ---------------------------------------------------------
 
+# The OIDC client id, if some earlier deploy already created the application.
+#
+# It has to be known before the environment is rendered and cannot be known
+# until the provider is running, so the first deploy renders without it,
+# bootstraps, writes it here and re-renders. Every deploy after that reads it
+# on the way past and converges in one pass.
+#
+# Kept on the host rather than in a variables file because the provider is what
+# decides it. A copy in Terraform would be a second opinion about a fact only
+# one of them holds.
+- name: Make the directory the provider writes its service-account token into
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.file:
+    path: /opt/quantify/machinekey
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  become: true
+
+- name: Read the OIDC client id, if one has already been created
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.slurp:
+    src: /opt/quantify/identity-client-id
+  become: true
+  register: known_client_id
+  failed_when: false
+  changed_when: false
+
+- name: Adopt it
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.set_fact:
+    quantify_identity_client_id: >-
+      {{ (known_client_id.content | b64decode | trim)
+         if (known_client_id.content is defined) else "" }}
+
 - name: Install the environment template
   ansible.builtin.template:
     src: production.env.j2
@@ -634,7 +670,9 @@
 - name: Fail if the identity provider never came up
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.assert:
-    that: identity_ready.rc == 0 and "200" in identity_ready.stdout
+    # The return code alone: `curl -sf` already fails on any status that is
+    # not a success, and the body is now the issuer rather than the code.
+    that: identity_ready.rc == 0
     fail_msg: >-
       The identity provider is not serving its discovery document after five
       minutes. The deployment is otherwise fine and auth.quantify.club will
@@ -656,6 +694,76 @@
 # the provider is genuinely plaintext. Every token would then carry an `iss`
 # the verifier rejects, and the symptom arrives as "login is broken" long after
 # the deploy reported success.
+- name: Install the bootstrap script
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.template:
+    src: bootstrap-identity.py.j2
+    dest: /opt/quantify/bootstrap-identity.py
+    owner: root
+    group: root
+    mode: "0750"
+  become: true
+
+# Create the application, or adopt the one already there.
+#
+# Runs on every deploy rather than only when the client id is unknown: it finds
+# the existing application by name and returns the same id, so a re-run is a
+# check that what this deployment logs in through still exists. An application
+# deleted in the console would otherwise surface as a login failure with no
+# deploy having reported anything.
+- name: Create the OIDC application, or find the one already created
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.command: /opt/quantify/bootstrap-identity.py
+  become: true
+  register: bootstrapped
+  changed_when: false
+  failed_when: bootstrapped.rc != 0
+
+- name: Record the client id for the next deploy
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.copy:
+    content: "{{ bootstrapped.stdout | trim }}\n"
+    dest: /opt/quantify/identity-client-id
+    owner: root
+    group: root
+    mode: "0640"
+  become: true
+  register: recorded_client_id
+
+# The first deploy rendered the environment before the application existed, so
+# the running container has an empty client id and cannot start a login. This
+# re-renders with the value now known and restarts, which makes the first
+# deploy converge rather than requiring a second one to finish the job.
+- name: Re-render the environment now the client id is known
+  when:
+    - quantify_identity_domain | default("") | length > 0
+    - recorded_client_id.changed
+  ansible.builtin.set_fact:
+    quantify_identity_client_id: "{{ bootstrapped.stdout | trim }}"
+
+- name: Install the environment template with the client id
+  when:
+    - quantify_identity_domain | default("") | length > 0
+    - recorded_client_id.changed
+  ansible.builtin.template:
+    src: production.env.j2
+    dest: /opt/quantify/env.template
+    owner: root
+    group: root
+    mode: "0640"
+  become: true
+
+- name: Render it and restart the application
+  when:
+    - quantify_identity_domain | default("") | length > 0
+    - recorded_client_id.changed
+  ansible.builtin.command: /opt/quantify/render-env.sh
+  become: true
+  register: rerendered
+  changed_when: "'CHANGED' in rerendered.stdout"
+  no_log: true
+  notify: Restart the application
+
 - name: Confirm the published issuer is the one the application trusts
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.assert:

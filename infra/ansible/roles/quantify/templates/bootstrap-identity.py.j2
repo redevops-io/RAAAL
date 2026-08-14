@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Create the OIDC application this deployment logs in through.
+
+Run on the host, against the provider's management API, using the service
+account token the provider wrote at first boot. It prints the client id and
+nothing else on success.
+
+**Derived, not transcribed.** The alternative is a person opening a console,
+clicking through a wizard and copying an identifier into a variables file. That
+identifier is then a value nobody can check: it looks equally plausible whether
+it names this deployment's application, a deleted one, or another instance's.
+Here the deploy asks the provider what it created and writes the answer down.
+
+**Idempotent by search, not by flag.** It looks for the project and the
+application by name before creating either, so a re-run adopts what is already
+there. A second application would be silently wrong rather than loudly wrong:
+logins would keep working, against a client whose configuration nobody edits.
+
+**A public client with PKCE, deliberately.** The alternative is a confidential
+client, which has a secret, which then has to be stored, rotated and injected —
+a third secret to protect for no gain, because the authorization code is
+already bound to the request that started it by the code challenge.
+"""
+from __future__ import annotations
+
+import json
+import sys
+import urllib.error
+import urllib.request
+
+ISSUER = "https://{{ quantify_identity_domain }}"
+APPLICATION = "https://{{ quantify_domain }}"
+PROJECT_NAME = "Quantify"
+APPLICATION_NAME = "Quantify Workspace"
+TOKEN_PATH = "/opt/quantify/machinekey/pat.txt"
+
+#: Where the provider sends the browser back to. Registered exactly: an
+#: authorization server matches redirect URIs by string equality, and a
+#: mismatch fails at the provider with an error the application never sees.
+REDIRECT_URIS = [f"{APPLICATION}/auth/callback"]
+LOGOUT_URIS = [f"{APPLICATION}/"]
+
+
+def call(path: str, token: str, body: dict | None = None) -> dict:
+    request = urllib.request.Request(
+        f"{ISSUER}{path}",
+        data=None if body is None else json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {token}",
+                 "Content-Type": "application/json"},
+        method="GET" if body is None else "POST")
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return json.loads(response.read() or b"{}")
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode(errors="replace")[:500]
+        raise SystemExit(
+            f"The provider refused {path}: {error.code} {detail}\n"
+            "A 401 here means the service-account token is not valid for this "
+            "instance — it is written once, when the instance is first "
+            "created, so a token from an earlier database will not work.")
+
+
+def token() -> str:
+    try:
+        with open(TOKEN_PATH, encoding="utf-8") as handle:
+            found = handle.read().strip()
+    except FileNotFoundError:
+        raise SystemExit(
+            f"{TOKEN_PATH} does not exist. The provider writes it when it "
+            "creates the first instance, so an instance that predates this "
+            "configuration has none. Recreating the provider database is how "
+            "to get one, and is safe while it holds no accounts.")
+    if not found:
+        raise SystemExit(f"{TOKEN_PATH} is empty.")
+    return found
+
+
+def project(pat: str) -> str:
+    """The project id, found or created."""
+    found = call("/management/v1/projects/_search", pat,
+                 {"queries": [{"nameQuery": {"name": PROJECT_NAME,
+                                             "method": "TEXT_QUERY_METHOD_EQUALS"}}]})
+    for existing in found.get("result") or []:
+        return existing["id"]
+    return call("/management/v1/projects", pat, {"name": PROJECT_NAME})["id"]
+
+
+def application(pat: str, project_id: str) -> str:
+    """The client id, found or created."""
+    found = call(f"/management/v1/projects/{project_id}/apps/_search", pat,
+                 {"queries": [{"nameQuery": {"name": APPLICATION_NAME,
+                                             "method": "TEXT_QUERY_METHOD_EQUALS"}}]})
+    for existing in found.get("result") or []:
+        config = existing.get("oidcConfig") or {}
+        if config.get("clientId"):
+            return config["clientId"]
+
+    created = call(
+        f"/management/v1/projects/{project_id}/apps/oidc", pat,
+        {
+            "name": APPLICATION_NAME,
+            "redirectUris": REDIRECT_URIS,
+            "postLogoutRedirectUris": LOGOUT_URIS,
+            "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
+            "grantTypes": ["OIDC_GRANT_TYPE_AUTHORIZATION_CODE",
+                           "OIDC_GRANT_TYPE_REFRESH_TOKEN"],
+            "appType": "OIDC_APP_TYPE_WEB",
+            # No client secret. See the module docstring.
+            "authMethodType": "OIDC_AUTH_METHOD_TYPE_NONE",
+            # Off. With it on, the provider accepts any redirect URI, which
+            # turns the registration above into decoration.
+            "devMode": False,
+            "accessTokenType": "OIDC_TOKEN_TYPE_JWT",
+            "idTokenUserinfoAssertion": True,
+        })
+    client_id = created.get("clientId")
+    if not client_id:
+        raise SystemExit(
+            "The provider created the application but returned no client id: "
+            + json.dumps(created)[:500])
+    return client_id
+
+
+def main() -> int:
+    pat = token()
+    sys.stdout.write(application(pat, project(pat)) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

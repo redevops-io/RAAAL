@@ -54,6 +54,17 @@ if [ "$masterkey_length" -ne 32 ]; then
   echo "    --secret-string \"{\\\"masterkey\\\":\\\"$(openssl rand -base64 24 | cut -c1-32)\\\"}\"" >&2
   exit 1
 fi
+ADMIN_SECRET="$(secret '{{ quantify_secret_identity_admin }}')"
+QUANTIFY_IDENTITY_ADMIN_PASSWORD="$(printf '%s' "$ADMIN_SECRET" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("password",""))')"
+
+if [ -z "$QUANTIFY_IDENTITY_ADMIN_PASSWORD" ]; then
+  echo "The identity admin password secret is empty." >&2
+  echo "Terraform generates this one, so an empty value means the secret was" >&2
+  echo "created outside it or its version was overwritten by hand. Without a" >&2
+  echo "password here the provider falls back to its own default, which is" >&2
+  echo "published in its documentation and would be facing the internet." >&2
+  exit 1
+fi
 {% endif %}
 
 {% if quantify_parser_mode == "MODEL_ASSISTED" %}
@@ -110,6 +121,7 @@ fi
 # line that uses it when identity is configured.
 export QUANTIFY_DB_PASSWORD QUANTIFY_MODEL_KEY QUANTIFY_IDENTITY_MASTERKEY
 export QUANTIFY_BASIC_AUTH_USER QUANTIFY_BASIC_AUTH_HASH
+export QUANTIFY_IDENTITY_ADMIN_PASSWORD
 
 CHANGED=0
 
@@ -130,7 +142,7 @@ render() {
   CHANGED=1
 }
 
-render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY} ${QUANTIFY_IDENTITY_MASTERKEY}'
+render "$TEMPLATE" "$TARGET" 0600 '${QUANTIFY_DB_PASSWORD} ${QUANTIFY_MODEL_KEY} ${QUANTIFY_IDENTITY_MASTERKEY} ${QUANTIFY_IDENTITY_ADMIN_PASSWORD}'
 render "$CADDY_TEMPLATE" "$CADDY_TARGET" 0644 '${QUANTIFY_BASIC_AUTH_USER} ${QUANTIFY_BASIC_AUTH_HASH}'
 
 # The tunnel token, written directly rather than through a template: it is one

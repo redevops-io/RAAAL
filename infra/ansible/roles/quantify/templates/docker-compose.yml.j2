@@ -63,6 +63,12 @@ services:
       start-from-init --masterkeyFromEnv --tlsMode external
     env_file: [/opt/quantify/.env]
     expose: ["8080"]
+    volumes:
+      # A bind mount rather than a named volume: the provider writes its
+      # service-account token here on first boot, and the deploy has to read it
+      # to create the application. A named volume would put it somewhere only
+      # another container can reach.
+      - /opt/quantify/machinekey:/machinekey
     logging:
       driver: awslogs
       options:
