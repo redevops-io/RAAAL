@@ -83,10 +83,11 @@ LIBRARY: Tuple[Group, ...] = (
         note='Contributions, on a calendar or on a market condition.',
         entries=(
             Entry('scheduled-funding', 'Contribute a fixed amount on a schedule',
-                  'invest $500 monthly into VTI',
+                  'I invest $500 into VTI every month, on the same day each '
+                  'month.',
                   family='scheduled_funding', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging'),
             Entry('event-triggered-funding', 'Buy when the market hits a condition',
-                  'buy VOO when SPY falls below its 200-day moving average',
+                  'I buy VOO when SPY falls below its 200-day moving average.',
                   family='event_triggered_funding', source='https://www.investopedia.com/terms/m/movingaverage.asp'),
         ),
     ),
@@ -96,19 +97,20 @@ LIBRARY: Tuple[Group, ...] = (
         note='What the money buys, in what proportions, and whether that is restored over time.',
         entries=(
             Entry('stated-weights', 'Hold a stated split, such as 60/40',
-                  'a 60/40 portfolio',
+                  'I hold a 60/40 portfolio: 60% stocks and 40% bonds.',
                   family='stated_weights', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation'),
             Entry('rebalancing', 'Rebalance back to the target weights',
-                  'rebalance back to 60/40 every year',
+                  'I hold 60/40 and rebalance back to those weights once a year.',
                   family='rebalancing', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing'),
             Entry('risk-based-allocation', 'Allocate by risk rather than by dollars',
-                  'allocate by inverse volatility',
+                  'I allocate across my holdings by inverse volatility rather '
+                  'than by dollars.',
                   family='risk_based_allocation', source='https://www.investopedia.com/terms/r/risk-parity.asp'),
             Entry('factor-tilt', 'Tilt toward a factor',
-                  'tilt 20% toward small cap value',
+                  'I tilt 20% of my portfolio toward small cap value.',
                   family='factor_tilt', source='https://www.investopedia.com/terms/s/smallcap.asp'),
             Entry('glidepath', 'Shift from stocks to bonds as you age',
-                  'shift 1% from stocks to bonds every year as I get older',
+                  'I shift 1% from stocks to bonds every year as I get older.',
                   family='glidepath', source='https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf'),
         ),
     ),
@@ -118,20 +120,21 @@ LIBRARY: Tuple[Group, ...] = (
         note='Withdrawals, income and the order accounts are drawn down in.',
         entries=(
             Entry('safe-withdrawal-rate', 'Withdraw a fixed percentage each year',
-                  'withdraw 4% of the portfolio each year, adjusted for '
-                  'inflation',
+                  'I withdraw 4% of the portfolio each year, adjusted for '
+                  'inflation.',
                   family='safe_withdrawal_rate', source='https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement'),
             Entry('withdrawal-ordering', 'Draw accounts down in a chosen order',
-                  'spend the taxable account first, then the IRA, then the Roth',
+                  'I spend the taxable account first, then the IRA, then the '
+                  'Roth.',
                   family='withdrawal_ordering', source='https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement'),
             Entry('required-minimum-distribution', 'Take required minimum distributions',
-                  'take the required minimum distribution starting at 73',
+                  'I take the required minimum distribution starting at 73.',
                   family='required_minimum_distribution', source='https://www.irs.gov/retirement-plans/retirement-plan-and-ira-required-minimum-distributions-faqs'),
             Entry('annuitisation', 'Annuitise part of the portfolio',
-                  'annuitize a third of the portfolio at 70',
+                  'I annuitize a third of the portfolio at 70.',
                   family='annuitisation', source='https://gainbridge.com/post/decumulation-strategy'),
             Entry('dividend-income', 'Live off the dividends',
-                  'live off the dividends and never touch the principal',
+                  'I live off the dividends and never touch the principal.',
                   family='dividend_income', source='https://www.investopedia.com/terms/d/dividend.asp'),
         ),
     ),
@@ -141,16 +144,16 @@ LIBRARY: Tuple[Group, ...] = (
         note='Where holdings sit, and moves whose whole effect is a tax one.',
         entries=(
             Entry('asset-location', 'Put particular holdings in particular accounts',
-                  'hold the bonds in the IRA and the stocks in the taxable '
-                  'account',
+                  'I hold the bonds in the IRA and the stocks in the taxable '
+                  'account.',
                   family='asset_location', source='https://www.tencap.com/blog/6-asset-location-strategies-place-investments/'),
             Entry('roth-conversion', 'Convert between account types',
-                  'convert $30,000 from the traditional IRA to the Roth each '
-                  'year',
+                  'I convert $30,000 from the traditional IRA to the Roth each '
+                  'year.',
                   family='roth_conversion', source='https://www.themoneypocket.com/articles/roth-conversion-ladder-strategy-retirement-tax-planning'),
             Entry('tax-loss-harvesting', 'Harvest losses',
-                  'harvest losses whenever a position falls 10% below its cost '
-                  'basis',
+                  'I harvest losses whenever a position falls 10% below its cost '
+                  'basis.',
                   family='tax_loss_harvesting', source='https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN'),
         ),
     ),
@@ -160,20 +163,20 @@ LIBRARY: Tuple[Group, ...] = (
         note='Positions this engine values differently, or does not value at all.',
         entries=(
             Entry('cash-reserve', 'Keep a cash reserve before investing',
-                  'keep six months of expenses in cash before investing '
-                  'anything',
+                  'I keep six months of expenses in cash before investing '
+                  'anything.',
                   family='cash_reserve', source='https://www.investor.gov/introduction-investing/getting-started/emergency-fund'),
             Entry('bucket-strategy', 'Split into near-term and long-term buckets',
-                  'keep three years of expenses in cash and the rest in stocks',
+                  'I keep three years of expenses in cash and the rest in stocks.',
                   family='bucket_strategy', source='https://blincoe.uk/the-blincoe-blog/retirement-income-bucketing-strategy'),
             Entry('leverage', 'Use leverage on part of the portfolio',
-                  'hold 2x leverage on the equity sleeve',
+                  'I hold 2x leverage on the equity sleeve of my portfolio.',
                   family='leverage', source='https://www.investopedia.com/terms/l/leverage.asp'),
             Entry('option-income', 'Sell options for income',
-                  'sell covered calls one strike out of the money each month',
+                  'I sell covered calls one strike out of the money each month.',
                   family='option_income', source='https://www.investopedia.com/terms/c/coveredcall.asp'),
             Entry('non-market-alternative', 'Compare against paying down a debt',
-                  'pay off the mortgage instead of investing',
+                  'I pay off the mortgage instead of investing.',
                   family='non_market_alternative', source='https://www.investopedia.com/articles/pf/07/mortgage_investment.asp'),
         ),
     ),

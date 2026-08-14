@@ -206,7 +206,24 @@ class TestTheCompilerBaseline:
     #: family it was covering now reduces silently on the legacy path. Recorded
     #: rather than papered over: the number is the point of this baseline, and
     #: docs/Benchmark-Queue.md carries the gap.
-    SILENTLY_REDUCED = 10
+    #:
+    #: 10 -> 14 because the corpus grew, not because the reader moved. The
+    #: catalogue's twenty offered sentences were rewritten from fragments into
+    #: whole statements — "a 60/40 portfolio" became "I hold a 60/40 portfolio:
+    #: 60% stocks and 40% bonds" — and the sentence a person actually submits
+    #: is now recorded alongside the terser sampled phrasing it came from.
+    #:
+    #: Four of those twenty reduce silently on the legacy path. That is the
+    #: same behaviour the terse phrasings already had; there are simply four
+    #: more sentences in the corpus exhibiting it, and each is a duplicate in
+    #: kind of a gap this baseline was already counting.
+    #:
+    #: What would have been alarming is the *runtime* numbers moving, and they
+    #: did not: under the reader this deployment serves the catalogue resolves
+    #: exactly as before — two run, seventeen ask one question, one refuses by
+    #: name. The legacy compiler is a different witness and is expected to be
+    #: worse; that gap is what the runtime exists to close.
+    SILENTLY_REDUCED = 14
 
     def test_the_legacy_reader_still_reduces_this_many(self, compiler):
         assert compiler["by_state"].get("SILENTLY_REDUCED", 0) == \
