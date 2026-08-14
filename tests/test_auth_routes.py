@@ -181,3 +181,74 @@ class TestSigningInIsReachableFromAPage:
         assert "someone@example.test" in page
         assert "/auth/logout" in page
         assert "/auth/login" not in page
+
+
+class TestTheWorkspaceRequiresASession:
+    """The change that makes signing in mean something.
+
+    Before this, `/auth/login` existed, worked, and governed nothing: the
+    workspace was guarded by a shared basic-auth password at the proxy, and a
+    signed-in visitor saw exactly what a visitor with the password saw. The
+    login was decoration, which is indistinguishable from no login at all —
+    and was reported as exactly that.
+    """
+
+    @pytest.fixture
+    def client(self):
+        from src.api import app
+
+        return TestClient(app, follow_redirects=False)
+
+    def test_a_visitor_without_a_session_is_sent_to_sign_in(self, client,
+                                                            monkeypatch):
+        configure(monkeypatch, issuer="https://auth.example.test",
+                  audience="client-1", client_id="client-1")
+        response = client.get("/workspace/")
+        assert response.status_code == 303
+        assert response.headers["location"].startswith("/auth/login?next=")
+
+    def test_the_page_they_asked_for_is_carried_through(self, client,
+                                                        monkeypatch):
+        """Landing at the front door after signing in loses the thing they
+        were trying to reach."""
+        configure(monkeypatch, issuer="https://auth.example.test",
+                  audience="client-1", client_id="client-1")
+        response = client.get("/workspace/new")
+        assert "next=/workspace/new" in response.headers["location"]
+
+    def test_signing_in_is_not_itself_behind_the_gate(self, client,
+                                                      monkeypatch):
+        """A login that required a login could not be started."""
+        configure(monkeypatch, issuer="https://auth.example.test",
+                  audience="client-1", client_id="client-1")
+        assert client.get("/auth/login").status_code in (303, 502, 503)
+
+    def test_the_public_surfaces_stay_public(self, client, monkeypatch):
+        """The research library and the dashboard are published on purpose;
+        putting them behind accounts would be a different product."""
+        configure(monkeypatch, issuer="https://auth.example.test",
+                  audience="client-1", client_id="client-1")
+        for path in ("/health/live", "/info"):
+            assert client.get(path).status_code == 200, path
+
+    def test_a_deployment_without_accounts_is_not_locked_out(self, client,
+                                                             monkeypatch):
+        """The configuration the pilot ran under for months. With no issuer
+        there is nothing to sign in to, so requiring a session would refuse
+        everybody — the proxy's shared password is the guard there, and this
+        middleware must stand aside."""
+        configure(monkeypatch)
+        response = client.get("/workspace/")
+        assert response.status_code != 303 or "auth/login" not in \
+            response.headers.get("location", "")
+
+    def test_a_verified_viewer_is_let_through(self, client, monkeypatch):
+        from src.deploy.identity import Identity
+
+        configure(monkeypatch, issuer="https://auth.example.test",
+                  audience="client-1", client_id="client-1")
+        monkeypatch.setattr("src.workspace.auth_routes.signed_in",
+                            lambda request: Identity(subject="user-1"))
+        response = client.get("/workspace/")
+        assert response.status_code != 303 or "auth/login" not in \
+            response.headers.get("location", "")

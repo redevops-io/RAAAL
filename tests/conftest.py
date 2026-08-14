@@ -240,6 +240,35 @@ def _no_inherited_deployment():
         unbind()
 
 
+#: Identity configuration that must not arrive from the machine running the
+#: tests.
+IDENTITY_VARIABLES = ("OIDC_ISSUER", "OIDC_AUDIENCE", "OIDC_CLIENT_ID",
+                      "OIDC_INTERNAL_BASE_URL", "PUBLIC_BASE_URL")
+
+
+@pytest.fixture(autouse=True)
+def _no_ambient_identity(monkeypatch):
+    """No test inherits an identity provider from the developer's shell.
+
+    `unbind` above clears the *bound* context; `current()` then resolves a new
+    one from the environment, and an environment is whatever the machine
+    happens to have. A shell holding `OIDC_ISSUER` for an unrelated project —
+    which is exactly how this was found — made the suite behave as though this
+    deployment had accounts: the workspace demanded a session, and 123 tests
+    that had nothing to do with identity failed on a redirect to a login.
+
+    Worse than the failures is the direction they could have gone. The same
+    ambient value could have made a test pass on the machine that had it and
+    fail in CI, or the reverse — a suite whose result depends on who ran it is
+    not evidence about the code.
+
+    A test that wants a provider declares one, by passing a mapping to
+    `resolve` or by patching the accessor. None of them need the environment.
+    """
+    for name in IDENTITY_VARIABLES:
+        monkeypatch.delenv(name, raising=False)
+
+
 # --- the confirmation journey, as a browser performs it ---------------------
 
 def submit_rendered_confirmation(client, description, *, title="Test plan",

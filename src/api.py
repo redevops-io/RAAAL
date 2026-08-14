@@ -367,6 +367,53 @@ from .workspace.auth_routes import router as auth_router  # noqa: E402
 app.include_router(auth_router)
 
 
+#: Paths that require a verified session where this deployment has accounts.
+#:
+#: The workspace and everything under it, which is the whole private surface.
+#: `/auth/*` is deliberately outside — a login that required a login could not
+#: be started — and so are `/ui`, `/research` and the health endpoints, which
+#: are published on purpose.
+PRIVATE_PREFIXES = ("/workspace",)
+
+
+@app.middleware("http")
+async def require_a_signed_in_viewer(request, call_next):
+    """The workspace, for whoever proved who they are.
+
+    This replaces the shared basic-auth credential that guarded these paths
+    from the proxy. That credential was a door, not an identity: everybody
+    holding it was the same person as far as the application was concerned, so
+    a plan could not belong to anybody in particular.
+
+    Only where accounts exist. A deployment that declares no issuer keeps the
+    proxy's password — it is not identity, but it is the difference between a
+    private workspace and a public one, and removing it there would publish
+    every plan.
+
+    Redirects rather than refusing, because somebody arriving at a private page
+    without a session has not done anything wrong; they are not signed in yet.
+    The path they asked for is carried in `next` so they land where they meant
+    to rather than at the front door.
+    """
+    path = request.url.path
+    if any(path.startswith(prefix) for prefix in PRIVATE_PREFIXES):
+        from .workspace.auth_routes import _target, signed_in
+
+        target = _target()
+        if target.configured and signed_in(request) is None:
+            import urllib.parse
+
+            from fastapi.responses import RedirectResponse
+
+            destination = urllib.parse.quote(
+                request.url.path
+                + (f"?{request.url.query}" if request.url.query else ""),
+                safe="/?=&")
+            return RedirectResponse(f"/auth/login?next={destination}",
+                                    status_code=303)
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def _note_the_viewer(request, call_next):
     """Establish who is looking, once, for the page header.

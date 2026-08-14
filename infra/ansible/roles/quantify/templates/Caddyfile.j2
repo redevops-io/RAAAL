@@ -61,12 +61,30 @@ http://{{ quantify_identity_domain }} {
 	redir / /workspace/ 302
 
 	handle /workspace/* {
+{% if quantify_identity_domain | default("") | length > 0 %}
+		# No basic auth here: this deployment has accounts, and the
+		# application requires a verified session on these paths. Keeping
+		# both would be a login page behind a shared password — a door in
+		# front of a door, whose credential is the one accounts exist to
+		# replace. Everybody who holds it is the same person, which is
+		# precisely what a signed-in workspace stops being true.
+		#
+		# The guard moved rather than disappeared. It is now
+		# `require_a_signed_in_viewer` in `src/api.py`, which redirects to
+		# /auth/login instead of prompting for a password — and unlike this
+		# block, it knows *who* arrived.
+{% else %}
 		# Expanded on the host by render-env.sh. A bcrypt hash is not a
 		# plaintext password, but it is offline-crackable, so it travels the
 		# same path as the secrets rather than through the controller.
+		#
+		# The configuration with no identity provider, which the pilot ran
+		# under for months. One shared credential is not identity, but it is
+		# the difference between a private workspace and a public one.
 		basic_auth {
 			${QUANTIFY_BASIC_AUTH_USER} ${QUANTIFY_BASIC_AUTH_HASH}
 		}
+{% endif %}
 		reverse_proxy api:8000
 	}
 
