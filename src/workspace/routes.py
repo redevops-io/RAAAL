@@ -10,6 +10,7 @@ plan may cite public artifacts while nothing public may cite a plan.
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
 from dataclasses import replace as dataclasses_replace
 import json
 from pathlib import Path
@@ -94,6 +95,17 @@ router = APIRouter(prefix="/workspace", tags=["workspace"])
 #: missing from will be the one someone reads a figure on.
 TEMPLATES.env.globals["data_notice"] = lambda: _data_notice()
 
+#: Whether this deployment has accounts, and who is looking.
+#:
+#: A global rather than a value each handler passes: the header is rendered by
+#: every page, and a context key eleven call sites must remember is one the
+#: twelfth will omit — which is how the sign-in link came to exist in the
+#: routing table and on no page.
+#:
+#: Reads no request here. `viewer` is filled by the middleware below, which is
+#: the only place a request is in scope.
+TEMPLATES.env.globals["identity_state"] = lambda: _identity_state()
+
 #: The AGPL §13 offer, for the same reason and by the same mechanism. It is a
 #: global rather than a template literal because the offer must name the
 #: revision serving the person reading it, and `base.html` had the repository
@@ -122,6 +134,28 @@ BENCHMARK_RULE = "benchmark-policy/public-default@1"
 #: series and reasonably taking it for historical analysis. The synthetic
 #: fixture is deliberately shaped like market data so the evaluation stack has
 #: something realistic to run on, which is exactly why the disclosure is needed.
+#: The request being rendered, for the header alone.
+#:
+#: Jinja globals take no request, and threading one through every render call
+#: is the change this indirection avoids — the alternative is editing eleven
+#: handlers to pass a value only the layout reads.
+_LOOKING = ContextVar("quantify_viewer", default=None)
+
+
+def _identity_state():
+    """What the header needs: whether login exists, and who is signed in."""
+    # Through the routes' own accessor rather than reading the context again.
+    # Two places deciding whether this deployment has accounts is two places
+    # that can disagree, and the disagreement would show as a header offering a
+    # login the routes then refuse.
+    from .auth_routes import _target
+
+    target = _target()
+    who = _LOOKING.get()
+    return {"configured": target.configured,
+            "viewer": (who.email or who.name or who.subject) if who else ""}
+
+
 def _data_notice():
     """What to say about the data behind a figure, read from the snapshot.
 

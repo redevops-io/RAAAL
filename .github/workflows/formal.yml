@@ -9,14 +9,22 @@ name: Formal verification
 # point of the lane: a conservation theorem that stopped compiling and nobody
 # noticed would leave the claim standing in the documentation.
 
+# Automatic runs are off.
+#
+# These lanes were failing on every push and nothing depended on them: the AWS
+# deployment is `workflow_dispatch` only and has never run from a commit, so
+# none of this was building, deploying or gating what quantify.club serves.
+# Failing checks that block nothing teach people to ignore checks.
+#
+# Kept runnable rather than deleted. Each is a real piece of evidence — the
+# corpus guard, the drift lane, the Lean build — and the way back is to restore
+# the triggers below, not to write them again.
+#
+#   push:
+#     paths: ['formal/**', '.github/workflows/formal.yml']
+#   pull_request:
+#     paths: ['formal/**']
 on:
-  push:
-    paths:
-      - 'formal/**'
-      - '.github/workflows/formal.yml'
-  pull_request:
-    paths:
-      - 'formal/**'
   workflow_dispatch:
 
 # Least privilege, declared rather than inherited. The repository default is

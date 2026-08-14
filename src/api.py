@@ -366,6 +366,34 @@ from .workspace.auth_routes import router as auth_router  # noqa: E402
 
 app.include_router(auth_router)
 
+
+@app.middleware("http")
+async def _note_the_viewer(request, call_next):
+    """Establish who is looking, once, for the page header.
+
+    Middleware rather than a dependency on every handler: the header is
+    rendered by every page, and the sign-in link spent a week existing in the
+    routing table while no page displayed it — a per-handler value is one the
+    next handler forgets.
+
+    Never raises and never refuses. This only decides which link the header
+    shows; the workspace is still guarded by the proxy, and every page that
+    reads a token verifies it there. A cookie that cannot be verified simply
+    means nobody is signed in.
+    """
+    from .workspace.routes import _LOOKING
+
+    try:
+        from .workspace.auth_routes import signed_in
+
+        token = _LOOKING.set(signed_in(request))
+    except Exception:  # noqa: BLE001 - a header must not be able to fail a page
+        token = _LOOKING.set(None)
+    try:
+        return await call_next(request)
+    finally:
+        _LOOKING.reset(token)
+
 # A pilot participant reaching the legacy workspace is the strongest negative
 # signal the study can collect, and the only one no counter would otherwise
 # show: `plan_compiled` staying flat looks the same whether people tried the

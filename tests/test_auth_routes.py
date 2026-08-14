@@ -132,3 +132,52 @@ class TestSigningOut:
         # An expiry in the past is how a cookie is deleted; the header has to
         # carry it, or the browser keeps the session.
         assert SESSION_COOKIE in response.headers.get("set-cookie", "")
+
+
+class TestSigningInIsReachableFromAPage:
+    """A route nobody links to is a feature nobody has.
+
+    `/auth/login` existed, was tested, and was deployed — and no page mentioned
+    it. From a browser the deployment looked exactly like one with no login at
+    all, which is what it was reported as. The flow was never the defect;
+    reachability was.
+    """
+
+    def rendered(self, monkeypatch, **fields):
+        from src.workspace.routes import TEMPLATES, _identity_state
+
+        configure(monkeypatch, **fields)
+        monkeypatch.setitem(TEMPLATES.env.globals, "identity_state",
+                            lambda: _identity_state())
+        return TEMPLATES.env.get_template("base.html").render(
+            data_notice=lambda: None)
+
+    def test_a_deployment_with_a_provider_offers_a_link(self, monkeypatch):
+        page = self.rendered(monkeypatch, issuer="https://auth.example.test",
+                             audience="client-1", client_id="client-1")
+        assert "/auth/login" in page
+        assert "Sign in" in page
+
+    def test_a_deployment_without_one_offers_nothing(self, monkeypatch):
+        """The pilot's own configuration. A sign-in link on a build with no
+        provider is a door onto a wall."""
+        page = self.rendered(monkeypatch)
+        assert "/auth/login" not in page
+
+    def test_a_signed_in_viewer_is_named_and_offered_the_way_out(
+            self, monkeypatch):
+        from src.deploy.identity import Identity
+        from src.workspace.routes import _LOOKING
+
+        token = _LOOKING.set(Identity(subject="user-1",
+                                      email="someone@example.test"))
+        try:
+            page = self.rendered(monkeypatch,
+                                 issuer="https://auth.example.test",
+                                 audience="client-1", client_id="client-1")
+        finally:
+            _LOOKING.reset(token)
+
+        assert "someone@example.test" in page
+        assert "/auth/logout" in page
+        assert "/auth/login" not in page

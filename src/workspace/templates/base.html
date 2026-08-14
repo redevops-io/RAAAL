@@ -9,6 +9,10 @@ header { border-bottom:1px solid var(--line); padding:14px 22px;
                  border:1px solid var(--private); color:var(--private);
                  border-radius:99px; padding:2px 9px; }
 nav a { margin-right:14px; font-size:14px; }
+nav a.sign-in, nav a.signed-in { margin-right:0; float:right; }
+nav a.sign-in { border:1px solid var(--accent); color:var(--accent);
+                border-radius:99px; padding:2px 12px; }
+nav a.signed-in { color:var(--muted); }
 .wrap { max-width:1080px; margin:0 auto; padding:26px 22px 80px; }
 h1 { font-size:26px; margin:0 0 6px; }
 h2 { font-size:18px; margin:30px 0 10px; }
@@ -67,6 +71,18 @@ button, .btn { display:inline-block; margin-top:10px; padding:9px 16px;
     <a href="/workspace/new">New plan</a>
     <a href="/ui/">Research library ↗</a>
     <a href="/research">Dashboard ↗</a>
+    {# Signing in, in the shell every page inherits.
+       The routes existed for a week and nothing linked to them, so the
+       feature was deployed and unreachable — "no login" is what a person
+       sees whether the flow is missing or merely unlinked, and only one of
+       those was true. #}
+    {% if identity_state().configured %}
+      {% if identity_state().viewer %}
+    <a href="/auth/logout" class="signed-in">{{ identity_state().viewer }} · Sign out</a>
+      {% else %}
+    <a href="/auth/login" class="sign-in">Sign in</a>
+      {% endif %}
+    {% endif %}
   </nav>
 </header>
 <div class="wrap">

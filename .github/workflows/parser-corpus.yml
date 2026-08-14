@@ -12,14 +12,23 @@ name: Parser corpus
 # are never checked against the parser is a corpus measuring a snapshot of
 # whatever the fixtures happen to say.
 
+# Automatic runs are off.
+#
+# These lanes were failing on every push and nothing depended on them: the AWS
+# deployment is `workflow_dispatch` only and has never run from a commit, so
+# none of this was building, deploying or gating what quantify.club serves.
+# Failing checks that block nothing teach people to ignore checks.
+#
+# Kept runnable rather than deleted. Each is a real piece of evidence — the
+# corpus guard, the drift lane, the Lean build — and the way back is to restore
+# the triggers below, not to write them again.
+#
+#   push:
+#     branches: [main, master]
+#   pull_request:
+#   schedule:
+#     - cron: '0 4 * * 1'   # weekly; a parser upgrade moves an attachment
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-  schedule:
-    # Weekly. A parser upgrade is the thing that moves an attachment, and that
-    # happens on release cycles rather than on commits.
-    - cron: '0 4 * * 1'
   workflow_dispatch:
 
 # Least privilege, declared rather than inherited. The repository default is
