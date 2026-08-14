@@ -33,7 +33,8 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
-from .identity import Identity, IdentityUnavailable, discovery, verify
+from .identity import (Identity, IdentityUnavailable, _headers, _internal,
+                       discovery, verify)
 
 #: The cookie carrying the verified token. Read on every request.
 SESSION_COOKIE = "quantify_session"
@@ -94,7 +95,7 @@ def _challenge(verifier: str) -> str:
 
 
 def begin(*, issuer: str, client_id: str, redirect_uri: str,
-          destination: str = "/workspace",
+          destination: str = "/workspace", internal: str = "",
           timeout: float = 10.0) -> tuple[str, Flow]:
     """Where to send the browser, and what to remember while it is away."""
     if not issuer or not client_id:
@@ -116,13 +117,19 @@ def begin(*, issuer: str, client_id: str, redirect_uri: str,
         "code_challenge": _challenge(flow.verifier),
         "code_challenge_method": "S256",
     })
-    endpoint = discovery(issuer, timeout=timeout)["authorization_endpoint"]
+    # Read through the internal route, used as published. This URL is where a
+    # *browser* is sent, so it must be the public one — internalising it would
+    # send somebody's browser to a hostname only this network can resolve.
+    endpoint = discovery(issuer, internal=internal,
+                         timeout=timeout)["authorization_endpoint"]
     return f"{endpoint}?{query}", flow
 
 
 def _exchange(*, issuer: str, client_id: str, redirect_uri: str, code: str,
-              verifier: str, timeout: float) -> Mapping[str, Any]:
-    endpoint = discovery(issuer, timeout=timeout)["token_endpoint"]
+              verifier: str, internal: str = "",
+              timeout: float = 10.0) -> Mapping[str, Any]:
+    endpoint = discovery(issuer, internal=internal,
+                         timeout=timeout)["token_endpoint"]
     body = urllib.parse.urlencode({
         "grant_type": "authorization_code",
         "code": code,
@@ -130,9 +137,13 @@ def _exchange(*, issuer: str, client_id: str, redirect_uri: str, code: str,
         "client_id": client_id,
         "code_verifier": verifier,
     }).encode()
+    # Unlike the authorization endpoint, nothing about this one involves a
+    # browser: the application exchanges the code itself, so this call should
+    # never leave the host.
     request = urllib.request.Request(
-        endpoint, data=body,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        _internal(endpoint, internal), data=body,
+        headers={"Content-Type": "application/x-www-form-urlencoded",
+                 **_headers(endpoint, internal)},
         method="POST")
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -152,7 +163,7 @@ def _exchange(*, issuer: str, client_id: str, redirect_uri: str, code: str,
 
 
 def complete(*, issuer: str, client_id: str, audience: str, redirect_uri: str,
-             code: str, state: str, flow: Flow,
+             code: str, state: str, flow: Flow, internal: str = "",
              timeout: float = 10.0) -> tuple[Identity, str]:
     """The verified identity and the token to keep, or `LoginFailed`.
 
@@ -166,7 +177,8 @@ def complete(*, issuer: str, client_id: str, audience: str, redirect_uri: str,
 
     granted = _exchange(issuer=issuer, client_id=client_id,
                         redirect_uri=redirect_uri, code=code,
-                        verifier=flow.verifier, timeout=timeout)
+                        verifier=flow.verifier, internal=internal,
+                        timeout=timeout)
     token = granted.get("id_token")
     if not token:
         raise LoginFailed(
@@ -177,12 +189,12 @@ def complete(*, issuer: str, client_id: str, audience: str, redirect_uri: str,
     # The same verification every later request performs. Doing it here means a
     # token that would be rejected on the next page is rejected now, while
     # there is somebody to tell.
-    return verify(token, issuer=issuer, audience=audience,
+    return verify(token, issuer=issuer, audience=audience, internal=internal,
                   timeout=timeout), token
 
 
 def viewer(token: Optional[str], *, issuer: str, audience: str,
-           timeout: float = 10.0) -> Optional[Identity]:
+           internal: str = "", timeout: float = 10.0) -> Optional[Identity]:
     """Who this request is from, or `None`.
 
     Returns `None` for every failure rather than raising, because the caller is
@@ -193,7 +205,8 @@ def viewer(token: Optional[str], *, issuer: str, audience: str,
     if not token or not issuer or not audience:
         return None
     try:
-        return verify(token, issuer=issuer, audience=audience, timeout=timeout)
+        return verify(token, issuer=issuer, audience=audience,
+                      internal=internal, timeout=timeout)
     except Exception:  # noqa: BLE001 - an unverifiable cookie is simply not a viewer
         return None
 

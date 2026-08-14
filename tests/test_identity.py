@@ -70,7 +70,7 @@ def _local_jwks(monkeypatch, keys):
 
     KEYS.clear()
     monkeypatch.setattr("src.deploy.identity.discovery",
-                        lambda issuer, timeout=10.0: {
+                        lambda issuer, internal="", timeout=10.0: {
                             "jwks_uri": f"{issuer}/keys"})
     monkeypatch.setattr("jwt.PyJWKClient", Client)
     yield

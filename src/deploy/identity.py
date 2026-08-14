@@ -28,6 +28,7 @@ from __future__ import annotations
 import threading
 import time
 import urllib.request
+from urllib.parse import urlsplit, urlunsplit
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
@@ -63,6 +64,45 @@ class IdentityUnavailable(Exception):
     """
 
 
+def _internal(url: str, internal: str) -> str:
+    """The same request, addressed to this deployment rather than the internet.
+
+    The provider is a container beside the application, behind the same proxy
+    that publishes it. Reaching it by its public name sends the request out to
+    the edge and back down a tunnel — where Cloudflare answered a management
+    call with `403 error code: 1010`, its bot rule, against a Python user
+    agent. The provider never saw it.
+
+    Only the *address* changes. The issuer stays what it is: `iss` is part of
+    every token and is verified against the public name, so rewriting that
+    would break the very check this module exists to perform.
+    """
+    if not internal:
+        return url
+    here, there = urlsplit(url), urlsplit(internal)
+    return urlunsplit((there.scheme, there.netloc, here.path, here.query, ""))
+
+
+def _headers(url: str, internal: str) -> Dict[str, str]:
+    """What the proxy needs to route an internal request like a public one."""
+    if not internal:
+        return {}
+    # Host selects the identity site; the scheme is the browser's, because TLS
+    # terminates at the edge and the provider builds its issuer from what it is
+    # told. Without it the provider advertises `http://` and no token verifies.
+    return {"Host": urlsplit(url).netloc, "X-Forwarded-Proto": "https"}
+
+
+def _read(url: str, *, internal: str = "", timeout: float = 10.0) -> Any:
+    import json
+
+    request = urllib.request.Request(_internal(url, internal))
+    for name, value in _headers(url, internal).items():
+        request.add_header(name, value)
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read())
+
+
 class _Keys:
     """The issuer's published signing keys, fetched once and reused."""
 
@@ -76,41 +116,42 @@ class _Keys:
             self._by_issuer.clear()
             self._fetched_at.clear()
 
-    def client(self, issuer: str, *, timeout: float = 10.0):
+    def client(self, issuer: str, *, internal: str = "",
+               timeout: float = 10.0):
         from jwt import PyJWKClient
 
+        key = f"{issuer}|{internal}"
         with self._lock:
-            fresh = (time.monotonic() - self._fetched_at.get(issuer, 0.0)
+            fresh = (time.monotonic() - self._fetched_at.get(key, 0.0)
                      < JWKS_TTL_SECONDS)
-            if issuer in self._by_issuer and fresh:
-                return self._by_issuer[issuer]
+            if key in self._by_issuer and fresh:
+                return self._by_issuer[key]
 
-        uri = discovery(issuer, timeout=timeout)["jwks_uri"]
-        client = PyJWKClient(uri, cache_keys=True)
+        uri = discovery(issuer, internal=internal, timeout=timeout)["jwks_uri"]
+        client = PyJWKClient(_internal(uri, internal), cache_keys=True,
+                             headers=_headers(uri, internal) or None)
         with self._lock:
-            self._by_issuer[issuer] = client
-            self._fetched_at[issuer] = time.monotonic()
+            self._by_issuer[key] = client
+            self._fetched_at[key] = time.monotonic()
         return client
 
 
 KEYS = _Keys()
 
 
-def discovery(issuer: str, *, timeout: float = 10.0) -> Mapping[str, Any]:
+def discovery(issuer: str, *, internal: str = "",
+              timeout: float = 10.0) -> Mapping[str, Any]:
     """The issuer's OIDC discovery document.
 
     Read from the issuer rather than assembled from a template. Providers do
     not agree on where their key set lives, and a URL guessed from the issuer
     is a guess that works until the day the provider moves it.
     """
-    import json
-
-    url = f"{issuer.rstrip('/')}/.well-known/openid-configuration"
-    with urllib.request.urlopen(url, timeout=timeout) as response:
-        return json.loads(response.read())
+    return _read(f"{issuer.rstrip('/')}/.well-known/openid-configuration",
+                 internal=internal, timeout=timeout)
 
 
-def verify(token: str, *, issuer: str, audience: str,
+def verify(token: str, *, issuer: str, audience: str, internal: str = "",
            timeout: float = 10.0) -> Identity:
     """The subject this token proves, or an exception naming what failed.
 
@@ -126,7 +167,8 @@ def verify(token: str, *, issuer: str, audience: str,
             "this deployment declares no OIDC issuer and audience, so it "
             "cannot establish who anybody is")
 
-    signing = KEYS.client(issuer, timeout=timeout).get_signing_key_from_jwt(token)
+    signing = KEYS.client(issuer, internal=internal,
+                          timeout=timeout).get_signing_key_from_jwt(token)
     claims = jwt.decode(
         token, signing.key, algorithms=list(ALGORITHMS),
         audience=audience, issuer=issuer,

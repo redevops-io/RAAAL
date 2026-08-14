@@ -49,7 +49,8 @@ def signed_in(request: Request) -> Optional[Identity]:
     """The verified viewer of this request, or `None`."""
     target = _target()
     return viewer(request.cookies.get(SESSION_COOKIE),
-                  issuer=target.issuer, audience=target.audience)
+                  issuer=target.issuer, audience=target.audience,
+                  internal=target.internal_base_url)
 
 
 def _refusal(message: str, *, status: int = 400) -> HTMLResponse:
@@ -78,7 +79,8 @@ def login(request: Request, next: str = "/workspace"):
     try:
         where, flow = begin(issuer=target.issuer, client_id=target.client_id,
                             redirect_uri=redirect_uri(request),
-                            destination=destination)
+                            destination=destination,
+                            internal=target.internal_base_url)
     except IdentityUnavailable as refusal:
         return _refusal(str(refusal), status=503)
     except Exception as error:  # noqa: BLE001
@@ -117,7 +119,8 @@ def callback(request: Request, code: str = "", state: str = "",
                               client_id=target.client_id,
                               audience=target.audience,
                               redirect_uri=redirect_uri(request),
-                              code=code, state=state, flow=flow)
+                              code=code, state=state, flow=flow,
+                              internal=target.internal_base_url)
     except LoginFailed as refusal:
         return _refusal(str(refusal))
     except Exception as error:  # noqa: BLE001

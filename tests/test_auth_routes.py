@@ -66,7 +66,7 @@ class TestTheLoginLinkCannotLeaveTheSite:
                   public_base_url="https://quantify.test")
         monkeypatch.setattr(
             "src.deploy.login.discovery",
-            lambda issuer, timeout=10.0: {
+            lambda issuer, internal="", timeout=10.0: {
                 "authorization_endpoint": f"{issuer}/authorize"})
 
     @pytest.mark.parametrize("destination", [

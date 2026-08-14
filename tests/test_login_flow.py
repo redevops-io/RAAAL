@@ -27,6 +27,10 @@ from src.deploy import login as flow_module
 from src.deploy.identity import KEYS, IdentityUnavailable
 from src.deploy.login import (Flow, LoginFailed, begin, complete,
                               session_cookie, viewer)
+#: Bound at import, before the fixture below replaces the module attribute with
+#: a stub. The routing tests need the real one — a stub cannot demonstrate
+#: which address it would have dialled.
+from src.deploy.login import _exchange as real_exchange
 
 ISSUER = "https://auth.example.test"
 CLIENT_ID = "123456789@quantify"
@@ -76,7 +80,8 @@ def _provider(monkeypatch, signing_key):
 
     state = {"response": lambda: {"id_token": token_for()}}
 
-    def exchange(*, issuer, client_id, redirect_uri, code, verifier, timeout):
+    def exchange(*, issuer, client_id, redirect_uri, code, verifier,
+                 internal="", timeout=10.0):
         sent.update({"issuer": issuer, "client_id": client_id,
                      "redirect_uri": redirect_uri, "code": code,
                      "verifier": verifier})
@@ -84,12 +89,12 @@ def _provider(monkeypatch, signing_key):
 
     KEYS.clear()
     monkeypatch.setattr("src.deploy.identity.discovery",
-                        lambda issuer, timeout=10.0: {
+                        lambda issuer, internal="", timeout=10.0: {
                             "jwks_uri": f"{issuer}/keys",
                             "authorization_endpoint": f"{issuer}/authorize",
                             "token_endpoint": f"{issuer}/token"})
     monkeypatch.setattr("src.deploy.login.discovery",
-                        lambda issuer, timeout=10.0: {
+                        lambda issuer, internal="", timeout=10.0: {
                             "jwks_uri": f"{issuer}/keys",
                             "authorization_endpoint": f"{issuer}/authorize",
                             "token_endpoint": f"{issuer}/token"})
@@ -257,3 +262,93 @@ class TestTheSessionCookie:
         deployment cannot check must not become a session."""
         assert viewer(_provider["token_for"](), issuer=ISSUER,
                       audience="") is None
+
+
+class TestServerSideCallsDoNotLeaveTheHost:
+    """The provider is a container beside the application.
+
+    Reaching it by its public name sends the request out to the edge and back
+    down a tunnel. Cloudflare answered exactly that with `403 error code: 1010`
+    — its bot rule, against a Python user agent — and the provider never saw
+    the request. Discovery, the key set and the code exchange are all
+    server-to-server and have no reason to make the trip.
+
+    What must *not* be rewritten is the authorization endpoint: a browser goes
+    there, and an internal hostname is one only this network can resolve.
+    """
+
+    INTERNAL = "http://proxy"
+
+    def test_a_public_url_is_readdressed_keeping_its_path(self):
+        from src.deploy.identity import _internal
+
+        assert _internal("https://auth.example.test/oauth/v2/keys",
+                         self.INTERNAL) == "http://proxy/oauth/v2/keys"
+
+    def test_the_host_header_carries_the_public_name(self):
+        """It is what selects the identity site on the proxy. Without it the
+        request lands on whatever the proxy serves by default."""
+        from src.deploy.identity import _headers
+
+        headers = _headers("https://auth.example.test/oauth/v2/keys",
+                           self.INTERNAL)
+        assert headers["Host"] == "auth.example.test"
+        assert headers["X-Forwarded-Proto"] == "https"
+
+    def test_nothing_is_rewritten_without_an_internal_route(self):
+        """The deployment that reaches its provider by name has to keep
+        working — the rewrite is an optimisation for one topology."""
+        from src.deploy.identity import _headers, _internal
+
+        url = "https://auth.example.test/oauth/v2/keys"
+        assert _internal(url, "") == url
+        assert _headers(url, "") == {}
+
+    def test_the_code_exchange_goes_to_the_internal_address(self, monkeypatch):
+        """The application exchanges the code itself; no browser is involved,
+        so this call must never leave the host."""
+        from src.deploy import login as module
+
+        asked = {}
+
+        class Response:
+            def read(self):
+                return b'{"id_token": "x"}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+        def urlopen(request, timeout=None):
+            asked["url"] = request.full_url
+            asked["host"] = request.get_header("Host")
+            return Response()
+
+        monkeypatch.setattr(module, "discovery", lambda issuer, internal="",
+                            timeout=10.0: {
+                                "token_endpoint": f"{issuer}/oauth/v2/token"})
+        monkeypatch.setattr(module.urllib.request, "urlopen", urlopen)
+
+        real_exchange(issuer=ISSUER, client_id=CLIENT_ID,
+                      redirect_uri=REDIRECT, code="c", verifier="v",
+                      internal=self.INTERNAL)
+
+        assert asked["url"] == "http://proxy/oauth/v2/token"
+        assert asked["host"] == "auth.example.test"
+
+    def test_the_browser_is_still_sent_to_the_public_endpoint(self, monkeypatch):
+        """The one URL that must not be internalised."""
+        from src.deploy import login as module
+
+        monkeypatch.setattr(
+            module, "discovery",
+            lambda issuer, internal="", timeout=10.0: {
+                "authorization_endpoint": f"{issuer}/oauth/v2/authorize"})
+
+        where, _ = module.begin(issuer=ISSUER, client_id=CLIENT_ID,
+                                redirect_uri=REDIRECT,
+                                internal=self.INTERNAL)
+        assert where.startswith("https://auth.example.test/oauth/v2/authorize?")
+        assert "proxy" not in where
