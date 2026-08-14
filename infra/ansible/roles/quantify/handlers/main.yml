@@ -13,8 +13,20 @@
   # back. For a pilot that is cheaper than a configuration change that quietly
   # does not apply — including a rotated credential, which would look applied
   # and would not be.
+  # Named services, not everything.
+  #
+  # A bare force-recreate also restarts the identity provider, and doing that
+  # while it is creating its first instance kills the step in flight. Zitadel
+  # marks a migration as started before running it and has no timeout on the
+  # marker, so an interrupted `03_default_instance` waits forever for an
+  # instance that will never appear: "migration already started, will check
+  # again in 5 seconds", every five seconds, with the port open and nothing
+  # listening. Twice now that has cost a database recreate.
+  #
+  # The provider is restarted by its own task instead, once per deploy, with
+  # the wait immediately after — so a deploy cannot interrupt its own setup.
   ansible.builtin.command:
-    cmd: docker compose up -d --remove-orphans --force-recreate
+    cmd: docker compose up -d --remove-orphans --force-recreate api proxy tunnel
     chdir: /opt/quantify
   become: true
   changed_when: true

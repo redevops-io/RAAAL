@@ -246,6 +246,7 @@
     group: root
     mode: "0644"
   become: true
+  register: compose_installed
   notify: Restart the application
 
 # --- image -----------------------------------------------------------------
@@ -616,6 +617,25 @@
 #
 # Its own database migrations run on first boot and take a couple of minutes,
 # so this waits rather than checking once.
+# The provider, restarted on its own and only when its configuration moved.
+#
+# Separate from the handler because the two have opposite requirements: the
+# application should be recreated on every deploy that changes anything, and
+# the provider should be recreated as rarely as possible. Restarting it during
+# first-instance creation wedges it permanently — see the handler — and the
+# only recovery is recreating its database.
+#
+# Immediately before the wait below, so one deploy performs at most one restart
+# and then blocks until the provider answers.
+- name: Restart the identity provider if its configuration changed
+  when:
+    - quantify_identity_domain | default("") | length > 0
+    - rendered.changed or compose_installed.changed | default(false)
+  ansible.builtin.command:
+    cmd: docker compose up -d --force-recreate identity
+    chdir: /opt/quantify
+  become: true
+
 # Asked through the proxy, from the host, on the route a browser takes.
 #
 # The first version of this ran `docker compose exec identity curl`. The image
