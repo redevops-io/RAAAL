@@ -512,8 +512,10 @@ def every_event() -> Sequence[Mapping[str, Any]]:
             "FROM pilot_events ORDER BY at").fetchall()
     finally:
         connection.close()
-    return [{"event_id": r[0], "at": r[1], "kind": r[2], "plan_id": r[3],
-             "participant": r[4] or "", **json.loads(r[5])} for r in rows]
+    return [{"event_id": r["event_id"], "at": r["at"], "kind": r["kind"],
+             "plan_id": r["plan_id"],
+             "participant": r["participant"] or "",
+             **json.loads(r["detail"])} for r in rows]
 
 
 def attempts_by(participant: str) -> int:
@@ -533,10 +535,10 @@ def attempts_by(participant: str) -> int:
         return 0
     try:
         row = connection.execute(
-            "SELECT COUNT(*) FROM pilot_events "
+            "SELECT COUNT(*) AS how_many FROM pilot_events "
             "WHERE participant = ? AND kind = ?",
             (participant, PLAN_COMPILED)).fetchone()
-        return int(row[0]) if row else 0
+        return int(row["how_many"]) if row else 0
     except Exception:                                          # noqa: BLE001
         return 0
     finally:

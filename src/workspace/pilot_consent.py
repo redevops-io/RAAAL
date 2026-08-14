@@ -142,7 +142,8 @@ def record_of(participant: str) -> Optional[Mapping[str, str]]:
         connection.close()
     if row is None:
         return None
-    return {"state": row[0], "at": row[1], "notice_version": row[2]}
+    return {"state": row["state"], "at": row["at"],
+            "notice_version": row["notice_version"]}
 
 
 def state_of(participant: str) -> str:

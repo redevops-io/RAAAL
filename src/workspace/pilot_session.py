@@ -173,7 +173,7 @@ def last_prompt(participant: str) -> str:
         row = connection.execute(
             "SELECT text FROM pilot_transcripts WHERE participant = ? "
             "ORDER BY at DESC LIMIT 1", (participant,)).fetchone()
-        return str(row[0]) if row else ""
+        return str(row["text"]) if row else ""
     except Exception:                                          # noqa: BLE001
         return ""
     finally:
@@ -235,8 +235,8 @@ def transcript(participant: str) -> Sequence[Mapping[str, Any]]:
             "WHERE participant = ? ORDER BY attempt", (participant,)).fetchall()
     finally:
         connection.close()
-    return [{"at": r[0], "attempt": r[1], "text": r[2], **json.loads(r[3])}
-            for r in rows]
+    return [{"at": r["at"], "attempt": r["attempt"], "text": r["text"],
+             **json.loads(r["detail"])} for r in rows]
 
 
 def every_participant() -> Sequence[str]:
@@ -246,7 +246,7 @@ def every_participant() -> Sequence[str]:
             "SELECT DISTINCT participant FROM pilot_transcripts").fetchall()
     finally:
         connection.close()
-    return [r[0] for r in rows]
+    return [r["participant"] for r in rows]
 
 
 def expire(now=None) -> int:

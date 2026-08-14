@@ -141,7 +141,7 @@ def load(plan_id: str) -> Optional[Mapping[str, Any]]:
             (plan_id, PILOT_OWNER)).fetchone()
     finally:
         connection.close()
-    return None if row is None else json.loads(row[0])
+    return None if row is None else json.loads(row["artifact"])
 
 
 def every_plan() -> list:
@@ -154,5 +154,5 @@ def every_plan() -> list:
             "ORDER BY created_at").fetchall()
     finally:
         connection.close()
-    return [{"plan_id": r[0], "created_at": r[1], **json.loads(r[2])}
-            for r in rows]
+    return [{"plan_id": r["plan_id"], "created_at": r["created_at"],
+             **json.loads(r["artifact"])} for r in rows]
