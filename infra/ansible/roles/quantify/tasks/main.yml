@@ -640,15 +640,25 @@
   changed_when: identity_init.rc == 0
   failed_when: false
 
+# `setup` and not `setup --init-projections`: that flag is documented as beta,
+# and this sequence has cost enough without one. `start` builds the projections
+# it needs; the wait below is what covers the extra time.
 - name: Create the first instance
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.command:
-    cmd: docker compose run --rm -T identity setup --masterkeyFromEnv --init-projections=true
+    cmd: docker compose run --rm -T identity setup --masterkeyFromEnv
     chdir: /opt/quantify
   become: true
   register: identity_setup
   changed_when: identity_setup.rc == 0
   failed_when: false
+
+- name: Report whether the first instance was created
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.debug:
+    msg: >-
+      {{ "the provider has a first instance" if identity_setup.rc == 0
+         else "setup did not complete; recovering if this provider has never served" }}
 
 # Recovery, guarded by a fact about this deployment rather than about Zitadel.
 #
@@ -667,14 +677,27 @@
   ansible.builtin.shell: |
     set -euo pipefail
     docker compose -f /opt/quantify/docker-compose.yml rm -sf identity
+    # Pulled quietly and beforehand. Otherwise the layer-by-layer progress is
+    # the first thing on stderr, and a truncated failure report shows an image
+    # download where the actual error should be.
+    docker pull -q postgres:16-alpine >/dev/null
     PW="$(aws secretsmanager get-secret-value --region {{ quantify_region }} \
       --secret-id {{ quantify_secret_database }} --query SecretString --output text)"
+    # WITH (FORCE), which is why this failed silently before.
+    #
+    # A plain DROP DATABASE refuses while any session is connected, and the
+    # provider had been restart-looping against a database with no instance —
+    # reconnecting every few seconds. The drop failed, `set -e` abandoned the
+    # rest, and the next setup met the same half-written instance it had just
+    # tried to clear. FORCE terminates those sessions first; it is in
+    # PostgreSQL from 13 and this is 16.
     docker run --rm -e PGPASSWORD="$PW" postgres:16-alpine psql \
-      -h {{ quantify_database_host }} -U quantify -d quantify \
-      -c 'DROP DATABASE IF EXISTS zitadel' -c 'CREATE DATABASE zitadel'
+      -h {{ quantify_database_host }} -U quantify -d quantify -v ON_ERROR_STOP=1 \
+      -c 'DROP DATABASE IF EXISTS zitadel WITH (FORCE)' \
+      -c 'CREATE DATABASE zitadel'
     docker compose -f /opt/quantify/docker-compose.yml run --rm -T identity init
     docker compose -f /opt/quantify/docker-compose.yml run --rm -T identity \
-      setup --masterkeyFromEnv --init-projections=true
+      setup --masterkeyFromEnv
   args:
     executable: /bin/bash
   become: true
@@ -688,9 +711,11 @@
     that: identity_setup.rc == 0 or identity_recovered.rc | default(1) == 0
     fail_msg: >-
       The identity provider's setup did not complete, so it has no instance to
-      serve. What it said:
-      {{ (identity_recovered.stderr | default(identity_setup.stderr, true))
-         | default("(nothing)", true) | truncate(900) }}
+      serve. Its last lines — the fatal one is last, which is why this reports
+      the end rather than the beginning:
+      {{ ((identity_recovered.stderr_lines | default([], true))
+          or (identity_setup.stderr_lines | default([], true))
+          or ["(it said nothing)"])[-12:] | join("\n") }}
     success_msg: "The provider has a first instance."
 
 # Safe to restart now: `start` runs no migrations.
