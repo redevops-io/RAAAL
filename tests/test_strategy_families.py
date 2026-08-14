@@ -85,10 +85,33 @@ class TestTheCorpusIsWellFormed:
         for case in cases["cases"]:
             assert case["source"].startswith("http"), case["id"]
 
+    #: The two ways a sentence in this pack may have come about. Both are
+    #: authored here; they differ in what was read to write them.
+    #:
+    #: `authored_from_cited_definition` is written from a definition of the
+    #: strategy — Investopedia, investor.gov, a paper.
+    #:
+    #: `authored_from_reviewed_harvest` is written from a Stack Exchange post
+    #: that was reviewed and found to state a strategy rather than describe
+    #: somebody's circumstances. The strategy is the poster's and the post is
+    #: cited under CC-BY-SA; the wording is ours, because forum prose carries
+    #: context a catalogue entry cannot ("after year 1", "my wife and I") and
+    #: quoting it would put a stranger's situation in somebody's box.
+    AUTHORED = {"authored_from_cited_definition",
+                "authored_from_reviewed_harvest"}
+
     def test_the_pack_declares_that_its_sentences_are_authored(self, cases):
-        """`real_phrasings.json` is the attested pack and this is not it."""
-        assert all(c["provenance"] == "authored_from_cited_definition"
-                   for c in cases["cases"])
+        """`real_phrasings.json` is the attested pack and this is not it.
+
+        What this protects is that nothing here is a verbatim utterance — the
+        attested pack exists so those are kept separately and read as what
+        people actually wrote. Widening this to admit a second *authored*
+        provenance keeps that line exactly where it was.
+        """
+        unknown = {c["provenance"] for c in cases["cases"]} - self.AUTHORED
+        assert not unknown, (
+            f"{sorted(unknown)} is neither way of authoring a sentence. If it "
+            "means the sentence was quoted, it belongs in the attested pack")
         assert "NOT attested" in cases["provenance_note"]
 
 
@@ -223,7 +246,18 @@ class TestTheCompilerBaseline:
     #: exactly as before — two run, seventeen ask one question, one refuses by
     #: name. The legacy compiler is a different witness and is expected to be
     #: worse; that gap is what the runtime exists to close.
-    SILENTLY_REDUCED = 14
+    #:
+    #: 14 -> 17 for the same reason again: the corpus grew by twenty-three
+    #: sentences promoted out of the harvested Stack Exchange pack, and three
+    #: of them reduce silently on the legacy path. Two are contribution-limit
+    #: statements and one targets a volatility level — dimensions the legacy
+    #: compiler has never modelled and does not claim to.
+    #:
+    #: The pairing to watch is unchanged: this number rising while the runtime
+    #: numbers hold is the legacy path falling further behind, which is the
+    #: gap the runtime exists to close. This number rising *with* the runtime
+    #: numbers would be a regression.
+    SILENTLY_REDUCED = 17
 
     def test_the_legacy_reader_still_reduces_this_many(self, compiler):
         assert compiler["by_state"].get("SILENTLY_REDUCED", 0) == \

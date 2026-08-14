@@ -1,6 +1,6 @@
 {
  "schema": "quantify-strategy-families@1",
- "count": 56,
+ "count": 79,
  "families": 20,
  "by_family": {
   "scheduled_funding": 3,
@@ -28,7 +28,7 @@
   "RECOGNISED": 5,
   "REFUSED_BY_NAME": 31
  },
- "provenance_note": "The sentences are authored and marked as such. They are NOT attested phrasings and must never be counted as any \u2014 real_phrasings.json is the attested pack. The family list and the definitions behind it come from the sources cited on each case. An authored sentence is admissible here because the property under test is whether a named capability is recognised at all, which does not depend on anybody having really typed it.",
+ "provenance_note": "The sentences are authored and marked as such. They are NOT attested phrasings and must never be counted as any \u2014 real_phrasings.json is the attested pack. The family list and the definitions behind it come from the sources cited on each case. An authored sentence is admissible here because the property under test is whether a named capability is recognised at all, which does not depend on anybody having really typed it. Entries marked authored_from_reviewed_harvest were written from a reviewed Stack Exchange post: the strategy is the poster's, the wording is ours, and the post is cited under CC-BY-SA 4.0. Forum prose carries context a catalogue entry cannot, so quoting it verbatim would put somebody else's circumstances in a stranger's box.",
  "property_note": "REFUSED_BY_NAME does not mean the sentence should fail to parse. It means the dimension that carries the request must be READ, so that Mission can refuse the thing the person actually asked for rather than silently running the accumulation-shaped fragment that survived recognition.",
  "cases": [
   {
@@ -649,6 +649,254 @@
    "must_be": "REFUSED_BY_NAME",
    "provenance": "authored_from_cited_definition",
    "source": "https://www.investopedia.com/articles/pf/07/mortgage_investment.asp"
+  },
+  {
+   "id": "percentage_funding-percentage-of-income",
+   "family": "percentage_funding",
+   "text": "I put 10% of my after-tax salary into a traditional IRA every year.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/20835/investments-other-than-cds",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "percentage_funding-percentage-of-paycheck",
+   "family": "percentage_funding",
+   "text": "I put 8% of every paycheck into my 401k.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/55829/should-i-buy-2200-of-a-hot-stock-or-invest-elsewhere",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "scheduled_funding-weekly-funding",
+   "family": "scheduled_funding",
+   "text": "I invest $50 into VTI every week.",
+   "carriers": [
+    "cadence"
+   ],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/136064/focus-on-mortgage-or-keep-investing",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "scheduled_funding-annual-lump",
+   "family": "scheduled_funding",
+   "text": "I contribute $10,000 to the portfolio once a year.",
+   "carriers": [
+    "cadence"
+   ],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/16057/what-else-besides-fees-should-i-consider-in-rebalancing-my-fund-portfolios-asse",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "contribution_limit-max-the-limit",
+   "family": "contribution_limit",
+   "text": "I contribute 22% of my salary to my 401k, up to the $18,000 annual limit.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "contribution_limit-max-several-accounts",
+   "family": "contribution_limit",
+   "text": "I fully fund my Roth IRA each year and max out my 403(b) as well.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "employer_match-employer-match",
+   "family": "employer_match",
+   "text": "My employer contributes $100 to my HSA and matches the next $400 I put in.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "scheduled_funding-split-across-accounts",
+   "family": "scheduled_funding",
+   "text": "I contribute $50 into each of two accounts every month.",
+   "carriers": [
+    "cadence"
+   ],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/76425/should-i-switch-to-a-new-ira-custodian",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "escalating_funding-escalating-contribution",
+   "family": "escalating_funding",
+   "text": "I invest 100 EUR a month now and raise it to 150 EUR a month next year.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/75058/how-aggressive-should-my-personal-portfolio-be",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "stated_weights-single-fund",
+   "family": "stated_weights",
+   "text": "I hold 100% of my 401k in an S&P 500 index fund.",
+   "carriers": [
+    "stated_weights"
+   ],
+   "must_be": "REFUSED_BY_NAME",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/39679/how-or-is-it-necessary-to-rebalance-a-401k-with-only-one-index-fund",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "stated_weights-three-way-split",
+   "family": "stated_weights",
+   "text": "I hold 73% stocks, 23% bonds and 4% other.",
+   "carriers": [
+    "stated_weights"
+   ],
+   "must_be": "REFUSED_BY_NAME",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/55630/first-401k-portfolio-with-high-expense-ratios-which-funds-to-pick-24yo",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "mean_variance-mean-variance",
+   "family": "mean_variance",
+   "text": "I set my weights by mean-variance optimisation across 30 holdings.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/145454/is-there-a-quantitative-answer-to-how-frequently-i-should-optimize-my-portfolio",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "volatility_target-volatility-target",
+   "family": "volatility_target",
+   "text": "I size the portfolio to target 10% annualised volatility.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://quant.stackexchange.com/questions/71489/when-how-do-i-vol-scale-portfolio-weights-when-optimizing-the-portfolio",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "rebalancing-fund-and-rebalance",
+   "family": "rebalancing",
+   "text": "Every three months I add money to the portfolio and rebalance it back to 70/30.",
+   "carriers": [
+    "periodic_rebalancing"
+   ],
+   "must_be": "REFUSED_BY_NAME",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/142270/do-bond-funds-have-an-inherent-advantage-over-individual-bonds-within-a-portfoli",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "holding_period-holding-period",
+   "family": "holding_period",
+   "text": "I hold each position for 21 days and then close it.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://quant.stackexchange.com/questions/77807/intuition-behind-portfolio-weights-with-lower-rmse-but-higher-variance",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "fixed_withdrawal-fixed-dollar-withdrawal",
+   "family": "fixed_withdrawal",
+   "text": "I withdraw $20,000 from the portfolio each year.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/95821/how-to-place-value-on-small-business-that-has-0-earnings",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "debt_clearing_withdrawal-withdraw-to-clear-debt",
+   "family": "debt_clearing_withdrawal",
+   "text": "I withdraw $18,000 from the portfolio to pay off my debt.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/102957/withdraw-ira-funds-after-divorce",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "deferral_choice-roth-deferral",
+   "family": "deferral_choice",
+   "text": "I make 100% of my 401k contributions Roth rather than pre-tax.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/169554/rule-of-55-with-a-401k-plan-with-mixed-roth-and-401k-contributions",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "deferral_choice-pretax-deferral",
+   "family": "deferral_choice",
+   "text": "I make 100% of my 401k contributions pre-tax rather than Roth.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/169554/rule-of-55-with-a-401k-plan-with-mixed-roth-and-401k-contributions",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "cash_reserve-months-of-expenses",
+   "family": "cash_reserve",
+   "text": "I keep 12 months of expenses in cash before investing anything.",
+   "carriers": [
+    "sell_action"
+   ],
+   "must_be": "REFUSED_BY_NAME",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/126216/home-mortgage-w-very-low-interest-rates-more-or-less-down",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "lump_allocation-split-a-lump-sum",
+   "family": "lump_allocation",
+   "text": "I put $10,000 into an emergency fund and invest the remaining $20,000.",
+   "carriers": [],
+   "must_be": "RECOGNISED",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/46415/building-financial-independence",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "non_market_alternative-payoff-versus-invest",
+   "family": "non_market_alternative",
+   "text": "I have $10,000 and I compare paying down a 5% mortgage with investing it.",
+   "carriers": [
+    "objective"
+   ],
+   "must_be": "REFUSED_BY_NAME",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/7246/do-i-end-up-richer-paying-down-a-mortgage-or-contributing-to-an-ira",
+   "licence": "CC-BY-SA 4.0"
+  },
+  {
+   "id": "leverage-margin-repayment",
+   "family": "leverage",
+   "text": "I use $5,000 of cash to pay down the margin loan on my stock position.",
+   "carriers": [
+    "allocation_method"
+   ],
+   "must_be": "REFUSED_BY_NAME",
+   "provenance": "authored_from_reviewed_harvest",
+   "source": "https://money.stackexchange.com/questions/157737/calculating-foreign-exchange-capital-loss-on-margin-loan-repayment",
+   "licence": "CC-BY-SA 4.0"
   }
  ]
 }

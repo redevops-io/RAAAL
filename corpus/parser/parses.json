@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 445,
+  "count": 468,
   "parses": [
     {
       "text": "$1,000 a month weighted by inverse volatility",
@@ -2509,6 +2509,199 @@
       ]
     },
     {
+      "text": "Every three months I add money to the portfolio and rebalance it back to 70/30.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "Every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 3,
+              "relation": "det",
+              "start_char": 0,
+              "end_char": 5
+            },
+            {
+              "index": 2,
+              "text": "three",
+              "lemma": "three",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 6,
+              "end_char": 11
+            },
+            {
+              "index": 3,
+              "text": "months",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 5,
+              "relation": "obl:unmarked",
+              "start_char": 12,
+              "end_char": 18
+            },
+            {
+              "index": 4,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 5,
+              "relation": "nsubj",
+              "start_char": 19,
+              "end_char": 20
+            },
+            {
+              "index": 5,
+              "text": "add",
+              "lemma": "add",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 21,
+              "end_char": 24
+            },
+            {
+              "index": 6,
+              "text": "money",
+              "lemma": "money",
+              "upos": "NOUN",
+              "head": 5,
+              "relation": "obj",
+              "start_char": 25,
+              "end_char": 30
+            },
+            {
+              "index": 7,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 31,
+              "end_char": 33
+            },
+            {
+              "index": 8,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 9,
+              "relation": "det",
+              "start_char": 34,
+              "end_char": 37
+            },
+            {
+              "index": 9,
+              "text": "portfolio",
+              "lemma": "portfolio",
+              "upos": "NOUN",
+              "head": 5,
+              "relation": "obl",
+              "start_char": 38,
+              "end_char": 47
+            },
+            {
+              "index": 10,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 11,
+              "relation": "cc",
+              "start_char": 48,
+              "end_char": 51
+            },
+            {
+              "index": 11,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 5,
+              "relation": "conj",
+              "start_char": 52,
+              "end_char": 61
+            },
+            {
+              "index": 12,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 11,
+              "relation": "obj",
+              "start_char": 62,
+              "end_char": 64
+            },
+            {
+              "index": 13,
+              "text": "back",
+              "lemma": "back",
+              "upos": "ADV",
+              "head": 11,
+              "relation": "advmod",
+              "start_char": 65,
+              "end_char": 69
+            },
+            {
+              "index": 14,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 17,
+              "relation": "case",
+              "start_char": 70,
+              "end_char": 72
+            },
+            {
+              "index": 15,
+              "text": "70",
+              "lemma": "70",
+              "upos": "NUM",
+              "head": 17,
+              "relation": "compound",
+              "start_char": 73,
+              "end_char": 75
+            },
+            {
+              "index": 16,
+              "text": "/",
+              "lemma": "/",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 75,
+              "end_char": 76
+            },
+            {
+              "index": 17,
+              "text": "30",
+              "lemma": "30",
+              "upos": "NUM",
+              "head": 11,
+              "relation": "obl",
+              "start_char": 76,
+              "end_char": 78
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 5,
+              "relation": "punct",
+              "start_char": 78,
+              "end_char": 79
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -4515,6 +4708,465 @@
       ]
     },
     {
+      "text": "I contribute $10,000 to the portfolio once a year.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "contribute",
+              "lemma": "contribute",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 13,
+              "end_char": 14
+            },
+            {
+              "index": 4,
+              "text": "10,000",
+              "lemma": "10000",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 14,
+              "end_char": 20
+            },
+            {
+              "index": 5,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 21,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "portfolio",
+              "lemma": "portfolio",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 28,
+              "end_char": 37
+            },
+            {
+              "index": 8,
+              "text": "once",
+              "lemma": "once",
+              "upos": "ADV",
+              "head": 2,
+              "relation": "advmod",
+              "start_char": 38,
+              "end_char": 42
+            },
+            {
+              "index": 9,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 10,
+              "relation": "det",
+              "start_char": 43,
+              "end_char": 44
+            },
+            {
+              "index": 10,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "obl:unmarked",
+              "start_char": 45,
+              "end_char": 49
+            },
+            {
+              "index": 11,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 49,
+              "end_char": 50
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I contribute $50 into each of two accounts every month.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "contribute",
+              "lemma": "contribute",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 13,
+              "end_char": 14
+            },
+            {
+              "index": 4,
+              "text": "50",
+              "lemma": "50",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 14,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 17,
+              "end_char": 21
+            },
+            {
+              "index": 6,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 22,
+              "end_char": 26
+            },
+            {
+              "index": 7,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 27,
+              "end_char": 29
+            },
+            {
+              "index": 8,
+              "text": "two",
+              "lemma": "two",
+              "upos": "NUM",
+              "head": 9,
+              "relation": "nummod",
+              "start_char": 30,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "accounts",
+              "lemma": "account",
+              "upos": "NOUN",
+              "head": 6,
+              "relation": "nmod",
+              "start_char": 34,
+              "end_char": 42
+            },
+            {
+              "index": 10,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 43,
+              "end_char": 48
+            },
+            {
+              "index": 11,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 49,
+              "end_char": 54
+            },
+            {
+              "index": 12,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 54,
+              "end_char": 55
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I contribute 22% of my salary to my 401k, up to the $18,000 annual limit.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "contribute",
+              "lemma": "contribute",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 12
+            },
+            {
+              "index": 3,
+              "text": "22",
+              "lemma": "22",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 13,
+              "end_char": 15
+            },
+            {
+              "index": 4,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 15,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 17,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 7,
+              "relation": "nmod:poss",
+              "start_char": 20,
+              "end_char": 22
+            },
+            {
+              "index": 7,
+              "text": "salary",
+              "lemma": "salary",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 23,
+              "end_char": 29
+            },
+            {
+              "index": 8,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 30,
+              "end_char": 32
+            },
+            {
+              "index": 9,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 10,
+              "relation": "nmod:poss",
+              "start_char": 33,
+              "end_char": 35
+            },
+            {
+              "index": 10,
+              "text": "401k",
+              "lemma": "401k",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 36,
+              "end_char": 40
+            },
+            {
+              "index": 11,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 18,
+              "relation": "punct",
+              "start_char": 40,
+              "end_char": 41
+            },
+            {
+              "index": 12,
+              "text": "up",
+              "lemma": "up",
+              "upos": "ADV",
+              "head": 18,
+              "relation": "case",
+              "start_char": 42,
+              "end_char": 44
+            },
+            {
+              "index": 13,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 12,
+              "relation": "fixed",
+              "start_char": 45,
+              "end_char": 47
+            },
+            {
+              "index": 14,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 18,
+              "relation": "det",
+              "start_char": 48,
+              "end_char": 51
+            },
+            {
+              "index": 15,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 18,
+              "relation": "compound",
+              "start_char": 52,
+              "end_char": 53
+            },
+            {
+              "index": 16,
+              "text": "18,000",
+              "lemma": "18000",
+              "upos": "NUM",
+              "head": 15,
+              "relation": "nummod",
+              "start_char": 53,
+              "end_char": 59
+            },
+            {
+              "index": 17,
+              "text": "annual",
+              "lemma": "annual",
+              "upos": "ADJ",
+              "head": 18,
+              "relation": "amod",
+              "start_char": 60,
+              "end_char": 66
+            },
+            {
+              "index": 18,
+              "text": "limit",
+              "lemma": "limit",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 67,
+              "end_char": 72
+            },
+            {
+              "index": 19,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 72,
+              "end_char": 73
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -5117,6 +5769,209 @@
       ]
     },
     {
+      "text": "I fully fund my Roth IRA each year and max out my 403(b) as well.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 3,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "fully",
+              "lemma": "fully",
+              "upos": "ADV",
+              "head": 3,
+              "relation": "advmod",
+              "start_char": 2,
+              "end_char": 7
+            },
+            {
+              "index": 3,
+              "text": "fund",
+              "lemma": "fund",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 8,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 6,
+              "relation": "nmod:poss",
+              "start_char": 13,
+              "end_char": 15
+            },
+            {
+              "index": 5,
+              "text": "Roth",
+              "lemma": "roth",
+              "upos": "PROPN",
+              "head": 6,
+              "relation": "compound",
+              "start_char": 16,
+              "end_char": 20
+            },
+            {
+              "index": 6,
+              "text": "IRA",
+              "lemma": "ira",
+              "upos": "PROPN",
+              "head": 3,
+              "relation": "obj",
+              "start_char": 21,
+              "end_char": 24
+            },
+            {
+              "index": 7,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 8,
+              "relation": "det",
+              "start_char": 25,
+              "end_char": 29
+            },
+            {
+              "index": 8,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "obl:unmarked",
+              "start_char": 30,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 10,
+              "relation": "cc",
+              "start_char": 35,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "max",
+              "lemma": "max",
+              "upos": "VERB",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 39,
+              "end_char": 42
+            },
+            {
+              "index": 11,
+              "text": "out",
+              "lemma": "out",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "compound:prt",
+              "start_char": 43,
+              "end_char": 46
+            },
+            {
+              "index": 12,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 13,
+              "relation": "nmod:poss",
+              "start_char": 47,
+              "end_char": 49
+            },
+            {
+              "index": 13,
+              "text": "403",
+              "lemma": "403",
+              "upos": "NUM",
+              "head": 10,
+              "relation": "obj",
+              "start_char": 50,
+              "end_char": 53
+            },
+            {
+              "index": 14,
+              "text": "(",
+              "lemma": "(",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 53,
+              "end_char": 54
+            },
+            {
+              "index": 15,
+              "text": "b",
+              "lemma": "benefit",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "appos",
+              "start_char": 54,
+              "end_char": 55
+            },
+            {
+              "index": 16,
+              "text": ")",
+              "lemma": ")",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 55,
+              "end_char": 56
+            },
+            {
+              "index": 17,
+              "text": "as",
+              "lemma": "as",
+              "upos": "ADV",
+              "head": 10,
+              "relation": "advmod",
+              "start_char": 57,
+              "end_char": 59
+            },
+            {
+              "index": 18,
+              "text": "well",
+              "lemma": "well",
+              "upos": "ADV",
+              "head": 17,
+              "relation": "fixed",
+              "start_char": 60,
+              "end_char": 64
+            },
+            {
+              "index": 19,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 3,
+              "relation": "punct",
+              "start_char": 64,
+              "end_char": 65
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I harvest losses whenever a position falls 10% below its cost basis.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -5264,6 +6119,189 @@
               "relation": "punct",
               "start_char": 67,
               "end_char": 68
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I have $10,000 and I compare paying down a 5% mortgage with investing it.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "have",
+              "lemma": "have",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 4,
+              "text": "10,000",
+              "lemma": "10000",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 8,
+              "end_char": 14
+            },
+            {
+              "index": 5,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 7,
+              "relation": "cc",
+              "start_char": 15,
+              "end_char": 18
+            },
+            {
+              "index": 6,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 7,
+              "relation": "nsubj",
+              "start_char": 19,
+              "end_char": 20
+            },
+            {
+              "index": 7,
+              "text": "compare",
+              "lemma": "compare",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "conj",
+              "start_char": 21,
+              "end_char": 28
+            },
+            {
+              "index": 8,
+              "text": "paying",
+              "lemma": "pay",
+              "upos": "VERB",
+              "head": 7,
+              "relation": "xcomp",
+              "start_char": 29,
+              "end_char": 35
+            },
+            {
+              "index": 9,
+              "text": "down",
+              "lemma": "down",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "compound:prt",
+              "start_char": 36,
+              "end_char": 40
+            },
+            {
+              "index": 10,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 41,
+              "end_char": 42
+            },
+            {
+              "index": 11,
+              "text": "5",
+              "lemma": "5",
+              "upos": "NUM",
+              "head": 12,
+              "relation": "nummod",
+              "start_char": 43,
+              "end_char": 44
+            },
+            {
+              "index": 12,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 44,
+              "end_char": 45
+            },
+            {
+              "index": 13,
+              "text": "mortgage",
+              "lemma": "mortgage",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "obj",
+              "start_char": 46,
+              "end_char": 54
+            },
+            {
+              "index": 14,
+              "text": "with",
+              "lemma": "with",
+              "upos": "SCONJ",
+              "head": 15,
+              "relation": "mark",
+              "start_char": 55,
+              "end_char": 59
+            },
+            {
+              "index": 15,
+              "text": "investing",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 8,
+              "relation": "advcl",
+              "start_char": 60,
+              "end_char": 69
+            },
+            {
+              "index": 16,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 15,
+              "relation": "obj",
+              "start_char": 70,
+              "end_char": 72
+            },
+            {
+              "index": 17,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 72,
+              "end_char": 73
             }
           ]
         }
@@ -5510,6 +6548,159 @@
               "relation": "nmod",
               "start_char": 61,
               "end_char": 71
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I hold 100% of my 401k in an S&P 500 index fund.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "hold",
+              "lemma": "hold",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "100",
+              "lemma": "100",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 10,
+              "end_char": 11
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 13,
+              "relation": "case",
+              "start_char": 12,
+              "end_char": 14
+            },
+            {
+              "index": 6,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 7,
+              "relation": "nmod:poss",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 7,
+              "text": "401k",
+              "lemma": "401k",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 18,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 13,
+              "relation": "case",
+              "start_char": 23,
+              "end_char": 25
+            },
+            {
+              "index": 9,
+              "text": "an",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 26,
+              "end_char": 28
+            },
+            {
+              "index": 10,
+              "text": "S&P",
+              "lemma": "s&p",
+              "upos": "NOUN",
+              "head": 12,
+              "relation": "compound",
+              "start_char": 29,
+              "end_char": 32
+            },
+            {
+              "index": 11,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 10,
+              "relation": "flat",
+              "start_char": 33,
+              "end_char": 36
+            },
+            {
+              "index": 12,
+              "text": "index",
+              "lemma": "index",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 37,
+              "end_char": 42
+            },
+            {
+              "index": 13,
+              "text": "fund",
+              "lemma": "fund",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 43,
+              "end_char": 47
+            },
+            {
+              "index": 14,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 47,
+              "end_char": 48
             }
           ]
         }
@@ -5802,6 +6993,159 @@
       ]
     },
     {
+      "text": "I hold 73% stocks, 23% bonds and 4% other.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "hold",
+              "lemma": "hold",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "73",
+              "lemma": "73",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 9
+            },
+            {
+              "index": 4,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 5,
+              "relation": "compound",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 5,
+              "text": "stocks",
+              "lemma": "stock",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 17,
+              "end_char": 18
+            },
+            {
+              "index": 7,
+              "text": "23",
+              "lemma": "23",
+              "upos": "NUM",
+              "head": 8,
+              "relation": "nummod",
+              "start_char": 19,
+              "end_char": 21
+            },
+            {
+              "index": 8,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 9,
+              "relation": "compound",
+              "start_char": 21,
+              "end_char": 22
+            },
+            {
+              "index": 9,
+              "text": "bonds",
+              "lemma": "bond",
+              "upos": "NOUN",
+              "head": 5,
+              "relation": "conj",
+              "start_char": 23,
+              "end_char": 28
+            },
+            {
+              "index": 10,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 13,
+              "relation": "cc",
+              "start_char": 29,
+              "end_char": 32
+            },
+            {
+              "index": 11,
+              "text": "4",
+              "lemma": "4",
+              "upos": "NUM",
+              "head": 12,
+              "relation": "nummod",
+              "start_char": 33,
+              "end_char": 34
+            },
+            {
+              "index": 12,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 34,
+              "end_char": 35
+            },
+            {
+              "index": 13,
+              "text": "other",
+              "lemma": "other",
+              "upos": "ADJ",
+              "head": 5,
+              "relation": "conj",
+              "start_char": 36,
+              "end_char": 41
+            },
+            {
+              "index": 14,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 41,
+              "end_char": 42
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I hold a 60/40 portfolio: 60% stocks and 40% bonds.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -5942,6 +7286,139 @@
             },
             {
               "index": 14,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 50,
+              "end_char": 51
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I hold each position for 21 days and then close it.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "hold",
+              "lemma": "hold",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 4,
+              "relation": "det",
+              "start_char": 7,
+              "end_char": 11
+            },
+            {
+              "index": 4,
+              "text": "position",
+              "lemma": "position",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 12,
+              "end_char": 20
+            },
+            {
+              "index": 5,
+              "text": "for",
+              "lemma": "for",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 21,
+              "end_char": 24
+            },
+            {
+              "index": 6,
+              "text": "21",
+              "lemma": "21",
+              "upos": "NUM",
+              "head": 7,
+              "relation": "nummod",
+              "start_char": 25,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "days",
+              "lemma": "day",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 28,
+              "end_char": 32
+            },
+            {
+              "index": 8,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 10,
+              "relation": "cc",
+              "start_char": 33,
+              "end_char": 36
+            },
+            {
+              "index": 9,
+              "text": "then",
+              "lemma": "then",
+              "upos": "ADV",
+              "head": 10,
+              "relation": "advmod",
+              "start_char": 37,
+              "end_char": 41
+            },
+            {
+              "index": 10,
+              "text": "close",
+              "lemma": "close",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "conj",
+              "start_char": 42,
+              "end_char": 47
+            },
+            {
+              "index": 11,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 10,
+              "relation": "obj",
+              "start_char": 48,
+              "end_char": 50
+            },
+            {
+              "index": 12,
               "text": ".",
               "lemma": ".",
               "upos": "PUNCT",
@@ -6118,6 +7595,109 @@
       ]
     },
     {
+      "text": "I invest $50 into VTI every week.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "50",
+              "lemma": "50",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 5,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 13,
+              "end_char": 17
+            },
+            {
+              "index": 6,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 18,
+              "end_char": 21
+            },
+            {
+              "index": 7,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 8,
+              "relation": "det",
+              "start_char": 22,
+              "end_char": 27
+            },
+            {
+              "index": 8,
+              "text": "week",
+              "lemma": "week",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 28,
+              "end_char": 32
+            },
+            {
+              "index": 9,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 32,
+              "end_char": 33
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I invest $500 into VTI every month, on the same day each month.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -6278,6 +7858,332 @@
             },
             {
               "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 62,
+              "end_char": 63
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest 100 EUR a month now and raise it to 150 EUR a month next year.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "100",
+              "lemma": "100",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 9,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "EUR",
+              "lemma": "eur",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 13,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 17,
+              "end_char": 18
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 19,
+              "end_char": 24
+            },
+            {
+              "index": 7,
+              "text": "now",
+              "lemma": "now",
+              "upos": "ADV",
+              "head": 2,
+              "relation": "advmod",
+              "start_char": 25,
+              "end_char": 28
+            },
+            {
+              "index": 8,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 9,
+              "relation": "cc",
+              "start_char": 29,
+              "end_char": 32
+            },
+            {
+              "index": 9,
+              "text": "raise",
+              "lemma": "raise",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "conj",
+              "start_char": 33,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 9,
+              "relation": "obj",
+              "start_char": 39,
+              "end_char": 41
+            },
+            {
+              "index": 11,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 13,
+              "relation": "case",
+              "start_char": 42,
+              "end_char": 44
+            },
+            {
+              "index": 12,
+              "text": "150",
+              "lemma": "150",
+              "upos": "NUM",
+              "head": 13,
+              "relation": "nummod",
+              "start_char": 45,
+              "end_char": 48
+            },
+            {
+              "index": 13,
+              "text": "EUR",
+              "lemma": "eur",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "obl",
+              "start_char": 49,
+              "end_char": 52
+            },
+            {
+              "index": 14,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 53,
+              "end_char": 54
+            },
+            {
+              "index": 15,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "obl:unmarked",
+              "start_char": 55,
+              "end_char": 60
+            },
+            {
+              "index": 16,
+              "text": "next",
+              "lemma": "next",
+              "upos": "ADJ",
+              "head": 17,
+              "relation": "amod",
+              "start_char": 61,
+              "end_char": 65
+            },
+            {
+              "index": 17,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "obl:unmarked",
+              "start_char": 66,
+              "end_char": 70
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 70,
+              "end_char": 71
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I keep 12 months of expenses in cash before investing anything.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "keep",
+              "lemma": "keep",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "12",
+              "lemma": "12",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 9
+            },
+            {
+              "index": 4,
+              "text": "months",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 10,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 17,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "expenses",
+              "lemma": "expense",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 20,
+              "end_char": 28
+            },
+            {
+              "index": 7,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 29,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "cash",
+              "lemma": "cash",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 32,
+              "end_char": 36
+            },
+            {
+              "index": 9,
+              "text": "before",
+              "lemma": "before",
+              "upos": "SCONJ",
+              "head": 10,
+              "relation": "mark",
+              "start_char": 37,
+              "end_char": 43
+            },
+            {
+              "index": 10,
+              "text": "investing",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 44,
+              "end_char": 53
+            },
+            {
+              "index": 11,
+              "text": "anything",
+              "lemma": "anything",
+              "upos": "PRON",
+              "head": 10,
+              "relation": "obj",
+              "start_char": 54,
+              "end_char": 62
+            },
+            {
+              "index": 12,
               "text": ".",
               "lemma": ".",
               "upos": "PUNCT",
@@ -6694,6 +8600,292 @@
               "relation": "punct",
               "start_char": 54,
               "end_char": 55
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I make 100% of my 401k contributions Roth rather than pre-tax.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "make",
+              "lemma": "make",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "100",
+              "lemma": "100",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 10,
+              "end_char": 11
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 12,
+              "end_char": 14
+            },
+            {
+              "index": 6,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 8,
+              "relation": "nmod:poss",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 7,
+              "text": "401k",
+              "lemma": "401k",
+              "upos": "NUM",
+              "head": 8,
+              "relation": "nummod",
+              "start_char": 18,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "contributions",
+              "lemma": "contribution",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 23,
+              "end_char": 36
+            },
+            {
+              "index": 9,
+              "text": "Roth",
+              "lemma": "roth",
+              "upos": "PROPN",
+              "head": 8,
+              "relation": "appos",
+              "start_char": 37,
+              "end_char": 41
+            },
+            {
+              "index": 10,
+              "text": "rather",
+              "lemma": "rather",
+              "upos": "ADV",
+              "head": 12,
+              "relation": "cc",
+              "start_char": 42,
+              "end_char": 48
+            },
+            {
+              "index": 11,
+              "text": "than",
+              "lemma": "than",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "fixed",
+              "start_char": 49,
+              "end_char": 53
+            },
+            {
+              "index": 12,
+              "text": "pre-tax",
+              "lemma": "pre-tax",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "conj",
+              "start_char": 54,
+              "end_char": 61
+            },
+            {
+              "index": 13,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 61,
+              "end_char": 62
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I make 100% of my 401k contributions pre-tax rather than Roth.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "make",
+              "lemma": "make",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "100",
+              "lemma": "100",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 10,
+              "end_char": 11
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 12,
+              "end_char": 14
+            },
+            {
+              "index": 6,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 9,
+              "relation": "nmod:poss",
+              "start_char": 15,
+              "end_char": 17
+            },
+            {
+              "index": 7,
+              "text": "401k",
+              "lemma": "401k",
+              "upos": "NUM",
+              "head": 8,
+              "relation": "nummod",
+              "start_char": 18,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "contributions",
+              "lemma": "contribution",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "compound",
+              "start_char": 23,
+              "end_char": 36
+            },
+            {
+              "index": 9,
+              "text": "pre-tax",
+              "lemma": "pre-tax",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 37,
+              "end_char": 44
+            },
+            {
+              "index": 10,
+              "text": "rather",
+              "lemma": "rather",
+              "upos": "ADV",
+              "head": 12,
+              "relation": "cc",
+              "start_char": 45,
+              "end_char": 51
+            },
+            {
+              "index": 11,
+              "text": "than",
+              "lemma": "than",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "fixed",
+              "start_char": 52,
+              "end_char": 56
+            },
+            {
+              "index": 12,
+              "text": "Roth",
+              "lemma": "roth",
+              "upos": "PROPN",
+              "head": 9,
+              "relation": "conj",
+              "start_char": 57,
+              "end_char": 61
+            },
+            {
+              "index": 13,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 61,
+              "end_char": 62
             }
           ]
         }
@@ -7169,6 +9361,169 @@
       ]
     },
     {
+      "text": "I put $10,000 into an emergency fund and invest the remaining $20,000.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "put",
+              "lemma": "put",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 6,
+              "end_char": 7
+            },
+            {
+              "index": 4,
+              "text": "10,000",
+              "lemma": "10000",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 14,
+              "end_char": 18
+            },
+            {
+              "index": 6,
+              "text": "an",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 8,
+              "relation": "det",
+              "start_char": 19,
+              "end_char": 21
+            },
+            {
+              "index": 7,
+              "text": "emergency",
+              "lemma": "emergency",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "compound",
+              "start_char": 22,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "fund",
+              "lemma": "fund",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 32,
+              "end_char": 36
+            },
+            {
+              "index": 9,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 10,
+              "relation": "cc",
+              "start_char": 37,
+              "end_char": 40
+            },
+            {
+              "index": 10,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "conj",
+              "start_char": 41,
+              "end_char": 47
+            },
+            {
+              "index": 11,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 48,
+              "end_char": 51
+            },
+            {
+              "index": 12,
+              "text": "remaining",
+              "lemma": "remain",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "amod",
+              "start_char": 52,
+              "end_char": 61
+            },
+            {
+              "index": 13,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 10,
+              "relation": "obj",
+              "start_char": 62,
+              "end_char": 63
+            },
+            {
+              "index": 14,
+              "text": "20,000",
+              "lemma": "20000",
+              "upos": "NUM",
+              "head": 13,
+              "relation": "nummod",
+              "start_char": 63,
+              "end_char": 69
+            },
+            {
+              "index": 15,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 69,
+              "end_char": 70
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -7412,6 +9767,189 @@
       ]
     },
     {
+      "text": "I put 10% of my after-tax salary into a traditional IRA every year.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "put",
+              "lemma": "put",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "10",
+              "lemma": "10",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 6,
+              "end_char": 8
+            },
+            {
+              "index": 4,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 8,
+              "end_char": 9
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 10,
+              "end_char": 12
+            },
+            {
+              "index": 6,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 10,
+              "relation": "nmod:poss",
+              "start_char": 13,
+              "end_char": 15
+            },
+            {
+              "index": 7,
+              "text": "after",
+              "lemma": "after",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 16,
+              "end_char": 21
+            },
+            {
+              "index": 8,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 7,
+              "relation": "punct",
+              "start_char": 21,
+              "end_char": 22
+            },
+            {
+              "index": 9,
+              "text": "tax",
+              "lemma": "tax",
+              "upos": "NOUN",
+              "head": 10,
+              "relation": "compound",
+              "start_char": 22,
+              "end_char": 25
+            },
+            {
+              "index": 10,
+              "text": "salary",
+              "lemma": "salary",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 26,
+              "end_char": 32
+            },
+            {
+              "index": 11,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 14,
+              "relation": "case",
+              "start_char": 33,
+              "end_char": 37
+            },
+            {
+              "index": 12,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 14,
+              "relation": "det",
+              "start_char": 38,
+              "end_char": 39
+            },
+            {
+              "index": 13,
+              "text": "traditional",
+              "lemma": "traditional",
+              "upos": "ADJ",
+              "head": 14,
+              "relation": "amod",
+              "start_char": 40,
+              "end_char": 51
+            },
+            {
+              "index": 14,
+              "text": "IRA",
+              "lemma": "ira",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 52,
+              "end_char": 55
+            },
+            {
+              "index": 15,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 16,
+              "relation": "det",
+              "start_char": 56,
+              "end_char": 61
+            },
+            {
+              "index": 16,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 62,
+              "end_char": 66
+            },
+            {
+              "index": 17,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 66,
+              "end_char": 67
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I put 100% of my 401k into an S&P index fund.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -7549,6 +10087,129 @@
               "relation": "punct",
               "start_char": 44,
               "end_char": 45
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I put 8% of every paycheck into my 401k.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "put",
+              "lemma": "put",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "8",
+              "lemma": "8",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 6,
+              "end_char": 7
+            },
+            {
+              "index": 4,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 7,
+              "end_char": 8
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 9,
+              "end_char": 11
+            },
+            {
+              "index": 6,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 12,
+              "end_char": 17
+            },
+            {
+              "index": 7,
+              "text": "paycheck",
+              "lemma": "paycheck",
+              "upos": "NOUN",
+              "head": 4,
+              "relation": "nmod",
+              "start_char": 18,
+              "end_char": 26
+            },
+            {
+              "index": 8,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 27,
+              "end_char": 31
+            },
+            {
+              "index": 9,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 10,
+              "relation": "nmod:poss",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 10,
+              "text": "401k",
+              "lemma": "401k",
+              "upos": "NUM",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 35,
+              "end_char": 39
+            },
+            {
+              "index": 11,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 39,
+              "end_char": 40
             }
           ]
         }
@@ -7967,6 +10628,149 @@
       ]
     },
     {
+      "text": "I set my weights by mean-variance optimisation across 30 holdings.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "set",
+              "lemma": "set",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 4,
+              "relation": "nmod:poss",
+              "start_char": 6,
+              "end_char": 8
+            },
+            {
+              "index": 4,
+              "text": "weights",
+              "lemma": "weight",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 16
+            },
+            {
+              "index": 5,
+              "text": "by",
+              "lemma": "by",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "case",
+              "start_char": 17,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "mean",
+              "lemma": "mean",
+              "upos": "ADJ",
+              "head": 8,
+              "relation": "amod",
+              "start_char": 20,
+              "end_char": 24
+            },
+            {
+              "index": 7,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 6,
+              "relation": "punct",
+              "start_char": 24,
+              "end_char": 25
+            },
+            {
+              "index": 8,
+              "text": "variance",
+              "lemma": "variance",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "compound",
+              "start_char": 25,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "optimisation",
+              "lemma": "optimisation",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 34,
+              "end_char": 46
+            },
+            {
+              "index": 10,
+              "text": "across",
+              "lemma": "across",
+              "upos": "ADP",
+              "head": 12,
+              "relation": "case",
+              "start_char": 47,
+              "end_char": 53
+            },
+            {
+              "index": 11,
+              "text": "30",
+              "lemma": "30",
+              "upos": "NUM",
+              "head": 12,
+              "relation": "nummod",
+              "start_char": 54,
+              "end_char": 56
+            },
+            {
+              "index": 12,
+              "text": "holdings",
+              "lemma": "holding",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "nmod",
+              "start_char": 57,
+              "end_char": 65
+            },
+            {
+              "index": 13,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 65,
+              "end_char": 66
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I shift 1% from stocks to bonds every year as I get older.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -8124,6 +10928,129 @@
               "relation": "punct",
               "start_char": 57,
               "end_char": 58
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I size the portfolio to target 10% annualised volatility.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "size",
+              "lemma": "size",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 6
+            },
+            {
+              "index": 3,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 4,
+              "relation": "det",
+              "start_char": 7,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "portfolio",
+              "lemma": "portfolio",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 20
+            },
+            {
+              "index": 5,
+              "text": "to",
+              "lemma": "to",
+              "upos": "PART",
+              "head": 6,
+              "relation": "mark",
+              "start_char": 21,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "target",
+              "lemma": "target",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 24,
+              "end_char": 30
+            },
+            {
+              "index": 7,
+              "text": "10",
+              "lemma": "10",
+              "upos": "NUM",
+              "head": 8,
+              "relation": "nummod",
+              "start_char": 31,
+              "end_char": 33
+            },
+            {
+              "index": 8,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 9,
+              "relation": "obl:unmarked",
+              "start_char": 33,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "annualised",
+              "lemma": "annualise",
+              "upos": "VERB",
+              "head": 10,
+              "relation": "amod",
+              "start_char": 35,
+              "end_char": 45
+            },
+            {
+              "index": 10,
+              "text": "volatility",
+              "lemma": "volatility",
+              "upos": "NOUN",
+              "head": 6,
+              "relation": "obj",
+              "start_char": 46,
+              "end_char": 56
+            },
+            {
+              "index": 11,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 56,
+              "end_char": 57
             }
           ]
         }
@@ -9028,6 +11955,189 @@
       ]
     },
     {
+      "text": "I use $5,000 of cash to pay down the margin loan on my stock position.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "use",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 5
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 6,
+              "end_char": 7
+            },
+            {
+              "index": 4,
+              "text": "5,000",
+              "lemma": "5000",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 7,
+              "end_char": 12
+            },
+            {
+              "index": 5,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 6,
+              "relation": "case",
+              "start_char": 13,
+              "end_char": 15
+            },
+            {
+              "index": 6,
+              "text": "cash",
+              "lemma": "cash",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "nmod",
+              "start_char": 16,
+              "end_char": 20
+            },
+            {
+              "index": 7,
+              "text": "to",
+              "lemma": "to",
+              "upos": "PART",
+              "head": 8,
+              "relation": "mark",
+              "start_char": 21,
+              "end_char": 23
+            },
+            {
+              "index": 8,
+              "text": "pay",
+              "lemma": "pay",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 9,
+              "text": "down",
+              "lemma": "down",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "compound:prt",
+              "start_char": 28,
+              "end_char": 32
+            },
+            {
+              "index": 10,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 12,
+              "relation": "det",
+              "start_char": 33,
+              "end_char": 36
+            },
+            {
+              "index": 11,
+              "text": "margin",
+              "lemma": "margin",
+              "upos": "NOUN",
+              "head": 12,
+              "relation": "compound",
+              "start_char": 37,
+              "end_char": 43
+            },
+            {
+              "index": 12,
+              "text": "loan",
+              "lemma": "loan",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "obj",
+              "start_char": 44,
+              "end_char": 48
+            },
+            {
+              "index": 13,
+              "text": "on",
+              "lemma": "on",
+              "upos": "ADP",
+              "head": 16,
+              "relation": "case",
+              "start_char": 49,
+              "end_char": 51
+            },
+            {
+              "index": 14,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 16,
+              "relation": "nmod:poss",
+              "start_char": 52,
+              "end_char": 54
+            },
+            {
+              "index": 15,
+              "text": "stock",
+              "lemma": "stock",
+              "upos": "NOUN",
+              "head": 16,
+              "relation": "compound",
+              "start_char": 55,
+              "end_char": 60
+            },
+            {
+              "index": 16,
+              "text": "position",
+              "lemma": "position",
+              "upos": "NOUN",
+              "head": 8,
+              "relation": "obl",
+              "start_char": 61,
+              "end_char": 69
+            },
+            {
+              "index": 17,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 69,
+              "end_char": 70
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I use a 5/25 band",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -9198,6 +12308,262 @@
               "relation": "obl:unmarked",
               "start_char": 32,
               "end_char": 37
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I withdraw $18,000 from the portfolio to pay off my debt.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "withdraw",
+              "lemma": "withdraw",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 10
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "18,000",
+              "lemma": "18000",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 12,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "from",
+              "lemma": "from",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 19,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "portfolio",
+              "lemma": "portfolio",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 28,
+              "end_char": 37
+            },
+            {
+              "index": 8,
+              "text": "to",
+              "lemma": "to",
+              "upos": "PART",
+              "head": 9,
+              "relation": "mark",
+              "start_char": 38,
+              "end_char": 40
+            },
+            {
+              "index": 9,
+              "text": "pay",
+              "lemma": "pay",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 41,
+              "end_char": 44
+            },
+            {
+              "index": 10,
+              "text": "off",
+              "lemma": "off",
+              "upos": "ADP",
+              "head": 9,
+              "relation": "compound:prt",
+              "start_char": 45,
+              "end_char": 48
+            },
+            {
+              "index": 11,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 12,
+              "relation": "nmod:poss",
+              "start_char": 49,
+              "end_char": 51
+            },
+            {
+              "index": 12,
+              "text": "debt",
+              "lemma": "debt",
+              "upos": "NOUN",
+              "head": 9,
+              "relation": "obj",
+              "start_char": 52,
+              "end_char": 56
+            },
+            {
+              "index": 13,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 56,
+              "end_char": 57
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I withdraw $20,000 from the portfolio each year.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "withdraw",
+              "lemma": "withdraw",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 10
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 11,
+              "end_char": 12
+            },
+            {
+              "index": 4,
+              "text": "20,000",
+              "lemma": "20000",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 12,
+              "end_char": 18
+            },
+            {
+              "index": 5,
+              "text": "from",
+              "lemma": "from",
+              "upos": "ADP",
+              "head": 7,
+              "relation": "case",
+              "start_char": 19,
+              "end_char": 23
+            },
+            {
+              "index": 6,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 7,
+              "relation": "det",
+              "start_char": 24,
+              "end_char": 27
+            },
+            {
+              "index": 7,
+              "text": "portfolio",
+              "lemma": "portfolio",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 28,
+              "end_char": 37
+            },
+            {
+              "index": 8,
+              "text": "each",
+              "lemma": "each",
+              "upos": "DET",
+              "head": 9,
+              "relation": "det",
+              "start_char": 38,
+              "end_char": 42
+            },
+            {
+              "index": 9,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 43,
+              "end_char": 47
+            },
+            {
+              "index": 10,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 47,
+              "end_char": 48
             }
           ]
         }
@@ -11274,6 +14640,199 @@
               "relation": "punct",
               "start_char": 71,
               "end_char": 72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "My employer contributes $100 to my HSA and matches the next $400 I put in.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "My",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nmod:poss",
+              "start_char": 0,
+              "end_char": 2
+            },
+            {
+              "index": 2,
+              "text": "employer",
+              "lemma": "employer",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "nsubj",
+              "start_char": 3,
+              "end_char": 11
+            },
+            {
+              "index": 3,
+              "text": "contributes",
+              "lemma": "contribute",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 12,
+              "end_char": 23
+            },
+            {
+              "index": 4,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 3,
+              "relation": "obj",
+              "start_char": 24,
+              "end_char": 25
+            },
+            {
+              "index": 5,
+              "text": "100",
+              "lemma": "100",
+              "upos": "NUM",
+              "head": 4,
+              "relation": "nummod",
+              "start_char": 25,
+              "end_char": 28
+            },
+            {
+              "index": 6,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 8,
+              "relation": "case",
+              "start_char": 29,
+              "end_char": 31
+            },
+            {
+              "index": 7,
+              "text": "my",
+              "lemma": "my",
+              "upos": "PRON",
+              "head": 8,
+              "relation": "nmod:poss",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 8,
+              "text": "HSA",
+              "lemma": "hsa",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "obl",
+              "start_char": 35,
+              "end_char": 38
+            },
+            {
+              "index": 9,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 10,
+              "relation": "cc",
+              "start_char": 39,
+              "end_char": 42
+            },
+            {
+              "index": 10,
+              "text": "matches",
+              "lemma": "match",
+              "upos": "VERB",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 43,
+              "end_char": 50
+            },
+            {
+              "index": 11,
+              "text": "the",
+              "lemma": "the",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 51,
+              "end_char": 54
+            },
+            {
+              "index": 12,
+              "text": "next",
+              "lemma": "next",
+              "upos": "ADJ",
+              "head": 13,
+              "relation": "amod",
+              "start_char": 55,
+              "end_char": 59
+            },
+            {
+              "index": 13,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 10,
+              "relation": "obj",
+              "start_char": 60,
+              "end_char": 61
+            },
+            {
+              "index": 14,
+              "text": "400",
+              "lemma": "400",
+              "upos": "NUM",
+              "head": 13,
+              "relation": "nummod",
+              "start_char": 61,
+              "end_char": 64
+            },
+            {
+              "index": 15,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 16,
+              "relation": "nsubj",
+              "start_char": 65,
+              "end_char": 66
+            },
+            {
+              "index": 16,
+              "text": "put",
+              "lemma": "put",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "acl:relcl",
+              "start_char": 67,
+              "end_char": 70
+            },
+            {
+              "index": 17,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 16,
+              "relation": "advmod",
+              "start_char": 71,
+              "end_char": 73
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 3,
+              "relation": "punct",
+              "start_char": 73,
+              "end_char": 74
             }
           ]
         }
