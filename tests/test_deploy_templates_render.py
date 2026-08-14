@@ -54,6 +54,7 @@ VARIABLES = {
     "quantify_secret_database": "quantify-test/database-password",
     "quantify_secret_identity_key": "quantify-test/identity-masterkey",
     "quantify_secret_identity_admin": "quantify-test/identity-admin-password",
+    "quantify_identity_client_id": "386173685016363013",
     "quantify_secret_model_key": "quantify-test/model-api-key",
     "quantify_secret_tunnel_token": "quantify-test/cloudflare-tunnel-token",
     "quantify_ssm_bucket": "quantify-test-deploy-transfer",
@@ -482,3 +483,50 @@ class TestTheProviderCanWriteWhatItIsGiven:
                 "provider, which runs as uid 1000. It writes its "
                 "service-account token there during the first-instance "
                 "migration, and cannot")
+
+
+class TestTheAudienceIsTheClientId:
+    """An ID token's `aud` is the client id. Both must say so.
+
+    They disagreed on the running deployment: the environment carried
+    `OIDC_AUDIENCE=quantify` while every token the provider minted carried the
+    client id, so verification would have rejected every login on a token that
+    was otherwise perfectly valid — correct signature, correct issuer, correct
+    expiry, wrong expectation.
+
+    The edit that fixed this was written once and lost: it was bundled into a
+    command that was refused for an unrelated reason, and nothing afterwards
+    depended on it, so nothing failed. Hence a test.
+    """
+
+    def rendered(self, **overrides):
+        return environment().get_template("production.env.j2").render(
+            **{**VARIABLES, **overrides})
+
+    def values(self, text):
+        found = {}
+        for line in text.splitlines():
+            if line.startswith("OIDC_") and "=" in line:
+                name, _, value = line.partition("=")
+                found[name] = value
+        return found
+
+    def test_they_are_the_same_value(self):
+        found = self.values(self.rendered())
+        assert found.get("OIDC_AUDIENCE") == found.get("OIDC_CLIENT_ID")
+        assert found.get("OIDC_AUDIENCE") == VARIABLES["quantify_identity_client_id"]
+
+    def test_before_the_application_exists_both_are_empty(self):
+        """The first deploy renders before bootstrap has run. Empty is the
+        honest answer, and `configured` reads False on it — a deployment that
+        cannot name its audience must not accept tokens."""
+        found = self.values(self.rendered(quantify_identity_client_id=""))
+        assert found.get("OIDC_AUDIENCE") == ""
+        assert found.get("OIDC_CLIENT_ID") == ""
+
+    def test_the_issuer_is_the_public_name_and_the_internal_route_is_not(self):
+        """Separate facts. The issuer is an identity checked against tokens;
+        the internal base is an address used to reach the provider."""
+        found = self.values(self.rendered())
+        assert found["OIDC_ISSUER"] == "https://auth.quantify.club"
+        assert found["OIDC_INTERNAL_BASE_URL"] == "http://proxy"
