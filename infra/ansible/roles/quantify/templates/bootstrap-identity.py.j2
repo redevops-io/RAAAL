@@ -28,6 +28,17 @@ import sys
 import urllib.error
 import urllib.request
 
+#: The provider is on this host, behind the same proxy that serves it. Reached
+#: through the proxy rather than through its public name: a request to
+#: `https://auth.quantify.club` leaves the machine, goes to Cloudflare and comes
+#: back down the tunnel, and Cloudflare answered it with `403 error code: 1010`
+#: — its own bot rule, against this script's user agent. The deploy has no
+#: business crossing the internet to reach a container beside it.
+#:
+#: The Host header is what selects the identity site on the proxy, and the
+#: proxy is what tells the provider the browser scheme.
+PROVIDER = "http://127.0.0.1"
+IDENTITY_HOST = "{{ quantify_identity_domain }}"
 ISSUER = "https://{{ quantify_identity_domain }}"
 APPLICATION = "https://{{ quantify_domain }}"
 PROJECT_NAME = "Quantify"
@@ -43,10 +54,15 @@ LOGOUT_URIS = [f"{APPLICATION}/"]
 
 def call(path: str, token: str, body: dict | None = None) -> dict:
     request = urllib.request.Request(
-        f"{ISSUER}{path}",
+        f"{PROVIDER}{path}",
         data=None if body is None else json.dumps(body).encode(),
         headers={"Authorization": f"Bearer {token}",
-                 "Content-Type": "application/json"},
+                 "Content-Type": "application/json",
+                 "Host": IDENTITY_HOST,
+                 # Without this the proxy passes the request through as HTTP
+                 # and the provider rejects a management call it considers
+                 # insecure. TLS genuinely terminates at the edge.
+                 "X-Forwarded-Proto": "https"},
         method="GET" if body is None else "POST")
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
@@ -55,9 +71,12 @@ def call(path: str, token: str, body: dict | None = None) -> dict:
         detail = error.read().decode(errors="replace")[:500]
         raise SystemExit(
             f"The provider refused {path}: {error.code} {detail}\n"
-            "A 401 here means the service-account token is not valid for this "
+            "A 401 means the service-account token is not valid for this "
             "instance — it is written once, when the instance is first "
-            "created, so a token from an earlier database will not work.")
+            "created, so a token from an earlier database will not work.\n"
+            "A 403 mentioning a Cloudflare error code is not the provider "
+            "answering at all: the request left the host and was stopped at "
+            "the edge. This script talks to the proxy on 127.0.0.1.")
 
 
 def token() -> str:
