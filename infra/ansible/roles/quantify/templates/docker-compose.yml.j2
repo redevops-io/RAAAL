@@ -59,8 +59,21 @@ services:
   identity:
     image: ghcr.io/zitadel/zitadel:v2.65.1
     restart: unless-stopped
+    # `start`, not `start-from-init`.
+    #
+    # `start-from-init` runs the schema init, the migrations and the server in
+    # one long-lived container. That puts a five-minute first-instance
+    # migration inside something the deploy is entitled to restart, and an
+    # interrupted migration does not resume: it either holds a marker forever
+    # ("migration already started", every five seconds) or half-writes the
+    # instance and then fails permanently on a duplicate unique constraint.
+    # Both cost a database recreate, and both happened.
+    #
+    # The playbook now runs `init` and `setup` to completion as awaited steps
+    # before this container starts. Restarting `start` is harmless, because
+    # `start` does no migrating.
     command: >-
-      start-from-init --masterkeyFromEnv --tlsMode external
+      start --masterkeyFromEnv --tlsMode external
     env_file: [/opt/quantify/.env]
     expose: ["8080"]
     volumes:

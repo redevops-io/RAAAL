@@ -617,24 +617,90 @@
 #
 # Its own database migrations run on first boot and take a couple of minutes,
 # so this waits rather than checking once.
-# The provider, restarted on its own and only when its configuration moved.
+# The provider's schema and first instance, created as awaited steps.
 #
-# Separate from the handler because the two have opposite requirements: the
-# application should be recreated on every deploy that changes anything, and
-# the provider should be recreated as rarely as possible. Restarting it during
-# first-instance creation wedges it permanently — see the handler — and the
-# only recovery is recreating its database.
+# Separate from the running container, because a migration inside a restartable
+# container is a migration that will one day be interrupted — and this one does
+# not resume. Interrupted, it either holds its marker forever or half-writes the
+# default instance and fails afterwards on a duplicate unique constraint. Both
+# have happened here, and both cost a database recreate.
 #
-# Immediately before the wait below, so one deploy performs at most one restart
-# and then blocks until the provider answers.
-- name: Restart the identity provider if its configuration changed
+# `run --rm` blocks until each finishes, so the play cannot proceed past a
+# migration in flight, and nothing else is running to interrupt it.
+- name: Initialise the identity provider's schema
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.command:
+    # No masterkey flag: `init` does not take one. Its whole job is the
+    # database objects and the role that owns them, which is why it reads the
+    # admin credentials and nothing encrypted.
+    cmd: docker compose run --rm -T identity init
+    chdir: /opt/quantify
+  become: true
+  register: identity_init
+  changed_when: identity_init.rc == 0
+  failed_when: false
+
+- name: Create the first instance
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.command:
+    cmd: docker compose run --rm -T identity setup --masterkeyFromEnv --init-projections=true
+    chdir: /opt/quantify
+  become: true
+  register: identity_setup
+  changed_when: identity_setup.rc == 0
+  failed_when: false
+
+# Recovery, guarded by a fact about this deployment rather than about Zitadel.
+#
+# The client-id file is written only after the OIDC application has been
+# created, which is only possible once the provider has served. Its absence
+# means this provider has never worked here — so its database holds nothing
+# this deployment made, and recreating it costs nothing.
+#
+# With the file present, this never runs: a provider that has served may hold
+# real accounts, and the right answer then is to fail and be read by a person.
+- name: Recreate the provider's database if setup failed and it has never served
   when:
     - quantify_identity_domain | default("") | length > 0
-    - rendered.changed or compose_installed.changed | default(false)
+    - identity_setup.rc != 0
+    - known_client_id.content is not defined
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose -f /opt/quantify/docker-compose.yml rm -sf identity
+    PW="$(aws secretsmanager get-secret-value --region {{ quantify_region }} \
+      --secret-id {{ quantify_secret_database }} --query SecretString --output text)"
+    docker run --rm -e PGPASSWORD="$PW" postgres:16-alpine psql \
+      -h {{ quantify_database_host }} -U quantify -d quantify \
+      -c 'DROP DATABASE IF EXISTS zitadel' -c 'CREATE DATABASE zitadel'
+    docker compose -f /opt/quantify/docker-compose.yml run --rm -T identity init
+    docker compose -f /opt/quantify/docker-compose.yml run --rm -T identity \
+      setup --masterkeyFromEnv --init-projections=true
+  args:
+    executable: /bin/bash
+  become: true
+  register: identity_recovered
+  changed_when: identity_recovered.rc == 0
+  failed_when: false
+
+- name: Fail if the provider has no first instance
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.assert:
+    that: identity_setup.rc == 0 or identity_recovered.rc | default(1) == 0
+    fail_msg: >-
+      The identity provider's setup did not complete, so it has no instance to
+      serve. What it said:
+      {{ (identity_recovered.stderr | default(identity_setup.stderr, true))
+         | default("(nothing)", true) | truncate(900) }}
+    success_msg: "The provider has a first instance."
+
+# Safe to restart now: `start` runs no migrations.
+- name: Start the identity provider
+  when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.command:
     cmd: docker compose up -d --force-recreate identity
     chdir: /opt/quantify
   become: true
+  changed_when: true
 
 # Asked through the proxy, from the host, on the route a browser takes.
 #

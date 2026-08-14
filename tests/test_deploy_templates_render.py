@@ -343,3 +343,81 @@ class TestNoCheckRunsABinaryInsideADistrolessImage:
                     f"{service!r} container, whose image is distroless and has "
                     "no userland. The command fails identically whether the "
                     "service is healthy or dead. Ask through the proxy instead")
+
+
+class TestTheProviderCommandsAreRealCommands:
+    """Every flag the deploy passes the identity provider, checked against it.
+
+    `init --masterkeyFromEnv` was written into the playbook from memory. `init`
+    accepts no such flag — its only flag is `--help` — so the task would have
+    failed on the host with "unknown flag", after a deploy, in the middle of
+    the one sequence that had already cost several database recreates.
+
+    Skipped when Docker cannot run, because this is the only check here that
+    needs something outside the repository. That is worth it: the alternative
+    is discovering the flag list one failed deploy at a time.
+    """
+
+    ROLE = (Path(__file__).resolve().parent.parent / "infra" / "ansible"
+            / "roles" / "quantify" / "tasks" / "main.yml")
+    COMPOSE = (Path(__file__).resolve().parent.parent / "infra" / "ansible"
+               / "roles" / "quantify" / "templates" / "docker-compose.yml.j2")
+
+    def image(self) -> str:
+        import re
+
+        if not self.COMPOSE.exists():
+            pytest.skip("no compose template here")
+        found = re.search(r"image:\s*(ghcr\.io/zitadel/zitadel:\S+)",
+                          self.COMPOSE.read_text())
+        if not found:
+            pytest.skip("no identity image pinned here")
+        return found.group(1)
+
+    def invocations(self):
+        """(subcommand, flags) for every provider command the deploy runs."""
+        import re
+
+        if not self.ROLE.exists():
+            pytest.skip("no ansible role here")
+        text = "\n".join(line for line in self.ROLE.read_text().splitlines()
+                         if not line.strip().startswith("#"))
+        found = []
+        for line in re.findall(r"identity\s+((?:init|setup|start)\b[^\n\\]*)",
+                               text):
+            words = line.split()
+            found.append((words[0], [w for w in words[1:]
+                                     if w.startswith("--")]))
+        assert found, "found no provider invocations; this check is stale"
+        return found
+
+    def help_for(self, image: str, subcommand: str) -> str:
+        import subprocess
+
+        done = subprocess.run(
+            ["docker", "run", "--rm", image, subcommand, "--help"],
+            capture_output=True, text=True, timeout=300)
+        return done.stdout + done.stderr
+
+    def test_every_flag_is_one_the_subcommand_accepts(self):
+        import shutil
+        import subprocess
+
+        if shutil.which("docker") is None:
+            pytest.skip("docker is not available here")
+        image = self.image()
+        try:
+            subprocess.run(["docker", "image", "inspect", image],
+                           capture_output=True, timeout=60, check=True)
+        except Exception:  # noqa: BLE001 - not pulling in a test run
+            pytest.skip(f"{image} is not present locally")
+
+        for subcommand, flags in self.invocations():
+            text = self.help_for(image, subcommand)
+            for flag in flags:
+                name = flag.split("=")[0]
+                assert name in text, (
+                    f"the deploy runs `zitadel {subcommand} {name}` and "
+                    f"{subcommand} does not accept {name}. Its flags:\n"
+                    + "\n".join(line for line in text.splitlines()
+                                 if line.strip().startswith("-")))
