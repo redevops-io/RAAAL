@@ -54,6 +54,7 @@ VARIABLES = {
     "quantify_secret_database": "quantify-test/database-password",
     "quantify_secret_identity_key": "quantify-test/identity-masterkey",
     "quantify_secret_identity_admin": "quantify-test/identity-admin-password",
+    "quantify_secret_smtp": "quantify-test/smtp-credentials",
     "quantify_identity_client_id": "386173685016363013",
     "quantify_secret_model_key": "quantify-test/model-api-key",
     "quantify_secret_tunnel_token": "quantify-test/cloudflare-tunnel-token",

@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Give the identity provider a way to send mail, or say why it has none.
+
+ZITADEL requires a verified email address before an account can sign in, and
+the only way to verify one is to send to it. Without a sender, registration
+completes and login then refuses — the worst shape a failure can take, because
+the person has done everything asked and is told nothing useful.
+
+Run from the deploy, against the provider's admin API, through the proxy on
+this host. Prints one line saying what it did.
+
+**Idempotent by comparison, not by flag.** It reads the providers already
+configured and only writes when the settings differ, so a deploy that changes
+nothing does not rotate the provider's mail configuration under a running
+instance. Two SMTP providers would be silently wrong rather than loudly wrong:
+mail would keep working, from whichever one happened to be active.
+"""
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+
+PROVIDER = "http://127.0.0.1"
+IDENTITY_HOST = "{{ quantify_identity_domain }}"
+TOKEN_PATH = "/opt/quantify/machinekey/pat.txt"
+REGION = "{{ quantify_region }}"
+SECRET = "{{ quantify_secret_smtp }}"
+
+#: What the provider's own description says, so a person reading the console
+#: knows where the configuration came from and what rewrites it.
+DESCRIPTION = "Configured by the Quantify deploy from Secrets Manager"
+
+
+def call(path: str, token: str, body: dict | None = None,
+         method: str | None = None) -> dict:
+    request = urllib.request.Request(
+        f"{PROVIDER}{path}",
+        data=None if body is None else json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {token}",
+                 "Content-Type": "application/json",
+                 "Host": IDENTITY_HOST,
+                 "X-Forwarded-Proto": "https"},
+        method=method or ("GET" if body is None else "POST"))
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return json.loads(response.read() or b"{}")
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode(errors="replace")[:400]
+        raise SystemExit(f"The provider refused {path}: {error.code} {detail}")
+
+
+def credentials() -> dict:
+    """The SMTP settings, read on this host and never printed."""
+    found = subprocess.run(
+        ["aws", "secretsmanager", "get-secret-value", "--region", REGION,
+         "--secret-id", SECRET, "--query", "SecretString", "--output", "text"],
+        capture_output=True, text=True, timeout=60)
+    if found.returncode != 0:
+        raise SystemExit(f"could not read {SECRET}: {found.stderr[:200]}")
+    return json.loads(found.stdout or "{}")
+
+
+def main() -> int:
+    settings = credentials()
+    missing = [name for name in ("host", "user", "password", "sender")
+               if not settings.get(name)]
+    if missing:
+        # Not a failure. A deployment may legitimately have no mail sender yet,
+        # and the honest report is that registration will not complete rather
+        # than a deploy that stops.
+        print(f"MAIL_NOT_CONFIGURED missing={','.join(missing)} — "
+              "registration will complete and sign-in will then refuse, "
+              "because a verified address is required and nothing can send to "
+              f"one. Set {SECRET} and re-run.")
+        return 0
+
+    with open(TOKEN_PATH, encoding="utf-8") as handle:
+        token = handle.read().strip()
+
+    host = f"{settings['host']}:{settings.get('port', 587)}"
+    wanted = {
+        "senderAddress": settings["sender"],
+        "senderName": settings.get("sender_name") or "Quantify",
+        "tls": bool(settings.get("tls", True)),
+        "host": host,
+        "user": settings["user"],
+        "password": settings["password"],
+        "description": DESCRIPTION,
+    }
+
+    existing = call("/admin/v1/email/providers", token).get("result") or []
+    for provider in existing:
+        smtp = provider.get("smtp") or {}
+        # The password is never returned, so it cannot be compared. Everything
+        # that identifies *where* mail goes is compared instead; a rotated
+        # password is applied by changing the description or by removing the
+        # provider, which is a deliberate act rather than a silent one.
+        same = (smtp.get("host") == wanted["host"]
+                and smtp.get("senderAddress") == wanted["senderAddress"]
+                and smtp.get("user") == wanted["user"])
+        if same:
+            state = provider.get("state", "")
+            if "ACTIVE" not in state:
+                call("/admin/v1/email/provider/activate", token,
+                     {"id": provider.get("id")})
+                print(f"MAIL_ACTIVATED sender={wanted['senderAddress']}")
+                return 0
+            print(f"MAIL_OK sender={wanted['senderAddress']} host={host}")
+            return 0
+
+    created = call("/admin/v1/email/smtp", token, wanted)
+    identifier = created.get("id") or created.get("details", {}).get("id")
+    if identifier:
+        call("/admin/v1/email/provider/activate", token, {"id": identifier})
+    print(f"MAIL_CONFIGURED sender={wanted['senderAddress']} host={host}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

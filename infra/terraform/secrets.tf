@@ -178,3 +178,39 @@ resource "aws_secretsmanager_secret_version" "identity_admin" {
   secret_id     = aws_secretsmanager_secret.identity_admin[0].id
   secret_string = jsonencode({ password = random_password.identity_admin[0].result })
 }
+
+
+# Outbound mail for the identity provider.
+#
+# Not optional the moment registration is open: ZITADEL requires a verified
+# email address before an account can sign in, and the only way to verify one
+# is to send to it. A provider with no mail sender lets people register and
+# then refuses to let them in — which is a worse outcome than closed
+# registration, because it looks like it worked.
+#
+# Created empty, like the model key and the masterkey. The token belongs to a
+# third-party account and Terraform has no business knowing it; Ansible refuses
+# to configure mail while this is blank, and the provider simply has no sender
+# until somebody sets it.
+resource "aws_secretsmanager_secret" "smtp" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  name        = "${local.name}/smtp-credentials"
+  description = "SMTP credentials for identity notifications. Value set out of band — see infra/README.md."
+
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "smtp" {
+  count = var.identity_domain_name == "" ? 0 : 1
+
+  secret_id = aws_secretsmanager_secret.smtp[0].id
+  secret_string = jsonencode({
+    host   = "", port = 587, user = "", password = "",
+    sender = "", sender_name = "Quantify",
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}

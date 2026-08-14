@@ -838,6 +838,33 @@
   changed_when: false
   failed_when: bootstrapped.rc != 0
 
+# Mail, without which registration completes and sign-in then refuses.
+#
+# After the application exists, because both read the same service-account
+# token, and before the summary, so what it reports is the last word on
+# whether accounts can actually be used.
+- name: Install the mail configuration script
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.template:
+    src: configure-mail.py.j2
+    dest: /opt/quantify/configure-mail.py
+    owner: root
+    group: root
+    mode: "0750"
+  become: true
+
+- name: Give the identity provider a way to send mail
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.command: /opt/quantify/configure-mail.py
+  become: true
+  register: mail_configured
+  changed_when: "'MAIL_CONFIGURED' in mail_configured.stdout or 'MAIL_ACTIVATED' in mail_configured.stdout"
+
+- name: Report whether accounts can be used
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.debug:
+    msg: "{{ mail_configured.stdout_lines | default(['(not run)']) }}"
+
 - name: Record the client id for the next deploy
   when: quantify_identity_domain | default("") | length > 0
   ansible.builtin.copy:

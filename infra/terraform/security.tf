@@ -130,6 +130,9 @@ resource "aws_iam_role_policy" "secrets" {
           ], [
           for secret in aws_secretsmanager_secret.identity_admin :
           secret.arn
+          ], [
+          for secret in aws_secretsmanager_secret.smtp :
+          secret.arn
         ])
       },
       {

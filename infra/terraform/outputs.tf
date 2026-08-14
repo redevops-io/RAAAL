@@ -62,6 +62,7 @@ output "ansible_variables" {
     quantify_identity_domain       = var.identity_domain_name
     quantify_secret_identity_key   = try(aws_secretsmanager_secret.identity_masterkey[0].name, "")
     quantify_secret_identity_admin = try(aws_secretsmanager_secret.identity_admin[0].name, "")
+    quantify_secret_smtp           = try(aws_secretsmanager_secret.smtp[0].name, "")
     quantify_parser_provider       = var.parser_provider
     quantify_parser_model          = var.parser_model
     quantify_parser_prompt_version = var.parser_prompt_version
