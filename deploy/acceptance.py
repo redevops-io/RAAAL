@@ -46,6 +46,24 @@ LEAK_TOKENS = ("psycopg", "sqlite3", "Traceback", "DETAIL:", "postgresql://")
 #: Every check this script performs, in order, whether or not it gets that far.
 #: A record of an abandoned run has to say what was skipped: "one check, failed"
 #: reads as a one-check suite rather than a sixteen-check suite that stopped.
+def _private_prefixes():
+    """The gated prefixes, from the application rather than from a copy here.
+
+    Imported rather than restated because the two lists drifting is the defect
+    this check exists to catch, one level down: a prefix added to close a hole
+    would leave a hand-written copy probing only the path that was already
+    safe. Falls back to the two known mounts when the application cannot be
+    imported — this script runs against a remote deployment and must not
+    silently check nothing because a local import failed.
+    """
+    try:
+        from src.api import PRIVATE_PREFIXES
+
+        return tuple(PRIVATE_PREFIXES)
+    except Exception:                                          # noqa: BLE001
+        return ("/workspace", "/pilot")
+
+
 ALL_CHECKS = (
     "liveness answers",
     "readiness reports ready",
@@ -53,7 +71,8 @@ ALL_CHECKS = (
     "build reports observable",
     *(f"build does not publish {fact}" for fact in PRIVATE_BUILD_FACTS),
     "personalisation is off",
-    "the private surface requires a credential",
+    *(f"{prefix.rstrip('/')}/ requires a credential"
+      for prefix in _private_prefixes()),
     "an error carries a correlation id",
     *(f"an error does not leak {token!r}" for token in LEAK_TOKENS),
 )
@@ -180,11 +199,31 @@ def main(base, record_to=None):
           info.get("personalization", {}).get("enabled") is False,
           "the publisher's exclusion depends on impersonal output")
 
-    status, body, _ = fetch(base, "/workspace/")
-    check("the private surface requires a credential", status in (401, 403),
-          f"status {status} — the pilot workspace must not be open. Run this "
-          "against the public URL: pointed straight at the application it "
-          "bypasses the proxy that holds the credential, and passes nothing")
+    # Both mounts, because the surface is served twice and was gated once.
+    #
+    # This probed `/workspace/` alone and expected 401 or 403, which was the
+    # proxy's shared password. A deployment with accounts answers 303 to
+    # `/auth/login` instead — not a weaker refusal, a different one — so the
+    # check failed on a correctly-secured site while `/pilot/plans/{id}` was
+    # genuinely open beside it. It reported the wrong path for the right
+    # reason, which is the most expensive kind of nearly-right check.
+    #
+    # So: what counts as refusal is now stated for both mechanisms, and the
+    # paths come from `src.api.PRIVATE_PREFIXES` rather than from a list here.
+    # A prefix added to close a hole would otherwise leave this still probing
+    # the one place that was never the problem.
+    for prefix in _private_prefixes():
+        path = prefix.rstrip("/") + "/"
+        status, body, headers = fetch(base, path)
+        location = next((value for name, value in (headers or {}).items()
+                         if name.lower() == "location"), "")
+        refused = status in (401, 403) or (
+            status in (301, 302, 303, 307, 308) and "/auth/" in location)
+        check(f"{path} requires a credential", refused,
+              f"status {status}{' -> ' + location if location else ''} — the "
+              "private surface must not be open. A signed-out request must be "
+              "refused, or sent to sign in; anything else hands somebody "
+              "else's plans to whoever asks")
 
     # An unauthenticated path that still reaches the application.
     #

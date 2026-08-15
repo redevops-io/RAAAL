@@ -369,11 +369,28 @@ app.include_router(auth_router)
 
 #: Paths that require a verified session where this deployment has accounts.
 #:
-#: The workspace and everything under it, which is the whole private surface.
 #: `/auth/*` is deliberately outside — a login that required a login could not
 #: be started — and so are `/ui`, `/research` and the health endpoints, which
 #: are published on purpose.
-PRIVATE_PREFIXES = ("/workspace",)
+#:
+#: **`/pilot` is here because it was not, and that was an exposure.** This list
+#: said `("/workspace",)` and called itself "the whole private surface", which
+#: was true of one of the two routers that serve the workspace.
+#: `workspace.routes` carries `prefix="/workspace"` so everything it declares
+#: is covered; `workspace.pilot_routes` carries no prefix at all, so `/pilot`,
+#: `/pilot/answer`, `/pilot/save` and `/pilot/plans/{plan_id}` sat at the root
+#: outside the gate. Found by the acceptance check failing after deployment,
+#: on a live site that already held plans.
+#:
+#: `/pilot/plans/{plan_id}` is the one that mattered: it resolves a stored plan
+#: for `owner.current()`, which for a viewer with no session is the shared
+#: `pilot` workspace — so anybody with a plan id could read a plan saved there,
+#: while `/workspace/plans/{plan_id}` sent them to sign in.
+#:
+#: Not restated but *derived* by `test_private_surface_is_derived`, which reads
+#: both routers and requires every path they declare to be covered here. A
+#: third router mounted at the root would otherwise repeat this exactly.
+PRIVATE_PREFIXES = ("/workspace", "/pilot")
 
 
 @app.middleware("http")
