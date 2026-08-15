@@ -1,28 +1,28 @@
 name: Tests
 
-# The suite had no lane. Every other workflow here is `workflow_dispatch` and
-# switched off, so nothing ran on a push — which is why four defects reached a
-# hand-run of PostgreSQL in one afternoon: a delivery record that could not be
-# verified against its data, two tests unable to identify their own subject, and
-# a re-key that applied on one dialect only.
+# The suite has no automatic trigger, and that is deliberate — the same
+# decision every other workflow here records.
 #
-# **Two lanes, and the slow one is not optional.** SQLite is fast and runs
-# everywhere; it also cannot express the guarantees that matter most here.
-# `row[0]` is correct on `sqlite3.Row` and a `KeyError` on a mapping-only row,
-# so a defect that returned INTERNAL_ERROR on every saved plan passed every
-# test. A primary key can be moved on PostgreSQL and not on SQLite, so a
-# migration can be half-applied and green. And the digest that says which
-# observations produced a figure is checked only against a real database.
+# This lane was added with `on: push` and `pull_request`, referencing a
+# `requirements-dev.txt` that does not exist. So it failed at the install step
+# on every push, which is a red cross against a green suite: the code was fine
+# and the lane was wrong. That is precisely the failure mode the other
+# workflows in this directory were switched off for, and it took one afternoon
+# to reintroduce.
 #
-# So the PostgreSQL lane sets `QUANTIFY_REQUIRE_POSTGRES`, and in that lane a
-# skip is a failure. Without it the lane would run the SQLite suite, pass, and
-# report the same green as the fast one — which is how a database-specific
-# guarantee stops being checked without anybody deciding to stop checking it.
+# Kept runnable rather than deleted. The lanes below are real evidence and the
+# way to turn them on is to restore a trigger here — with a working install
+# line, and having watched it pass from a dispatch first:
+#
+#   push:
+#     branches: [master]
+#   pull_request:
+#
+# `tests/test_workflows_do_not_fire_by_themselves.py` asserts this file has no
+# automatic trigger, so switching one on is a decision somebody makes in a diff
+# rather than a side effect of adding a lane.
 
 on:
-  push:
-    branches: [master]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -43,7 +43,10 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - run: pip install -r requirements-core.txt -r requirements-dev.txt
+      # `requirements.txt`, which carries pytest. The first version of this
+      # file installed `requirements-core.txt -r requirements-dev.txt`; the
+      # second of those has never existed in this repository.
+      - run: pip install -r requirements.txt
       - run: python -m pytest tests/ -q --ignore=tests/test_container_reachability.py
 
   postgres:
@@ -51,6 +54,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    # Why this lane exists at all. SQLite is fast and cannot express the
+    # guarantees that matter most here: `row[0]` is correct on `sqlite3.Row`
+    # and a `KeyError` on a mapping-only row, so a defect that returned
+    # INTERNAL_ERROR on every saved plan passed every test; a primary key can
+    # be moved on PostgreSQL and not on SQLite, so a migration can be
+    # half-applied and green; and the digest that says which observations
+    # produced a figure is only checked against a real database.
     services:
       postgres:
         image: postgres:16-alpine
@@ -81,5 +91,5 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - run: pip install -r requirements-core.txt -r requirements-dev.txt
+      - run: pip install -r requirements.txt
       - run: python -m pytest tests/ -q --ignore=tests/test_container_reachability.py
