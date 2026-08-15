@@ -114,6 +114,69 @@ class StrategySpec:
         return "spec1:" + hashlib.sha256(body.encode()).hexdigest()
 
 
+def to_scenario(spec: StrategySpec, *, name: str = "plan", version: int = 1):
+    """The specification, back as something the engine can run.
+
+    The inverse of `from_scenario`, and it exists to be *checked*: if a
+    scenario cannot be rebuilt from its own specification, the specification is
+    lossy and the evaluation service would be receiving less than the engine
+    needs. `test_strategy_spec` round-trips every shape and compares canonical
+    forms, which is the cheapest possible version of Step 6's conformance run
+    and catches the same class of defect a year earlier.
+
+    `name` and `version` are arguments rather than fields. They label a plan and
+    do not change what it executes, so putting them in the spec would put them
+    in the hash, and two identical strategies with different titles would stop
+    being the same run.
+    """
+    from decimal import Decimal
+
+    from .funding import EventTriggered, ExecutionTiming, Scheduled
+    from .funding import Trigger as EngineTrigger
+    from .scenario import (AllocationRule, BenchmarkSet, FlowSchedule,
+                           HoldingsPolicy, Objective, ScenarioSpecification)
+    from .signals import Estimator, SignalKind
+
+    allocation = AllocationRule(
+        assets=tuple(spec.allocation.assets),
+        weighting=spec.allocation.weighting,
+        weights={k: float(v) for k, v in (spec.allocation.weights or {}).items()})
+
+    if spec.funding.kind == "event_triggered":
+        trigger = spec.funding.trigger
+        funding = EventTriggered(
+            trigger=EngineTrigger(
+                subject=trigger.subject, window=int(trigger.window),
+                estimator=Estimator(trigger.estimator),
+                kind=SignalKind(trigger.kind)),
+            amount=Decimal(spec.funding.amount),
+            execution_timing=ExecutionTiming(spec.funding.execution_timing))
+        schedule = FlowSchedule(cadence="event_triggered", amount=0.0,
+                                day_rule=spec.funding.day_rule or
+                                "first_session_of_period")
+    else:
+        funding = Scheduled(cadence=spec.funding.cadence,
+                            amount=Decimal(spec.funding.amount),
+                            day_rule=spec.funding.day_rule)
+        schedule = FlowSchedule(cadence=funding.cadence,
+                                amount=float(funding.amount),
+                                day_rule=funding.day_rule)
+
+    return ScenarioSpecification(
+        name=name, version=version, objective=Objective(spec.objective),
+        event_program=(), flow_schedule=schedule, allocation_rule=allocation,
+        holdings_policy=HoldingsPolicy(
+            sells_allowed=spec.sells_allowed,
+            rebalancing_allowed=spec.rebalancing_allowed,
+            rebalancing_cadence=spec.rebalancing_cadence,
+            dividend_policy=spec.dividend_policy),
+        benchmark_set=(BenchmarkSet(generated_by_rule="", members=(),
+                                    ordering="unordered")
+                       if spec.benchmarks or spec.benchmarks == () else None),
+        tax_treatment=spec.tax_treatment,
+        funding=funding)
+
+
 def from_scenario(scenario, *, evaluation_window: str = "") -> StrategySpec:
     """The engine's plan, as data.
 
