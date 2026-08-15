@@ -246,6 +246,36 @@ IDENTITY_VARIABLES = ("OIDC_ISSUER", "OIDC_AUDIENCE", "OIDC_CLIENT_ID",
                       "OIDC_INTERNAL_BASE_URL", "PUBLIC_BASE_URL")
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _no_ambient_identity_at_all(request):
+    """The same rule, for fixtures that run before a function-scoped one can.
+
+    `_no_ambient_identity` below is function-scoped, and pytest sets up
+    higher-scoped fixtures first — so a module-scoped fixture builds its whole
+    world *before* the protection applies, and sees the developer's shell after
+    all.
+
+    Found the expensive way. A shell holding `OIDC_ISSUER` and `OIDC_AUDIENCE`
+    but no `OIDC_CLIENT_ID` — which is what a half-finished provider setup
+    leaves behind — made the application demand a session and then refuse to
+    start a login, so `test_backup_restore`'s module fixture failed at its
+    first assertion with "there is nothing to log in to". On a machine with a
+    clean shell it passed. That is the same "depends on who ran it" failure the
+    function-scoped fixture was written to end, arriving through the one gap it
+    could not cover.
+
+    Session-scoped and autouse, so the environment is cleaned once before any
+    fixture of any scope runs, and put back when the run finishes.
+    """
+    from _pytest.monkeypatch import MonkeyPatch
+
+    patch = MonkeyPatch()
+    for name in IDENTITY_VARIABLES:
+        patch.delenv(name, raising=False)
+    yield
+    patch.undo()
+
+
 @pytest.fixture(autouse=True)
 def _no_ambient_identity(monkeypatch):
     """No test inherits an identity provider from the developer's shell.

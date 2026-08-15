@@ -23,6 +23,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import urllib.parse
 
 import pytest
 
@@ -52,6 +53,47 @@ def docker(*args, timeout=180):
                           timeout=timeout)
 
 
+def _dumps_what_it_populated() -> str:
+    """Why this drill may not run, if it may not.
+
+    The fixture writes a plan into `QUANTIFY_TEST_POSTGRES_URL` and then dumps
+    `SOURCE_CONTAINER`. Nothing made those the same database, and when they are
+    not, the drill populates one, dumps another, restores an empty one and
+    reports `migration_head: None` — a failure that says nothing about backups.
+    That is worse than not running: it looks like evidence.
+
+    It also refuses rather than adapting, because the fixture's first act is
+    `DROP SCHEMA public CASCADE`. Pointing this at a database by inference
+    would eventually point it at one somebody was using.
+    """
+    if not (POSTGRES_URL and DOCKER):
+        return ""
+    published = docker("port", SOURCE_CONTAINER, "5432/tcp", timeout=20)
+    if published.returncode != 0:
+        return (f"the source container {SOURCE_CONTAINER!r} is not running, "
+                "and this drill dumps from it")
+    ports = {line.rsplit(":", 1)[-1].strip()
+             for line in published.stdout.splitlines() if ":" in line}
+    configured = urllib.parse.urlparse(POSTGRES_URL).port
+    if str(configured) not in ports:
+        return (f"QUANTIFY_TEST_POSTGRES_URL points at port {configured} and "
+                f"{SOURCE_CONTAINER!r} publishes {sorted(ports)}. This drill "
+                "would populate one database and dump another, and report the "
+                "difference as a backup failure. Point it at the source "
+                "container — noting that the fixture drops its schema")
+    return ""
+
+
+#: Appended after the helper exists, because `pytestmark` is read at collection
+#: and the module body has finished by then. A skip that names the mismatch is
+#: the point: "did not run, and here is the setting that would fix it" is
+#: information, where a `migration_head: None` failure is a wrong answer to a
+#: question about backups.
+_INCOHERENT = _dumps_what_it_populated()
+if _INCOHERENT:
+    pytestmark.append(pytest.mark.skip(reason=_INCOHERENT))
+
+
 @pytest.fixture(scope="module")
 def populated():
     """A workspace with a saved plan, a run, a worksheet and a delivery."""
@@ -60,10 +102,23 @@ def populated():
     from src.db import migrate
     from src.db.engine import Database
 
-    os.environ.setdefault("PILOT_DATA_POLICY", "SYNTHETIC_ONLY")
-    os.environ["QUANTIFY_DATABASE_URL"] = POSTGRES_URL
-    os.environ["QUANTIFY_PARSER_MODE"] = "MODEL_ASSISTED"
-    os.environ["QUANTIFY_PARSER_MODEL"] = "claude-sonnet-5"
+    # Declared, not inherited — including the profile, which is what says this
+    # deployment serves without an identity provider. Without it the save route
+    # answered with "there is nothing to log in to" and the fixture failed at
+    # its first assertion, because the module was relying on an OIDC setting
+    # some *other* test had left in `os.environ`. It passed for exactly as long
+    # as that test ran first.
+    declared = {"PILOT_DATA_POLICY": "SYNTHETIC_ONLY",
+                "QUANTIFY_DEPLOYMENT_PROFILE": "local",
+                "QUANTIFY_DATABASE_URL": POSTGRES_URL,
+                "QUANTIFY_PARSER_MODE": "MODEL_ASSISTED",
+                "QUANTIFY_PARSER_MODEL": "claude-sonnet-5"}
+    # Restored on the way out. `monkeypatch` is function-scoped and this
+    # fixture is not, so the environment is saved and put back by hand — the
+    # module used to set these and leave them set, which is a test changing the
+    # conditions every later test runs under.
+    previously = {name: os.environ.get(name) for name in declared}
+    os.environ.update(declared)
 
     database = Database(POSTGRES_URL)
     engine = database.sqlalchemy_engine()
@@ -81,11 +136,19 @@ def populated():
     from tests.conftest import submit_rendered_confirmation
 
     unbind()
-    with TestClient(api.app) as client:
-        response, plan_id = submit_rendered_confirmation(
-            client, DESCRIPTION, title="Roth")
-    assert response.status_code == 303, response.text
-    return plan_id
+    try:
+        with TestClient(api.app) as client:
+            response, plan_id = submit_rendered_confirmation(
+                client, DESCRIPTION, title="Roth")
+        assert response.status_code == 303, response.text
+        yield plan_id
+    finally:
+        for name, was in previously.items():
+            if was is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = was
+        unbind()
 
 
 @pytest.fixture(scope="module")
