@@ -1738,6 +1738,48 @@ published, not of what published it. The `frame_digest` a run already records
 has to keep meaning the same thing across that switch, which is the migration
 test worth writing before the migration.
 
+## What an OOM kill actually costs
+
+The worry is that a pod killed mid-session loses its scratch. Half true, and
+the half that is wrong is the half people plan around.
+
+**An OOM kill removes the container, not the pod.** Kubernetes is explicit:
+"a container crashing does not remove a Pod from a node. The data in an
+`emptyDir` volume is safe across container crashes." The kubelet restarts the
+container in the same pod and the scratch is still there. What deletes an
+`emptyDir` is the *pod* leaving the node — eviction, rescheduling, node
+failure, scale-down.
+
+Which produces an irony worth designing around: the likeliest way to lose
+scratch is to size it badly. A pod exceeding its `ephemeral-storage` limit is
+*evicted*, and eviction is exactly the pod-removal case. Undersizing the limit
+destroys the volume that the limit exists to protect.
+
+**A PVC only helps work that can resume.** If a job restarts from zero, keeping
+its partial spill buys nothing — the restart discards it either way.
+Persistence pays only where the work is checkpointed, and checkpointing is a
+property of the job rather than of the storage class. Reaching for a volume
+first is solving the wrong half.
+
+So, in order:
+
+1. **Set `memory_limit` below the container's memory limit.** This is the fix
+   that matters, and it is one line. With DuckDB's limit at or above the
+   container's, the kernel kills the process before DuckDB decides to spill —
+   so the OOM kill is *caused* by the setting rather than survived. Below it,
+   the same query spills and finishes.
+2. **Commit in units.** An ingest that writes one Iceberg snapshot per
+   partition loses at most one partition to a restart, and an uncommitted
+   snapshot is not partially visible — the lake stays consistent whatever
+   happens to the pod. This is what makes a restart cheap rather than a
+   volume.
+3. **Then consider a PVC**, if a unit is large enough that redoing it hurts and
+   the job can genuinely resume from what survived.
+
+For testing, none of this matters and `emptyDir` is right. For later, what
+changes is (1) and (2) — both properties of the workload — and only then (3),
+which is a property of the cluster.
+
 ## What would make this wrong
 
 - If the instrument work stays hypothetical, the evaluation split buys
