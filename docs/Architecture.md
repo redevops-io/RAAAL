@@ -1780,6 +1780,46 @@ For testing, none of this matters and `emptyDir` is right. For later, what
 changes is (1) and (2) — both properties of the workload — and only then (3),
 which is a property of the cluster.
 
+## A second scheduler, and when it would be earned
+
+[CircleCI runs Nomad as its job scheduler](https://circleci.com/docs/server-admin/latest/operator/introduction-to-nomad-cluster-operation/):
+one Nomad job per CI job, clients on dedicated machines, a build agent as the
+job's main process. It is a good design for the problem it has, and the
+problem is not this one.
+
+Their workload is an enormous number of short-lived jobs running *other
+people's code*, where isolation is the product and per-job startup is the
+latency users feel. Ours is three long-running services and evaluations that
+are request-shaped and measured in seconds. Kubernetes Deployments handle the
+second well; a second scheduler would be two control planes to run, upgrade
+and secure, on a deployment that has cost several evenings at the size of one
+EC2 instance.
+
+Worth noting that CircleCI's own documentation warns against the arrangement
+as described — a Nomad server inside a Kubernetes pod is "a circular
+dependency where Kubernetes manages your scheduler, which could be managing
+Kubernetes itself". Their Nomad clients run on dedicated machines beside the
+cluster rather than inside it.
+
+**The discriminator is whether the unit of work is a request or a job.** A
+request is served by a pool: a Deployment, an autoscaler, no second scheduler.
+A job — isolated, untrusted, minutes long, thousands per hour — is what batch
+schedulers are for, and only then is the choice between Kubernetes Jobs and
+Nomad worth having.
+
+**And before either, remember what the architecture already makes true.**
+`evaluate(strategy_hash, market_snapshot_hash, engine_version)` is close to a
+pure function, and pure functions are cached rather than scheduled. The same
+strategy against the same published snapshot under the same engine is the same
+result, permanently — so the scaling question is mostly a cache-hit question,
+and scheduling only governs the misses. Reaching for a scheduler before
+memoising the function would be solving the load you chose to keep.
+
+Revisit if evaluations become genuinely isolated per-tenant jobs — running
+somebody's own uploaded model, say — or if cache-miss volume reaches a rate
+where per-pod creation overhead dominates. Both are measurable, and neither is
+true now.
+
 ## What would make this wrong
 
 - If the instrument work stays hypothetical, the evaluation split buys
