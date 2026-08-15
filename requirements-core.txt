@@ -63,3 +63,19 @@ agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.3
 # easy and verifying one correctly is not, and the failure mode
 # of getting it slightly wrong is an accepted forgery.
 pyjwt[crypto]>=2.8
+
+# Market conventions, so they are named rather than reasoned out.
+#
+# Day counts (Actual/365 Fixed, Actual/360, 30E/360, Business/252), business
+# day conventions (Following, ModifiedFollowing, Preceding) and the NYSE
+# calendar. The rule for a contribution on the 15th was written from scratch
+# here, tested from scratch, and described in three comments before anybody
+# checked it against a definition — it turned out to be ModifiedFollowing
+# exactly.
+#
+# In requirements-core.txt and not requirements.txt on purpose. The image
+# installs core only, which is why Stanza has been absent from every
+# deployment for months while sitting in the other file, a fact the pilot page
+# prints about itself. A convention library that did not reach production
+# would be the same mistake with a different name.
+QuantLib>=1.36

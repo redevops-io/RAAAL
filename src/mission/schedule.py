@@ -147,14 +147,17 @@ def day_of_month(day_rule: str) -> Optional[int]:
 def _on_or_after(period: pd.Series, day: int):
     """The first session in this period on or after the nominated day.
 
-    Rolled forward, because a market is shut on the 15th about two months in
-    seven and money does not land on a closed exchange.
+    This is `ModifiedFollowing` — roll forward, unless that leaves the month,
+    in which case take the last session of the month. It was reasoned out here
+    before anybody checked, and it matches
+    `ql.UnitedStates(ql.UnitedStates.NYSE).adjust(date, ql.ModifiedFollowing)`
+    for every month of 2024 on both the 15th and the 31st. See
+    `mission.conventions`, which now names it.
 
-    A period with no such session — the 31st of a thirty-day month, the 30th of
-    February — takes that period's last session instead. The alternative is
-    rolling into the next month, which puts two contributions in one month and
-    none in another; "monthly" means once a month, and landing late within the
-    month keeps that true.
+    Computed from the sessions rather than from the calendar, deliberately.
+    QuantLib knows which days the exchange was open; only the snapshot knows
+    which days it has a price for, and a purchase on a date with no bar is a
+    worse error than a contribution landing a day late.
     """
     on_or_after = period[period.dt.day >= day]
     return on_or_after.min() if len(on_or_after) else period.max()

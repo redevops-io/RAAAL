@@ -107,6 +107,15 @@ class MissionResult:
 
     @property
     def time_weighted_annualized(self) -> Optional[float]:
+        """Compounded per session and raised to sessions per year.
+
+        `periods_per_year` is 252 because the series is per-session, which is
+        `Business/252` — see `mission.conventions.ANNUALISATION`. It is not the
+        convention equity performance is usually *quoted* on, which is
+        Actual/365 Fixed; computing on one and reporting on the other is how a
+        figure drifts a percent with nothing saying why, so the number is
+        unchanged and now carries its name.
+        """
         r = self.time_weighted.dropna()
         if r.empty:
             return None
