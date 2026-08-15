@@ -74,8 +74,20 @@ class Stream:
         return "st1:" + hashlib.sha256(body.encode()).hexdigest()[:16]
 
     def to_json(self) -> Dict[str, Any]:
+        """A copy, all the way down.
+
+        `list(self.rows)` made a new list holding *the same dictionaries*, so a
+        caller editing the serialized body edited this frozen result through
+        it. Found by a mutation test that changed one metric status on the wire
+        and watched both sides change — the result was frozen in the sense that
+        its fields could not be reassigned, and not in the sense anybody
+        needed.
+        """
+        import copy
+
         return {"name": self.name, "produced": self.produced,
-                "rows": list(self.rows), "absent_because": self.absent_because,
+                "rows": copy.deepcopy(list(self.rows)),
+                "absent_because": self.absent_because,
                 "digest": self.digest}
 
 
