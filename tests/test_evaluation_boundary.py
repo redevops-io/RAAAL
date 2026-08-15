@@ -90,6 +90,76 @@ def test_the_check_would_notice_a_crossing():
         "has several — so a clean result from it means nothing")
 
 
+class TestTheDecompositionHeld:
+    """Step 7's exit condition, as a property rather than a plan.
+
+        Given a plan, a frame and a policy, the extracted evaluator produces the
+        seven streams and the publish/refuse decision without importing
+        `workspace`.
+
+    `_run` did four jobs its name mentioned none of. Calculation and the gate
+    that decides whether a figure may be shown moved into `evaluation.core`;
+    benchmarks, the comparison payload, comparability verdicts and provenance
+    stayed, because none of them changes the figure or whether it is
+    publishable — and moving them would have taken the application along.
+    """
+
+    def test_the_evaluator_can_calculate_without_the_application(self):
+        found = imported_packages("evaluation")
+        assert found == {}, (
+            f"src/evaluation imports {found}. The exit condition is that the "
+            "evaluator computes without the web layer, and an import is the "
+            "part that fails at deploy time rather than at test time")
+
+    def test_the_gate_moved_with_the_calculation(self):
+        """A gate the caller can forget to ask is a gate that will be forgotten.
+
+        Reconciliation catches the engine doing something other than the plan,
+        and coverage catches a declared element that quietly did not run —
+        three prompts once returned an identical figure while each dropped a
+        different one. Both must be able to withhold the number, so both live
+        with the calculation rather than beside it.
+        """
+        from src.evaluation.core import evaluate_plan
+        from src.evaluation.core import Evaluated
+
+        source = (SRC / "evaluation" / "core.py").read_text()
+        assert "coverage_module.assess" in source, "coverage does not gate here"
+        assert "reconcile" in source, "reconciliation does not gate here"
+        assert "publishable" in [f for f in Evaluated.__dataclass_fields__]
+
+    def test_publishable_is_not_merely_having_a_result(self):
+        """A run can compute a perfectly good result and still be
+        unpublishable. Collapsing the two would let a figure through on the
+        strength of having been calculated.
+
+        Checked by constructing the state rather than by reading the source.
+        The first version searched `inspect.getsource` for `result is not None`
+        and matched the docstring that explains why it must not appear — a
+        check reading prose as code, in a test about not doing that.
+        """
+        from src.evaluation.core import Evaluated
+
+        computed_but_withheld = Evaluated(
+            publishable=False, refusal="the ledger and the totals disagree",
+            result=object())
+        assert computed_but_withheld.result is not None
+        assert computed_but_withheld.publishable is False, (
+            "a result that exists is being treated as a result that may be "
+            "shown, so a failing reconciliation would publish a figure")
+
+    def test_what_stayed_behind_stayed_behind(self):
+        """The other half of the classification, checked so the next person
+        does not "finish" the move by dragging the page along."""
+        source = (SRC / "evaluation" / "core.py").read_text()
+        for application in ("comparison_payload", "comparability_records",
+                            "_benchmark_specs", "RunConditions"):
+            assert application not in source, (
+                f"{application} is presentation or comparison shaping and has "
+                "moved into the evaluator; it changes no figure and gates "
+                "nothing")
+
+
 class TestTheCompilerNoLongerReadsLanguage:
     """It did, and this is the test that used to say so.
 

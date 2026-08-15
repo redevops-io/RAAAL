@@ -3152,3 +3152,60 @@ Six INTERPRET branches, four unreported defaults, one stale constant. The
 cadence and negation work named in the plan covers 1, 3 and 5 directly; 2, 4
 and 6 are the same class and are cheaper to move at the same time than to
 rediscover during extraction.
+
+---
+
+## `_run`, classified before anything moved
+
+It did four jobs and its name said none of them. Every responsibility was put
+in one of four categories first, and only two of them moved.
+
+| category | what | where it is now |
+|---|---|---|
+| **EVALUATION** | window resolution, funding events, cash flows, allocation program, `simulate`, the execution ledger | `evaluation/core.py` |
+| **EVALUATION-GATE** | ledger/result reconciliation, coverage assessment, and every refusal that withholds a figure | `evaluation/core.py` |
+| **APPLICATION** | benchmarks, the comparison payload, comparability verdicts, the window carried out for the page | stayed in `workspace/run_boundary.py` |
+| **PROVENANCE** | runtime pins, the execution-input digest, the market-data record attached to the result | stayed |
+
+**Exit condition, and it is a test rather than a claim.** Given a plan, a frame
+and a policy, `evaluate_plan` produces the seven streams and the publish/refuse
+decision, and `src/evaluation` imports nothing from `workspace`.
+
+### Why the gate went with the calculation
+
+A refusal is a result. Reconciliation catches the engine doing something other
+than the plan; coverage catches a declared element that quietly did not run —
+three prompts once returned an identical figure while each dropped a different
+declared element, and each omission was individually defensible while the shared
+result was not. Both must be able to withhold the number, and a gate the caller
+has to remember to ask is a gate that will eventually not be asked.
+
+`Evaluated.publishable` is therefore a field and not `result is not None`. A run
+can compute a perfectly good `MissionResult` and still be unpublishable, and
+collapsing the two would let a figure through on the strength of having been
+calculated.
+
+### Why benchmarks and the payload stayed
+
+Neither changes the figure nor whether it may be shown. Moving them would have
+taken `comparison_payload`, `comparability_records` and `RunConditions` into an
+evaluation service — the page, in other words — which is how a service boundary
+ends up preserving the application it was meant to separate from. A test asserts
+those four names do not appear in the evaluator.
+
+### The ordering that had to survive
+
+Pins need the sessions a run actually uses, and those exist only after the
+window has been applied. Rather than let the evaluator reach for the
+application's pinning machinery, or the application reach into the middle of the
+calculation, `evaluate_plan` takes a `pin_scope` callback and calls it with the
+sessions. Provenance stays outside; the ordering stays correct.
+
+### What the move cost, and what caught it
+
+Two things, both found by tests rather than by review. `declare_unsimulated`
+used a module-level `UNSIMULATED` that did not travel with it. And the first
+version *reworded* `STRATEGY_NOT_EXECUTED` — the sentence a user reads when a
+declared rule is not executed — which is a product change wearing a refactor's
+clothes. The constant moved verbatim and `run_boundary` re-exports it, so the
+page's import is unchanged and the wording is byte-identical.

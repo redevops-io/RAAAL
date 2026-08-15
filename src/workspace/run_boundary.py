@@ -65,11 +65,10 @@ from .comparability_record import record as comparability_records
 from .environment import pins_for
 
 
-STRATEGY_NOT_EXECUTED = (
-    "This result is unavailable. The plan contains a conditional purchase "
-    "rule, but this version of Quantify did not execute that rule. No strategy "
-    "result is shown. Your description and clarifications remain saved."
-)
+#: Re-exported from the evaluator, which is what decides it now. `routes`
+#: imports it from here and continues to, because where a refusal is defined is
+#: not the page's business — only what it says.
+from ..evaluation.core import STRATEGY_NOT_EXECUTED  # noqa: F401
 
 
 def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
@@ -295,273 +294,102 @@ def _funding_events(scenario, prices, sessions):
 
 def _run(scenario, access, scope: Optional[Dict[str, Any]] = None,
          stated_text: str = "") -> Dict[str, Any]:
-    """Simulate a scenario and its benchmarks under identical conditions.
+    """Evaluate a scenario, then shape and attribute what came back.
+
+    `_run` used to do four jobs its name mentioned none of: the calculation,
+    the checks that decide whether a figure may be shown, the benchmarks and
+    payload the page renders, and the provenance the result carries. The first
+    two are `evaluation.core.evaluate_plan` now. What is left here is the third
+    and fourth, which is why they were left: neither changes the figure nor
+    whether it is publishable, and moving them into an evaluation service would
+    take the application with them.
 
     Takes the `MarketDataAccess` rather than a bare frame, so the record of
     which data produced the figures travels with the data that produced them.
-    A caller attaching provenance to the result afterwards is a caller that can
-    forget, and the run it forgot on looks exactly like one it did not.
     """
+    from ..evaluation.core import evaluate_plan
     from ..market_data.access import MarketDataAccess
-    from ..mission import coverage as coverage_module
 
     if not isinstance(access, MarketDataAccess):
         raise TypeError(
             "_run needs the MarketDataAccess the frame came from, not the "
             "frame alone; the provenance is not reconstructable afterwards")
-    prices = access.frame
 
-    # The evaluation period the user asked for, applied.
+    # PROVENANCE, supplied to the calculation rather than fetched by it.
     #
-    # `time_window.detect` has always run and always refused the kinds this
-    # build cannot replay. `time_window.resolve` — which turns a supported
-    # instruction into start, end and warm-up dates — had no callers at all,
-    # so "over the past 3 months" replayed 2,488 sessions of history and
-    # returned $25,000 contributed. Sixth instance of a mechanism that was
-    # present, correct and unreached.
-    #
-    # The warm-up is kept *outside* the reported period and inside the frame:
-    # a 200-session average needs 200 sessions before the first day of the
-    # window, or the earliest crossings cannot be evaluated at all.
-    resolved_window = _resolve_window(scenario, prices)
-    if resolved_window is not None:
-        first = resolved_window.warmup_start or resolved_window.start
-        prices = prices.loc[str(first):str(resolved_window.end)]
+    # Pins need the sessions this run will actually use, which only exist once
+    # the window has been applied — so the evaluator calls back with them
+    # instead of this module reaching into the calculation, or the calculation
+    # reaching out for the application's pinning machinery.
+    pinned: Dict[str, Any] = {}
 
-    sessions = prices.index
-    policy = CashPolicy.idle()
-    assets = list(scenario.allocation_rule.assets)
-    tradeable = [a for a in assets if a in prices.columns]
+    def pin_scope(sessions) -> Dict[str, Any]:
+        snapshot = f"prices@{sessions[-1].date()}"
+        pins = pins_for(scenario, snapshot=snapshot)
+        pinned.update({"pins": pins, "snapshot": snapshot,
+                       "sessions": sessions})
+        return {"unpinned_runtimes": pins.limitations()} if pins.unpinned else {}
 
-    # One funding policy, one set of dated contributions, and the benchmarks
-    # receive exactly those. That is what makes "every dimension outside the
-    # rule was held identical" true rather than aspirational: the schedule is
-    # not merely equivalent between plan and benchmark, it is the same object.
-    events, ledger_signals, unexecutable, funding_error = _funding_events(
-        scenario, prices, sessions)
-    if funding_error is not None:
+    evaluated = evaluate_plan(scenario, access.frame, scope=scope,
+                              stated_text=stated_text, pin_scope=pin_scope)
+
+    if not evaluated.publishable:
         return {"result": None, "benchmarks": [], "payload": None,
                 "comparability": None, "strategy_not_executed": True,
-                "coverage": None, "unavailable": funding_error}
-    try:
-        flows = (tuple(CashFlow(date=event.session, amount=float(event.amount))
-                       for event in events)
-                 if events is not None
-                 else _flows_from(scenario.flow_schedule, sessions))
-    except UnsupportedCadence as refused:
-        # The same shape as a refused funding policy above: no figure, and the
-        # reason the engine gave rather than a generic one.
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None, "strategy_not_executed": True,
-                "coverage": None, "unavailable": str(refused)}
+                "coverage": evaluated.coverage, "ledger": evaluated.ledger,
+                "reconciliation": evaluated.reconciliation,
+                "unavailable": evaluated.refusal}
 
-    # A declared conditional rule that this engine does not execute produces no
-    # figure at all.
-    #
-    # `simulate` is called with `program=buy_and_hold(tradeable)` regardless of
-    # what the scenario declares, and nothing converts `event_program` into an
-    # `EventProgram`. A plan reading "buy $1,000 every time SPY crosses below
-    # its 200-day average" was therefore replayed as a single purchase held to
-    # the end — and returned a figure identical to the buy-and-hold benchmark
-    # beside a disclosure saying the difference was attributable to the rule.
-    #
-    # A caveat under the number is not enough, and this is the one place that
-    # can be certain of it: people remember $5,160 and forget the sentence
-    # beneath it. So the number is not produced.
-    # Before the price-history check, and unconditionally. Ordered the other
-    # way, a plan naming an instrument we cannot price reported the data gap —
-    # so the user corrects the ticker, the gap closes, and the reward for
-    # fixing it is a figure for a rule that still never ran. The same ordering
-    # argument as `historical_lots.detect`: the unconditional refusal goes
-    # first, because the conditional one reads as the whole problem.
-    if scenario.event_program and not scenario.is_event_funded:
-        # A rule this build still cannot execute. The guard stays for exactly
-        # that case rather than being deleted along with the defect it caught:
-        # the next unsupported condition must refuse rather than silently
-        # replay buy-and-hold, which is what happened last time.
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None,
-                "strategy_not_executed": True,
-                "coverage": None, "unavailable": STRATEGY_NOT_EXECUTED}
+    result = evaluated.result
+    scope = evaluated.scope
+    prices = evaluated.prices
+    sessions = pinned["sessions"]
+    pins = pinned["pins"]
+    snapshot = pinned["snapshot"]
 
-    if not tradeable or not flows:
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None,
-                "unavailable": (
-                    "No price history for "
-                    f"{', '.join(assets) or 'the instruments named'} over this "
-                    "period, so the scenario cannot be replayed. This is a data "
-                    "gap, not a result."
-                )}
-
-    # Every declared behaviour the engine cannot honour must reach the result's
-    # modelling scope. Representing `dividend_policy` without saying it is not
-    # simulated would move the defect one layer up rather than closing it: the
-    # scenario would look enforced and the figure would silently ignore it.
-    scope = declare_unsimulated(scenario, scope)
-
-    # Pin what this run actually used, before it runs. Left empty, the
-    # classifier compares two absences — and before classifier@2 reported them
-    # equal, so a stored verdict claimed the account treatment was checked when
-    # nothing was. An unpinnable runtime becomes a declared limitation on the
-    # result rather than a blank, which is why this must happen before the scope
-    # is handed to `simulate` rather than after.
-    snapshot = f"prices@{sessions[-1].date()}"
-    pins = pins_for(scenario, snapshot=snapshot)
-    if pins.unpinned:
-        scope = {**scope, "unpinned_runtimes": pins.limitations()}
-
-    # What the engine was actually given, digested at the moment it is given.
-    #
-    # The delivery digest proves the resolver returned these rows. It cannot
-    # prove that nothing between here and `simulate` dropped, reordered,
-    # mutated or substituted them — so this closes the remaining span by
-    # digesting the frame at the call itself:
-    #
-    #     resolved_frame_digest -> execution_input_digest -> result
-    #
-    # Equal digests mean the transformation was the identity. They are equal
-    # today because `simulate` receives the delivered frame unchanged and the
-    # instrument selection travels in `program` rather than in the data. If a
-    # future path slices or adjusts the frame, this records that it did, and
-    # the difference must then name a declared, versioned transformation rather
-    # than pass unnoticed.
+    # PROVENANCE. What the engine was actually given, digested at the moment it
+    # was given: the delivery digest proves the resolver returned these rows and
+    # cannot prove nothing between there and `simulate` changed them. Equal
+    # digests mean the transformation was the identity — they differ the moment
+    # a window slices, and the difference must name a declared transformation
+    # rather than pass unnoticed.
     from ..market_data.access_event import frame_digest
 
     execution_input = frame_digest(prices)
-    # The program the scenario describes, not the one this line used to
-    # hardcode. `buy_and_hold(tradeable)` ignored both the stated split and the
-    # rebalancing cadence, so "60/40, rebalanced annually" replayed as equal
-    # dollars in and nothing ever sold — a different strategy, returning a
-    # figure under the name of the one asked for.
-    allocation = scenario.allocation_rule
-    holdings_policy = scenario.holdings_policy
-    cadence = getattr(holdings_policy, "rebalancing_cadence", "")
-    if cadence and not holdings_policy.rebalancing_allowed:
-        # Two declarations that contradict each other. Refusing is the only
-        # honest move: running either reading silently picks one of two
-        # different strategies on the user's behalf.
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None, "strategy_not_executed": True,
-                "coverage": None,
-                "unavailable": (
-                    f"this plan states a {cadence} rebalancing cadence and "
-                    "also states that rebalancing is not allowed; the two "
-                    "cannot both be honoured")}
-
-    program = weighted(tradeable,
-                       weights=getattr(allocation, "weights", None),
-                       rebalance=cadence,
-                       sessions=prices.index if cadence else None)
-    result = simulate(prices, flows=flows, program=program,
-                      cash_policy=policy, modelling_scope=scope)
-
-    # The ledger, and then the check that it and the result agree.
-    #
-    # Built from the funding policy and the fills; the totals come from the
-    # portfolio path. Two independent descriptions of one run, and a
-    # disagreement means one of them is wrong — which is the state that shipped
-    # undetected, because nothing performed this comparison. A user noticed the
-    # arithmetic instead.
-    execution_ledger = reconciliation = None
-    if events is not None:
-        from ..mission import ledger as ledger_module
-
-        execution_ledger = ledger_module.build(
-            events=events, fills=result.path.fills,
-            signals=ledger_signals, unexecutable=unexecutable,
-            ending_cash=float(result.path.cash.iloc[-1])
-            if len(result.path.cash) else 0.0)
-        reconciliation = ledger_module.reconcile(execution_ledger, result)
-        if not reconciliation.agrees:
-            # No figure rather than a figure with a warning. The reconciliation
-            # exists to catch the engine doing something other than the plan,
-            # and a result shown beside "these do not agree" is a result people
-            # will quote.
-            return {"result": None, "benchmarks": [], "payload": None,
-                    "comparability": None, "strategy_not_executed": True,
-                    "ledger": execution_ledger, "reconciliation": reconciliation,
-                    "unavailable": (
-                        "This result is unavailable. The executed purchases "
-                        "and the reported totals do not agree, so no figure is "
-                        "shown. " + "; ".join(
-                            reconciliation.detail[name]
-                            for name in reconciliation.failures()))}
     if access.access_event is not None:
         scope = {**scope, "execution_input_digest": execution_input,
                  "execution_input_matches_delivery":
                      execution_input == access.access_event.frame_digest}
         result = dataclasses_replace(result, modelling_scope=scope)
-    # Attached here rather than by each caller. `_run` is the only place that
-    # knows which access produced these figures, and a caller that has to
-    # remember to attach it is a caller that can forget — which is how the live
-    # path stored unattributable runs while the provenance sat one frame away.
     result = dataclasses_replace(result, market_data=access.provenance)
-    if execution_ledger is not None:
+    if evaluated.ledger is not None:
         # On the result, so a stored run carries the evidence for its own
         # figure. A ledger held only in the response would make a saved run
-        # unverifiable the moment the page closed — the same reason a run
-        # records its market-data provenance rather than the caller attaching
-        # it afterwards.
+        # unverifiable the moment the page closed.
         scope = {**scope,
-                 "rule_events": len(execution_ledger.rows),
-                 "execution_ledger": execution_ledger.to_json(),
-                 "reconciliation": reconciliation.to_json()}
+                 "rule_events": len(evaluated.ledger.rows),
+                 "execution_ledger": evaluated.ledger.to_json(),
+                 "reconciliation": evaluated.reconciliation.to_json()}
         result = dataclasses_replace(result, modelling_scope=scope)
-    specs = _benchmark_specs(prices, tradeable)
-    benchmarks = compare(prices, flows=flows, cash_policy=policy, benchmarks=specs)
+
+    # APPLICATION. Benchmarks, verdicts and the payload the worksheet renders.
+    # None of it gates the figure, which is why it stays outside the evaluator.
+    specs = _benchmark_specs(prices, list(evaluated.tradeable))
+    benchmarks = compare(prices, flows=list(evaluated.flows),
+                         cash_policy=CashPolicy.idle(), benchmarks=specs)
 
     conditions = RunConditions(
         **pins.as_conditions(),
         flow_schedule_hash=scenario.flow_schedule.schedule_hash,
         starting_capital=scenario.flow_schedule.starting_capital,
-        cash_policy_rate=policy.annual_rate,
+        cash_policy_rate=CashPolicy.idle().annual_rate,
         tax_treatment=scenario.tax_treatment,
         cost_bps=10.0, execution_lag=1,
         period_start=str(sessions[0].date()), period_end=str(sessions[-1].date()),
         allocation_rule_hash=scenario.rule_hash,
         data_snapshot=snapshot,
-        # `None` rather than `True`: this engine executes no event program at
-        # all, so a plan with no rule has nothing unexecuted, and one with a
-        # rule no longer reaches here. Stating `True` would be the engine
-        # certifying its own behaviour — exactly the claim the classifier
-        # exists to stop resting on assertion.
-        # Reaching this line *is* the evidence. A failing reconciliation
-        # returns above with no result at all, so `agrees` cannot be false
-        # here — and the earlier version tested it anyway, which read like a
-        # control and could not fail. A mutation asserting `True`
-        # unconditionally passed every test, which is what an unfalsifiable
-        # guard looks like from the outside.
-        #
-        # The enforcement is the early return. Restating it here would be a
-        # second control that can drift from the first, and the one nobody
-        # reaches is the one that rots.
         declared_rule_executed=(True if scenario.event_program else None),
     )
-    # Declared-to-executed coverage, and the gate.
-    #
-    # A figure may exist only when every material declared element either ran
-    # with evidence, or was excluded by the user. Three prompts once returned
-    # an identical $103,393 while each quietly dropped a different declared
-    # element — a three-month period, a monthly contribution, a sell leg — and
-    # each omission was individually defensible while the shared result was
-    # not. This asks the general question rather than guarding each element.
-    coverage = coverage_module.assess(
-        scenario, stated_text=stated_text, resolved_window=resolved_window,
-        frame_sessions=len(sessions), ledger=execution_ledger,
-        excluded_items=[one.item for one in
-                        (scenario.provenance.excluded or ())])
-    if not coverage.publishable:
-        return {"result": None, "benchmarks": [], "payload": None,
-                "comparability": None, "coverage": coverage,
-                "ledger": execution_ledger, "reconciliation": reconciliation,
-                "strategy_not_executed": True,
-                "unavailable": coverage.refusal()}
-
-    # One verdict per benchmark, computed here and stored with the run. The
-    # worksheet reads them; it never recomputes. Every benchmark shares the
-    # strategy's flows, period and account treatment by construction — `compare`
-    # runs them under identical conditions — so only the allocation rule differs.
     benchmark_conditions = {
         spec["name"]: RunConditions(
             **{k: v for k, v in conditions.__dict__.items()
@@ -584,15 +412,15 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None,
             platform_generated_action=False,
             portfolio_selection_performed=False,
         ),
-        "coverage": coverage,
-        "ledger": execution_ledger,
-        "reconciliation": reconciliation,
+        "coverage": evaluated.coverage,
+        "ledger": evaluated.ledger,
+        "reconciliation": evaluated.reconciliation,
         # Carried out so the page can state the period it reported on. It was
         # computed here, used to slice the frame, and then discarded — so the
         # one screen that shows a figure could not say what span the figure
         # covered, which is the first thing to check when a stated period is
         # not honoured.
-        "resolved_window": resolved_window,
+        "resolved_window": evaluated.resolved_window,
         "unavailable": None,
     }
 
