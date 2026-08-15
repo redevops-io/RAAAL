@@ -3059,3 +3059,96 @@ is understood. Sized before the split, not after.
 Not every crossing is this one. `prelean_gate` imports a reader to ask for its
 *id*, so a stale drift artifact cannot be cited against a reader it was never
 produced under. That is a version check and it travels fine.
+
+---
+
+## `from_intent`, branch by branch: MAP, INTERPRET, DERIVE
+
+Step 1's exit gate is *zero interpretation branches*. This is the enumeration
+that gate is measured against. Every decision point in `src/mission/from_intent.py`
+is classified as:
+
+* **MAP** — moves a sealed value into the specification. No judgement.
+* **DERIVE** — computes from sealed values by a declared rule. No language read.
+* **INTERPRET** — reads words or notation to decide what something means.
+  Belongs in Discovery.
+
+### INTERPRET — six, and all must move upstream
+
+| # | site | what it reads | why it is interpretation |
+|---|---|---|---|
+| 1 | `_is_negated` (L468), applied at L234 | the raw span of `sell_action` | tokenises the sentence fragment and matches a negation vocabulary. Whether "never sold any of it" denies the disposal is a question about **meaning**; the seal should carry `sells_allowed=false` and let Mission enforce it |
+| 2 | `_assets` (L433) | `SET_SEPARATOR = [,;]\|\band\b` | splits "VTI and BND" into two holdings by reading an English conjunction. Its own comment concedes the rule "lives twice… because Mission may not import Discovery", which is the boundary violation stated as a workaround. Only one copy knew about `and`, and a portfolio compiled as the single instrument `"VTI and BND"` |
+| 3 | `_rebalancing_cadence` (L506) | free text, via `discovery.syntax.normalize` | imports Discovery directly. Its comment argues one place must decide what "annually" means — correct, and that place is Discovery, with the canonical value in the seal |
+| 4 | `_decimal` (L177) | `usd\|dollars?\|eur\|…`, `,`, `$`, `£`, `€` | notation parsing. Whether "1000 usd" is a thousand is a reading question, and it already produced a non-terminating clarification loop when the answer was as unreadable as the question |
+| 5 | L290 | `str(cadence.value) not in ("once", "")` | compares a cadence against string literals, so the coherence rule depends on the reader's spelling. Canonical cadence makes this a MAP |
+| 6 | L539 | `str(watched.value).split(",")[0]` | picks the first of a stated list as the trigger subject. Which asset is watched is meaning, not mechanics |
+
+### DERIVE with an execution-changing default — five, four of them silent
+
+The fourth bullet of Step 1. A default is not interpretation, but one applied
+here decides execution and is invisible to the reader of the plan.
+
+| # | site | default | reported? |
+|---|---|---|---|
+| 7 | `_funding` L534 | `cadence` → `"once"` | **no** — not in `DEFAULTS`, absent from `applied_defaults` |
+| 8 | `_funding` L527 | `amount` → `Decimal("0")` | **no** |
+| 9 | `_timing` L552 | any unrecognised value → `NEXT_SESSION_OPEN` | **no** — and this fires on a *stated* value, not an absent one |
+| 10 | `_funding` L545 | `moving_average_window` → 200 | via `DEFAULTS`, but through `or` so an unreadable figure lands here too |
+| 11 | `DEFAULTS` L83 | `day_rule`, `execution_timing`, `allocation_method`, `moving_average_window` | yes, in `applied_defaults` |
+
+Measured, not asserted — an intent stating only `assets` and `amount`:
+
+```text
+scenario cadence      'once'
+applied_defaults      ('allocation_method', 'day_rule')
+'cadence' reported    False
+```
+
+The plan runs once instead of monthly and the page says nothing about it.
+Number 9 is the sharpest: `_timing("at the close of the third Friday")` returns
+`NEXT_SESSION_OPEN` silently, so a stated timing this build cannot execute is
+answered with a different one rather than refused.
+
+### MAP and DERIVE — the parts that already meet the gate
+
+The seal check (L212), `refusals_for` against the capability manifest,
+`intent.blocking`, `_TRIGGER_KIND`, `_weights` (reads the bound
+`TICKER=weight` form a derived reader authored, not prose), `_schedule` as
+`funding`'s projection, `_benchmarks`, and the stranded-dimension check, which
+is the module's best idea: anything read and consumed by no builder refuses
+rather than vanishing.
+
+### `dividend_policy` — not interpreted, hardcoded, and its comment is stale
+
+`ENGINE_CONSTANTS` (L109) sets `dividend_policy = "reinvested"` on **every**
+compiled scenario, describing itself as a value that "carries no user meaning"
+and noting that the engine "runs on price series and computes no tax, so
+neither changes a figure".
+
+That was true when it was written and is not true now. `run_boundary._reinvests`
+reads exactly this field to choose `resolve(reinvested=…)`, which selects the
+total-return series over the price series — two materially different strategies
+over a long horizon, and now recorded in the delivery record as part of the
+`ResolutionRequest`. Confirmed on a plan that never mentions dividends:
+
+```text
+holdings_policy.dividend_policy   'reinvested'
+_reinvests(scenario)              True   -> total-return frame
+```
+
+So it is not a third *interpretation* — it is worse for the seal than that. The
+specification's dividend policy is not derived from the intent at all, while
+being load-bearing for both the figure and its reproducibility record. The
+capability manifest keeps this honest at the edge, declaring `dividend_policy`
+EXECUTED with the closed set `("reinvested",)` so a stated "held as cash" is
+refused by name. But `StrategySpec` must carry the policy as an execution
+semantic rather than inherit a constant, or the spec hash cannot distinguish
+two plans the evaluator would price differently.
+
+### What Step 1 has to close
+
+Six INTERPRET branches, four unreported defaults, one stale constant. The
+cadence and negation work named in the plan covers 1, 3 and 5 directly; 2, 4
+and 6 are the same class and are cheaper to move at the same time than to
+rediscover during extraction.
