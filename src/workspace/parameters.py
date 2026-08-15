@@ -135,8 +135,36 @@ def rows(reading) -> Sequence[Parameter]:
     found = []
     seen = set()
 
+    # What was read, indexed but not yet emitted. A field can be *both* read
+    # and unusable — "200usd" is what the person wrote and not a number the
+    # engine can contribute — and the reading says so by listing it in
+    # `questions` while also settling a value.
+    read_values = {settled.field: settled
+                   for settled in (getattr(reading, "settled", ()) or ())}
+
+    # Questions first, and they win. Emitting the settled row instead dropped
+    # the question from the table while the button below still offered to
+    # answer it: the page asked somebody to fill something in, showed nothing
+    # to fill, and looped when they pressed it.
+    for name in getattr(reading, "questions", ()) or ():
+        if name in seen:
+            continue
+        seen.add(name)
+        already = read_values.get(name)
+        found.append(Parameter(
+            name=name, state=NEEDED,
+            # Prefilled with what was read, so correcting "200usd" to "200" is
+            # an edit rather than a retype. A blank here would throw away a
+            # reading that was almost right.
+            value=str(already.value) if already is not None else "",
+            provenance=(f"read as {already.value!r}, and not usable as stated"
+                        if already is not None else ""),
+            **_guidance(name)))
+
     for settled in getattr(reading, "settled", ()) or ():
         name = settled.field
+        if name in seen:
+            continue
         seen.add(name)
         witnesses = ", ".join(settled.witnesses or ())
         found.append(Parameter(

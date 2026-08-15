@@ -124,6 +124,49 @@ class TestABlankTellsYouWhatToType:
             "a parameter named and not explained is a field somebody guesses")
 
 
+class TestAQuestionIsAlwaysAnswerable:
+    """The state that looked fine and was a loop.
+
+    A field can be read *and* unusable: somebody wrote "200usd", the reader
+    settled that string, and the engine listed `amount` in `questions` because
+    it is not a number it can contribute. The table emitted the settled row and
+    skipped the question, while the button below it — driven by `questions`
+    rather than by the rows — still offered to answer it.
+
+    So the page said "fill these in and run it", showed nothing to fill, and
+    pressing it returned to the same page. The same shape as the clarification
+    loop reported weeks earlier, wearing a table instead of a list.
+    """
+
+    def reading(self):
+        return Reading(settled=(Settled("amount", "200usd"),
+                                Settled("assets", "NVDA stock")),
+                       questions=("amount",))
+
+    def test_a_read_but_unusable_value_still_asks(self):
+        row = by_name(self.reading())["amount"]
+        assert row.state == NEEDED, (
+            "the field was settled and questioned, and the table showed only "
+            "the settled row — leaving a button that answers nothing")
+
+    def test_it_is_prefilled_with_what_was_read(self):
+        """Correcting "200usd" to "200" should be an edit, not a retype. A
+        blank would throw away a reading that was almost right."""
+        row = by_name(self.reading())["amount"]
+        assert row.value == "200usd"
+        assert "not usable as stated" in row.provenance
+
+    def test_the_button_and_the_table_cannot_disagree(self):
+        """Both must come from the same list. The template gates on `needed`,
+        which is `unanswered`, which is the rows themselves."""
+        found = self.reading()
+        assert bool(unanswered(found)) == any(
+            p.state == NEEDED for p in rows(found))
+
+    def test_a_settled_field_that_is_not_questioned_stays_settled(self):
+        assert by_name(self.reading())["assets"].state == SETTLED
+
+
 class TestEveryStateIsDistinguishable:
     def test_a_refusal_carries_its_reason_rather_than_a_blank(self):
         found = by_name(Reading(refusals=(

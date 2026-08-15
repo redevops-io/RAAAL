@@ -206,6 +206,7 @@ def page(reading: PilotReading, *, text: str,
     from .ledger_view import lines as ledger_lines
     from .ledger_view import unfilled as unfilled_orders
     from .parameters import rows as parameter_rows
+    from .parameters import unanswered as unanswered_parameters
 
     compiled = reading.compiled
     run = run or {}
@@ -230,6 +231,9 @@ def page(reading: PilotReading, *, text: str,
         # is a reading of the reading, and a template that decided it would be
         # a second place where "what this plan has" is defined.
         "parameters": parameter_rows(reading),
+        # The same list the table renders, so the button cannot offer to
+        # answer a question the table does not show.
+        "needed": unanswered_parameters(reading),
         # From the result, not the payload. The payload carries the
         # comparison — benchmarks, notes, the recommendation assessment — and
         # the figure a user came for is on the result itself. Reading the wrong

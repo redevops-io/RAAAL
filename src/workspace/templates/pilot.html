@@ -75,7 +75,11 @@
             <td>
               {% if row.state == "NEEDED" %}
                 <input name="answer_{{ row.name }}" type="text"
+                       value="{{ row.value }}"
                        placeholder="{{ row.examples | first if row.examples }}">
+                {% if row.provenance %}
+                  <div class="quiet small">{{ row.provenance }}</div>
+                {% endif %}
                 {% if row.examples %}
                   <div class="quiet small">
                     for example {{ row.examples | join(", ") }}
@@ -104,7 +108,7 @@
         </tbody>
       </table>
 
-      {% if questions %}
+      {% if needed %}
         {# One round. `pilot.answer` re-fuses with the answers as USER-authored
            readings; there is no second pass that could ask again, which is the
            convergence property `test_clarification_converges` pins. #}
