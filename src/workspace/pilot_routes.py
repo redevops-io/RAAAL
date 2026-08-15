@@ -28,6 +28,7 @@ from fastapi.responses import HTMLResponse
 from ..deploy.context import ParserMode
 from ..discovery.schema import QUANTIFY_SCHEMA
 from .catalog_assumptions import assume
+from .catalog_intent import reading_for
 from .pilot import InterpreterUnavailable, PilotReading, answer, read, reopen
 from .pilot_events import (answers_already_in_the_prompt, attempts_by, observe,
                            observe_resubmission, observe_save)
@@ -324,15 +325,25 @@ def draft(request: Request, describe: str = "", picked: str = ""):
             {"text": "", "reading": None, "picked": picked})
         attach(empty, participant_in(request) or new_participant())
         return empty
-    try:
-        reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA,
-                       profile=_declared_profile(),
-                       syntax_reader=configured_syntax_reader())
-    except InterpreterUnavailable as down:
-        return TEMPLATES.TemplateResponse(
-            request, "pilot.html",
-            {"text": describe, "reading": None, "unavailable": str(down)},
-            status_code=503)
+    # A picked strategy is structured evidence, so it does not go to a model.
+    #
+    # The product knows which entry it offered; pasting that entry's sentence
+    # into a box and asking what it means discards the one fact it was certain
+    # of. `reading_for` returns None for an entry the table does not describe,
+    # and then the sentence is read as any typed one would be — a fallback that
+    # is measured rather than silent.
+    reading = reading_for(picked, describe) if picked else None
+    if reading is None:
+        try:
+            reading = read(describe, configured_reader(),
+                           schema=QUANTIFY_SCHEMA,
+                           profile=_declared_profile(),
+                           syntax_reader=configured_syntax_reader())
+        except InterpreterUnavailable as down:
+            return TEMPLATES.TemplateResponse(
+                request, "pilot.html",
+                {"text": describe, "reading": None, "unavailable": str(down)},
+                status_code=503)
 
     # The catalogue supplies what its own sentence does not say, and only for a
     # strategy that was picked from it. Typed prose gets nothing: we know which
@@ -382,15 +393,20 @@ async def pilot_answer(request: Request, describe: str = Form(...),
                for k, v in form.items()
                if k.startswith("answer_") and str(v).strip()}
 
-    try:
-        reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA,
-                       profile=_declared_profile(),
-                       syntax_reader=configured_syntax_reader())
-    except InterpreterUnavailable as down:
-        return TEMPLATES.TemplateResponse(
-            request, "pilot.html",
-            {"text": describe, "reading": None, "unavailable": str(down)},
-            status_code=503)
+    # Answers are edits to the selection, so they enter the structured path as
+    # `USER` values rather than being applied afterwards to a model's reading.
+    reading = reading_for(picked, describe, edits=answers) if picked else None
+    if reading is None:
+        try:
+            reading = read(describe, configured_reader(),
+                           schema=QUANTIFY_SCHEMA,
+                           profile=_declared_profile(),
+                           syntax_reader=configured_syntax_reader())
+        except InterpreterUnavailable as down:
+            return TEMPLATES.TemplateResponse(
+                request, "pilot.html",
+                {"text": describe, "reading": None, "unavailable": str(down)},
+                status_code=503)
 
     # Assumptions first, the person's answers second, so an edit wins. `settle`
     # appends, so the assumed entry survives underneath: the record says the
