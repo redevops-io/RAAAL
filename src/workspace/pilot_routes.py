@@ -203,10 +203,18 @@ def execute(reading: PilotReading, *, plan_id: str = "") -> Dict[str, Any]:
 def page(reading: PilotReading, *, text: str,
          run: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """What the template needs, and nothing the template must interpret."""
+    from .parameters import rows as parameter_rows
+
     compiled = reading.compiled
     run = run or {}
     return {
         "run": run,
+        # The parameter table: settled, asked, refused and defaulted in one
+        # list, and only the dimensions this sentence actually touched. Built
+        # here rather than in the template because deciding which rows exist
+        # is a reading of the reading, and a template that decided it would be
+        # a second place where "what this plan has" is defined.
+        "parameters": parameter_rows(reading),
         # From the result, not the payload. The payload carries the
         # comparison — benchmarks, notes, the recommendation assessment — and
         # the figure a user came for is on the result itself. Reading the wrong

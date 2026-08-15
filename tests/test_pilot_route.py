@@ -115,9 +115,19 @@ class TestTheRuntimeIsReached:
 
 class TestTheLoopThroughHttp:
     def test_a_question_is_asked_before_the_plan_can_run(self, pilot_client):
+        """Asserted as an input, not as a phrase.
+
+        This used to check for the words "needs an answer", which is copy
+        rather than behaviour — the parameters are one table now and the
+        wording moved with them. What must be true is that the dimension is
+        named and there is somewhere to answer it, and that survives the next
+        rewording too.
+        """
         page = pilot_client.get("/pilot", params={"describe": SENTENCE})
         assert "assets" in page.text
-        assert "needs an answer" in page.text
+        assert 'name="answer_assets"' in page.text, (
+            "the page named the missing parameter and offered nowhere to "
+            "supply it")
 
     def test_answering_it_and_saving_reopens_to_the_same_plan(
             self, pilot_client, monkeypatch):

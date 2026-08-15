@@ -14,7 +14,9 @@
      so the value of this list is showing the shape of a sentence that works.
      Picking one is a starting point to edit, which is why it lands in the
      textarea as ordinary text and not in a hidden field. #}
-  {% include "_strategy_picker.html" %}
+  <div class="picker">
+    {% include "_strategy_picker.html" %}
+  </div>
 
   <label for="describe">What do you want to work out?</label>
   <textarea id="describe" name="describe" rows="3"
@@ -42,57 +44,82 @@
     again — this is compiled from the intent you confirmed.</p>
   {% endif %}
 
+  {# One table, and only the parameters this sentence actually has.
+
+     The page used to carry four lists — understood, needed, chosen, not
+     mentioned — and left a person to assemble the plan from them. The
+     manifest declares nineteen dimensions and no sentence uses nineteen; a
+     contribution schedule has no withdrawal ordering, and asking about one
+     would teach people to skim the rest.
+
+     Blanks are inputs in the table itself, so answering happens where the
+     question is asked rather than on another screen. #}
   <section>
-    <h2>What was understood</h2>
-    {% if understood %}
+    <h2>Parameters</h2>
+    <form method="post" action="/pilot/answer" class="parameters">
+      <input type="hidden" name="describe" value="{{ text }}">
+      <input type="hidden" name="picked" value="{{ picked or "" }}">
       <table>
-        <thead><tr><th>field</th><th>value</th><th>how</th></tr></thead>
+        <thead>
+          <tr><th>parameter</th><th>value</th><th>where it came from</th></tr>
+        </thead>
         <tbody>
-        {% for field in understood %}
-          <tr>
-            <td>{{ field.field }}</td>
-            <td>{{ field.value }}</td>
+        {% for row in parameters %}
+          <tr class="p-{{ row.state | lower }}">
             <td>
-              {# The provenance is shown, not summarised. MODEL_ONLY_ACCEPTED
-                 is not AGREE, and a pilot that displayed "agreed" while
-                 running one reader would be claiming corroboration it never
-                 had. #}
-              {{ field.provenance }}
-              {% if field.witnesses %}({{ field.witnesses | join(", ") }}){% endif %}
+              <strong>{{ row.name }}</strong>
+              {% if row.describes %}
+                <div class="quiet small">{{ row.describes }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.state == "NEEDED" %}
+                <input name="answer_{{ row.name }}" type="text"
+                       placeholder="{{ row.examples | first if row.examples }}">
+                {% if row.examples %}
+                  <div class="quiet small">
+                    for example {{ row.examples | join(", ") }}
+                  </div>
+                {% endif %}
+                {% if row.executable %}
+                  <div class="quiet small">
+                    this build runs {{ row.executable | join(", ") }}
+                  </div>
+                {% endif %}
+              {% else %}
+                {{ row.value or "—" }}
+              {% endif %}
+            </td>
+            <td class="quiet small">
+              {% if row.state == "NEEDED" %}
+                needed before this can run
+              {% elif row.state == "REFUSED" %}
+                {{ row.detail }}
+              {% else %}
+                {{ row.provenance }}
+              {% endif %}
             </td>
           </tr>
         {% endfor %}
         </tbody>
       </table>
-    {% else %}
-      <p>Nothing yet.</p>
-    {% endif %}
-  </section>
 
-  {% if questions %}
-    <section>
-      <h2>This needs an answer before it can run</h2>
-      <form method="post" action="{% if reopened %}/pilot/answer{% else %}/pilot/save{% endif %}">
+      {% if questions %}
+        {# One round. `pilot.answer` re-fuses with the answers as USER-authored
+           readings; there is no second pass that could ask again, which is the
+           convergence property `test_clarification_converges` pins. #}
+        <button type="submit">Fill these in and run it</button>
+      {% endif %}
+    </form>
+
+    {% if not questions %}
+      <form method="post" action="/pilot/save">
         <input type="hidden" name="describe" value="{{ text }}">
         <input type="hidden" name="picked" value="{{ picked or "" }}">
-        {% for field in questions %}
-          <label for="answer_{{ field }}">{{ field }}</label>
-          <input id="answer_{{ field }}" name="answer_{{ field }}" type="text">
-        {% endfor %}
-        {# One round. `pilot.answer` re-fuses with the answers as USER-authored
-           readings and the result page follows immediately — there is no second
-           pass that could ask again, which is the convergence property
-           `test_clarification_converges` pins. #}
-        <button type="submit">Answer and see the result</button>
+        <button type="submit">Save this plan</button>
       </form>
-    </section>
-  {% else %}
-    <form method="post" action="/pilot/save">
-      <input type="hidden" name="describe" value="{{ text }}">
-      <input type="hidden" name="picked" value="{{ picked or "" }}">
-      <button type="submit">Save this plan</button>
-    </form>
-  {% endif %}
+    {% endif %}
+  </section>
 
   {% if figure is not none %}
     <section class="result">
