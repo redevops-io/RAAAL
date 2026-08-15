@@ -1820,6 +1820,39 @@ somebody's own uploaded model, say — or if cache-miss volume reaches a rate
 where per-pod creation overhead dominates. Both are measurable, and neither is
 true now.
 
+## Latency, and what actually moves it
+
+Latency matters to users here as much as it does to CircleCI, so the question
+is which latency.
+
+Karpenter shortens the time to *acquire capacity*, and its floor is physics:
+an EC2 instance takes 30–40 seconds to launch, and reactive provisioning for
+the first pod in a quiet period is
+[1–2 minutes](https://aws.github.io/aws-eks-best-practices/karpenter/). Getting
+that to seconds needs a warm pool or low-priority placeholder pods holding
+nodes open — which is to say, paying for idle capacity. Karpenter is worth
+having on Kubernetes for cost and elasticity. It is not a request-latency tool,
+because if a replica is already running, node provisioning is not in the
+request path at all.
+
+**What is in the path, measured on this deployment:**
+
+    the research library    cold 71.8s      warm 0.55s
+    reading a sentence      seconds         hosted model, provider-bound
+    executing a plan        sub-second      CPU over a price frame
+
+The library figure is from the deploy log, not an estimate, and it is a
+130-fold difference produced by a cache rather than by capacity. The reading
+path is dominated by a hosted model call that no scheduler touches. The
+execution path is already fast and becomes free when memoised, because
+`evaluate(strategy_hash, market_snapshot_hash, engine_version)` returns the
+same answer permanently.
+
+So the order for latency is: keep replicas warm so scheduling leaves the
+request path; cache the pure function so most requests do no work; and only
+then tune how quickly new nodes arrive. Karpenter belongs at the third step,
+where it is genuinely good, and it cannot fix the first two.
+
 ## What would make this wrong
 
 - If the instrument work stays hypothetical, the evaluation split buys
