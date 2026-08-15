@@ -203,12 +203,27 @@ def execute(reading: PilotReading, *, plan_id: str = "") -> Dict[str, Any]:
 def page(reading: PilotReading, *, text: str,
          run: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """What the template needs, and nothing the template must interpret."""
+    from .ledger_view import lines as ledger_lines
+    from .ledger_view import unfilled as unfilled_orders
     from .parameters import rows as parameter_rows
 
     compiled = reading.compiled
     run = run or {}
     return {
         "run": run,
+        # The ledger the figure was derived from.
+        #
+        # It has been built and reconciled on every run since the ledger
+        # existed — `run_boundary` refuses to show a figure at all when the
+        # rows and the result disagree — and no page has ever rendered it. A
+        # person was shown a number and a chart derived from a state they
+        # could not see.
+        #
+        # Rows rather than a summary: "what actually happened, at the price
+        # that was actually available" is the claim, and a total cannot be
+        # checked against a market while a line can.
+        "ledger": ledger_lines(run),
+        "unfilled": unfilled_orders(run),
         # The parameter table: settled, asked, refused and defaulted in one
         # list, and only the dimensions this sentence actually touched. Built
         # here rather than in the template because deciding which rows exist

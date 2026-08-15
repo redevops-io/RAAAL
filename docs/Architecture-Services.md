@@ -105,13 +105,132 @@ The staged path that keeps the deployment working throughout:
    intermediate state and tests the split without the cluster. Moving to EKS
    is then a deployment change rather than a redesign.
 
+## The trigger for the lake is reproducibility, not volume
+
+This section replaces an earlier one that said the trigger was "data volume or
+a second consumer". That was wrong, and wrong in a way this project has spent
+months learning to recognise elsewhere.
+
+When Quantify says *"8.7%, a 19.2% maximum drawdown, ending at $413,280"*, the
+questions that decide whether the number means anything are: which SPY
+observations, adjusted or unadjusted, which corporate actions, which calendar,
+which FX, which curve, which inflation series, which snapshot — and **what was
+known on each date**. Without answers, the arithmetic can be formally proved
+while the economic history fed into it is wrong.
+
+That is the same defect class as the one Discovery exists to prevent, one
+layer down. Discovery refuses to guess what a sentence meant; the data
+substrate currently guesses what the market did. Volume is irrelevant: a
+hundred rows nobody can reproduce is a worse position than a billion rows that
+anybody can.
+
+## What is already true, and it is more than expected
+
+**The ledger exists.** `accounting.Fill` is a line — date, ticker, shares,
+price, notional, cost, reason — described in its own docstring as "what
+actually happened, at the price that was actually available".
+`PortfolioPath` carries end-of-day value, cash, holdings per ticker, external
+flows, the fills, and the orders that *could not* execute. Time-weighted and
+money-weighted returns are computed from it.
+
+So the engine is already a historical portfolio accounting engine. What it is
+not is one whose ledger anybody can see: nothing renders the fills. The page
+shows a figure and a chart derived from a ledger the person is never shown,
+which is a presentation gap rather than an engine rewrite.
+
+**The reproducibility question is already asked, and cannot be answered.**
+Every run records a `market_data_access_event` carrying `snapshot_id`,
+`provenance_digest` and `frame_digest` — "the digest of the exact canonical
+frame that was handed over". The schema comment is explicit that a snapshot id
+alone is insufficient because two provenances differing only in access time are
+different records.
+
+So the system already knows it must identify the exact bytes it computed on.
+What it cannot do is *rebuild* them: the digest names a frame that no store can
+reconstruct from raw observations. The lake is not a new idea being introduced
+here — it is the missing half of a mechanism that is already load-bearing.
+
+## The layering
+
+    RAW          vendor observations, as received, never edited
+                 Yahoo / Polygon / Nasdaq / FRED / Treasury / EDGAR
+        |
+    NORMALIZED   instrument identity, calendar, currency,
+                 corporate actions, prices, rates
+        |
+    CANONICAL    total-return series, cash rates, FX, inflation,
+                 yield curves, benchmark series
+        |
+    SNAPSHOT     market-snapshot:<hash>   immutable, published
+        |
+    EVALUATION   strategy + snapshot + engine version
+        |
+    MissionResult
+
+The property this buys is that an evaluation becomes close to a pure function:
+
+    evaluate(strategy_hash, market_snapshot_hash, engine_version) -> MissionResult
+
+`quantify-evaluate` must not query vendor tables. It consumes a published
+snapshot and nothing else — otherwise "which observations" becomes a question
+about when the query ran, which is exactly the state `frame_digest` was added
+to escape.
+
+RAW is kept unedited on purpose. A normalisation that overwrites its input
+destroys the only evidence that could settle a disagreement about what the
+vendor actually said.
+
+## Where QuantLib sits
+
+    Mission strategy
+          |
+    Portfolio simulator          <- executes the plan, writes the ledger
+          |-- equities/ETFs/cash  -> canonical observations
+          |-- bonds               -> QuantLib
+          |-- options             -> QuantLib
+          |-- annuities           -> QuantLib
+          |-- rates/curves        -> QuantLib + canonical data
+          |
+    Ledger -> Formal Core -> MissionResult
+
+QuantLib prices instruments; the simulator executes plans and produces the
+ledger. Neither replaces the other, and the ledger is where they meet.
+
+What this opens: four strategies compared against *the same* snapshot rather
+than against separately assembled series, which is the difference between a
+comparison and a coincidence.
+
+## Free sources, and the licensing gate they still meet
+
+Much of a first data layer is available without a vendor contract:
+
+| Data | Source | Suitability |
+|---|---|---|
+| Treasury rates and curves | US Treasury | excellent, public domain |
+| CPI, Fed rates, macro | FRED / originating agency | excellent; check each series' terms |
+| Company fundamentals | SEC EDGAR / XBRL | excellent, public domain |
+| US equity and ETF daily prices | open datasets | fine for development; rights vary |
+| Dividends and splits | open datasets | usable, provenance needs care |
+| ETF holdings and metadata | issuer publications | often usable, terms vary |
+| Index levels | index owner | frequently licensed |
+| Options, intraday equities | commercial | exchange licensing applies |
+| Corporate bonds and credit | fragmented | governments easy, corporates hard |
+
+"Free to download" is not "free to redistribute, derive from, or retain", and
+those are exactly the six questions `approved_snapshot()` re-reads on every
+resolve. A public-domain Treasury series and a scraped index level are not the
+same licensing object, and the lake must carry the distinction per series
+rather than per bucket.
+
 ## What would make this wrong
 
 - If the instrument work stays hypothetical, the evaluation split buys
   operational cost and no capability. The trigger for stage 1 is a real
   instrument somebody wants modelled, not the diagram.
-- If the lake holds only synthetic data, Postgres would serve it. The trigger
-  for stage 2 is data volume or a second consumer, not the format.
-- If the licensing answers do not permit vendor data at rest, stages 3 and 4
-  are moot and the lake stays synthetic. That is a real possible outcome and
-  the design should not assume past it.
+- If the ledger is never shown and no second strategy is ever compared on the
+  same snapshot, the layering is bookkeeping nobody reads. The cheapest test of
+  this whole direction is to render the fills that already exist.
+- If the licensing answers do not permit vendor data at rest, the lake stays
+  synthetic — and reproducibility of a *synthetic* snapshot is still worth
+  having, because it is what makes two runs comparable. That outcome shrinks
+  the lake; it does not remove the reason for it.

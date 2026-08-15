@@ -154,6 +154,66 @@
     </section>
   {% endif %}
 
+  {% if ledger %}
+    {# The ledger the figure came from.
+
+       Everything above derives from these lines: positions, valuation, the
+       time series, the return and the chart. It has been computed and
+       reconciled on every run and shown on none, so a person read a number
+       whose provenance stopped at "the engine says so".
+
+       The signal session is separate from the contribution session and from
+       the execution session on purpose — with only two dates, a policy that
+       contributed on the very session that produced its signal still showed a
+       later fill date, and the look-ahead check passed. #}
+    <section>
+      <h2>What actually happened</h2>
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th>signal</th><th>contributed</th><th>executed</th>
+            <th>holding</th><th>amount</th><th>shares</th><th>price</th>
+            <th>why</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in ledger %}
+          <tr>
+            <td class="quiet small">{{ row.signal or "—" }}</td>
+            <td class="small">{{ row.contributed }}</td>
+            <td class="small">{{ row.executed }}</td>
+            <td>{{ row.subject }}</td>
+            <td>{{ row.amount }}</td>
+            <td>{{ row.shares }}</td>
+            <td>{{ row.price }}</td>
+            <td class="quiet small">{{ row.reason }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p class="quiet small">
+        Every figure above is derived from these lines. The engine refuses to
+        show a figure at all when they do not reconcile with it.
+      </p>
+      {% if unfilled %}
+        {# Orders that could not execute. Kept rather than dropped: an order
+           that silently vanished is the difference between what the plan
+           declared and what it did, and it is invisible in a total. #}
+        <h3>What did not execute</h3>
+        <table>
+          <thead><tr><th>date</th><th>holding</th><th>amount</th><th>why</th></tr></thead>
+          <tbody>
+          {% for order in unfilled %}
+            <tr><td class="small">{{ order.date }}</td><td>{{ order.subject }}</td>
+                <td>{{ order.amount }}</td>
+                <td class="quiet small">{{ order.reason }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </section>
+  {% endif %}
+
   {% if refusals %}
     <section class="refusal">
       <h2>What this will not do</h2>
