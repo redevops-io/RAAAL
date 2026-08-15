@@ -74,6 +74,23 @@ python ui-agent/catalogue_sweep.py --url https://quantify.club \
 Variants are read live, so this costs provider calls and belongs on demand
 rather than in CI. `--limit` exists so a first run is cheap.
 
+It also carries the three checks on **assumed** values, which only a browser can
+make. The catalogue supplies a stand-in portfolio for strategies whose sentence
+names no holding, and the whole design rests on that value staying *ours* until
+somebody says otherwise. If the input arrives pre-filled, pressing "run it"
+posts the guess back and it returns authored `USER` — the strongest author there
+is, which no later reading may overwrite — for anybody who did not read the row.
+
+| Check | Guards against |
+|---|---|
+| No assumed input arrives pre-filled | a click promoting our guess to the user's word |
+| An assumed row has an input | a value decided on somebody's behalf |
+| The page says "assumed, not stated" | a guess reading as something they said |
+
+The first is invisible to a rendered-template test, which checks the template
+rather than the page as served — the same gap that let a dead selector script
+ship past a passing suite.
+
 ### `regression_smoke.py` — against the deployed site
 
 A template that is right can still be included on a page that is wrong, and a

@@ -80,17 +80,33 @@ async def submit(page, base: str, sentence: str) -> dict:
     except Exception:                                        # noqa: BLE001
         pass
 
-    rows = await page.locator("table tr.p-needed, table tr.p-refused, "
-                              "table tr.p-settled, table tr.p-chosen").count()
+    rows = await page.locator(
+        "table tr.p-needed, table tr.p-refused, table tr.p-settled, "
+        "table tr.p-chosen, table tr.p-assumed").count()
     needed = await page.locator("tr.p-needed").count()
     inputs = await page.locator("input[name^='answer_']").count()
     refused = await page.locator("tr.p-refused").count()
+    assumed = await page.locator("tr.p-assumed").count()
+    assumed_inputs = await page.locator(
+        "tr.p-assumed input[name^='answer_']").count()
+    # Whether any assumed row arrives with its input already carrying the
+    # value. If it does, pressing "run it" posts our guess back and it returns
+    # authored USER — the strongest author there is — for anybody who did not
+    # read the row. Only a browser can see this: the value is an attribute the
+    # template controls, and a rendered-template test checks the template
+    # rather than the page as served.
+    prefilled = await page.evaluate(
+        "() => Array.from(document.querySelectorAll("
+        "'tr.p-assumed input[name^=answer_]')).filter(i => i.value).length")
     body = await page.locator("body").inner_text()
     return {
         "rows": rows, "needed": needed, "inputs": inputs, "refused": refused,
+        "assumed": assumed, "assumed_inputs": assumed_inputs,
+        "prefilled": prefilled,
         "has_button": "run it" in body.lower(),
         "has_result": "Result" in body,
         "has_ledger": "What actually happened" in body,
+        "says_assumed": "assumed, not stated" in body,
         "url": page.url,
     }
 
@@ -117,6 +133,22 @@ def problems_with(seen: dict) -> List[str]:
 
     if seen["has_result"] and not seen["has_ledger"]:
         found.append("a figure with no ledger under it")
+
+    if seen.get("prefilled"):
+        found.append(
+            f"{seen['prefilled']} assumed row(s) arrive with the input already "
+            "filled — pressing the button records the catalogue's guess as the "
+            "user's own word, which no later reading may overwrite")
+
+    if seen.get("assumed") and not seen.get("assumed_inputs"):
+        found.append(
+            "a value was assumed and there is no way to change it, which "
+            "makes it a decision taken on somebody's behalf")
+
+    if seen.get("assumed") and not seen.get("says_assumed"):
+        found.append(
+            "a value was assumed and the page does not say so, so it reads as "
+            "something the person stated")
 
     return found
 
