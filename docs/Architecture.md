@@ -2985,3 +2985,77 @@ declaration, which blocked the figure on nearly every first submission.
 That has now appeared four times: `provenance@1`'s missing keys against an
 empty list, an unstamped body asserting emptiness, an ambiguous sentence
 against an unrecognised one, and a refused cadence against an unseen one.
+
+---
+
+## The service boundary, and what is already on the wrong side of it
+
+The target shape puts interpretation and calculation on opposite sides of one
+line, and everything below is about where that line actually falls today.
+
+```text
+free text  -> Discovery ----\
+                             >-- VerifiedIntent -> Mission Runtime
+catalogue  -> structured ---/         -> Executable Strategy Specification
+                                      -> Evaluation Service  (QuantLib vocabulary)
+                                      -> Market Data Service
+                                      -> immutable MarketSnapshot
+```
+
+* **Discovery** — what the user means.
+* **Catalogue** — structured strategy selection and its assumptions.
+* **Mission** — what may execute.
+* **Evaluation** — deterministic calculation. Never reinterprets intent: it
+  evaluates the compiled specification or refuses the execution semantics by
+  name.
+* **Market Data** — reproducible, provenance-bearing evidence.
+
+### Measured, not assumed
+
+`tests/test_evaluation_boundary.py` reads the import graph with `ast` rather
+than grepping for words — a source grep asserting a structural property matches
+its own prose.
+
+| package | imports an interpreter? |
+|---|---|
+| `src/evaluation` | no |
+| `src/market_data` | no |
+| `src/mission` | **yes** — `discovery` at six sites |
+
+So the two packages named for the split are already clean, and can move to a
+separate service and repository without an import following them.
+
+### Mission still reads words, and that is the finding
+
+`from_intent` is the step that turns a `VerifiedIntent` into an executable
+scenario, and it interprets language while doing it:
+
+* `_is_negated` scans a *stated span* for negation words, so whether a field
+  denies what it names is decided after interpretation was supposed to have
+  ended.
+* `_cadence` runs Discovery's own normaliser to turn "annually" into a period.
+
+The comment at that second site argues the case for itself well — one place
+must decide what "annually" means, or two will eventually disagree. That is
+right, and it points at the wrong fix. The one place should be Discovery, with
+the canonical value carried *in* the intent; instead the intent carries prose
+and the compiler re-reads it.
+
+Two consequences, and the second is why it is urgent rather than tidy:
+
+1. A `VerifiedIntent` that still needs re-reading was not verified. Its meaning
+   depends on code living on the other side of the boundary, so the same sealed
+   artifact can compile differently as that code changes — which is exactly
+   what pinning an intent is supposed to prevent.
+2. **The evaluation service cannot take `discovery.syntax` with it.** A
+   dependency that is merely inelegant in one process is an import error in
+   two, and it will be found at deploy time.
+
+The fix is to canonicalise at the intent boundary rather than at the compile
+boundary: Discovery emits `cadence` already normalised, `from_intent` reads a
+value instead of a phrase, and the negation question is settled where negation
+is understood. Sized before the split, not after.
+
+Not every crossing is this one. `prelean_gate` imports a reader to ask for its
+*id*, so a stale drift artifact cannot be cited against a reader it was never
+produced under. That is a version check and it travels fine.
