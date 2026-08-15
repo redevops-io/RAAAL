@@ -108,3 +108,73 @@ resource "cloudflare_record" "identity" {
   type    = "CNAME"
   proxied = true
 }
+
+
+# `www`, redirected to the apex rather than served.
+#
+# It carried a CNAME to the `vibexgen-proxmox` tunnel — the same leftover the
+# apex had, from the same 2025 deployment — and answered 404, because that
+# tunnel is healthy and has no ingress rule for this hostname. Anybody
+# reaching the site by habit got nothing.
+#
+# Redirected rather than pointed at our tunnel, and the reason is specific to
+# this deployment rather than tidiness: `PUBLIC_BASE_URL` and the OIDC
+# redirect URI are both `https://quantify.club`. A person who signed in from
+# `www` would be sent back to the apex with a session cookie scoped to a
+# hostname they are no longer on, and the failure would look like a login that
+# silently does not take. One canonical hostname removes the class.
+resource "cloudflare_record" "www" {
+  zone_id = var.cloudflare_zone_id
+  name    = "www.${var.domain_name}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.pilot.id}.cfargotunnel.com"
+  type    = "CNAME"
+
+  # Proxied so the redirect below can happen at the edge. Unproxied, the rule
+  # never runs and the name resolves to a tunnel with no ingress for it —
+  # which is exactly the state being fixed.
+  proxied = true
+  comment = "Redirects to the apex — see cloudflare_ruleset.www_to_apex"
+
+  # The same deliberate footgun the apex needed, for the same reason and with
+  # the same limit: it replaces the stale `vibexgen-proxmox` record on this
+  # hostname only, and touches nothing else on that tunnel.
+  allow_overwrite = true
+}
+
+# The redirect itself, at the edge.
+#
+# A rule rather than an application route: a 301 issued by Cloudflare never
+# reaches the origin, so `www` costs nothing to serve and cannot be affected by
+# the application being down. Sending it through the tunnel to be redirected by
+# FastAPI would make the canonical-hostname rule depend on the thing it is
+# protecting.
+resource "cloudflare_ruleset" "www_to_apex" {
+  zone_id = var.cloudflare_zone_id
+  name    = "Redirect www to the apex"
+  kind    = "zone"
+  phase   = "http_request_dynamic_redirect"
+
+  rules {
+    action      = "redirect"
+    expression  = "(http.host eq \"www.${var.domain_name}\")"
+    description = "www is not a second site"
+    enabled     = true
+
+    action_parameters {
+      from_value {
+        # 301, because this is permanent and browsers should stop asking.
+        status_code = 301
+
+        target_url {
+          # Path and query preserved: a link to `www.quantify.club/research`
+          # should land on the research page, not the front door. A redirect
+          # that drops the path is a redirect that loses the reason somebody
+          # followed the link.
+          expression = "concat(\"https://${var.domain_name}\", http.request.uri.path)"
+        }
+
+        preserve_query_string = true
+      }
+    }
+  }
+}
