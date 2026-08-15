@@ -161,6 +161,30 @@ def rows(reading) -> Sequence[Parameter]:
                         if already is not None else ""),
             **_guidance(name)))
 
+    # Refusals before settled values, for the same reason questions come
+    # before both: a dimension can be read *and* refused. "a 60/40 portfolio"
+    # settles `stated_weights` to '60/40' and the manifest declines it because
+    # no holding is named — and emitting the settled row instead showed a
+    # plain value, no reason, and no sign the plan would not run.
+    #
+    # Five catalogue strategies were in that state, under every reader. A page
+    # that neither runs, asks, nor refuses is the one outcome nobody can act on
+    # and nobody can report, and it was reachable from the menu.
+    for refusal in getattr(reading, "refusals", ()) or ():
+        name = getattr(refusal, "dimension", "")
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        already = read_values.get(name)
+        stated = str(getattr(refusal, "stated_value", "") or "")
+        found.append(Parameter(
+            name=name, state=REFUSED,
+            # The refusal's own stated value where it has one, otherwise what
+            # was read. Showing the reason beside a blank would leave somebody
+            # asking which of their words earned it.
+            value=stated or (str(already.value) if already is not None else ""),
+            detail=getattr(refusal, "detail", ""), **_guidance(name)))
+
     for settled in getattr(reading, "settled", ()) or ():
         name = settled.field
         if name in seen:
@@ -184,15 +208,6 @@ def rows(reading) -> Sequence[Parameter]:
         seen.add(name)
         found.append(Parameter(name=name, state=NEEDED, **_guidance(name)))
 
-    for refusal in getattr(reading, "refusals", ()) or ():
-        name = getattr(refusal, "dimension", "")
-        if not name or name in seen:
-            continue
-        seen.add(name)
-        found.append(Parameter(
-            name=name, state=REFUSED,
-            value=str(getattr(refusal, "stated_value", "") or ""),
-            detail=getattr(refusal, "detail", ""), **_guidance(name)))
 
     for name in getattr(reading, "applied_defaults", ()) or ():
         if name in seen:

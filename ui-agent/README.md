@@ -36,6 +36,44 @@ in the ordinary suite in about four seconds and needs nothing deployed.
 Verified by restoring the original defect — one line, `readyState` back to
 running immediately — and watching six of the seven fail.
 
+### `tests/test_catalogue_sweep.py` — every offered strategy, no browser
+
+Asks whether the *page* is coherent for all 43 catalogue entries under all
+three recorded readers — 776 checks in eight seconds, no provider calls,
+because the readings are recorded.
+
+| Check | Guards against |
+|---|---|
+| The table and the button agree | a button offering to fill in blanks the table does not show, which loops when pressed |
+| Every question appears as a row | a question that cannot be answered from the page |
+| No parameter appears twice | two rows saying different things about one field |
+| Every blank shows what to type | a dimension explained at length with nothing to enter |
+| Every refusal says why | "something is wrong" without saying what |
+| The plan runs, asks, or refuses | the fourth outcome, which nobody can act on and nobody can report |
+
+It found five catalogue strategies whose pages were silent under every reader
+— `stated-weights` among them, reachable from the menu — because a dimension
+that was both read and refused emitted the settled row and dropped the
+refusal. The page showed `60/40` as an ordinary value with no reason and no
+sign the plan would not run.
+
+### `catalogue_sweep.py` — every strategy in a browser, with the details changed
+
+What the fast sweep cannot see: a reading can be coherent while the form
+rendering it is wired wrong. It also **changes the sentence** — substituting
+the amount, the holding and the period — because a strategy that works with
+VTI at $500 a month and breaks with NVDA at `200usd` is the surprise a user
+finds first. `200usd` is in the variant list because a real submission of
+exactly that produced a page offering to fill in a blank it did not show.
+
+```bash
+python ui-agent/catalogue_sweep.py --url https://quantify.club \
+    --email you@example.com --password '...' --variants 1 --limit 5
+```
+
+Variants are read live, so this costs provider calls and belongs on demand
+rather than in CI. `--limit` exists so a first run is cheap.
+
 ### `regression_smoke.py` — against the deployed site
 
 A template that is right can still be included on a page that is wrong, and a
