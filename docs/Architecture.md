@@ -1,5 +1,16 @@
 # Architecture
 
+What the system is, how it is deployed, and where it is going.
+
+> Consolidated from `Architecture.md`, `Architecture.md`, `Architecture.md`, `Architecture.md`, `Architecture.md`, `Architecture.md`.
+>
+> Six documents described one system from different distances — the architecture, the services it is becoming, an inventory of what is deployed, the implementation, the feature list and the roadmap. A reader had to hold all six to know what is true now.
+
+
+---
+
+## Architecture
+
 **Status:** baseline as of 2026-07-31 · 857 tests passing
 
 Quantify is an event-driven financial simulation and research runtime built on
@@ -1413,3 +1424,1363 @@ to the remaining lanes is outstanding work, not a completed claim.
 ownership reachability, single resolution *and* a consumer invalidated by a
 correct migration. Categorising it once would lose two of the three reasons it
 happened.
+
+
+---
+
+## Three services, an evaluation engine, and a market-data lake
+
+A design note, not a plan of record. It exists so the next decision is taken
+against checked facts rather than remembered ones, and so the parts that are
+*already true* of this repository are not rediscovered.
+
+## What was checked
+
+The premise was "DuckDB 1.4, because it allows multiple writers". Half right,
+and the half that is wrong changes the design.
+
+**DuckDB does not give multiple *processes* write access to a database file.**
+Its MVCC and optimistic concurrency are within one process, across threads —
+[Concurrency](https://duckdb.org/docs/current/connect/concurrency). Multi-process
+writing is the `Quack` client/server protocol, beta as of v1.5.2 and expected
+mature at v2.0, autumn 2026. Three services on Kubernetes are three processes,
+so a shared `.duckdb` file is not the shape.
+
+**What 1.4 actually gives is Iceberg writes.**
+[DuckDB 1.4.0 "Andium"](https://duckdb.org/2025/09/16/announcing-duckdb-140) added
+`INSERT`, `UPDATE`, `DELETE` and `MERGE` against Iceberg tables. So the version
+choice is right and the reason is different: it is not that DuckDB learned to
+share a file, it is that DuckDB learned to write to a format that was already
+designed for many writers.
+
+**Multiple writers is Iceberg's property, not DuckDB's.** Concurrency comes
+from atomic snapshot commits through a catalog, which is also why
+[writes require an Iceberg REST catalog](https://duckdb.org/docs/current/core_extensions/iceberg/writing) —
+on AWS, S3 Tables or SageMaker Lakehouse. Files in a bucket are not enough.
+This is the one hard requirement to design around.
+
+**1.4 is the LTS line.** Codename Andium, community support to 16 September
+2026, currently at
+[1.4.5](https://duckdb.org/2026/06/17/announcing-duckdb-145). 1.5.5 is newer
+and not LTS. For a market-data lake that outlives a release cycle, pinning the
+LTS is the defensible choice, and `v1.4-andium` is that branch.
+
+## What is already true here
+
+The service split maps onto module boundaries this repository already has,
+which is the cheapest kind of migration:
+
+    src/workspace   the front end — pages, plans, the parameter table
+    src/mission     the evaluation engine — compile, simulate, refuse by name
+    src/market_data the data engine — access, provenance, licensing
+
+QuantLib is already installed and in `requirements-core.txt`, so the evaluation
+service starts with the vocabulary rather than acquiring it.
+
+**The licensing gate is the constraint nobody should route around.**
+`market_data.access.approved_snapshot()` re-reads the recorded answers to six
+vendor licensing questions on every resolve, and returns nothing if one is
+missing; `pilot_data_policy` is `SYNTHETIC_ONLY` today and Terraform will
+refuse a value the application does not recognise. A market-data lake means
+real vendor data at rest, and that is exactly what those questions are about —
+redistribution, derived works, retention, egress. Standing up the lake is a
+licensing decision before it is an engineering one, and the gate should govern
+the *data engine*, not be re-implemented beside it.
+
+## What QuantLib buys as an engine
+
+Fixed income, annuities and structured products, which is the stated reason and
+a real one — bonds, swaps, swaptions, caps, floors, options, and the term
+structures they price against. None of that is expressible today.
+
+Worth stating plainly: the current simulator is not a subset of QuantLib. It
+executes a *plan* — contributions on a schedule, rebalancing, benchmarks
+receiving the same money on the same days — and QuantLib prices *instruments*.
+A migration is not a port; it is one service calling the other for the
+instrument half while keeping the plan half. The capability manifest, the
+refusals by name and 5600 tests are built around the plan half, and they are
+the thing that makes a refusal honest rather than a crash.
+
+## The shape
+
+    quantify-web        pages, sessions, plans          → users database (Postgres)
+    quantify-evaluate   QuantLib + the plan simulator   → stateless
+    quantify-data       ingest, provenance, licensing   → Iceberg lake (S3 + REST catalog)
+
+Two databases, as described: the existing Postgres keeps users and their plans;
+market data lives in the lake. They should not be the same store — one is
+somebody's private workspace and the other is licensed vendor data, and the
+retention, erasure and egress rules differ for exactly that reason.
+
+## What it costs
+
+Honesty about the jump: today this is one `t3.small` running docker compose
+behind a Cloudflare tunnel, with an internal ALB and RDS. Managed Kubernetes
+plus an Iceberg catalog plus a data engine is a different operational class —
+more moving parts, a real monthly bill, and a deployment story that has already
+cost this project several evenings at its current size.
+
+The staged path that keeps the deployment working throughout:
+
+1. **Split evaluation out first.** It is stateless, it already has QuantLib,
+   and it is the only service that can be extracted without touching data
+   licensing or session handling. If the split is going to be painful, this is
+   where it shows, and it is reversible.
+2. **Stand up the lake read-only.** S3 Tables as the REST catalog, DuckDB 1.4
+   LTS as the reader, synthetic data first. The licensing gate stays
+   `SYNTHETIC_ONLY` and nothing about vendor terms is decided yet.
+3. **Answer the licensing questions for data at rest**, then let the data
+   engine write. This is the step that needs a person and not a deploy.
+4. **Kubernetes last.** Three services on compose on one host is a valid
+   intermediate state and tests the split without the cluster. Moving to EKS
+   is then a deployment change rather than a redesign.
+
+## The trigger for the lake is reproducibility, not volume
+
+This section replaces an earlier one that said the trigger was "data volume or
+a second consumer". That was wrong, and wrong in a way this project has spent
+months learning to recognise elsewhere.
+
+When Quantify says *"8.7%, a 19.2% maximum drawdown, ending at $413,280"*, the
+questions that decide whether the number means anything are: which SPY
+observations, adjusted or unadjusted, which corporate actions, which calendar,
+which FX, which curve, which inflation series, which snapshot — and **what was
+known on each date**. Without answers, the arithmetic can be formally proved
+while the economic history fed into it is wrong.
+
+That is the same defect class as the one Discovery exists to prevent, one
+layer down. Discovery refuses to guess what a sentence meant; the data
+substrate currently guesses what the market did. Volume is irrelevant: a
+hundred rows nobody can reproduce is a worse position than a billion rows that
+anybody can.
+
+## What is already true, and it is more than expected
+
+**The ledger exists.** `accounting.Fill` is a line — date, ticker, shares,
+price, notional, cost, reason — described in its own docstring as "what
+actually happened, at the price that was actually available".
+`PortfolioPath` carries end-of-day value, cash, holdings per ticker, external
+flows, the fills, and the orders that *could not* execute. Time-weighted and
+money-weighted returns are computed from it.
+
+So the engine is already a historical portfolio accounting engine. What it is
+not is one whose ledger anybody can see: nothing renders the fills. The page
+shows a figure and a chart derived from a ledger the person is never shown,
+which is a presentation gap rather than an engine rewrite.
+
+**The reproducibility question is already asked, and cannot be answered.**
+Every run records a `market_data_access_event` carrying `snapshot_id`,
+`provenance_digest` and `frame_digest` — "the digest of the exact canonical
+frame that was handed over". The schema comment is explicit that a snapshot id
+alone is insufficient because two provenances differing only in access time are
+different records.
+
+So the system already knows it must identify the exact bytes it computed on.
+What it cannot do is *rebuild* them: the digest names a frame that no store can
+reconstruct from raw observations. The lake is not a new idea being introduced
+here — it is the missing half of a mechanism that is already load-bearing.
+
+## The layering
+
+    RAW          vendor observations, as received, never edited
+                 Yahoo / Polygon / Nasdaq / FRED / Treasury / EDGAR
+        |
+    NORMALIZED   instrument identity, calendar, currency,
+                 corporate actions, prices, rates
+        |
+    CANONICAL    total-return series, cash rates, FX, inflation,
+                 yield curves, benchmark series
+        |
+    SNAPSHOT     market-snapshot:<hash>   immutable, published
+        |
+    EVALUATION   strategy + snapshot + engine version
+        |
+    MissionResult
+
+The property this buys is that an evaluation becomes close to a pure function:
+
+    evaluate(strategy_hash, market_snapshot_hash, engine_version) -> MissionResult
+
+`quantify-evaluate` must not query vendor tables. It consumes a published
+snapshot and nothing else — otherwise "which observations" becomes a question
+about when the query ran, which is exactly the state `frame_digest` was added
+to escape.
+
+RAW is kept unedited on purpose. A normalisation that overwrites its input
+destroys the only evidence that could settle a disagreement about what the
+vendor actually said.
+
+## Where QuantLib sits
+
+    Mission strategy
+          |
+    Portfolio simulator          <- executes the plan, writes the ledger
+          |-- equities/ETFs/cash  -> canonical observations
+          |-- bonds               -> QuantLib
+          |-- options             -> QuantLib
+          |-- annuities           -> QuantLib
+          |-- rates/curves        -> QuantLib + canonical data
+          |
+    Ledger -> Formal Core -> MissionResult
+
+QuantLib prices instruments; the simulator executes plans and produces the
+ledger. Neither replaces the other, and the ledger is where they meet.
+
+What this opens: four strategies compared against *the same* snapshot rather
+than against separately assembled series, which is the difference between a
+comparison and a coincidence.
+
+## Free sources, and the licensing gate they still meet
+
+Much of a first data layer is available without a vendor contract:
+
+| Data | Source | Suitability |
+|---|---|---|
+| Treasury rates and curves | US Treasury | excellent, public domain |
+| CPI, Fed rates, macro | FRED / originating agency | excellent; check each series' terms |
+| Company fundamentals | SEC EDGAR / XBRL | excellent, public domain |
+| US equity and ETF daily prices | open datasets | fine for development; rights vary |
+| Dividends and splits | open datasets | usable, provenance needs care |
+| ETF holdings and metadata | issuer publications | often usable, terms vary |
+| Index levels | index owner | frequently licensed |
+| Options, intraday equities | commercial | exchange licensing applies |
+| Corporate bonds and credit | fragmented | governments easy, corporates hard |
+
+"Free to download" is not "free to redistribute, derive from, or retain", and
+those are exactly the six questions `approved_snapshot()` re-reads on every
+resolve. A public-domain Treasury series and a scraped index level are not the
+same licensing object, and the lake must carry the distinction per series
+rather than per bucket.
+
+## What would make this wrong
+
+- If the instrument work stays hypothetical, the evaluation split buys
+  operational cost and no capability. The trigger for stage 1 is a real
+  instrument somebody wants modelled, not the diagram.
+- If the ledger is never shown and no second strategy is ever compared on the
+  same snapshot, the layering is bookkeeping nobody reads. The cheapest test of
+  this whole direction is to render the fills that already exist.
+- If the licensing answers do not permit vendor data at rest, the lake stays
+  synthetic — and reproducibility of a *synthetic* snapshot is still worth
+  having, because it is what makes two runs comparable. That outcome shrinks
+  the lake; it does not remove the reason for it.
+
+
+---
+
+## Repository and deployment inventory
+
+**Date:** 2026-07-31 · **Updated:** 2026-08-01 (Mission SDK reconciliation, §2)
+· **Purpose:** establish what is real and running before any contract work
+begins.
+
+Everything below is observed from the filesystem and git metadata, not inferred
+from architecture documents. Where a fact could not be established from a source,
+it is recorded as `unknown` rather than guessed.
+
+---
+
+## 1. Summary
+
+The three runtime components named in the contract plan resolve as follows:
+
+| Named component | What it actually is |
+|---|---|
+| `context-runtime` | **A real repository**, vendored as a submodule, at **v7.0** |
+| `redevops-rag` | **A real repository**, vendored as a submodule — and separately checked out at a **different commit** |
+| `sidekick` | **Not a repository.** An integration module inside context-runtime |
+| `mission-runtime` | **Does not exist.** Zero occurrences in code, docs or config |
+| `discovery-runtime` | **Does not exist.** Zero occurrences in code, docs or config |
+| `agentic-os` | **Not located** anywhere on this machine |
+| `mission-sdk` | **A real remote repository**, `redevops-io/mission-sdk` — not cloned here. Its execution `MissionProgram` is a different type from the lifecycle one in `runtime-contracts` (§2) |
+
+`mission_runtime`, `MissionRuntime`, `discovery_runtime` and `DiscoveryRuntime`
+return **zero matches** across `rag-saas-platform` in `.py`, `.go`, `.ts`, `.md`,
+`.yaml` and `.yml`. They are architecture-document terminology, not code.
+
+---
+
+## 2. Components
+
+```yaml
+components:
+
+  quantify:
+    repository: redevops-io/RAAAL
+    local_path: /projects/RAAAL
+    remote_url: git@github.com:redevops-io/RAAAL.git
+    branch: main
+    commit: dd2b860
+    last_commit: 2026-06-05
+    deployed: true                  # Cloudflare Pages, daily-deploy.yml
+    deployment_reference: .github/workflows/daily-deploy.yml
+    importers: []                   # imports neither runtime
+    contract_status: canonical-consumer
+
+  context-runtime:
+    repository: redevops-io/context-runtime
+    local_path: /projects/rag-saas-platform/context-runtime
+    remote_url: git@github.com:redevops-io/context-runtime.git
+    branch: submodule (detached)
+    commit: 8fe5f3a
+    describe: v7.0-2-g8fe5f3a       # v7.0 plus two commits
+    deployed: unknown               # library, not a compose service
+    deployment_reference: imported by backend/services/cr_runtime.py, cr_media.py
+    importers:
+      - rag-saas-platform/backend/services/cr_runtime.py
+      - rag-saas-platform/backend/services/cr_media.py
+      - redevops-rag/benchmarks/*
+    modules: 157
+    contract_status: SPECIFIED
+    implementation_adoption: NOT_STARTED
+    predecessor_mapping: documented
+
+  redevops-rag:
+    repository: redevops-io/redevops-rag
+    local_paths:
+      - /projects/redevops-rag                     # main @ ceec853
+      - /projects/rag-saas-platform/redevops-rag   # submodule @ e3e37df (v0.2.0-31)
+    remote_url: git@github.com:redevops-io/redevops-rag.git
+    commit_divergence: true         # see §4
+    deployed: unknown               # library, not a compose service
+    importers:
+      - rag-saas-platform/backend/services/cr_ingest.py
+      - context-runtime/context_runtime/integrations/redevops_rag.py
+      - context-runtime/context_runtime/adapters/store_{semantic,redevops,diver}.py
+    modules: 9
+    contract_status: SPECIFIED
+    implementation_adoption: NOT_STARTED
+    predecessor_mapping: documented
+
+  rag-saas-platform:
+    repository: redevops-io/rag-saas-platform
+    local_path: /projects/rag-saas-platform
+    branch: feat/context-runtime-migration
+    commit: 7d562c2
+    last_commit: 2026-07-29
+    deployed: true                  # docker-compose: postgres, backend, frontend,
+                                    # botfather-automation
+    role: the deployed control plane that consumes both runtimes
+    contract_status: integration-host
+
+  sidekick:
+    repository: none
+    local_path: context-runtime/context_runtime/integrations/sidekick.py
+    deployed: unknown
+    contract_status: module-not-repository
+
+  mission-runtime:
+    repository: not-located
+    evidence: zero occurrences in code, docs or config
+    contract_status: NOT_LOCATED
+
+  discovery-runtime:
+    repository: not-located
+    evidence: zero occurrences in code, docs or config
+    contract_status: NOT_LOCATED
+
+  agentic-os:
+    repository: not-located-on-this-machine
+    pinned_as: mission-sdk dependency runtime @ d261825
+    source: reported 2026-08-01, not observed here
+    contract_status: NOT_LOCATED
+
+  mission-sdk:
+    repository: redevops-io/mission-sdk
+    branch: main
+    tested_commit: 6aeb4e6
+    dependency_runtime: agentic-os@d261825
+    local_path: null
+    source: reported 2026-08-01, not observed here
+    integration_state: NOT_STARTED
+    intended_mode: advisory shadow compilation
+    contract_status: NOT_CLONED
+```
+
+### Two different `MissionProgram` types
+
+They are not interchangeable, and conflating them produces confident wrong
+conclusions about what the SDK can represent:
+
+| | `runtime-contracts` | `mission-sdk` |
+|---|---|---|
+| Orientation | **lifecycle** | **execution** |
+| Models | Investigation state transitions | candidate step chains |
+| Entry point | constructed directly | `MissionProgram.from_proposal()` |
+| Proposal type | none — no `MissionProposal` exists | `MissionProposal` |
+| Located here | yes, `/projects/runtime-contracts` | no |
+
+> The existing `runtime-contracts` Quantify adapter
+> (`adapters/quantify/adapter.py`) **is not** the Mission SDK adapter, and its
+> lifecycle `MissionProgram` **is not** the execution program targeted by this
+> integration.
+
+A third, unrelated `MissionProposal` appears in `src/api.py` (`discoveries()`),
+naming the last stage of the Context Runtime v8 Discovery chain — Signal →
+Detection → Correlation → Hypothesis → MissionProposal. It is a docstring
+describing a shape that surface follows, not a type Quantify imports. Three
+distinct things share this name; none of them is a synonym for another.
+
+The lifecycle program validates that terminal states carry outcomes and that
+transitions do not leave terminal states; it has no candidate fan-out because
+fan-out is not what it is for. Reading a fan-out limitation from it and
+attributing that limitation to the SDK — as this repository's notes did until
+this commit — compares Quantify against the wrong package.
+
+`src/workspace/execution.py` stays Quantify's authoritative execution
+declaration either way. It is deliberately neutral, so it is the input an
+adapter would translate rather than something an adapter would replace.
+
+**Resume the integration when** discovery must emit executable Quantify
+missions; or the pilot needs portable case bundles or cross-process replay; or
+Go/Kotlin portability becomes active; or Quantify's orchestration logic starts
+duplicating generic SDK functionality. The order is then: clone/install
+`mission-sdk` → optional `quantify[missions]` extra → execution-declaration
+adapter → `MissionProposal` → shadow validate/profile/ci → graph-equivalence
+gate. The plan is valid and retained; it is simply not the next highest-value
+Quantify task.
+
+---
+
+## 3. The v8/v10 gap
+
+`context-runtime` is at **v7.0**. None of the v10 contract types exist in any
+reachable repository:
+
+```
+ArtifactHandle · ContextPreviewPlan · ContextView · DereferenceEvent
+CapabilityDescriptor · MissionProgram · EvidenceSpanHandle
+GraphNeighborhoodHandle
+```
+
+Zero files across `context-runtime`, `redevops-rag` and `RAAAL`.
+
+The v8/v10 implementations are either in a repository not present on this machine
+or not yet written. This is consistent with the earlier finding that
+`CR-enterprise` is proprietary and separate, and that whitepaper v8's
+implementation-status table described intent ahead of publication.
+
+---
+
+## 4. Two risks found
+
+### 4.1 `redevops-rag` is checked out twice, at different commits
+
+```
+submodule pin  /projects/rag-saas-platform/redevops-rag   e3e37df  (v0.2.0-31)
+standalone     /projects/redevops-rag                     ceec853  (main)
+```
+
+The integration host pins one commit; a developer working in the standalone
+checkout sees another. Whichever is deployed, one of the two is not it — and this
+is precisely the "validating one branch while production runs another" risk the
+contract plan warns about, present today and unrelated to contracts.
+
+**Action:** establish which commit is deployed before any adapter is written
+against either.
+
+### 4.2 The integration host is on a feature branch
+
+`rag-saas-platform` is on `feat/context-runtime-migration`, not `main`, with its
+most recent commit 2026-07-29. If that branch is what runs, then `main` is not a
+meaningful conformance target.
+
+---
+
+## 5. Deployment facts that could not be established
+
+Recorded as unknown rather than assumed:
+
+- **Whether context-runtime or redevops-rag is deployed at all.** Neither is a
+  `docker-compose` service. Both are libraries imported by `backend/services/`,
+  so their deployed version is whatever the backend image was built with — which
+  is not discoverable from the source tree.
+- **Which commit the running backend was built from.** No CI workflow directory
+  exists in `rag-saas-platform`, no image digest is pinned in a manifest reachable
+  from here, and no service exposes build metadata.
+
+### Recommended fix
+
+Neither runtime can currently disclose its own source commit, which makes every
+downstream conformance claim unverifiable. Add to the backend's authenticated
+diagnostics endpoint and startup log:
+
+```json
+{
+  "service": "context-runtime",
+  "version": "7.0",
+  "git_commit": "8fe5f3a",
+  "git_branch": "...",
+  "contract_versions": {
+    "artifact_handle": "0.1",
+    "runtime_event": "0.1"
+  }
+}
+```
+
+Until that exists, "deployed" is a claim rather than an observation.
+
+---
+
+## 6. Consequence for the contract work
+
+`mission-runtime` and `discovery-runtime` are not missing repositories — they are
+**unbuilt components**. Phase B therefore does not need a repository created to
+satisfy an architecture diagram. It can be implemented in the deployed control
+plane (`rag-saas-platform/backend`) or in Quantify, provided:
+
+- the `MissionProgram` contract is canonical and externally owned;
+- `Investigation` keeps one artifact representation;
+- lifecycle transitions emit canonical events;
+- the implementation is marked as the current adapter;
+- later extraction would change neither artifact identity nor wire contracts.
+
+Repository boundaries should follow deployment and ownership, not nouns from a
+whitepaper.
+
+### Known defect: generic forward reconciliation
+
+`src/mission/observation.py::reconcile` matches expected against observed on
+`(date, kind)` exactly and has no pending state. Two consequences, both of the
+"unknown silently becomes absent" kind:
+
+- An event whose date has not arrived reports `MISSING`. A plan examined before
+  its first milestone looks like a plan going wrong.
+- An event that happens a few days late reports `MISSING` *and* `UNEXPECTED` —
+  two deviations describing one event that happened once.
+
+`src/mission/rsu_reconcile.py` solves both for the RSU domain with nine typed
+states, a declared and versioned matching tolerance, and `effective_date` kept
+apart from `observed_date`. The generic tracker was deliberately left alone
+rather than widened during that work.
+
+It should eventually adopt the same temporal vocabulary or be deprecated in
+favour of a generic primitive extracted from the RSU one. Until then, any plan
+using generic forward tracking carries the defect above.
+
+### Adoption status
+
+```yaml
+implementations:
+  quantify:            {status: CANONICAL_CONSUMER, adapter: adapters/quantify}
+  context-runtime:     {status: SPECIFIED,          adapter: adapters/context_runtime}
+  redevops-rag:        {status: SPECIFIED,          adapter: adapters/redevops_rag}
+  rag-saas-platform:   {status: PLANNED}
+  mission-runtime:     {status: NOT_LOCATED}
+  discovery-runtime:   {status: NOT_LOCATED}
+  sidekick:            {status: NOT_LOCATED}
+  agentic-os:          {status: NOT_LOCATED}
+
+# A separate axis. Adoption above is of runtime-contracts; this is of the
+# execution SDK, and the two share a type name but not a type.
+mission_sdk_integration:
+  quantify: {status: NOT_STARTED, mode: advisory shadow compilation,
+             seam: src/workspace/execution.py, deferred_for: closed-pilot-v1}
+
+release_gate:
+  quantify:        {minimum: CONFORMANT}
+  context-runtime: {minimum: CONFORMANT}
+  redevops-rag:    {minimum: CONFORMANT}
+  mission-runtime: {minimum: NOT_LOCATED}
+```
+
+A component below its gate fails the release. A component whose gate is
+`NOT_LOCATED` is a visible roadmap gap, not a red build.
+
+
+---
+
+## Implementation
+
+**Baseline:** 2026-07-31 · 857 tests passing, 2 skipped · 37 test files
+
+---
+
+## 1. How this system was built
+
+Every release made one hidden choice explicit, and each one immediately exposed a
+real defect. That pattern is the project's identity and is worth stating before
+the status table, because it is the argument for the architecture rather than a
+consequence of it.
+
+| Hidden choice made explicit | Defect it exposed |
+|---|---|
+| Execution lag and transaction costs | Reported 13.00% was actually **−2.83%** |
+| Trading calendar as an artifact | **31.1%** weekend padding inflated annualized figures |
+| Covariance estimator in the AST | Estimator divergence between spec and executor |
+| Rules naming their realization | Declared rules and universe filters were **inert** |
+| Constraint precedence declared | A hard bound silently lost to a soft turnover cap |
+| Trial counting | Configurations tried and dropped were never counted |
+| `tax_treatment` as a runtime | A Roth and a taxable account compared as **identical** |
+| Comparison dimensions registered | `allocation_rule` and `data_snapshot` were unchecked |
+
+Two errata are published and reachable: [execution lag and
+costs](errata/2026-07-30-execution-lag-and-costs.md) and [trading
+calendar](errata/2026-07-30-02-trading-calendar.md). Superseded figures are
+flagged, never deleted.
+
+---
+
+## 2. Completed
+
+### Engine and correctness
+- Execution lag and cost model; annualization on a declared session basis
+- Chronological train/test split with embargo; models refuse future-trained loads
+- `seed_everything()`, `RunManifest`, `frame_digest()` for reproducibility
+- Degeneracy diagnostics — concentration, degenerate volatility, implausible
+  Sharpe, effective breadth — that refuse publication of a flagged result
+
+### Artifact layers
+- Methodology AST with merge semantics; immutable versions; content hashing
+- `EvaluationProtocol`, versioned calendars, statistics module, statistical
+  policies, publication gates
+- Claims, evidence, assumptions, findings, **investigations**
+- Persisted run records with stored verdicts
+- Declaration realization checks, with `unrealized_declaration` as a hard blocker
+- Second methodology family (`xsmom`) proving generality — zero new artifact types
+
+### Mission layer
+- Share-level accounting; TWR **and** MWR; flow-matched benchmarks
+- `Intent` with `SelectionBasis`; `ScenarioSpecification`; `Mission`
+- Ten-stage compiler with the model quarantined to stage 1; versioned defaults
+- RSU vesting template; forward tracking; `PlanObservation`; `Proposal`;
+  counterfactuals
+- Private workspace: separate router, templates, store; owner-scoped queries
+
+### Runtime layer
+- `RuntimeArtifact` base with `content_hash` / `compatibility_hash`
+- `TaxRuntime`, `AccountRuntime`, `MarketDataRuntime` + `RealizedData`,
+  `CashFlowRuntime`
+- `ExecutionEnvironment` with composition validation and a registered rule catalog
+- Comparison-dimension registry; `ISOLATION_DIMENSIONS` derived
+
+### Interface and boundaries
+- UI milestones 1–2: chain, glyph, impact graph, timeline, relation badge,
+  eligibility
+- Shared design tokens with layout deliberately unshared
+- Endpoint boundary manifest with a manifest-driven sweep
+- Eleven-step acceptance journey, end to end
+
+### Artifacts on disk
+
+```
+methodologies 4 · protocols 3 · calendars 2 · policies 1
+claims 3 · assumptions 7 · evidence 6 · findings 3 · investigations 6
+```
+
+---
+
+## 3. Acceptance criteria
+
+Testable questions a reader must answer **without reading source**
+(`tests/test_acceptance.py`):
+
+1. Why `hrp@3` exists
+2. Why `hrp@1` is blocked despite strong statistics
+3. What invalidated Erratum 01's absolute figures
+4. Whether two methodologies are comparable, and why not
+5. Which assumptions a methodology inherits versus declares
+6. Which mechanism realizes every declared rule
+7. What verdict a run received **historically**
+8. Whether current policy would differ
+9. What evidence changed a claim's status
+10. Whether an investigation concluded with no finding
+11. Whether a reader can judge a methodology's state from the library page in
+    under five seconds, without opening it
+
+### Architectural invariants
+
+1. Every result identifies its methodology, protocol, environment, realized
+   data, assessment, policy, publication decision and modelling scope
+2. Every declaration names its realization
+3. Every relation has declared semantics
+4. Every comparison reports checked **and unchecked** dimensions
+5. Every causal attribution names what is isolated
+6. Historical facts are persisted; current derivations are recomputed
+7. Public artifacts never cite private artifacts
+8. Personal scenarios never promote directly to the public library
+9. Every benchmark set is symmetric and order-preserving
+10. Hidden candidate selection is structurally impossible
+11. Backtest and forward results cannot be linked
+12. The platform cannot represent an executed order
+13. Inconclusive and no-material-impact investigations are first-class
+14. UI state and graph renderings derive from the same payload as accessible text
+15. A new runtime or artifact kind fails until visibility, realization,
+    comparison, composition and semantics are declared
+
+---
+
+## 4. Architecture freeze — 2026-08-01
+
+The architecture is now good enough. The next meaningful risk is no longer "can
+the system represent truth correctly?" — it is "will anyone understand it, trust
+it, and find the result useful enough to return?", and no amount of further
+invariant work answers that.
+
+**Frozen until Closed Pilot v1 ships:**
+
+- new artifact types
+- new runtime abstractions
+- new comparison semantics
+- new lifecycle refinements
+- additional canonicalization rules
+- edge-case hardening beyond release blockers
+
+**Changes still allowed**, and only these:
+
+| Allowed | Because |
+|---|---|
+| Data corruption | The record is the product |
+| Security or privacy boundary violations | One-way boundary, personal data |
+| Materially wrong financial results | Wrong money |
+| Broken replay | A result that cannot be reproduced is a claim |
+| Deployment failure | Nothing ships |
+
+**The test to apply before adding anything:**
+
+> Will a pilot user see or benefit from this in the next two weeks?
+
+If not, it needs one of the three justifications above. Otherwise it goes to
+§6 backlog.
+
+---
+
+## 5. Closed Pilot v1 — the one milestone
+
+A user can:
+
+1. enter a scenario conversationally
+2. confirm the compiler's interpretation
+3. run a historical simulation
+4. compare against 3–5 valid benchmarks
+5. see TWR, MWR, modelling scope, tax and account assumptions, and trial count
+6. save the plan
+7. revisit it
+8. start forward paper tracking
+
+Nothing else is required for v1.
+
+### Implementation order
+
+1. ~~**Wire the model into compiler stage 1.**~~ **Done.** A model proposes
+   readings; a deterministic quarantine checks every one against the text and a
+   vocabulary derived from the phrase rules. Fabricated quotations, invented
+   tickers, values outside the vocabulary and figures absent from the
+   description are all refused, and anything it cannot place becomes a question
+   rather than a default. The parse is **pinned to the saved plan**, so
+   revisiting never re-derives it against a model that has changed. No key, no
+   network or a bad response falls back to the phrase rules.
+2. **Make the UI one product.** Scenario entry, interpretation checklist, result
+   summary, benchmark comparison, modelling scope, plan page, forward timeline.
+   No further backend ontology until these are usable.
+3. ~~**Load-test the main journey.**~~ **Partly done.** The 144-strategy corpus
+   runs 14,400 compiles as a test and found five compiler defects on its first
+   pass; HarnessBench measures the Polars crossover per workload. See
+   [Performance.md](Performance.md). Remaining: the Mission Evolution workload
+   and the concurrent scenarios L01-L08.
+4. **Tax and account depth for three launch scenarios only:** taxable investing,
+   401(k)/Roth accumulation, RSU vesting and diversification.
+5. **Recruit pilot users.** Five real users will expose more than another two
+   hundred invariant tests.
+
+---
+
+## 6. Backlog — after pilot validation
+
+Deferred deliberately, not abandoned. Each was in progress or planned and is
+paused because it does not change what a pilot user sees.
+
+- Full Discovery Runtime; automated Investigation generation
+- Complete Finding-production workflow (`FINDING_PRODUCED` route, promotion
+  rules, conclusion-to-Finding routing)
+- `NO_MATERIAL_IMPACT` journey against persisted evidence
+- Elaborate evidence-graph UI
+- Second-domain expansion (debt payoff versus investing)
+- Corporate-action completeness; generalized estate runtime
+- Jurisdiction-specific tax runtime versions; RMD rules
+- `TradingCalendar` retrofit to `RuntimeArtifact`
+- Cross-agent harness enhancements; deeper v10 optimizations
+- Chart artifacts with provenance blocks (Phase E)
+
+### What was completed before the freeze
+
+The Investigation workflow reached durable, replayable evidence state in
+`rag-saas-platform`: the transition ledger, canonical replay, the `INCONCLUSIVE`
+journey against a reference-first working set, and persisted `ContextView`
+declarations and materializations with tamper detection. That work stands; it is
+the finished floor under the backlog above, not a half-built room.
+
+---
+
+## 7. Phase detail (paused)
+
+Retained for when the backlog is picked up again.
+
+### Phase B — Investigation workflow and runtime integration
+
+The artifact, persistence, graph queries, examples and UI are implemented (see
+§5). What remains is the **governed workflow**: lifecycle transitions, Mission
+Runtime handoff, Discovery integration, evidence collection, deduplication, and
+conclusion-to-Finding routing.
+
+> **Exit:** Discovery can open work that concludes without a positive finding,
+> and the result is as visible as a conclusive one.
+
+### Phase C — Discovery Runtime
+
+Evidence ingestion, claim-status change detection, restatement detection,
+affected-artifact traversal, missed-event and expired-proposal detection,
+proposal deduplication, significance scoring, human review gates, audit trail.
+
+> **Exit:** Discovery proposes reviewable investigations from typed graph changes
+> without inferring from prose or recommending action.
+
+Discovery may surface public methodologies matching user-stated constraints. It
+may **not** rank them, use peer behaviour, or recommend action.
+
+### Phase D — Remaining runtimes
+
+1. `CorporateActionRuntime` — market data declares where action facts come from;
+   the corporate-action runtime declares how they alter holdings and cash
+2. Full cash-flow event library
+3. Retirement-account rules
+4. Jurisdiction-specific tax runtime versions
+5. Estate transfer — only after benchmark-baseline viability is proven
+
+Each must declare family and version, comparable form, realization checks,
+limitations, semantic dependencies, composition rules, comparison dimensions and
+visibility.
+
+### Phase E — Chart artifacts
+
+Charts become artifacts with a provenance block: producing run, methodology,
+protocol, calendar, environment, data snapshot, performance class, publication
+decision, comparability requirements. Research pages restyled with shared tokens
+while keeping dense analytical layouts.
+
+> **Exit:** every chart is provenance-linked, and none can bypass performance
+> eligibility.
+
+### Phase F — Pilot readiness review
+
+Securities-counsel review · privacy and retention review · API boundary sweep ·
+threat model · audit logging · model and provider disclosure · prompt-injection
+and tool-abuse checks · full non-recommendation journey review · scenario
+deletion and export · data-provider licensing · paper-only tracking verification.
+
+### Phase G — Second domain
+
+**Debt payoff versus investing.** Chosen because it preserves the comparative
+strength: standardized cash flows, clear counterfactual baselines, interest and
+tax assumptions, liquidity constraints — and no new ontology expected.
+
+Domains without standardized counterfactual baselines (estate planning,
+insurance) compile fine and lose the comparison, which is currently the strongest
+part of the product. Choose a second domain on whether it has baselines, not on
+whether it has events.
+
+Do not start until the workspace documentation and closed-pilot surface are
+complete.
+
+---
+
+## 8. Investigation: artifact complete, workflow incomplete
+
+Worth stating precisely, because "workflow incomplete" reads as "artifact
+absent" and the two are very different states.
+
+```
+Implemented:  Investigation as a knowledge artifact
+Incomplete:   Investigation as a durable unit of work
+```
+
+### Implemented
+
+- `Investigation` artifact with `InvestigationOutcome`
+  (`PENDING`, `FINDING_RECORDED`, `NO_EFFECT_FOUND`, `INCONCLUSIVE`, `ABANDONED`)
+- Registry support, loading and identity validation
+- Six persisted YAML instances covering the real history
+- Graph relationships and queries — `open_inquiries`, `null_results`,
+  `investigation_for_finding`, `unattributed_findings`, `recorded_trials`,
+  `investigation_provenance`
+- Investigation UI page at `/ui/investigations`
+- Self-validating outcomes: claiming a finding requires citing one, a null
+  result may not cite one, a null result must name what it examined
+- `trials_examined` flowing into deflation
+- 22 tests
+
+### Remaining
+
+- Lifecycle transition enforcement
+- Mission Runtime handoff
+- Discovery Runtime proposal creation
+- Investigation deduplication
+- Assignment and ownership
+- Pause, resume and cancellation semantics
+- Evidence-gathering workflow
+- Finding creation from concluded investigations
+- Audit events for transitions
+- Queue and review UI
+
+## 9. Other known open items
+
+- **`TradingCalendar` is not yet a `RuntimeArtifact`.** It lives in
+  `src/calendars/` with its own hashing, so the `calendar` comparison dimension
+  names a runtime kind with no registered type and its `depends_on` cannot be
+  derived. `unreconcilable()` reports this rather than letting the registry look
+  reconciled while one dimension stays unchecked. Converting it is the last
+  runtime retrofit
+
+---
+
+## 10. Running it
+
+```bash
+python3 -m pytest tests/ -q          # full suite
+python3 -m pytest tests/test_journey.py -q    # the eleven-step user journey
+uvicorn src.api:app --reload         # /ui public library, /workspace private
+python3 scripts/run_methodology.py   # execute a methodology under a protocol
+python3 scripts/evaluate.py          # assessment + policy + publication
+python3 scripts/assess.py            # statistical assessment only
+python3 scripts/publish_run.py       # record a run in the ledger
+```
+
+Deployment notes for the Cloudflare Pages dashboard are in `deploy_cloudflare.sh`
+and `.github/workflows/daily-deploy.yml`.
+
+
+---
+
+## Features
+
+What the system does, by surface. Architecture is in [Architecture.md](Architecture.md);
+status and remaining work in [Implementation.md](Implementation.md).
+
+---
+
+## Quantify Library — public research
+
+### Methodologies as executable data
+
+A methodology is a typed AST, not a Python function. Every value that drives a
+result comes from the specification: lookback, signal linkage, covariance
+estimator, weight bounds, cadence, turnover cap, ordered pipeline, rules,
+universe filters.
+
+Sections declare their merge semantics — `unordered_set`, `ordered_sequence`,
+`normalized_map`, `conjunction_set`, `weighted_expression`, `scalar` — so a diff
+between two versions knows whether order matters.
+
+Currently: `hrp@1..3`, `xsmom@1`. The second family was added specifically to
+prove the artifact model generalises; it required **zero new artifact types**.
+
+### Every declaration names its realization
+
+```yaml
+- id: concentration_cap
+  enforced_by: contract.weight_bounds.max
+  expected: "<= 0.25"
+```
+
+A rule whose named mechanism does not exist is an `unrealized_declaration`, which
+is a **hard publication blocker**. The principle is itself stored as
+`assumption/declarations-name-their-realization@1`.
+
+### Evaluation protocols, calendars, policies
+
+`methodology + evaluation protocol = performance`. The protocol declares warmup,
+execution lag, cost model, calendar reference, factor model, purging and embargo,
+holdout and evaluation period. Sealed holdouts are enforced by panel truncation —
+the data is not merely hidden, it is unreachable.
+
+Calendars are versioned artifacts (`calendar/nyse@1`, `calendar/crypto@1`) with
+rule-based holidays and declared coverage horizons. They **refuse to
+extrapolate** past their coverage rather than guessing.
+
+### Statistical assessment separated from judgement
+
+PSR, DSR, PBO, MinTRL, purged cross-validation with embargo, factor
+neutralization. The assessment reports facts and carries no verdict; a versioned
+`StatisticalPolicy` applies the standard; a surface-aware `PublicationDecision`
+decides what may be said.
+
+Deflation counts every configuration tried, including the ones that produced
+nothing.
+
+### Comparability
+
+Two methodology versions are comparable when their output contracts are
+interchangeable. `OutputContract.compatibility_breaks()` returns structured
+`ContractBreak` objects — field, before, after, **and why it matters** — so the
+consequence of a change has one author rather than one per page.
+
+The comparison page follows a fixed order: verdict → where the boundary falls →
+blocking differences → why each matters → how comparability could be restored →
+only then, eligibility for a performance visual.
+
+### Knowledge model
+
+| | |
+|---|---|
+| **Claim** | Addressable proposition; status derived from evidence, never stored |
+| **Evidence** | Declares its own stance toward a claim, with strength and validity |
+| **Assumption** | Declared premise, risk if false, and the test that validates it |
+| **Finding** | Synthesis of several evidence items into one conclusion with typed impacts |
+| **Investigation** | The question and the work — including inquiries that produced nothing |
+| **Erratum** | Correction typed by `correction_type` × `cause_type` × severity |
+
+Evidence declares its stance toward a claim rather than the claim listing its
+evidence, so recording disagreement is not gated on the claim's owner.
+
+`Investigation` closes the survivorship gap: `NO_EFFECT_FOUND`, `INCONCLUSIVE`,
+`ABANDONED` and `PENDING` are kept apart, and `trials_examined` carries the cost
+of a search that concluded nothing into every later deflated statistic.
+
+### Errata are first-class
+
+Published corrections that supersede specific performance records rather than
+deleting them. Superseded figures stay reachable; the publication gate blocks
+them rather than the library hiding them.
+
+---
+
+## Quantify Scenarios — private workspace
+
+### Describe a plan in prose
+
+The compiler runs ten stages with the language model **quarantined to stage 1**.
+Everything downstream is deterministic and would produce the same scenario from
+the same parse a year from now.
+
+An unrecognised phrase becomes `unresolved`, never a default. Writing "Google"
+produces a question about share class, not a silent `GOOGL`.
+
+### Confirm exactly what will be simulated
+
+```
+You stated        verbatim spans, quoted back
+We inferred       every default, with why it matters
+These conflict    where the description contradicts itself
+We still need     open questions, each with its consequence
+```
+
+Defaults live in a content-hashed artifact
+(`compiler-defaults/us-equity-scenario@1`), pinned rather than "latest", so
+recompiling the same words next year produces the same scenario.
+
+`can_simulate` and `can_save` are different gates. An underspecified plan runs
+provisionally, because running it is how a reader sees what it means. A
+structurally impossible one does not — there is no shape to show for a plan that
+cannot execute as written.
+
+**Pairs the compiler must not collapse:** below-200DMA every day vs crossing
+below once · equal weight at purchase vs rebalanced · contribution vs additional
+cash · earnings date vs first session after · dividends reinvested vs held ·
+first calendar day vs first trading day.
+
+### Both returns, always
+
+```
+Contributed        $48,000
+Final value        $65,941
+Time-weighted      +0.30%/yr   "is this a good strategy?"
+Money-weighted    +34.89%/yr   "how did I do?"
+```
+
+Both correct, for a plan that dollar-cost-averaged through a market that halved
+and recovered. Reporting only the first answers a question nobody asked.
+
+### Symmetric benchmarks
+
+Every benchmark receives identical contributions on identical days, under
+identical costs, lag and calendar. Returned in **declaration order**, never
+sorted by outcome. A benchmark that cannot receive the same flows is reported as
+incomparable, never quietly dropped — a set that silently excludes what does not
+fit is a curated argument.
+
+Cash is always in the set. It is the comparison nobody asks for and the one that
+answers *"was any of this worth doing?"*
+
+### Trial and selection disclosure
+
+Above the fold on every plan: selection basis, candidates evaluated, trials
+counted, hidden-selection check, recommendation assessment, derivation
+completeness.
+
+> This plan was chosen after comparing 3 candidates' results. All 3 count as
+> attempts, and the deflated statistics on this page already account for that —
+> the best of several will always look better than it is.
+
+### Life-event templates
+
+`template/rsu-vesting@1` — typed inputs with units, cited assumptions, declared
+limitations. Input validation refuses the hundredfold error: a withholding rate
+typed as `22` instead of `0.22` is rejected rather than applied.
+
+What it models: vesting in shares (not a purchase), statutory withholding with
+the annual threshold split, blackout **deferral** rather than cancellation, sale
+proceeds, transaction costs, allocation into the selected rule.
+
+What it declines, with reasons: final income-tax liability, capital-gains
+treatment, state and payroll taxes, lot optimisation, plan rules not supplied,
+actual brokerage execution.
+
+The 22% statutory default is recorded with its risk: *it is a withholding rate,
+not a tax rate*, and anyone above that bracket owes the difference at filing.
+
+### Forward tracking
+
+`PlanObservation` records planned against observed without touching the plan.
+Three lanes, so a delayed vest reads as *missing* plus *unexpected* rather than
+one shifted row.
+
+Proposals carry `placed: false` and `execution_mode: NONE` **in the payload**,
+not in surrounding copy, and each traces to the plan clause that produced it.
+
+### Counterfactuals
+
+*"What would have happened had those executed on the first eligible day?"* leads
+with **Constraint isolated: the blackout window**, then lists the dimensions held
+identical. A number shown first would read as a verdict on the strategy.
+
+The view downgrades to `PERSONAL_OUTCOME` if any isolation dimension differs.
+
+### Modelling scope travels with the number
+
+Rendered straight from `MissionResult` — the exact statement attached to the
+figure is what the reader sees, split into modelled / not modelled / why
+excluded, with each exclusion typed and tagged with the runtime that declines it.
+
+---
+
+## Interface
+
+- **Library status matrix** — one glyph row per version, scannable in five
+  seconds without opening anything. Symbols carry meaning without colour.
+- **Artifact chain** — twelve steps grouped `reasoning │ execution │ judgment`,
+  rendered from one payload by both the glyph and the table.
+- **Impact graph** — nodes own state, edges own impact, with a fallback table
+  carrying identical semantic keys.
+- **Run page** — recorded-at-execution beside state-now, never merged, plus
+  *"would today's policy agree?"* replaying recorded facts under the current
+  standard.
+- **Claims, findings, investigations, errata, protocols** pages.
+- **Private workspace** — plan list, confirmation, plan detail, proposal
+  history, observation timeline, counterfactual, scope panel.
+
+---
+
+## API
+
+`/methodologies` `/protocols` `/policies` `/runs` `/performance` `/errata`
+`/trials` `/compatibility` `/holdout-unlocks` `/surfaces` `/current-strategies`
+`/project/discoveries` `/project/learning` — all public and impersonal.
+
+`/workspace/*` — private, owner-scoped at the query.
+
+Every endpoint is declared in a **boundary manifest**; an undeclared route fails
+the test suite until someone decides which side it is on.
+
+
+---
+
+## Quantify roadmap v1
+
+Written at the point where the work stopped being architectural. Findings are
+classified rather than queued: the bucket decides when something is done, and
+most things wait for reality to ask.
+
+## How a finding is classified
+
+| Bucket | Response |
+|---|---|
+| **Critical correctness** — wrong financial result, privacy leak, data loss | fix immediately |
+| **Pilot blocker** — prevents a user completing the intended journey | fix before or during the pilot |
+| **Product enhancement** — timelines, charts, conditions, assets | schedule into a phase |
+| **Architectural refinement** — stronger invariants, better abstractions | record; implement when duplication or user evidence justifies it |
+
+The fourth bucket is the one that needs the discipline. Every invariant applied
+on this branch found something real, which is exactly why "it found something"
+cannot be the trigger for the next one.
+
+## What to go looking for
+
+The table above triages something already found. This is the other question —
+what to actively look for — and it has **two** answers, not four:
+
+- **Product discoveries.** Things users want. *"Can I backtest RSI?"* *"Can I
+  compare two strategies?"* *"Can I import my portfolio?"* These become
+  roadmap items.
+- **Operational discoveries.** Things that threaten trust. Latency spikes,
+  provider outages, confusing explanations, a disclosure nobody reads
+  correctly, a recovery taking longer than the drill said.
+
+**There is deliberately no third category for architectural discovery.** Not
+because architecture stops mattering, but because an architectural insight that
+matters will promote itself: a product feature will need it, an operational
+failure will expose it, or a second project will duplicate it. One that does
+none of those is recorded and left alone.
+
+This does not contradict the fourth bucket above. That bucket says what to do
+with an architectural finding *once you have one* — usually while doing
+something else. This says not to go hunting for them. The distinction is the
+difference between noticing and searching, and on this branch the searching was
+justified because the foundations were still being built. It is not any more.
+
+## Phase 0 — Baseline
+
+See `docs/Pilot.md` for the six criteria. Remaining:
+
+1. Create the first post-provenance production plan through the builder.
+2. `deploy/provenance_gate.py` reports PASS rather than VACUOUS — (1) is what
+   makes (2) possible; they are one action and one observation.
+3. Promote `feat/quantify-repository-baseline` to `main`.
+
+Then compiler work freezes **until pilot evidence names a condition**. Not
+permanently: Phase 2 is largely compiler work, and it is gated on someone
+asking rather than closed.
+
+## Phase 1 — Pilot
+
+Learn what users want. No architecture changes unless they block users.
+
+**Product:** invite the first cohort · observe · 1-2-4-3 interviews · collect
+unsupported requests.
+
+**Operations:** licensing · provider budgets · monitoring · trace retention.
+
+**Metrics:** plans created · plans completed · clarification rounds · abandoned
+plans · unsupported conditions · unsupported assets · feature requests.
+Nothing else.
+
+### What the telemetry can and cannot answer
+
+Countable today, from `trace`/`span`/`decision`: plans created, plans
+completed, clarification rounds (`RETURNED_FOR_ANSWERS` per journey),
+abandonment between `/new` and `/save`, and which *fields* were asked about.
+
+**Not** answerable: *which* conditions and assets users asked for that we do
+not support. Those arrive as `unclear:` items, and the field id is hashed —
+`unclear:#0723c05b67e5` — because it is built out of the user's own words and
+this store must not hold them. The hash makes recurrence countable: the same
+unsupported thing asked ten times is visibly one thing asked ten times. It does
+not say what the thing is.
+
+That is the privacy decision working as intended, and it means two of the seven
+metrics come from **interviews, not instrumentation**. Recording the phrases
+would answer them faster and would put user financial language back into the
+trace store, which is the leak closed on 2026-08-05. If the interviews prove
+insufficient, the honest option is a reviewed vocabulary of *categories* —
+"volatility condition", "options instrument" — recorded structurally, never the
+raw phrase.
+
+## Phase 2 — Product
+
+What users ask for, in the order they ask.
+
+**Conditions:** RSI · MACD · Bollinger · volatility · earnings · recession
+indicators. Each is a `SignalGenerator`; the abstraction exists so the first
+one did not become the API.
+
+**Assets:** options · futures · crypto · mutual funds · portfolios · RSUs.
+
+**Money flows:** recurring · withdrawals · salary · dividends · rebalancing.
+Each is a `FundingPolicy` variant.
+
+**Timeline and charts:** equity curve · cash · contributions · drawdown ·
+benchmark · signal markers. The execution ledger already backs the timeline;
+these render it rather than recompute it.
+
+## Phase 3 — Platform
+
+Extract only after duplication appears, and only when a second product needs
+it — not because the code is elegant. Candidates: compiler primitives,
+amendment engine, provenance, telemetry, registry. See
+`extract-on-repeated-failure-modes`: the trigger is repeated *failure modes*,
+not repeated code.
+
+## Phase 4 — Ecosystem
+
+Research library · public strategy catalog · sharing · version history ·
+benchmark library · explain mode · API · SDK.
+
+## Phase 5 — Commercial
+
+Only after pilots. Authentication · billing · organizations · collaboration ·
+imports · brokerage integration · licensed market data.
+
+## Deferred, with triggers
+
+An item is inactive until its trigger fires. It does not become active by
+existing.
+
+| P | Item | Trigger |
+|---|---|---|
+| P2 | Worksheet rendering for conditional plans (OBS-1) | a pilot user asks where the detail is |
+| P2 | Re-parse per round trip (OBS-2) | evidence of latency complaints or question drift |
+| P2 | Description in the URL (OBS-3) | the pilot moves past synthetic data, or a user shares a plan link |
+| P3 | Ranking-policy versioning | the first dispute about instrument ordering |
+| P3 | Compiled registry artifact | the registry grows enough that compile time shows |
+| P3 | Compiler extraction | a second product duplicates compiler logic |
+| P3 | `ReaderDecision` — a reader reports `ACCEPTED`, `REJECTED` or `NOT_PRESENT` | a fourth field needs the distinction, or a `DISQUALIFIED_SPAN` entry is added for a third |
+| **P2** | Compiler-derived coverage inventory | **trigger met 2026-08-07** — five per-feature entries were added in one slice. Status: validated architectural debt. Implement when the next semantic dimension would otherwise need a sixth manual entry. |
+
+`docs/Pilot.md` holds the full observations; this table is the
+short form with the trigger made explicit.
+
+## Two architectural candidates, and why they are not being built
+
+Both are justified by repeated failure shapes. Neither is yet justified as a
+general abstraction, because every instance so far has come from the same two
+semantic dimensions and pilot usage has not yet said which others matter.
+
+**`ReaderDecision`.** Stage 1 has two independent readers and `merge` compares
+them. It can express "they disagree" and "only one has an opinion". It cannot
+express *why* the other is silent, and there are two opposite reasons:
+
+    NO_VALUE
+      ├── NOT_PRESENT      the reader saw nothing; a proposal may fill it
+      └── REJECTED         the reader saw the words and ruled them out
+
+Collapsing them let a second reader reintroduce an interpretation the first had
+just rejected. `rebalanced monthly` was refused as a contribution cadence by
+the regex; the model proposed `monthly` quoting that exact phrase; `merge` read
+the refusal as a gap and accepted it, and a $100,000 allocation became
+$6,100,000 again.
+
+Shipped instead: a span check, asking whether the words a proposal quotes are
+being used in the role it claims. Bounded, closes the live defect, and answers
+a different question from the fabrication check that already existed — *did the
+model see these words* versus *do those words mean this here*.
+
+**Compiler-derived coverage inventory — trigger met.** `coverage.assess`
+enumerates supported constructs: period, conditional purchase, second funding
+source, sell leg, conditional amount, allocation method, periodic rebalancing,
+stated weights. Each was added after a figure was published for a plan the
+compiler could not represent, and five of them arrived in a single slice on
+2026-08-07.
+
+That is enough. The status is no longer "possible abstraction" but **validated
+architectural debt**: the per-feature list is structurally wrong and the
+evidence is in the commit history, not in a prediction. It is still not
+pre-pilot work — the entries that exist are correct, and each blocks a figure
+by name. Implement when the next semantic dimension would otherwise require a
+sixth manual entry. The recurring failure is not a missing entry:
+
+> a semantic dimension exists, the compiler cannot represent it, and it
+> therefore disappears from the denominator
+
+The replacement would derive the inventory from the declared semantics and
+reconcile each against executed, excluded, unresolved or unsupported. Not built
+today because this area has been over-generalised twice on this branch and
+narrowed back both times — once counting every unanswered question as a
+declaration, which blocked the figure on nearly every first submission.
+
+**The design pressure to carry forward, in one line:**
+
+> Absence is not always ignorance. Sometimes it is a deliberate rejection, and
+> collapsing the two lets another reader reintroduce exactly what was rejected.
+
+That has now appeared four times: `provenance@1`'s missing keys against an
+empty list, an unstamped body asserting emptiness, an ambiguous sentence
+against an unrecognised one, and a refused cadence against an unseen one.

@@ -191,7 +191,7 @@ def run(environ: Optional[Mapping[str, str]] = None,
             f"the production profile requires PostgreSQL and is configured for "
             f"{dialect.value}. SQLite proves domain behaviour and cannot "
             "evidence locking, constraint enforcement, upsert semantics or "
-            "migration parity — see docs/PostgreSQL_Guarantees.md")
+            "migration parity — see docs/Runbook.md")
 
     if dialect is not Dialect.POSTGRESQL:
         # SQLite is created by `create_all` and has no migration history to be

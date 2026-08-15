@@ -101,16 +101,16 @@ python3 scripts/assess.py            # statistical assessment only
 | | |
 |---|---|
 | [Architecture.md](docs/Architecture.md) | Artifact model, runtime lifecycle, boundaries, comparability, regulatory posture |
-| [Features.md](docs/Features.md) | What the system does, by surface |
-| [Implementation.md](docs/Implementation.md) | Status, defect history, acceptance criteria, the architecture freeze and Closed Pilot v1 |
-| [Performance.md](docs/Performance.md) | Measured latency, HarnessBench, the Polars crossover |
+| [Features.md](docs/Architecture.md) | What the system does, by surface |
+| [Implementation.md](docs/Architecture.md) | Status, defect history, acceptance criteria, the architecture freeze and Closed Pilot v1 |
+| [Performance.md](docs/Runbook.md) | Measured latency, HarnessBench, the Polars crossover |
 | [docs/errata/](docs/errata/) | Published corrections |
 
 The one place status is easy to misread: `Investigation` is **implemented as a
 knowledge artifact** — persisted, queryable, rendered — and **not yet implemented
 as a durable unit of work**. Lifecycle transitions, Discovery-driven creation and
 conclusion-to-Finding routing are the remaining work. See
-[Implementation.md §8](docs/Implementation.md).
+[Implementation.md §8](docs/Architecture.md).
 
 ---
 

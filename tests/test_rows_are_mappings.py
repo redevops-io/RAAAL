@@ -113,7 +113,7 @@ def store_a_plan(store, plan_id="plan-1"):
             "INSERT INTO pilot_plans "
             "(plan_id, owner, created_at, text, artifact) "
             "VALUES (?, ?, ?, ?, ?)",
-            (plan_id, store.PILOT_OWNER, "2026-08-14T00:00:00Z", TEXT,
+            (plan_id, store.PILOT_OWNER(), "2026-08-14T00:00:00Z", TEXT,
              json.dumps({"text": TEXT})))
         connection.commit()
     finally:

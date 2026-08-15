@@ -1,6 +1,6 @@
 """Whether the production solver obeys the frozen MWR contract.
 
-    docs/MWR.md                      what a money-weighted return means
+    docs/Measures.md                      what a money-weighted return means
     Quantify/Returns/MoneyWeighted   the reporting contract, proven in Lean
     this file                        whether the engine's solver conforms
 
@@ -52,13 +52,13 @@ class TestTheCertificationNamesWhatItChecked:
         changes when somebody tunes a solver."""
         from pathlib import Path
 
-        doc = Path(__file__).resolve().parent.parent / "docs" / "MWR.md"
+        doc = Path(__file__).resolve().parent.parent / "docs" / "Measures.md"
         if not doc.exists():
-            pytest.skip("docs/MWR.md is absent")
+            pytest.skip("docs/Measures.md is absent")
         text = doc.read_text().lower()
         for word in ("tolerance", "epsilon", "1e-", "converge"):
             assert word not in text, (
-                f"docs/MWR.md mentions {word!r}; numerical concerns belong to "
+                f"docs/Measures.md mentions {word!r}; numerical concerns belong to "
                 "the implementation boundary, not to what MWR means")
 
     def test_uniqueness_is_never_claimed_from_sampling(self):
@@ -176,13 +176,13 @@ class TestTheNonUniqueCase:
         rediscovers."""
         from pathlib import Path
 
-        doc = Path(__file__).resolve().parent.parent / "docs" / "MWR.md"
+        doc = Path(__file__).resolve().parent.parent / "docs" / "Measures.md"
         if not doc.exists():
-            pytest.skip("docs/MWR.md is absent")
+            pytest.skip("docs/Measures.md is absent")
         text = doc.read_text()
         assert "money_weighted_return" in text
         assert "Closed" in text, (
-            "docs/MWR.md still records this as an open non-conformance")
+            "docs/Measures.md still records this as an open non-conformance")
 
 
 class TestTheConformanceRecordIsFitToShow:

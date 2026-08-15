@@ -272,10 +272,22 @@ def _pinned_parse(record):
         return None
     return parse_from_stored(stored, record["stated_text"])
 
-#: Single-user pilot. Real authentication replaces this before the workspace is
-#: exposed to anyone; naming it here keeps the substitution obvious rather than
-#: letting an implicit "current user" spread through the handlers.
-PILOT_OWNER = "pilot"
+def PILOT_OWNER() -> str:
+    """Whose workspace this request is in.
+
+    "Real authentication replaces this before the workspace is exposed to
+    anyone" is what stood here, and the substitution the note anticipated is
+    this one. It did not happen before exposure: the session gate and open
+    registration shipped hours apart, and in between every account that
+    registered could read every other account's plans, because this was the
+    literal string `"pilot"` for all of them.
+
+    A function so the call sites read unchanged and there is exactly one place
+    that decides. See `owner.current`.
+    """
+    from .owner import current
+
+    return current()
 
 #: Life-event templates the compiler may hand off to, keyed by the hint it
 #: emits. Named apart from the Jinja environment above, which is a different
@@ -344,7 +356,7 @@ def _recorder(*, worksheet_id: str = "", conversation_id: str = ""):
     return Recorder(store=current().telemetry.store(),
                     conversation_id=conversation_id or None,
                     worksheet_id=worksheet_id or None,
-                    tenant=PILOT_OWNER)
+                    tenant=PILOT_OWNER())
 
 
 def _record_questions(recorder, *, fields, outcome: str) -> None:
@@ -490,9 +502,9 @@ def _candidate_runner(access, store, worksheet_id: str):
 
     from .worksheet import from_json as worksheet_from_json
 
-    record = store.get_worksheet(worksheet_id, PILOT_OWNER)
+    record = store.get_worksheet(worksheet_id, PILOT_OWNER())
     worksheet = worksheet_from_json(record["payload"])
-    plan = store.get_plan(worksheet.scenario_ref, PILOT_OWNER)
+    plan = store.get_plan(worksheet.scenario_ref, PILOT_OWNER())
     if plan is None:
         raise HTTPException(
             status_code=409,
@@ -646,7 +658,7 @@ def _timeline_chart(scenario, prices, ledger, *, width=720, height=180):
 def index(request: Request):
     return TEMPLATES.TemplateResponse(
         request, "index.html",
-        {"plans": _store().list_plans(PILOT_OWNER), "owner": PILOT_OWNER},
+        {"plans": _store().list_plans(PILOT_OWNER()), "owner": PILOT_OWNER()},
     )
 
 
@@ -1207,7 +1219,7 @@ async def _save(request: Request, *, describe: str, title: str, parse: str,
     saved_at = pd.Timestamp.now("UTC").isoformat()
     try:
         _store().save_plan(
-            plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
+            plan_id=plan_id, owner=PILOT_OWNER(), scenario=scenario,
             stated_text=describe, saved_at=saved_at, title=title.strip(),
             parse=parsed.to_json() if parsed is not None else None,
             parser=parser,
@@ -1224,7 +1236,7 @@ async def _save(request: Request, *, describe: str, title: str, parse: str,
         run = _run(scenario, access)
         if run.get("result") is not None:
             generate_worksheet(
-                _store(), plan_id=plan_id, owner=PILOT_OWNER, scenario=scenario,
+                _store(), plan_id=plan_id, owner=PILOT_OWNER(), scenario=scenario,
                 run=run["result"].to_json(),
                 comparison={**(run.get("payload") or {}),
                             **(run.get("comparability_records") or {})},
@@ -1309,7 +1321,7 @@ def _with_decisions(scenario, agreed):
 @router.get("/plans/{plan_id}", response_class=HTMLResponse)
 def plan_detail(request: Request, plan_id: str):
     store = _store()
-    record = store.get_plan(plan_id, PILOT_OWNER)
+    record = store.get_plan(plan_id, PILOT_OWNER())
     if record is None:
         raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
 
@@ -1344,11 +1356,11 @@ def plan_detail(request: Request, plan_id: str):
             "scenario": record["scenario"],
             "migration": migration,
             "run": run,
-            "runs": store.runs_for(plan_id, PILOT_OWNER),
+            "runs": store.runs_for(plan_id, PILOT_OWNER()),
             "proposals": [p["payload"] for p in
-                          store.list_proposals(plan_id, PILOT_OWNER)],
+                          store.list_proposals(plan_id, PILOT_OWNER())],
             "observations": [o["payload"] for o in
-                             store.list_observations(plan_id, PILOT_OWNER)],
+                             store.list_observations(plan_id, PILOT_OWNER())],
             # With no result there is no result-borne scope, and the page used
             # to fall through to `scope` — which is None for any plan without a
             # template hint. So the plan whose entire strategy went unmodelled
@@ -1393,10 +1405,10 @@ def proposals(request: Request, plan_id: str, as_of: str = ""):
     was.
     """
     store = _store()
-    if store.get_plan(plan_id, PILOT_OWNER) is None:
+    if store.get_plan(plan_id, PILOT_OWNER()) is None:
         raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
 
-    stored = store.list_proposals(plan_id, PILOT_OWNER)
+    stored = store.list_proposals(plan_id, PILOT_OWNER())
     return TEMPLATES.TemplateResponse(
         request, "proposals.html",
         {"plan_id": plan_id, "proposals": [p["payload"] for p in stored],
@@ -1413,10 +1425,10 @@ def observations(request: Request, plan_id: str):
     plan's assumption failed.
     """
     store = _store()
-    if store.get_plan(plan_id, PILOT_OWNER) is None:
+    if store.get_plan(plan_id, PILOT_OWNER()) is None:
         raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
 
-    stored = store.list_observations(plan_id, PILOT_OWNER)
+    stored = store.list_observations(plan_id, PILOT_OWNER())
     return TEMPLATES.TemplateResponse(
         request, "observations.html",
         {"plan_id": plan_id, "observations": [o["payload"] for o in stored]},
@@ -1431,7 +1443,7 @@ def counterfactual(request: Request, plan_id: str, constraint: str = "a blackout
     because a number shown first will be read as a verdict on the strategy.
     """
     store = _store()
-    record = store.get_plan(plan_id, PILOT_OWNER)
+    record = store.get_plan(plan_id, PILOT_OWNER())
     if record is None:
         raise HTTPException(status_code=404, detail=f"no plan {plan_id!r}")
 
@@ -1503,17 +1515,17 @@ def open_worksheet(request: Request, worksheet_id: str,
     from .worksheet_view import build as build_worksheet_view
 
     store = _store()
-    record = store.get_worksheet(worksheet_id, PILOT_OWNER, revision)
+    record = store.get_worksheet(worksheet_id, PILOT_OWNER(), revision)
     if record is None:
         raise HTTPException(status_code=404,
                             detail=f"no worksheet {worksheet_id!r}")
 
     worksheet = from_json(record["payload"])
-    view = build_worksheet_view(worksheet, store=store, owner=PILOT_OWNER)
+    view = build_worksheet_view(worksheet, store=store, owner=PILOT_OWNER())
     return TEMPLATES.TemplateResponse(
         request, "worksheet.html",
         {"view": view,
-         "revisions": store.worksheet_revisions(worksheet_id, PILOT_OWNER)},
+         "revisions": store.worksheet_revisions(worksheet_id, PILOT_OWNER())},
     )
 
 
@@ -1528,13 +1540,13 @@ def reinterpret_worksheet(worksheet_id: str):
     from .worksheet import from_json
 
     store = _store()
-    record = store.get_worksheet(worksheet_id, PILOT_OWNER)
+    record = store.get_worksheet(worksheet_id, PILOT_OWNER())
     if record is None:
         raise HTTPException(status_code=404,
                             detail=f"no worksheet {worksheet_id!r}")
 
     worksheet = from_json(record["payload"])
-    plan = store.get_plan(worksheet.scenario_ref, PILOT_OWNER)
+    plan = store.get_plan(worksheet.scenario_ref, PILOT_OWNER())
     if plan is None:
         raise HTTPException(
             status_code=409,
@@ -1577,7 +1589,7 @@ def plan_worksheet_intent(worksheet_id: str, instruction: str = Form(...),
     stamp = _now()
     try:
         planned = plan_and_record(
-            store, worksheet_id=worksheet_id, owner=PILOT_OWNER,
+            store, worksheet_id=worksheet_id, owner=PILOT_OWNER(),
             instruction=instruction,
             intent_id=f"{worksheet_id}-intent-{stamp}",
             proposal_id=f"{worksheet_id}-proposal-{stamp}",
@@ -1609,7 +1621,7 @@ def accept_worksheet_proposal(worksheet_id: str, proposal_id: str):
     from .proposal import from_json as proposal_from_json
 
     store = _store()
-    record = store.get_worksheet_proposal(proposal_id, PILOT_OWNER)
+    record = store.get_worksheet_proposal(proposal_id, PILOT_OWNER())
     if record is None:
         raise HTTPException(status_code=404,
                             detail=f"no proposal {proposal_id!r}")
@@ -1618,7 +1630,7 @@ def accept_worksheet_proposal(worksheet_id: str, proposal_id: str):
     access = _market_data("candidate runs for an accepted proposal")
     try:
         result = accept(
-            store, proposal_id=proposal_id, owner=PILOT_OWNER,
+            store, proposal_id=proposal_id, owner=PILOT_OWNER(),
             worksheet_id=worksheet_id, proposal=proposal, at=_now(),
             # A scenario change needs a runner, and there is no price history
             # here to give it one. Passing None is what makes the apply path
@@ -1652,9 +1664,9 @@ def _reconciliation_view(store, worksheet_id: str, *, as_of: str):
     from ..mission.rsu_reconcile import ObservedEvent, PlannedEvent, reconcile
     from .reconciliation_view import RSUReconciliationView, verify
 
-    planned = store.planned_events(worksheet_id, PILOT_OWNER)
-    observed = store.observed_events(worksheet_id, PILOT_OWNER)
-    stored = store.reconciliations(worksheet_id, PILOT_OWNER)
+    planned = store.planned_events(worksheet_id, PILOT_OWNER())
+    observed = store.observed_events(worksheet_id, PILOT_OWNER())
+    stored = store.reconciliations(worksheet_id, PILOT_OWNER())
 
     verification = {}
     try:
@@ -1679,7 +1691,7 @@ def worksheet_tracking(request: Request, worksheet_id: str):
     was derived, and deciding them again here would produce a second answer.
     """
     store = _store()
-    if store.get_worksheet(worksheet_id, PILOT_OWNER) is None:
+    if store.get_worksheet(worksheet_id, PILOT_OWNER()) is None:
         raise HTTPException(status_code=404,
                             detail=f"no worksheet {worksheet_id!r}")
 

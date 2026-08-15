@@ -761,11 +761,11 @@ class TestTheMWRDefinitionIsFrozenBeforeTheProof:
     like success and means nothing.
     """
 
-    DOC = (Path(__file__).resolve().parent.parent / "docs" / "MWR.md")
+    DOC = (Path(__file__).resolve().parent.parent / "docs" / "Measures.md")
 
     def test_the_contract_exists_and_states_the_four_outcomes(self):
         if not self.DOC.exists():
-            pytest.skip("docs/MWR.md is absent")
+            pytest.skip("docs/Measures.md is absent")
         text = self.DOC.read_text()
         for outcome in ("RATE", "NO_SOLUTION", "NON_UNIQUE",
                         "INSUFFICIENT_CASH_FLOWS"):
@@ -784,7 +784,7 @@ class TestTheMWRDefinitionIsFrozenBeforeTheProof:
 
     def test_the_document_says_the_definition_is_not_the_algorithm(self):
         if not self.DOC.exists():
-            pytest.skip("docs/MWR.md is absent")
+            pytest.skip("docs/Measures.md is absent")
         text = self.DOC.read_text()
         assert "financial definition" in text and "numerical algorithm" in text
         assert "Actual/365" in text

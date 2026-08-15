@@ -58,7 +58,7 @@ class MissionResult:
     """The money-weighted outcome, not a number.
 
     Was `Optional[float]`, which could say two things while the contract in
-    `docs/MWR.md` names four — so "no admissible rate" and "the data does not
+    `docs/Measures.md` names four — so "no admissible rate" and "the data does not
     determine one" arrived identically, and a series with two valid rates was
     reported as whichever one bisection reached."""
     periods_per_year: int

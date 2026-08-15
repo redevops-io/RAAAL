@@ -158,7 +158,7 @@ class TestWhatTheHarvestFound:
         assert top == "assets", (
             f"the dominant stopper is now {top!r} rather than the unnamed "
             "holding; the harvest's headline finding has changed and the "
-            "write-up in docs/Harvested-Corpus.md no longer describes it")
+            "write-up in docs/Semantics.md no longer describes it")
 
     def test_no_attested_sentence_is_silently_reduced(self, survival):
         """The property that matters more than the rate. `DROPPED` is the
@@ -170,7 +170,7 @@ class TestWhatTheHarvestFound:
 
 
 class TestTheRateCannotBecomeAProductClaim:
-    """Rule 3 in `docs/Evidence-Rules.md`. The caution lives in the artifact
+    """Rule 3 in `docs/Semantics.md`. The caution lives in the artifact
     because the artifact is what gets quoted, and this is the same discipline
     applied to the prose that surrounds it."""
 

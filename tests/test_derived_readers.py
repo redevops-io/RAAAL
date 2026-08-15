@@ -146,11 +146,11 @@ class TestRemovingItReintroducesTheInstability:
 
 
 class TestTheDocumentDescribesTheReaderThatExists:
-    """`docs/Reader-Authority.md` states the rule this module is an instance
+    """`docs/Semantics.md` states the rule this module is an instance
     of. A document that drifts from the code becomes a claim about a system
-    nobody has, which is the failure `FormalCore.md` was written against."""
+    nobody has, which is the failure `Measures.md` was written against."""
 
-    DOC = ROOT / "docs" / "Reader-Authority.md"
+    DOC = ROOT / "docs" / "Semantics.md"
 
     def test_it_names_every_reader_and_the_field_each_authors(self):
         from src.discovery.derived_readers import DERIVED_READERS

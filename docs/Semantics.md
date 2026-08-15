@@ -1,4 +1,201 @@
-# The parser corpora, and what the web pass found
+# Reading a sentence
+
+How language becomes an intent: authority, corpora, and evidence.
+
+> Consolidated from `Semantics.md`, `Semantics.md`, `Semantics.md`, `Semantics.md`.
+>
+> Authority, the corpora that test it, the harvest that stresses it, and the rules evidence must meet. One subject: how a sentence becomes an intent nobody has to trust.
+
+
+---
+
+## Authority is earned per semantic claim, not per parser
+
+Stanza is not authoritative. The hosted model is not authoritative. Even
+`quantify-trigger-semantics@1` is not *generally* authoritative.
+
+A deterministic derivation may author a contract field only inside the grammar
+its contract recognises and its falsification suite constrains. Outside that
+envelope it returns no claim at all.
+
+This is the rule that stops a narrow reader becoming a compiler one field at a
+time, which is how `quantify-compiler@2` happened and why deleting it took
+months.
+
+## What "no privileged reader" does and does not mean
+
+    it means      provenance does not settle a disagreement
+    it does not   every material fact needs two witnesses to exist
+
+The second reading is the tempting one and it is wrong in an expensive way. If
+a field may only be settled when two independent readers speak, then stochastic
+model participation becomes *mandatory* for understanding sentences whose
+grammar states the answer outright — and the product asks a follow-up question
+every time a provider happens to omit a dimension.
+
+That is not hypothetical. The live drift lane measured "buy VOO when SPY falls
+below its 200-day moving average" executing on two draws of five and asking on
+the other three, purely because the hosted reader emits `trigger_semantics`
+inconsistently. Neither obvious response was acceptable:
+
+- **Always ask.** Converges, and turns a supported journey into a follow-up on
+  every event-triggered sentence. Nineteen tests failed when it was tried.
+- **Let syntax carry the field.** Converges, and makes the parser an authority
+  on meaning.
+
+The third way is to name the thing in between: a reader with an id, a version,
+a contract naming exactly one field, and a falsification suite that says where
+it must stay silent.
+
+## Deterministic is not the same as authoritative
+
+The falsification suite is what converts a derivation into a reader, and it
+earned that role immediately by finding two defects worse than the feature.
+
+**Negation.** `"buy VOO when SPY does not fall below its 200-day moving
+average"` derived `crossing_event`. A dynamic verb and a comparison
+preposition were both present and nothing looked at `not`.
+
+That defect had existed for as long as the derivation had, and it was
+*harmless* — because the derivation was evidence, and evidence never carried a
+field. Promoting the same rule to authority would have converted a latent
+evidence bug into an authoritative inverted trigger: the plan fires on exactly
+the condition the sentence excludes.
+
+> A derivation's defects are bounded by its authority. Granting authority
+> retroactively promotes every one of them.
+
+**Hidden candidates.** `"crosses below and stays below"` was supposed to be
+caught by two readings disagreeing. It was not. The level binds to one
+governing verb, so exactly one family fires and a sentence carrying both
+readings arrives looking unanimous.
+
+> Candidate agreement is insufficient when the extraction can hide a candidate.
+
+The check moved to the parse, which is the only place both verbs are visible.
+
+## The contract this reader holds
+
+    id            quantify-trigger-semantics@1
+    authors       trigger_semantics, and nothing else
+    speaks when   the grammar states a transition or a state, unambiguously
+    declines when both readings appear, the clause is negated, or neither fires
+
+Fusion then weighs its claim against the hosted reader's by the ordinary rules:
+
+    both agree                     settle
+    derived speaks, model silent   settle
+    both speak and disagree        ask
+    neither speaks                 ask
+
+The restriction to one field is asserted from the AST rather than remembered,
+and the id is versioned because a derivation whose rules changed under a fixed
+id would make two runs look comparable when they are not.
+
+## The second one: `quantify-weight-binding@1`
+
+Authors `stated_weights`, and the field it authors is the argument for it. The
+hosted reader returns the split — `60/40` — which is the whole fact for anybody
+reading the sentence and half of it for anything executing one. Which holding
+takes which share is not in that value, and the engine divides each purchase by
+weights it has to be able to attach.
+
+So this reader reads the pairing off the sentence: a percentage, at most a
+preposition, then the holding. `60% in VTI and 40% in BND` binds; `a 60/40
+portfolio` does not, and neither does a ratio sitting beside a list of
+instruments. That silence is the point. Pairing positionally would mean
+deciding that the first number belongs to the first instrument, and getting it
+backwards runs 40/60 under the name 60/40 — a wrong executable meaning, on a
+figure nothing downstream can check, because both readings produce a perfectly
+ordinary number.
+
+It reads the **text**, not the parse, and that is deliberate rather than
+convenient. The deployment that serves users has no deterministic parser
+installed; a reader that needed one would be correct in the suite and absent in
+production, which is the shape of every gap this project has found in its own
+deployment.
+
+Where it and the hosted reader agree, fusion now keeps *its* value rather than
+the model's. That is not authority over a disagreement — `same_value` has
+already established the two are the same reading — it is keeping the one that
+carries the binding, because settling the model's `60/40` discarded it and left
+the compiler refusing a split it had just been handed.
+
+## Adding another one
+
+The same shape generalises — `from IRA → to Roth` could feed an
+`AccountTransitionReader` while generic parser output stays evidence. The bar
+is the falsification suite, not the plausibility of the rules:
+
+1. Name the single field it may author, and assert it structurally.
+2. Write the cases where it must **decline** before the ones where it decides.
+   A falsification set in which everything resolves proves the reader answers,
+   not that it knows when not to.
+3. Include negation, coordination, and any construction where the extraction
+   could hide a competing reading.
+4. Prove that deleting the reader reintroduces the instability it was added
+   for. A reader that changes nothing when removed is one nothing depends on.
+
+
+## The third one: `quantify-day-of-month@1`
+
+Authors `day_rule`, and it exists because the vocabulary could not say what
+somebody wrote. The schema offers three day rules — first session of the
+period, last session, and a calendar-first variant — and none of them can
+express "the 15th".
+
+So a person who wrote *"I invest $200 into NVDA every month, on the same day
+each month — the 15th for the past 5 years"* had it read as
+`calendar_first_rolled_forward`, the **first** of the period, and was then
+refused for asking for a rule this build does not run. They had not asked for
+it. That is worse than a refusal and worse than a silence: a wrong reading
+arrived wearing a refusal's clothes, and the record showed them requesting a
+plan they never described.
+
+The hosted reader was not being careless. Asked for a value from a closed
+vocabulary that has no word for the thing in the sentence, it answered with the
+nearest thing it could say. The gap was representational, which is the same
+diagnosis that produced schema `@4`.
+
+It reads an **ordinal** — `the 15th`, `on the 3rd` — because every neighbouring
+dimension in these sentences is a bare number and the cost of confusing them is
+money landing on a date nobody named:
+
+    $200 into NVDA                an amount
+    the past 5 years              an evaluation period
+    its 200-day moving average    a window
+    every month                   a cadence
+
+None of those wears an ordinal suffix. It is silent on two ordinals — "the 1st
+and the 15th" is twice a month, not a day — and silent on "the 1st **trading**
+day", which is the first-session rule this build already executes and which
+this reader must not overwrite.
+
+The engine executes it. A named day lands on the first session on or after that
+date, rolled forward off a closed market, because the 15th is a weekend about
+two months in seven. A month that never reaches the day — the 31st of a
+thirty-day month — takes that month's last session rather than rolling into the
+next one, because "monthly" means once a month and landing late within it keeps
+that true.
+
+### It had never run
+
+All three of these readers are invoked by `pipeline.read`, and `pilot.read`
+only calls that when a deterministic parser is present. No deployment this
+project serves declares one. So none of them had ever run for a single user —
+including `quantify-weight-binding@1`, which had been rewritten to read the
+*text* rather than the parse precisely because production has no Stanza, and
+then sat behind the branch that requires one.
+
+Reachability is the recurring defect here and it is never visible in a test
+that calls the thing directly. `tests/test_day_of_month.py` now reads a
+sentence through the path production takes, with no parser, and fails if the
+day is not read.
+
+
+---
+
+## The parser corpora, and what the web pass found
 
 **Status: Phase 6 frozen.** `AWAITING_A_PARSER = 2`, and both are
 deliberate — a units-policy decision and an asymmetry witness. Every
@@ -733,3 +930,263 @@ Written down because the temptation is to invert it. Fusion rules written
 against the 144-strategy catalogue, or against sentences we invented, would be
 tuned on language that does not stress them — and the finding above is what
 that looks like when it is measured instead of assumed.
+
+
+---
+
+## The harvested corpus — what real language does to Quantify
+
+Attested sentences from Stack Exchange, under CC-BY-SA with every sentence
+carrying the URL it came from. Bogleheads returns HTTP 402 to automated
+fetchers and reddit blocks them; those are stated preferences, not obstacles to
+route around, so neither was scraped.
+
+    harvested              220 sentences, 148 distinct questions
+    strategy statements     29
+    reached a plan           0
+    material semantics      76
+    adjudicated             18
+    silently dropped         0
+
+## The headline number is not the interesting one
+
+Material-semantic survival is **18/18**. It should not be quoted. Survival is
+`HONOURED + NAMED` over everything that got a verdict, and no attested sentence
+produced a plan, so nothing could be reduced. The rate says this build is safe
+on language of this kind and cannot yet model it. `survival.json` carries that
+caution in the artifact itself, and a test requires it to be there whenever
+nothing runs.
+
+## Three findings, in the order they matter
+
+**Real strategy statements do not say what to buy.** Of 29 sentences, 16 are
+stopped by `assets`. "I contribute about $750/month to my 401k" is a complete
+thought to the person writing it: the account is named, the amount is named,
+the cadence is named, and the holding is not. The authored corpus never has
+this problem because whoever wrote it knew the runtime needed an asset. This is
+the single largest gap between the corpus Quantify was built against and the
+language it will meet.
+
+It is not obvious that the runtime is wrong to ask. It cannot choose a fund on
+someone's behalf — that substitution is what the whole boundary exists to
+prevent. But "which holdings?" as the first response to most real sentences is
+a product fact worth knowing before the pilot rather than after.
+
+**One sentence executed, and it invested nothing.** "putting a portion of my
+cash savings into I-Bonds every year" compiled: I-Bonds, annual cadence,
+`amount = 0`, no question asked, and `amount` not even reported among the
+applied defaults. The person named a quantity — *a portion* — and would have
+been shown a plan that contributes zero.
+
+Closed by refusing the incoherence rather than the sentence: a recurring
+cadence says money moves every year and a zero amount says none does, and that
+contradiction is visible without reading a word of prose. `once` remains
+allowed, because a plan may legitimately model opening capital with nothing
+after it. This is the general case of the `$1k` defect — that one was a figure
+stated and unreadable, this one a figure implied and never settled — and both
+produced a plan indistinguishable from the one asked for except that it
+invested nothing.
+
+**Forum prose is a poor proxy for a strategy box.** 191 of 220 sentences that
+passed a filter built to admit people describing what they do with money are
+not strategy statements at all. They are mortgages, houses, cars, job changes,
+questions about tax, and fragments. People writing to a forum describe their
+situation; people typing into Quantify describe a strategy. Fourteen searches
+aimed specifically at the thin families — triggers, factors, execution timing —
+produced six more sentences between them, which is evidence that the language
+is not there rather than that the searches were wrong.
+
+The consequence is a limit on what more harvesting can buy. This corpus is
+worth keeping and re-running; it is not worth scaling to 500 by loosening the
+filters, because the sentences that would let in are not the ones under test.
+
+## What was annotated, and how the answer key is kept honest
+
+All 220 sentences were read. The 29 strategy statements carry a canonical human
+interpretation, an expected disposition, and the material semantics the
+sentence asserts. None of it was produced by running Discovery and writing down
+the answer — an answer key copied from the system under test measures only
+self-consistency, and does it while looking exactly like evidence.
+
+The concept vocabulary is deliberately not the schema's: `how often money goes
+in`, not `cadence`. A test asserts the two vocabularies do not overlap, because
+naming them identically is how the shortcut gets taken without anyone deciding
+to take it. The mapping between them lives in `MAPS_TO`, where it can be argued
+with.
+
+That mapping was wrong twice, both times in the direction that manufactures
+findings against the runtime:
+
+- `which account it sits in` pointed at `asset_location`, which is the mapping
+  "bonds in the IRA", when the reader settles `account_type`. Ten sentences
+  were reported as dropping a concept that had survived.
+- `how often it is put back` pointed at `rebalancing_cadence`, a field the
+  proposal layer produces and not a schema dimension at all. Every rebalancing
+  sentence would have scored as a drop.
+
+The first was caught by checking a finding before reporting it. The second was
+caught by a test that requires every mapped name to exist in the schema. Both
+are now in the file where the next person will read them.
+
+## What this does not authorise
+
+The same rule as the authored benchmark. This is a counterexample generator,
+not a fifth reopen trigger. The zero-amount plan activated the existing second
+trigger — an unsafe silent reduction — and was fixed on the day it appeared.
+The unnamed-holding finding activates none of the four: it is evidence for the
+pilot to confirm or contradict, and expanding Discovery on the strength of 29
+forum sentences would be building for a population this corpus is drawn from
+and the product is not.
+
+
+---
+
+## Rules for evidence
+
+Five rules, each written after a defect that the rule would have caught. They
+are about the evidence rather than the runtime, because every one of these
+failures leaves the test suite green — that is what makes them worth writing
+down rather than remembering.
+
+## 1. A regression set may grow. It may not silently shrink.
+
+Once a case enters a regression set because it demonstrated a property, its
+disappearance is an event that requires an explicit disposition. Removing it is
+not a fix, and neither is letting it fall out.
+
+The failure this closes is subtle because nothing in it looks like a deletion.
+`tests/test_semantics.py` derives its case list from `closure.json`, which is
+regenerated: cases whose two readers agree are collected, and cases that
+disagree simply are not. So a case that *stops* agreeing does not fail. It
+stops being collected, and the suite goes green with one fewer thing tested.
+
+It happened. Re-recording under schema `@6` moved
+`sema-window-moving_average-013` from AGREE to DISAGREE and moved two `day_rule`
+cases the other way. The total went 41 → 42. A number went up, the suite passed,
+and a case had left the tested set underneath it.
+
+The shape of the fix, wherever this pattern occurs:
+
+    corpus/parser/answerable.json     the recorded set, committed
+    LEFT_THE_ANSWERABLE_SET           the only way out, one reason per entry
+    a staleness test                  an entry that starts passing must be removed
+
+The exception list is the boundary. An entry in it is a decision somebody made
+and signed; an empty denominator is not.
+
+**Where this is applied.** The semantics tier
+(`corpus/parser/answerable.json`), and the strategy benchmark
+(`corpus/benchmark/recorded_prompts.json`). Both are evaluators whose case
+lists are derived rather than declared.
+
+## 2. An answer key may not be read off the system it grades.
+
+An expectation produced by running the runtime and writing down what it said
+measures self-consistency. It does so while looking exactly like evidence,
+which is why it cannot be caught downstream — every result agrees with every
+other result.
+
+In the harvested corpus this is enforced by vocabulary. The material-semantic
+concepts are named `how often money goes in`, not `cadence`, and a test asserts
+the two vocabularies do not overlap. Naming them identically is how the
+shortcut gets taken without anyone deciding to take it.
+
+The mapping between the vocabularies is written out in `MAPS_TO`, where it can
+be argued with. It was wrong twice, both times manufacturing findings *against*
+the runtime — one caught by checking a finding before reporting it, one by a
+test requiring every mapped name to exist in the schema. An answer key is not
+trustworthy because it is independent; it is trustworthy because it is
+independent and checked.
+
+## 3. A metric must say when its own number is misleading.
+
+Material-semantic survival currently reads 18/18. It is not a product claim and
+must not become one: no attested sentence reached a plan, so nothing could be
+reduced, and the denominator contains only the cases that got as far as the
+comparison.
+
+`survival.json` carries that caution in the artifact, and a test requires the
+caution to be present whenever nothing runs. The reason it lives in the
+artifact rather than in a person's memory is that the artifact is what gets
+quoted.
+
+The same rule produced the benchmark's `UNSTABLE_SAFE` category. It was
+introduced in the change that took dangerous instances to zero, which is
+exactly the circumstance in which a new category deserves distrust — so three
+tests require the downgraded finding to stay in the queue, require that no
+`UNSTABLE_SAFE` pair has two executable sides, and pin the dangerous count to
+the taxonomy.
+
+## 4. A workflow definition is not evidence of a check.
+
+Only a reachable execution path that cannot silently skip the check is.
+
+This rule exists because the same failure was found three times in one day, in
+three unrelated places, each time wearing a different disguise and each time
+leaving the repository looking green.
+
+**Unreachable.** `drift-lane.yml` existed, was correct, and had never run.
+GitHub registers `workflow_dispatch` and `schedule` only from the default
+branch, and the file lived on a feature branch — so the lane had zero runs in
+its lifetime while the pre-Lean gate blocked on "no CI artifact", which read as
+an operational to-do rather than as a workflow that could not be started.
+
+**Skippable.** `parser-corpus.yml` mapped `ANTHROPIC_API_KEY`, which was never
+configured. Its live-drift step took the `no key configured; exit 0` branch on
+every run it ever had: a verification that has never once executed, reporting
+success each time.
+
+**Pointed at the wrong thing.** After the serving reader changed provider, the
+same step still asked Anthropic and still installed `anthropic`. A check that
+runs, passes, and measures a component nothing else uses is worse than one that
+does not run, because its green is load-bearing.
+
+The general shape is that a check has three ways to be absent — never started,
+started and skipped, started against the wrong subject — and all three look
+identical from a build badge. So the questions to ask of any verification are:
+
+    can it start                who or what triggers it, and from which ref
+    can it no-op                what happens when a precondition is missing
+    what did it measure         which version, which model, which environment
+
+A green tick answers none of them. `tests/test_secret_exposure.py` asserts the
+second for provider-calling jobs; the pre-Lean gate asserts the third by
+pinning schema, prompt, pipeline, reader and producer onto the artifact; the
+first is now enforced by the workflow living on the default branch, which is
+the only place the answer can be yes.
+
+**Enforced twice, deliberately.** The structural tests check the repository's
+files; two GitHub policies check what the platform will actually run:
+
+    allowed_actions        selected   (github-owned + one named third party)
+    sha_pinning_required   true       (every action, including GitHub's own)
+
+Neither layer is sufficient. A test cannot stop a workflow added through the
+web UI, and a platform setting cannot explain *why* a job must fail without its
+key. They fail in different directions, which is the only reason to have both.
+
+## 5. Missing is not zero.
+
+    missing material quantity   ->  unresolved
+    explicitly zero quantity    ->  zero
+
+Zero is a substantive instruction. Absence is the lack of one. Code that writes
+`value or 0` has decided they are the same thing, and the decision is invisible
+at the call site.
+
+This project has now made that mistake four times: two worksheet templates
+rendering an undefined return as `+0.00%`, a compiler defaulting an unreadable
+`$1k` to zero, and a compiler defaulting an unstated amount to zero on a
+recurring cadence — which produced the only attested sentence that executed,
+holding I-Bonds annually and contributing nothing.
+
+It was then nearly made in the opposite direction: the first version of the
+recurring-cadence check refused an explicitly stated `$0`, rejecting something
+the person had said in order to prevent something they had not.
+
+Materiality is contextual, which is why this is a rule about *material*
+quantities rather than a global "required fields" list. An amount may be
+legitimately absent for a one-off or evaluation request; `every year` asserts a
+recurring action whose quantity must be settled before anything executes. That
+is the `seal()` result-changing rule doing its job — a field is required when
+its absence would change the result, not because a schema said so.

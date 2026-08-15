@@ -244,7 +244,7 @@ class TestTheTaxonomyCannotBeUsedToHideThings:
 
 
 class TestTheCorpusCannotSilentlyShrink:
-    """Rule 1 in `docs/Evidence-Rules.md`, applied here because the benchmark
+    """Rule 1 in `docs/Semantics.md`, applied here because the benchmark
     has the same shape as the semantics tier that the rule came from: the case
     list is generated rather than declared, so a class removed from `suite.py`
     leaves the corpus with nothing failing.

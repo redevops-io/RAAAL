@@ -1,4 +1,15 @@
-# Operator runbook — Quantify closed pilot
+# Operator runbook
+
+Deploying it, running it, and what it guarantees while it runs.
+
+> Consolidated from `Runbook.md`, `Runbook.md`, `Runbook.md`, `Runbook.md`.
+>
+> The runbook told an operator what to do; the guarantees, the measured performance and the retention rules told them what they would get. Those are the same question asked at deploy time and at three in the morning.
+
+
+---
+
+## Operator runbook — Quantify closed pilot
 
 **Status:** synthetic-data-only pilot · two supported journeys · RSU unavailable
 
@@ -514,3 +525,621 @@ be able to find the record of having been shown it.
 An absent `rule_events` reads as unknown rather than zero: a run recorded
 before the field existed is affected by what its plan declared, not by a count
 it never had the vocabulary for.
+
+
+---
+
+## PostgreSQL deployment guarantees
+
+PostgreSQL is not another supported dialect. It is the only environment in which
+several of Quantify's production claims have been established, and for a
+specific reason: some of these properties do not merely go *unproven* on SQLite,
+they are actively **misrepresented** by it. Three defects in this list were
+invisible for exactly as long as the tests ran on SQLite alone.
+
+> A green SQLite lane is not evidence for any guarantee whose meaning depends on
+> PostgreSQL storage, locking, constraints, or dialect adaptation.
+
+SQLite remains the right tool for fast deterministic tests, local development
+and the standalone demo. It is not a smaller PostgreSQL.
+
+---
+
+## Proven only on PostgreSQL
+
+### Concurrency and transactions
+
+- Row-level proposal locking (`SELECT ... FOR UPDATE`), asserted by taking the
+  row from a second session with `NOWAIT` and requiring the failure.
+- Exactly one winner under racing acceptance, with the loser receiving a typed
+  refusal rather than a raw driver error.
+- Stale-revision checks performed *after* the lock and re-read inside the
+  transaction, because a pre-lock check describes state another session is free
+  to change.
+- Atomic commit of candidate runs, the worksheet revision and the proposal
+  status, with rollback proven at every durable boundary.
+- Contention translated by SQLSTATE — `40001`, `40P01`, `23505`, `55P03` — not
+  by driver exception class.
+
+The isolation level is **`READ COMMITTED`**, PostgreSQL's default, unchanged.
+Nothing required `SERIALIZABLE`. The property that matters is not an isolation
+label but a protocol: *every decision is made after locking and re-reading the
+state that authorizes it.*
+
+### Schema enforcement
+
+- Alembic migration head, and a startup refusal when the database is at a
+  different schema than the code expects.
+- Foreign-key enforcement, including `RESTRICT` refusing a parent-first delete.
+- Composite tenant keys.
+- `CHECK` and uniqueness constraints.
+- Model/migration parity covering foreign keys, unique constraints, check
+  constraints and indexes — not only tables, columns, types and primary keys.
+- Deletion order enforced by the database, so the application's ordering is a
+  guarantee rather than a convention.
+
+### Tenant identity
+
+- `owner` in every production identity.
+- `owner` in every tenant-owned foreign key.
+- `owner` in every upsert conflict target.
+- Composite identities preserved through joins and consumers.
+- Identical ids coexisting across tenants — plan, run, worksheet, proposal,
+  observation, reconciliation and revision number.
+- Cross-tenant existence never disclosed: an absent record and another tenant's
+  record are indistinguishable from outside.
+
+### Immutable artifacts
+
+- Redelivery accepted only for an identical body.
+- Divergent redelivery refused.
+- Immutable payload columns never updated.
+- The **adapted** conflict action captured and classified.
+- No in-place JSONB mutation (`jsonb_set`, `||`, `-`, `#-`) on an artifact body.
+
+### Representation-sensitive verification
+
+- `NUMERIC(38, 12)` compared semantically after read, because the column pads to
+  its declared scale.
+- Canonical spelling checked *before* persistence, where both sides are in hand.
+- Exact database aggregation (`SUM` over `NUMERIC`).
+- Payload, mirror column and derived state each verified independently, with
+  each test requiring the other two verifiers to pass.
+
+### Dialect-translation semantics
+
+- `INSERT OR REPLACE` is never trusted by how it reads in the source.
+- The `ON CONFLICT` form PostgreSQL receives is captured and classified.
+- Conflict targets and assigned columns are checked after translation.
+
+---
+
+## What SQLite proves
+
+- Deterministic compilation and domain behaviour.
+- Financial arithmetic.
+- Canonical serialization.
+- Worksheet and result semantics.
+- Local development compatibility.
+- Most non-concurrent store behaviour.
+
+## What SQLite does not prove
+
+- Row locking.
+- Concurrent writer correctness.
+- PostgreSQL upsert semantics.
+- JSONB behaviour.
+- Production constraint enforcement.
+- Representation-sensitive read verification.
+- Composite-key consumer behaviour under the deployed dialect.
+- Alembic migration parity.
+
+---
+
+## The defects that earned this boundary
+
+Each of these was found by running against PostgreSQL, and each had been present
+while the SQLite suite was green.
+
+**Foreign keys were never enforced.** SQLite ignores them unless
+`PRAGMA foreign_keys = ON`, which nothing set. The shipped schema declared
+`plan_run.plan_id REFERENCES plan(plan_id)`, and on the engine every test ran
+against, that constraint asserted something about the data that was not true.
+
+**`NUMERIC` padding hid a broken verifier.** `verify_decimal_columns` compared
+canonical spellings. SQLite stores canonical text verbatim, so it passed;
+PostgreSQL pads to scale, so `152.260000000000` against a payload holding
+`"152.26"` was reported as drift on *every clean row*. The verifier was failing
+open on the engine that matters, and its only tests were on the engine where the
+comparison happened to work.
+
+**`INSERT OR REPLACE` concealed an overwrite.** It reads as idempotent. It is
+translated to `ON CONFLICT ... DO UPDATE SET`, which is close to the opposite for
+an immutable artifact. `save_plan` replaced a pinned scenario and parse;
+`record_run` replaced the verdict a saved worksheet cites. Both had docstrings
+promising immutability.
+
+**Racing acceptance could not be evidenced at all.** SQLite admits one writer, so
+two sessions both accepting one proposal — which happened, returning two
+`ACCEPTED` results — is not reproducible there.
+
+**A correct migration invalidated a correct consumer.** Widening every tenant key
+was right, and it silently broke `OwnershipPath`, which still joined on the
+scalar identity those keys used to have. The join stayed valid, kept returning
+rows, and returned another tenant's.
+
+---
+
+---
+
+## The production preflight
+
+A production instance establishes all of this before it serves anything:
+
+```text
+build identity -> URL -> connect -> version -> migration head -> schema parity
+```
+
+Each step has its own outcome — `REFUSED_CONFIGURATION`,
+`DATABASE_UNAVAILABLE`, `UNSUPPORTED_DATABASE`, `MIGRATION_MISMATCH`,
+`SCHEMA_MISMATCH`, `BUILD_UNOBSERVABLE` — because collapsing them into one
+"startup failed" would discard the only thing an operator needs. The public
+surface still reports nothing but `ready: false`.
+
+    QUANTIFY_DEPLOYMENT_PROFILE=production
+    QUANTIFY_DATABASE_URL=postgresql://...
+
+**The profile decides whether a refusal stops the service, not whether the
+question is asked.** The database checks run under any profile pointed at
+PostgreSQL — a developer with an unmigrated database wants to know — and a
+schema mismatch stops every profile, because serving a database whose columns
+this code does not expect moves the failure onto the first request that touches
+one.
+
+**The URL is judged before anything opens it.** `Database` creates the parent
+directory of a SQLite path on construction, so a check made after building one
+would already have written to disk.
+
+**There is no production fallback.** Absent configuration, the target resolves
+to `data/workspace.db` — correct for a checkout, and in production the same
+shape as the `_prices()` bypass: a live path quietly reading something nobody
+authorised.
+
+`PROVEN_POSTGRES_MAJOR` is stated as *proven*, not as a ceiling. A later major
+is unsupported until this same lane passes against it, which is a day's work
+rather than a re-architecture.
+
+Readiness and liveness are separate endpoints. A failed preflight makes an
+instance unready — visible to a load balancer, still diagnosable — rather than
+crash-looping a container nobody can inspect. No user-facing route is served in
+that state.
+
+The startup proof record carries the profile, engine, version, migration head,
+parity result, build provenance and timestamp, and no credentials or network
+detail.
+
+---
+
+## Running the PostgreSQL lane
+
+```bash
+docker run -d --name quantify-pg \
+  -e POSTGRES_USER=quantify -e POSTGRES_PASSWORD=quantify_dev \
+  -e POSTGRES_DB=quantify -p 5433:5432 postgres:16
+
+export QUANTIFY_TEST_POSTGRES_URL="postgresql://quantify:quantify_dev@localhost:5433/quantify"
+python -m pytest tests/ -q
+```
+
+Without `QUANTIFY_TEST_POSTGRES_URL` the PostgreSQL-gated files **skip**. They do
+not fail, and they do not silently pass — a skipped guarantee is reported as
+skipped. Roughly 140 tests are gated this way; a run reporting no skips and no
+PostgreSQL is a run that proved none of the above.
+
+
+---
+
+## Performance — measured
+
+**Date:** 2026-08-01 · **Hardware:** 32 cores · **Polars:** 1.43.2
+
+Every number here is measured on this machine, not budgeted. The load-test plan
+set engineering budgets to validate; this replaces them with observations.
+Where a budget and a measurement disagree, the measurement is what shipped.
+
+---
+
+## 1. The compiler is effectively free
+
+14,400 descriptions — 144 catalog strategies × 100 paraphrase variants — through
+the full deterministic pipeline.
+
+| Stage | p50 | p95 | p99 | max |
+|---|---:|---:|---:|---:|
+| Stage 1 parse | 34 µs | 55 µs | 65 µs | 1.2 ms |
+| Stages 2–8 compile | 9 µs | 11 µs | 12 µs | 0.4 ms |
+| **Total per description** | **45 µs** | **66 µs** | **80 µs** | 1.3 ms |
+
+The plan's budget for the deterministic acceptance chain was **150 ms p95**.
+Measured: **0.066 ms**. Three orders of magnitude inside it.
+
+That reshapes where optimization belongs. The architecture is
+
+```
+language model      expensive, one call, quarantined to stage 1
+      ↓
+deterministic       ~45 µs, and it is the part that decides anything
+compiler
+      ↓
+runtime
+```
+
+"AI compiler" reads as expensive. Only the first step is. Everything that
+determines what actually gets simulated costs less than a network round trip's
+jitter, which is why it can afford to be exhaustive rather than approximate.
+
+---
+
+## 2. HarnessBench — canonical versus Polars
+
+Four analytical workloads, three backends, p50 milliseconds. Results are
+compared before any timing is reported: **all backends agreed on every workload
+at every scale.** Polars is an execution backend, never a second owner of
+semantics.
+
+Read from a Parquet projection, which is what the architecture specifies.
+
+| Workload | Scale | canonical | Polars eager | Polars lazy | best speedup |
+|---|---:|---:|---:|---:|---:|
+| latency_summary | 1K | **0.31** | 2.20 | 2.38 | 0.14× |
+| | 10K | **1.87** | 3.71 | 2.08 | 0.90× |
+| | 100K | 25.10 | 17.71 | **4.24** | 5.9× |
+| | 1M | 315.70 | 71.57 | **26.93** | 11.7× |
+| mission_replay | 1K | **2.45** | 3.85 | 5.10 | 0.64× |
+| | 10K | 5.95 | 7.30 | **5.31** | 1.1× |
+| | 100K | 54.39 | 22.66 | **9.28** | 5.9× |
+| | 1M | 691.21 | 109.02 | **28.62** | 24.2× |
+| denial_scan | 1K | **0.81** | 3.72 | 4.07 | 0.22× |
+| | 10K | **4.99** | 9.93 | 7.76 | 0.64× |
+| | 100K | 41.80 | 27.76 | **16.56** | 2.5× |
+| | 1M | 385.63 | 63.77 | **20.04** | 19.2× |
+| secret_then_egress | 1K | **0.13** | 2.06 | 3.40 | 0.06× |
+| | 10K | **1.28** | 2.34 | 3.22 | 0.55× |
+| | 100K | 24.16 | **4.31** | 6.62 | 5.6× |
+| | 1M | 284.49 | **11.02** | 12.43 | 25.8× |
+
+### Crossover, per workload
+
+Measured and stored per workload, never one global constant:
+
+```
+mission_replay        10,000 events
+latency_summary      100,000 events
+denial_scan          100,000 events
+secret_then_egress   100,000 events
+```
+
+`mission_replay` crosses an order of magnitude earlier than the rest. A single
+threshold would be wrong for both sides of that gap — which is the argument for
+measuring it rather than picking one.
+
+Below the crossover Polars is *slower*, by up to 16×. Constant setup cost
+dominates small queries, so routing a 1,000-event replay through Polars would
+make an interactive path measurably worse.
+
+---
+
+## 3. The finding that mattered most
+
+**How the data reaches Polars decides whether Polars helps at all.**
+
+The same four workloads at 100,000 events, fed from Python dicts instead of a
+Parquet projection:
+
+| Workload | canonical | Polars eager | Polars lazy |
+|---|---:|---:|---:|
+| latency_summary | **26.7** | 248.8 | 246.3 |
+| mission_replay | **55.0** | 247.3 | 241.5 |
+| denial_scan | **41.9** | 251.4 | 248.5 |
+| secret_then_egress | **23.0** | 238.2 | 239.6 |
+
+Polars loses every workload, by 4–10×, and the ranking inverts completely.
+
+Constructing a DataFrame from a list of dicts costs ~240 ms at this scale and
+swamps every query. Timing that path and calling it "Polars" measures the
+adapter, not the engine — and would have produced the confident and entirely
+wrong conclusion that Polars is not worth adopting.
+
+The plan already specified partitioned Parquet projections written once by the
+event buffer and scanned many times. This is the measurement that says why that
+detail is load-bearing rather than incidental.
+
+---
+
+## 4. What this means for the roadmap
+
+Polars belongs **nowhere near** the interactive path:
+
+```
+parser · compiler · runtime validation · authorization · ledger writes
+    already microsecond-scale; Polars would make them slower
+```
+
+It belongs where the volumes are:
+
+```
+replay · aggregation · trajectory mining · Discovery sweeps
+validation scans · fleet monitoring · Mission evolution
+    5-25x at a million events, and growing with scale
+```
+
+---
+
+## 5. Semantic stability
+
+Different from recognition accuracy, and a stronger property. Accuracy asks
+whether the compiler understood; stability asks whether it understood **the same
+thing every time**. A parser can be perfectly accurate on a benchmark and still
+be unusable if a synonym changes the answer.
+
+    one meaning -> 40 wordings -> compile each -> one rule_hash
+
+41 families x 40 wordings = 1,640 descriptions, varying the verb, the ordering
+of holdings, the cadence phrase, the day-rule phrase, the dividend phrase, the
+no-selling phrase and the account phrase.
+
+**Stability: 100%.** Every wording of a plan compiles to the same market rule.
+
+This is the harness a language model in stage 1 must be measured against. The
+interesting claim is not that a model reads more wordings — it is that different
+models, or the same model on different days, still land on one canonical
+Mission.
+
+### What it found on its first run
+
+A choice that was **recognised, confirmed to the user, and never represented**.
+
+The compiler read "hold the dividends as cash", the confirmation screen quoted
+it back under "you stated", and the compiled scenario contained no trace of it.
+Reinvesting and holding as cash produced an identical `content_hash` — two
+materially different strategies sharing one identity, the same shape as the
+earlier defect where a Roth and a taxable account compared as identical.
+
+Fixed in two parts, because one without the other moves the defect rather than
+closing it:
+
+- `dividend_policy` now reaches `HoldingsPolicy` and therefore the rule hash, so
+  the two strategies are distinguishable;
+- the engine runs on price series only and cannot honour it, so every result
+  declares it under `declared_but_not_simulated`. Representing a choice without
+  saying it is not simulated would leave the scenario looking enforced while the
+  figure ignored it.
+
+---
+
+## 6. Round-trip fidelity
+
+    stability      many texts   -> one Mission
+    round-trip     one Mission  -> text -> the same Mission
+
+Different directions, different failures. Stability catches a compiler that
+reads wording as meaning. Round-trip catches one that cannot *say* what it
+understood — a field that survives compilation with no way back into language is
+a field no user can ever correct.
+
+Three declared purposes, and only one claims losslessness:
+
+| Purpose | Exact | Rule identity | Claims lossless |
+|---|---:|---:|---|
+| SPECIFICATION | **100.0%** | 1728/1728 | yes |
+| SUMMARY | 7.8% | 428/1728 | no — reports what it drops |
+| EXPLANATION | n/a | n/a | no — disclaims itself |
+
+Identity drift over three cycles: **0/400**.
+
+The declaration is the point. A concise summary that looks like prose is exactly
+what someone will paste back in expecting identical behaviour, so it names the
+fields it omitted rather than being held to a standard it never claimed.
+
+### What it found
+
+**Values can round-trip while provenance does not.** The first renderer wrote out
+every field, including inferred ones — reproducing the values and destroying the
+record of who chose them. An inference restated is a decision the user never
+made, and the confirmation screen then asks them to confirm nothing.
+
+**A specification must be able to express an open question.** A description that
+mentions a market condition without saying how it behaves leaves
+`trigger_semantics` unresolved. Dropping the mention made the regenerated text
+stop asking — the open question answered by omission, which is the one outcome a
+specification must never produce.
+
+Four more losses followed the same shape, each a stated value with no clause to
+live in: a weighting on a single holding, an estimator, a funding source with no
+trigger, and a funding source with an unresolved one. All four changed what the
+plan would simulate.
+
+---
+
+## 7. Reproducing
+
+```bash
+python3 scripts/run_load_corpus.py --per-strategy 100     # compiler corpus
+python3 scripts/run_harnessbench.py                       # Polars crossover
+python3 scripts/run_harnessbench.py --from-dicts          # the adapter cost
+python3 scripts/compiler_dashboard.py                     # quality metrics
+python3 scripts/run_stability.py                          # semantic stability
+python3 scripts/run_roundtrip.py                          # round-trip fidelity
+python3 scripts/run_evolutionbench.py                     # compiler evolution
+```
+
+All four run on committed synthetic data. No credentials, no network.
+
+
+---
+
+## Privacy and retention
+
+**Version:** `retention/workspace@1` · **Date:** 2026-08-02 · **Status:** closed
+pilot v1
+
+Three data systems with different policies, kept apart because one policy over
+all three would be wrong for at least two of them.
+
+| System | Contains | Governed by | Lifetime |
+|---|---|---|---|
+| Workspace store | the user's research record | user ownership | while the account is active |
+| Trace store | operational telemetry | retention schedule | 90 days, configurable |
+| Market data | prices and snapshots | the vendor agreement | per agreement |
+
+---
+
+## 1. What "deletion" means here
+
+Two things are routinely called deletion and only one of them is:
+
+```
+artifact no longer visible      a query predicate changed
+artifact removed                the rows are gone and something checked
+```
+
+`delete_workspace` does the second. It enumerates every classified table,
+removes the rows, and then **re-reads the schema to verify none survive**. A
+deletion that silently missed a table looks exactly like one that worked, so the
+verification reads the classified inventory rather than the deletion code — the
+two cannot agree by construction.
+
+Backups are the exception, and it is stated rather than glossed: deletion
+propagates through backup expiry, not immediate physical removal. Until a backup
+cycles, a copy exists.
+
+---
+
+## 2. Workspace store
+
+The durable user record: scenarios, confirmed declarations, account and tax
+information, plans, runs, worksheet revisions, intents, proposals, vest
+schedules, observations, reconciliations and evidence references.
+
+**Retention** — while the account is active.
+**Deletion** — removes the user's records and derived artifacts.
+**Export** — `export_workspace(owner)` returns every owner-scoped table, so a
+user can see what they hold before deciding to lose it.
+
+### Ownership is not always direct
+
+`plan_run` carries no `owner` column and is reachable only through its plan:
+
+```
+plan_run.plan_id -> plan.plan_id -> plan.owner
+```
+
+A deletion written around `WHERE owner = ?` removes nothing from it and reports
+success. Every classification states its scope and, where indirect, the join
+that finds it.
+
+### Sensitive content
+
+None of this is a name or a national identifier and all of it is sensitive:
+
+- employer name and ticker
+- compensation and vest schedule
+- contribution amounts
+- account type
+- holdings
+- tax assumptions
+- raw user instructions
+- evidence references
+- model prompts and responses
+
+### What a user's deletion does **not** remove
+
+Public methodologies, public runtime declarations, synthetic datasets, and
+findings promoted through the public boundary all survive. A personal
+*reference* to one does not.
+
+### The receipt
+
+Written outside the deleted scope, holding none of what it deleted: a request
+id, an irreversible owner reference, a timestamp, per-table counts, the policy
+version and the status. A receipt reproducing the personal data it certifies as
+gone would be the one surviving copy.
+
+---
+
+## 3. Trace store
+
+Operational and expendable. Execution never depends on it — proven by deleting
+the database mid-flight and requiring every financial path to continue.
+
+| Item | Default |
+|---|---|
+| structured spans | 90 days |
+| decision records | 90 days |
+| raw prompt and completion content | **not stored** |
+| redacted previews | off |
+| aggregate metrics | may outlive traces only if de-identified |
+
+Spans hold structured fields and hashes: an instruction's digest, never its
+text. An error records its exception class rather than its message, because a
+message can quote the input that caused it.
+
+`purge_tenant` erases one tenant immediately — a deletion request is not a
+retention policy and must not wait for one to come round.
+
+A workspace record keeps only `trace_id` after expiry. It is a reference that
+may dangle by design, not a foreign key.
+
+---
+
+## 4. Market data
+
+Governed by licence, not by user ownership.
+
+| Layer | Policy |
+|---|---|
+| snapshot objects | per the vendor agreement and audit needs |
+| local cache | bounded by snapshot retirement |
+| derived personal results | deleted with the user |
+| exports | governed by the snapshot egress policy |
+
+**A personal result is not retained merely because its source data is shared.**
+Deleting a user removes their results and scenarios; the shared synthetic
+snapshot stays.
+
+Closed pilot v1 is `SYNTHETIC_ONLY`, enforced at the live read path rather than
+in deployment guidance. See `src/market_data/pilot_policy.py`.
+
+---
+
+## 5. What is checked mechanically
+
+| Claim | Where |
+|---|---|
+| every table is classified | `test_retention.py` — reads `sqlite_master`, not the registry |
+| deletion reaches indirectly scoped rows | `test_it_reaches_the_indirectly_scoped_runs` |
+| verification is independent of deletion | `test_verification_is_independent_of_the_deletion` |
+| an incomplete deletion raises | `test_a_deletion_that_removes_nothing_raises` |
+| one tenant's deletion spares another | `test_deleting_one_owner_leaves_the_other_intact` |
+| the receipt holds no personal content | `test_it_names_no_owner_and_no_content` |
+| traces can vanish without affecting artifacts | `test_workspace_export_survives_the_trace_store_being_deleted` |
+
+The inventory test reads the tables SQLite reports rather than the
+classification registry. Parametrised from the registry, a new table would pass
+by never appearing.
+
+---
+
+## 6. Known gaps
+
+Stated rather than omitted:
+
+- **Backups** are not yet implemented, so deletion is currently immediate and
+  complete by default. When backups exist, the propagation delay above becomes
+  real and must be disclosed to users.
+- **Account closure grace period** is not implemented. Deletion is immediate on
+  request.
+- **Legal-hold exceptions** are not implemented. There is no mechanism to retain
+  a record against a deletion request, and none is claimed.
+- **The trace store's expiry is manual.** `purge_before` exists and nothing
+  schedules it.

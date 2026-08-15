@@ -178,7 +178,7 @@ def _decimal(value: Any) -> Optional[Decimal]:
     """A stated figure, or `None` when it cannot be read as one.
 
     `None` is never a zero — see `NUMERIC` above and rule 5 in
-    `docs/Evidence-Rules.md`. What this function decides is only whether a
+    `docs/Semantics.md`. What this function decides is only whether a
     number is *there*.
 
     It could not read "1000 usd", and the consequence was worse than a refusal.

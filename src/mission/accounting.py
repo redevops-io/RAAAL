@@ -239,7 +239,7 @@ def time_weighted_returns(value: pd.Series, flows: pd.Series) -> pd.Series:
 class MWRStatus(str, Enum):
     """What Quantify can say about a money-weighted return.
 
-    Four outcomes because `docs/MWR.md` names four, plus one the
+    Four outcomes because `docs/Measures.md` names four, plus one the
     *implementation* needs and the financial contract does not have. The old
     signature returned `Optional[float]`, which could say two things, so "no
     admissible rate" and "the data does not determine one" arrived identically
@@ -254,7 +254,7 @@ class MWRStatus(str, Enum):
     INDETERMINATE = "indeterminate"
     """The search could not establish which of the above applies.
 
-    An implementation state, not a financial one: `docs/MWR.md` has four
+    An implementation state, not a financial one: `docs/Measures.md` has four
     outcomes and this is not a fifth. A bounded numerical scan can miss a root
     that touches zero without crossing, or one beyond the range it searched,
     and reporting `NO_SOLUTION` there would turn "could not establish" into

@@ -15,12 +15,12 @@ from pathlib import Path
 
 import pytest
 
-DOC = Path(__file__).resolve().parent.parent / "docs" / "Baseline-v1.md"
+DOC = Path(__file__).resolve().parent.parent / "docs" / "Pilot.md"
 
 
 def _recorded() -> str:
     if not DOC.exists():
-        pytest.skip("docs/Baseline-v1.md is absent")
+        pytest.skip("docs/Pilot.md is absent")
     return DOC.read_text()
 
 
@@ -73,7 +73,7 @@ class TestTheRecordedVersionsAreTheRealOnes:
 
     def test_the_theorem_count(self):
         """Counted, not estimated. A baseline claiming more proof than exists
-        is the failure `FormalCore.md` was written against."""
+        is the failure `Measures.md` was written against."""
         formal = DOC.parent.parent / "formal" / "Quantify"
         theorems = sum(len(re.findall(r"^theorem ", p.read_text(), re.M))
                        for p in formal.rglob("*.lean"))

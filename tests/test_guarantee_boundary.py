@@ -1,6 +1,6 @@
 """The PostgreSQL-only boundary, kept honest.
 
-`docs/PostgreSQL_Guarantees.md` claims a set of properties are proven only
+`docs/Runbook.md` claims a set of properties are proven only
 against PostgreSQL. A document making that claim is worth exactly as much as
 the gating behind it, so this checks the gating rather than the prose.
 
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-DOCUMENT = Path("docs/PostgreSQL_Guarantees.md")
+DOCUMENT = Path("docs/Runbook.md")
 
 #: Files holding a PostgreSQL-only guarantee. Listed here so a file that loses
 #: its gate is caught, rather than discovered by it quietly passing on SQLite.

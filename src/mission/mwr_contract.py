@@ -1,6 +1,6 @@
 """Whether the production solver conforms to the frozen MWR contract.
 
-    docs/MWR.md            what a money-weighted return means
+    docs/Measures.md            what a money-weighted return means
     Returns/MoneyWeighted  the reporting contract, proven
     this module            whether `accounting.money_weighted_return` obeys it
 
@@ -17,7 +17,7 @@ uniqueness would be the same defect as a solver reporting the first root it
 happens to reach. `NO_EVIDENCE_OF_NON_UNIQUENESS` says exactly what it means,
 and is deliberately clumsy so nobody quotes it as `UNIQUE`.
 
-**Tolerances live here and nowhere above.** `docs/MWR.md` has no epsilon in it
+**Tolerances live here and nowhere above.** `docs/Measures.md` has no epsilon in it
 and must not acquire one: a financial definition with a tolerance is a
 definition that changes when somebody tunes a solver.
 """
@@ -26,7 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional, Sequence
 
-#: Bumped when `docs/MWR.md` changes in substance. A certification names the
+#: Bumped when `docs/Measures.md` changes in substance. A certification names the
 #: contract it was checked against, because "the solver was verified" is not a
 #: fact unless it says verified against what.
 CONTRACT_VERSION = "quantify/mwr-contract@1"

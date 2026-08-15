@@ -13,7 +13,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 FORMAL = ROOT / "formal" / "Quantify"
-DOC = ROOT / "docs" / "FormalCore.md"
+DOC = ROOT / "docs" / "Measures.md"
 
 #: Claim in the milestone sentence -> a theorem or definition that carries it.
 CLAIMS = {
@@ -45,7 +45,7 @@ class TestEveryClaimHasATheorem:
 
     def test_the_document_states_the_sentence(self):
         if not DOC.exists():
-            pytest.skip("docs/FormalCore.md is absent")
+            pytest.skip("docs/Measures.md is absent")
         # Whitespace-normalised: the sentence wraps, so "ledger conservation"
         # appears as "ledger\n> conservation" in the source. Where a claim sits
         # relative to a line break is a formatting choice and must not be

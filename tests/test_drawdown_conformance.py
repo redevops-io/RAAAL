@@ -124,8 +124,8 @@ class TestTheSemanticsAreVersioned:
     def test_the_document_records_both_versions(self):
         from pathlib import Path
 
-        doc = Path(__file__).resolve().parent.parent / "docs" / "Drawdown.md"
+        doc = Path(__file__).resolve().parent.parent / "docs" / "Measures.md"
         if not doc.exists():
-            pytest.skip("docs/Drawdown.md is absent")
+            pytest.skip("docs/Measures.md is absent")
         text = doc.read_text()
         assert "drawdown@1" in text and "drawdown@2" in text

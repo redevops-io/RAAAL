@@ -40,14 +40,20 @@ CREATE TABLE IF NOT EXISTS pilot_plans (
 )
 """
 
-#: Who a runtime plan belongs to.
-#:
-#: One value today, because the runtime pilot serves one participant. It is a
-#: column rather than an assumption so erasure can reach these rows by the same
-#: declared path as every other personal record — and so the day a plan belongs
-#: to a verified subject, what changes is what is written here rather than the
-#: shape of the table.
-PILOT_OWNER = "pilot"
+def PILOT_OWNER() -> str:
+    """Whose workspace this request is in.
+
+    A function rather than a constant, and that is the whole change: it was
+    the literal `"pilot"` for every request, so every account that registered
+    saw every other account's plans. The column existed and always held one
+    value.
+
+    Named as it was so the call sites read the same; `owner.current` is the
+    thing that decides.
+    """
+    from .owner import current
+
+    return current()
 
 
 def _database() -> Database:
@@ -119,12 +125,12 @@ def save(reading: PilotReading) -> str:
     try:
         connection.execute(
             "DELETE FROM pilot_plans WHERE plan_id = ? AND owner = ?",
-            (plan_id, PILOT_OWNER))
+            (plan_id, PILOT_OWNER()))
         connection.execute(
             "INSERT INTO pilot_plans "
             "(plan_id, owner, created_at, text, artifact) "
             "VALUES (?, ?, ?, ?, ?)",
-            (plan_id, PILOT_OWNER, datetime.now(timezone.utc).isoformat(),
+            (plan_id, PILOT_OWNER(), datetime.now(timezone.utc).isoformat(),
              reading.text, json.dumps(artifact)))
         connection.commit()
     finally:
@@ -138,7 +144,7 @@ def load(plan_id: str) -> Optional[Mapping[str, Any]]:
         row = connection.execute(
             "SELECT artifact FROM pilot_plans "
             "WHERE plan_id = ? AND owner = ?",
-            (plan_id, PILOT_OWNER)).fetchone()
+            (plan_id, PILOT_OWNER())).fetchone()
     finally:
         connection.close()
     return None if row is None else json.loads(row["artifact"])

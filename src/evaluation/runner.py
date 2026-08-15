@@ -240,7 +240,7 @@ def _max_drawdown(daily: pd.Series) -> float:
     fraction.
 
     The curve starts at 1.0 — the opening level — so a fall in the first
-    session is measured from where the portfolio began. `docs/Drawdown.md` is
+    session is measured from where the portfolio began. `docs/Measures.md` is
     the definition and `tests/test_drawdown_conformance.py` checks this against
     it.
     """
