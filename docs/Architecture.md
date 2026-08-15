@@ -1695,6 +1695,49 @@ no second writer, by construction. The moment two want to write the same
 database, the answer is the lake and its catalog, which is what the catalog is
 for.
 
+## Skipping EBS, and what cannot be skipped
+
+The wish is to avoid EBS. It is mostly achievable, and the reason it is only
+mostly is worth separating from the reason people usually give.
+
+**EBS volumes and local scratch are different things.** An `emptyDir` is the
+*node's* disk, not a provisioned volume: no PVC, no zone pinning, no orphaned
+volumes after a rescheduling. On instance-store node types — `m6id`, `c6id`,
+`i4i` and their kin — that disk is local NVMe, which is faster than EBS as well
+as cheaper to reason about. So "no EBS" is achievable; "no local disk" is not.
+
+**Spill is not an ingest problem, so streaming does not remove it.** The
+concern was staging a whole dataset in memory before submitting it, and that
+part streaming does solve: S3 multipart upload never holds a whole object,
+DuckDB reads remote Parquet without downloading it whole and writes Parquet
+straight to S3 over httpfs. What streaming does not solve is a sort, a join or
+an aggregation larger than `memory_limit`, which spills to `temp_directory`
+regardless of how the data arrived. That is the disk that cannot be skipped,
+and it is scratch.
+
+**The question is not EBS or not.** It is whether anything on that disk must
+survive the pod. For the interim DuckDB the answer is no: the lake is the
+authority and the local files are spill and cache. For Doris later the answer
+is also no —
+[compute-storage decoupled mode](https://doris.apache.org/blog/doris-compute-storage-decoupled/)
+keeps the full dataset in S3-compatible storage and caches only hot data on the
+BE nodes. Two different engines, the same shape, and the same answer: node
+scratch, sized deliberately.
+
+    emptyDir with sizeLimit          scratch that dies with the pod
+    ephemeral-storage requests       so the kubelet evicts rather than the
+                                     node filling and taking its neighbours
+    SET memory_limit                 where spilling starts
+    SET temp_directory               where it spills to
+
+**Doris as the central manager changes what this repository owns, not this
+answer.** If Doris writes the lake, the data engine stops being a DuckDB
+process and becomes a client of Doris — but the reproducibility requirement is
+unchanged, because a snapshot identified by hash is a property of what is
+published, not of what published it. The `frame_digest` a run already records
+has to keep meaning the same thing across that switch, which is the migration
+test worth writing before the migration.
+
 ## What would make this wrong
 
 - If the instrument work stays hypothetical, the evaluation split buys
