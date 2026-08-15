@@ -1652,6 +1652,49 @@ resolve. A public-domain Treasury series and a scraped index level are not the
 same licensing object, and the lake must carry the distinction per series
 rather than per bucket.
 
+## Storage for the pods that run DuckDB
+
+Per pod, never shared, and that is a correctness decision rather than a
+convenience one.
+
+[DuckDB's own guidance](https://duckdb.org/docs/lts/guides/performance/environment)
+is that it must not run read-write on network-attached storage — NFS, SMB, and
+therefore EFS. It takes file locks the filesystem does not honour, which
+produces "could not set lock on file" at best and unpredictable behaviour at
+worst. Read-only over NAS is supported; read-write is not. Network-backed
+*block* storage such as EBS is fine for both.
+
+In Kubernetes terms:
+
+    ReadWriteMany (EFS)     no. A shared PVC holding a DuckDB file is the
+                            unsupported configuration, and two pods writing
+                            one file is not something DuckDB claims to do
+                            in any storage class.
+    ReadWriteOnce (EBS)     yes, one per pod, via a StatefulSet's
+                            volumeClaimTemplates.
+    emptyDir                probably enough — see below.
+
+**Ask first whether it needs to be a PVC at all.** In this architecture the
+durable state is the Iceberg lake; DuckDB is the query engine over it. Local
+disk then holds spill for larger-than-memory queries and cached remote files —
+both reconstructible, neither authoritative. `emptyDir` covers that without a
+volume lifecycle to manage, without orphaned EBS volumes after a rescheduling,
+and without the constraint below.
+
+A PVC earns its place when the cache is expensive enough to rebuild that losing
+it on every restart hurts, or larger than the node's ephemeral storage.
+
+**The constraint that surprises people:** an EBS volume lives in one
+availability zone, so a pod bound to one can only be scheduled in that zone. A
+service that was multi-AZ becomes single-AZ the moment it acquires a PVC, and
+the failure shows up as pods pending rather than as anything about storage.
+
+If a pod ever does need a *writable* DuckDB database that outlives it — a
+materialisation rather than a cache — that is one pod with one RWO volume and
+no second writer, by construction. The moment two want to write the same
+database, the answer is the lake and its catalog, which is what the catalog is
+for.
+
 ## What would make this wrong
 
 - If the instrument work stays hypothetical, the evaluation split buys
