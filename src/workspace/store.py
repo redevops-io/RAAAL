@@ -26,6 +26,20 @@ from ..db.decimals import (
     to_decimal,
 )
 from ..db.types import Json, loads
+
+
+def _column(row, name: str, default=None):
+    """One column, or `default` where the row does not carry it.
+
+    Rows are mappings in both dialects but neither offers `.get`, and a column
+    added by a migration is absent from a database that predates it. Reading it
+    directly would turn "this deployment has not migrated yet" into a KeyError
+    on every request that touched a delivery record.
+    """
+    try:
+        return row[name]
+    except (KeyError, IndexError):
+        return default
 from ..mission.boundary import scan_for_personal_data
 from ..runtime.base import canonical_hash
 from .intent_chain import chain_link
@@ -657,14 +671,16 @@ class WorkspaceStore:
                    (owner, access_event_id, request_id, run_id, snapshot_id,
                     provenance_digest, frame_digest, selected_columns,
                     row_count, range_start, range_end, policy_version,
-                    access_decision, accessed_at, content_hash)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    access_decision, accessed_at, resolution, content_hash)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (owner, event.access_event_id, event.request_id, event.run_id,
                  event.snapshot_id, event.provenance_digest, event.frame_digest,
                  Json(list(event.selected_columns)), event.row_count,
                  span.start if span else None, span.end if span else None,
                  event.policy_version, event.access_decision.value,
-                 event.accessed_at, digest))
+                 event.accessed_at,
+                 Json(event.resolution.to_json()) if event.resolution
+                 else None, digest))
         return event.access_event_id
 
     def get_access_event(self, access_event_id: str,
@@ -686,7 +702,13 @@ class WorkspaceStore:
         """
         span = ({"start": row["range_start"], "end": row["range_end"]}
                 if row["range_start"] else None)
-        return {"access_event_id": row["access_event_id"],
+        # Absent when the column is NULL, never spelled `null`. An event
+        # written before requests were recorded was hashed over a body with no
+        # such key, and reassembling one with the key present would fail its
+        # own content hash and report an untouched delivery as edited.
+        stored_resolution = loads(_column(row, "resolution"), None)
+        body = {"resolution": stored_resolution} if stored_resolution else {}
+        return {**body, "access_event_id": row["access_event_id"],
                 "request_id": row["request_id"], "run_id": row["run_id"],
                 "snapshot_id": row["snapshot_id"],
                 "provenance_digest": row["provenance_digest"],

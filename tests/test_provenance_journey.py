@@ -339,13 +339,70 @@ class TestTheStoredRunCitesTheDeliveryItConsumed:
 
     def test_the_stored_digest_is_the_resolver_digest(self, journey):
         """Recomputed from the snapshot, so the stored value is checked against
-        the data rather than against itself."""
+        the data rather than against itself.
+
+        Recomputed **using the request the event records**, which is the whole
+        point and was the defect. This asked for the default resolution and
+        compared it against a plan that reinvests dividends — a price-return
+        frame against a total-return digest. It failed, and it read as
+        "resolution is not deterministic", which would have condemned the
+        snapshot-by-hash design. Resolution was deterministic; the recomputation
+        was asking a different question.
+
+        A verifier must therefore never spell the request itself. It replays
+        what was recorded, so the day a resolution parameter is added this stops
+        agreeing rather than silently reproducing with a default.
+        """
         from src.market_data.access import resolve
-        from src.market_data.access_event import frame_digest
+        from src.market_data.access_event import (frame_digest, from_json)
 
         store = fresh_store()
-        live = frame_digest(resolve(context="verification").frame)
-        assert {event["frame_digest"] for event in self.events(store)} == {live}
+        for stored in self.events(store):
+            event = from_json(stored)
+            assert event.reproducible, (
+                f"{event.access_event_id} records no resolution request, so "
+                "its digest cannot be checked against the data")
+            replayed = resolve(context="verification",
+                               **event.resolution.as_arguments())
+            assert frame_digest(replayed.frame) == event.frame_digest, (
+                "replaying the recorded request did not reproduce the stored "
+                "digest, so the delivery record does not identify the data")
+
+    def test_the_recorded_request_is_what_the_plan_asked_for(self, journey):
+        """The plan reinvests dividends, so the record must say so.
+
+        Without this the test above passes on a record that is merely
+        self-consistent: an event claiming `reinvested=False` replays to its own
+        wrong digest perfectly well. What makes the record evidence is that it
+        agrees with the plan somebody actually wrote.
+        """
+        from src.market_data.access_event import from_json
+
+        assert "reinvesting the dividends" in DESCRIPTION
+        for stored in self.events(fresh_store()):
+            assert from_json(stored).resolution.reinvested is True, (
+                "the plan reinvests dividends and the delivery record says it "
+                "did not, so the stored digest describes a frame the run was "
+                "never given")
+
+    def test_the_other_request_would_not_have_verified(self, journey):
+        """The mutation, without which none of this discriminates.
+
+        If both values of the request produced the same frame, recording it
+        would be ceremony. They do not, and this says so in the same place the
+        claim is made rather than in a unit test about a loader.
+        """
+        from src.market_data.access import resolve
+        from src.market_data.access_event import frame_digest, from_json
+
+        stored = next(iter(self.events(fresh_store())))
+        recorded = from_json(stored).resolution
+        other = resolve(context="verification",
+                        **{**recorded.as_arguments(),
+                           "reinvested": not recorded.reinvested})
+        assert frame_digest(other.frame) != stored["frame_digest"], (
+            "both resolutions produce the same frame, so recording which one "
+            "was asked for proves nothing")
 
 
 class TestOneResolutionIsOneDelivery:

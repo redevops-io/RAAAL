@@ -361,6 +361,12 @@ market_data_access_event = Table(
     Column("policy_version", Text, nullable=False),
     Column("access_decision", Text, nullable=False),
     Column("accessed_at", Text, nullable=False),
+    # What was asked for, beyond which snapshot. The snapshot says which
+    # observations exist; this says which were delivered, and only the pair
+    # determines the frame the digest describes. Nullable because events
+    # written before it existed genuinely do not say — and a default here
+    # would let them be "verified" against a frame they may never have carried.
+    Column("resolution", JsonText),
     # Over the whole event body, so an edited field is detectable rather than
     # merely unlikely.
     Column("content_hash", Text, nullable=False),

@@ -47,6 +47,66 @@ ACCESS_EVENT_VERSION = "market-data-access-event@1"
 #: computed under different rules" rather than "these differ".
 FRAME_DIGEST_VERSION = "mdf1"
 
+#: How a resolution request is spelled. Versioned for the same reason, and for
+#: one more: adding a parameter changes what "the same request" means.
+RESOLUTION_VERSION = "mdr1"
+
+
+@dataclass(frozen=True)
+class ResolutionRequest:
+    """What was asked for, beyond which snapshot.
+
+    The snapshot says which observations exist. This says which of them were
+    delivered and in what form, and **the two together determine the frame** —
+    `resolve(reinvested=True)` and `resolve(reinvested=False)` return different
+    frames, with different digests, from the same snapshot. A record naming
+    only the snapshot therefore cannot be recomputed, and a verifier that tried
+    would compare a digest against a frame nobody delivered.
+
+    That is not hypothetical. The journey test recomputed a digest without this
+    and compared a price-return frame against a total-return one; it read as
+    "resolution is not deterministic", which would have condemned the whole
+    snapshot-by-hash design. Resolution was deterministic. The record was
+    incomplete.
+
+    Versioned because adding a parameter changes the meaning of an existing
+    record: an `mdr1` event carries no value for a parameter invented later,
+    and must be reported as unreproducible under the newer rule rather than
+    quietly reproduced using today's default for it.
+    """
+
+    reinvested: bool
+    version: str = RESOLUTION_VERSION
+
+    def to_json(self) -> Dict[str, Any]:
+        return {"reinvested": bool(self.reinvested), "version": self.version}
+
+    def as_arguments(self) -> Dict[str, Any]:
+        """The keyword arguments that reproduce this delivery.
+
+        Named so a verifier can `resolve(context=..., **request.as_arguments())`
+        without knowing which parameters exist. A verifier that listed them
+        itself would go on passing the day one was added, silently reproducing
+        with a default — which is the failure this whole record exists to stop.
+        """
+        return {"reinvested": bool(self.reinvested)}
+
+
+def resolution_from_json(payload: Optional[Mapping[str, Any]]
+                         ) -> Optional["ResolutionRequest"]:
+    """Read a stored request. Absent stays absent rather than becoming a default.
+
+    An event written before requests were recorded genuinely does not say
+    whether dividends were reinvested. Defaulting it here would manufacture an
+    answer and let such an event be "verified" against a frame it may never
+    have been delivered.
+    """
+    if not payload:
+        return None
+    return ResolutionRequest(
+        reinvested=bool(payload.get("reinvested", False)),
+        version=str(payload.get("version", RESOLUTION_VERSION)))
+
 
 class UndigestibleFrame(TypeError):
     """The resolver was handed something it cannot canonically describe."""
@@ -145,11 +205,29 @@ class MarketDataAccessEvent:
     accessed_at: str
     version: str = ACCESS_EVENT_VERSION
 
+    resolution: Optional[ResolutionRequest] = None
+    """What was asked for, so the delivery can be recomputed. `None` only for
+    events written before requests were recorded, which are verifiable as
+    self-consistent and not reproducible — a distinction `reproducible` keeps
+    rather than blurring."""
+
     @property
     def identifies_delivery(self) -> bool:
         """Whether this names a specific realized frame, not merely a source."""
         return bool(self.frame_digest) and bool(self.provenance_digest) \
             and self.row_count > 0
+
+    @property
+    def reproducible(self) -> bool:
+        """Whether the delivery can be resolved again and checked.
+
+        Separate from `identifies_delivery`: an event can name a specific frame
+        exactly and still not say which request produced it, and those are
+        different deficiencies. The first makes the record useless as evidence;
+        the second makes it uncheckable against the data.
+        """
+        return self.identifies_delivery and self.resolution is not None \
+            and self.resolution.version == RESOLUTION_VERSION
 
     def content_hash(self) -> str:
         """Over the whole event, so a tampered field is detectable.
@@ -162,7 +240,7 @@ class MarketDataAccessEvent:
         return "mde1:" + hashlib.sha256(body.encode()).hexdigest()
 
     def to_json(self) -> Dict[str, Any]:
-        return {"access_event_id": self.access_event_id,
+        body = {"access_event_id": self.access_event_id,
                 "request_id": self.request_id, "run_id": self.run_id,
                 "snapshot_id": self.snapshot_id,
                 "provenance_digest": self.provenance_digest,
@@ -174,6 +252,15 @@ class MarketDataAccessEvent:
                 "policy_version": self.policy_version,
                 "access_decision": self.access_decision.value,
                 "accessed_at": self.accessed_at, "version": self.version}
+        # Omitted rather than spelled `null` when absent, so events written
+        # before requests were recorded still hash to the value stored beside
+        # them. A key that always appeared would change every historical
+        # content hash and report every existing delivery as edited — the exact
+        # false alarm `frame_digest` avoids by refusing to digest pandas'
+        # formatting.
+        if self.resolution is not None:
+            body["resolution"] = self.resolution.to_json()
+        return body
 
 
 def from_json(payload: Optional[Mapping[str, Any]]
@@ -195,17 +282,23 @@ def from_json(payload: Optional[Mapping[str, Any]]
         policy_version=payload.get("policy_version", ""),
         access_decision=AccessDecision(payload["access_decision"]),
         accessed_at=payload.get("accessed_at", ""),
-        version=payload.get("version", ACCESS_EVENT_VERSION))
+        version=payload.get("version", ACCESS_EVENT_VERSION),
+        resolution=resolution_from_json(payload.get("resolution")))
 
 
 def build(*, access_event_id: str, request_id: str, run_id: Optional[str],
           frame: Any, provenance: MarketDataProvenance,
           policy_version: str, decision: AccessDecision,
-          accessed_at: str) -> MarketDataAccessEvent:
+          accessed_at: str,
+          resolution: Optional[ResolutionRequest] = None
+          ) -> MarketDataAccessEvent:
     """Describe a delivery from the frame that is actually being delivered.
 
-    Called only by `access.resolve`, which is the one place holding the frame
-    and the provenance at the same instant.
+    Called only by `access.resolve`, which is the one place holding the frame,
+    the provenance and the request at the same instant. `resolution` is passed
+    rather than inferred from the frame for the same reason the digest is taken
+    here: a value derived after the fact describes what the deriver believed,
+    and that belief is the thing in question.
     """
     columns = tuple(sorted(str(one) for one in frame.columns))
     index = sorted(frame.index)
@@ -217,7 +310,7 @@ def build(*, access_event_id: str, request_id: str, run_id: Optional[str],
         frame_digest=frame_digest(frame),
         selected_columns=columns, row_count=len(index), time_range=span,
         policy_version=policy_version, access_decision=decision,
-        accessed_at=accessed_at)
+        accessed_at=accessed_at, resolution=resolution)
 
 
 def verify(stored: Mapping[str, Any]) -> Sequence[str]:

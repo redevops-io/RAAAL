@@ -113,6 +113,7 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
     )
     from .loader import load_prices, synthetic_snapshot
     from ..deploy.context import current
+    from .access_event import ResolutionRequest
     from .access_event import build as build_event
     from .pilot_policy import PilotDataDenied, PilotDataPolicy, authorise
 
@@ -177,7 +178,14 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
         access_event_id=f"mdae-{uuid.uuid4().hex}",
         request_id=request_id or f"unattributed-{uuid.uuid4().hex[:12]}",
         run_id=run_id, frame=delivered, provenance=provenance,
-        policy_version=policy.value, decision=decision, accessed_at=stamp)
+        policy_version=policy.value, decision=decision, accessed_at=stamp,
+        # The request, recorded beside the digest it produced. The snapshot
+        # says which observations exist; this says which of them were
+        # delivered, and only the pair determines the frame — asking the same
+        # snapshot with `reinvested` flipped yields a different digest. An
+        # event naming only the snapshot cannot be recomputed, and a verifier
+        # that tried would compare against a frame nobody was given.
+        resolution=ResolutionRequest(reinvested=bool(reinvested)))
     return MarketDataAccess(delivered, provenance, event)
 
 
