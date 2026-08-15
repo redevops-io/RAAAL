@@ -66,6 +66,18 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
     }
 
     # Required terminal rule.
+    # `www`, so the proxy can redirect it to the apex.
+    #
+    # A redirect rule at the Cloudflare edge would be better — it never
+    # reaches the origin — and it needs a Dynamic Redirect permission this
+    # deployment's API token does not carry. Widening a token to save one hop
+    # for a hostname nobody should be using is the wrong trade, so the
+    # redirect lives in the proxy, which this token already manages.
+    ingress_rule {
+      hostname = "www.${var.domain_name}"
+      service  = "http://${aws_lb.main.dns_name}:80"
+    }
+
     ingress_rule {
       service = "http_status:404"
     }
@@ -135,46 +147,11 @@ resource "cloudflare_record" "www" {
   proxied = true
   comment = "Redirects to the apex — see cloudflare_ruleset.www_to_apex"
 
-  # The same deliberate footgun the apex needed, for the same reason and with
-  # the same limit: it replaces the stale `vibexgen-proxmox` record on this
-  # hostname only, and touches nothing else on that tunnel.
-  allow_overwrite = true
+  # No `allow_overwrite`. It is used once in this file, on the apex, and
+  # deliberately; here it failed to claim a hand-edited record ("attempted to
+  # override existing record however didn't find an exact match") because the
+  # provider only overwrites what it can match exactly. Deleting the stale
+  # record and letting Terraform create this one is a smaller act than a flag
+  # that silently replaces whatever it finds.
 }
 
-# The redirect itself, at the edge.
-#
-# A rule rather than an application route: a 301 issued by Cloudflare never
-# reaches the origin, so `www` costs nothing to serve and cannot be affected by
-# the application being down. Sending it through the tunnel to be redirected by
-# FastAPI would make the canonical-hostname rule depend on the thing it is
-# protecting.
-resource "cloudflare_ruleset" "www_to_apex" {
-  zone_id = var.cloudflare_zone_id
-  name    = "Redirect www to the apex"
-  kind    = "zone"
-  phase   = "http_request_dynamic_redirect"
-
-  rules {
-    action      = "redirect"
-    expression  = "(http.host eq \"www.${var.domain_name}\")"
-    description = "www is not a second site"
-    enabled     = true
-
-    action_parameters {
-      from_value {
-        # 301, because this is permanent and browsers should stop asking.
-        status_code = 301
-
-        target_url {
-          # Path and query preserved: a link to `www.quantify.club/research`
-          # should land on the research page, not the front door. A redirect
-          # that drops the path is a redirect that loses the reason somebody
-          # followed the link.
-          expression = "concat(\"https://${var.domain_name}\", http.request.uri.path)"
-        }
-
-        preserve_query_string = true
-      }
-    }
-  }
-}

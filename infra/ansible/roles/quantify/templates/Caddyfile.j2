@@ -43,6 +43,19 @@ http://{{ quantify_identity_domain }} {
 }
 
 {% endif %}
+# `www`, redirected rather than served.
+#
+# One canonical hostname, and the reason is specific rather than tidiness:
+# PUBLIC_BASE_URL and the registered OIDC redirect URI are both the apex, so
+# somebody signing in from `www` would be returned to a hostname their session
+# cookie was not scoped to — a login that silently does not take.
+#
+# Path and query are preserved: a link to www.quantify.club/research should
+# land on the research page, not the front door.
+http://www.{{ quantify_domain }} {
+	redir https://{{ quantify_domain }}{uri} 301
+}
+
 :80 {
 	encode gzip
 
