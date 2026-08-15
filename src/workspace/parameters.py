@@ -25,6 +25,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional, Sequence
 
+from .catalog_assumptions import CATALOG_ASSUMED
+
 #: What a row is doing on the page.
 SETTLED = "SETTLED"
 """Read from the sentence. Carries a value and where it came from."""
@@ -37,6 +39,16 @@ REFUSED = "REFUSED"
 
 CHOSEN = "CHOSEN"
 """Not stated, and the engine applied a declared default rather than asking."""
+
+ASSUMED = "ASSUMED"
+"""Not stated, and the catalogue supplied a stand-in so the strategy can be seen.
+
+Carries a value and an input, which no other state does at once: it is filled in
+and still a question. Distinct from CHOSEN because the engine's declared default
+is a property of the engine, while this is a guess about *this person's*
+portfolio — the kind of value that must never be mistaken for something they
+said. Distinct from SETTLED because nobody said it.
+"""
 
 
 @dataclass(frozen=True)
@@ -185,15 +197,29 @@ def rows(reading) -> Sequence[Parameter]:
             value=stated or (str(already.value) if already is not None else ""),
             detail=getattr(refusal, "detail", ""), **_guidance(name)))
 
+    # Last entry wins, so a confirmed assumption reads as the user's. `settle`
+    # appends rather than replaces — deliberately, so the record keeps saying
+    # the value began as a guess — and a table built from the first entry would
+    # go on calling a value assumed after somebody had accepted it.
+    last_settled = {}
     for settled in getattr(reading, "settled", ()) or ():
+        last_settled[settled.field] = settled
+
+    for settled in last_settled.values():
         name = settled.field
         if name in seen:
             continue
         seen.add(name)
         witnesses = ", ".join(settled.witnesses or ())
+        assumed = settled.provenance == CATALOG_ASSUMED
         found.append(Parameter(
-            name=name, state=SETTLED, value=str(settled.value),
-            provenance=(f"{settled.provenance}"
+            name=name, state=ASSUMED if assumed else SETTLED,
+            value=str(settled.value),
+            # The reason, where there is one, rather than the code. A row
+            # reading `CATALOG_ASSUMED (catalogue)` tells somebody a machine
+            # was involved and not whether the value suits them.
+            provenance=(settled.detail if assumed and settled.detail
+                        else f"{settled.provenance}"
                         + (f" ({witnesses})" if witnesses else "")),
             **_guidance(name)))
 
@@ -217,11 +243,30 @@ def rows(reading) -> Sequence[Parameter]:
                                provenance="the engine's declared default",
                                **_guidance(name)))
 
-    # Needed first: it is the only part that is work. Then what was read, then
-    # what will not run, then what was chosen for them.
-    order = {NEEDED: 0, SETTLED: 1, REFUSED: 2, CHOSEN: 3}
+    # Needed first: it is the only part that is work. Then what we guessed,
+    # which is the part most worth checking. Then what was read, then what will
+    # not run, then what was chosen for them.
+    order = {NEEDED: 0, ASSUMED: 1, SETTLED: 2, REFUSED: 3, CHOSEN: 4}
     return sorted(found, key=lambda p: (order.get(p.state, 9), p.name))
 
 
 def unanswered(reading) -> Sequence[Parameter]:
+    """What blocks a run.
+
+    An assumed row is deliberately not here. It carries a value the plan can run
+    on, and treating it as outstanding would put the page back where it started
+    — offering to fill in something already filled in, which is the loop this
+    table was built to end. It is still shown, still editable, and still marked
+    as ours rather than theirs.
+    """
     return [p for p in rows(reading) if p.needs_an_answer]
+
+
+def editable(reading) -> Sequence[Parameter]:
+    """Rows that take an input: what is missing, and what we guessed.
+
+    Named separately from `unanswered` because the two questions differ and
+    conflating them is what produced the looping button. `unanswered` decides
+    whether the plan can run; this decides where a person may type.
+    """
+    return [p for p in rows(reading) if p.state in (NEEDED, ASSUMED)]

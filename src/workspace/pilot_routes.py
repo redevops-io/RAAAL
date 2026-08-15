@@ -27,6 +27,7 @@ from fastapi.responses import HTMLResponse
 
 from ..deploy.context import ParserMode
 from ..discovery.schema import QUANTIFY_SCHEMA
+from .catalog_assumptions import assume
 from .pilot import InterpreterUnavailable, PilotReading, answer, read, reopen
 from .pilot_events import (answers_already_in_the_prompt, attempts_by, observe,
                            observe_resubmission, observe_save)
@@ -333,6 +334,13 @@ def draft(request: Request, describe: str = "", picked: str = ""):
             {"text": describe, "reading": None, "unavailable": str(down)},
             status_code=503)
 
+    # The catalogue supplies what its own sentence does not say, and only for a
+    # strategy that was picked from it. Typed prose gets nothing: we know which
+    # family we offered, and we do not know what somebody meant by their own
+    # words — inferring a family from free text would be a second classifier
+    # deciding what to assume on the user's behalf.
+    reading = assume(reading, picked) if picked else reading
+
     run = execute(reading)
     participant = _observe_attempt(request, describe, reading, run=run,
                                    picked=picked)
@@ -384,6 +392,12 @@ async def pilot_answer(request: Request, describe: str = Form(...),
             {"text": describe, "reading": None, "unavailable": str(down)},
             status_code=503)
 
+    # Assumptions first, the person's answers second, so an edit wins. `settle`
+    # appends, so the assumed entry survives underneath: the record says the
+    # value is now theirs *and* that it did not start that way. Re-applying the
+    # assumptions here rather than carrying them in the form is what stops a
+    # posted field from being able to claim it was assumed.
+    reading = assume(reading, picked) if picked else reading
     answered = answer(reading, answers)
     run = execute(answered)
     participant = _observe_attempt(request, describe, answered, answers, run,

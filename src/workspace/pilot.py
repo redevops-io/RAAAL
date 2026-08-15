@@ -350,14 +350,41 @@ def answer(reading: PilotReading, answers: Mapping[str, Any]) -> PilotReading:
     defaults are a third thing again. Collapsing them would make "the user
     agreed" indistinguishable from "we stopped asking".
     """
+    return settle(reading, answers, author=Author.USER,
+                  provenance="USER_ANSWERED", witness="user",
+                  detail="answered on the plan page")
+
+
+def settle(reading: PilotReading, values: Mapping[str, Any], *,
+           author: "Author", provenance: str, witness: str,
+           detail: Any = "") -> PilotReading:
+    """Supply values for what the reader left open, saying who supplied them.
+
+    One body, because a catalogue assumption and a typed answer must travel the
+    same path: both amend the intent, both reseal it, both recompile, and both
+    have to survive the open/absent split. Two implementations would drift, and
+    the one that drifted would be the one nobody typed into.
+
+    What differs is authority, and it is a parameter rather than a branch.
+    `Author.USER` dominates and is never overwritten by a re-read;
+    `Author.DEFAULT` is "nobody asserted it, a declared default applied — the
+    value a consumer is most entitled to question". A catalogue assumption is
+    the second of those and must never be recorded as the first, or the product
+    ends up offering its own guess back as the user's choice.
+
+    `detail` may be a string or a mapping from dimension to string, because an
+    assumption's reason is specific to the dimension it supplies and an answer's
+    is not.
+    """
     if reading.intent is None:
         return reading
 
+    answers = values
     fields = dict(reading.intent.fields)
     for name, value in answers.items():
         if value in (None, ""):
             continue
-        fields[name] = IntentField(value=value, author=Author.USER)
+        fields[name] = IntentField(value=value, author=author)
 
     still_open = tuple(u for u in reading.intent.unresolved
                        if u.dimension not in answers)
@@ -388,8 +415,10 @@ def answer(reading: PilotReading, answers: Mapping[str, Any]) -> PilotReading:
             refusals = refused.refusals
 
     settled = list(reading.settled) + [
-        SettledField(field=name, value=value, provenance="USER_ANSWERED",
-                     witnesses=["user"], detail="answered on the plan page")
+        SettledField(field=name, value=value, provenance=provenance,
+                     witnesses=[witness],
+                     detail=(detail.get(name, "") if hasattr(detail, "get")
+                             else detail))
         for name, value in answers.items() if value not in (None, "")]
 
     # Which answers settled nothing. Computed from the refusals the recompile

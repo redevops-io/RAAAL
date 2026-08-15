@@ -90,6 +90,24 @@
                     this build runs {{ row.executable | join(", ") }}
                   </div>
                 {% endif %}
+              {% elif row.state == "ASSUMED" %}
+                {# The value is shown as text and the input beside it is EMPTY,
+                   with the assumed value only as a placeholder. A pre-filled
+                   input would be posted back by anyone who pressed the button
+                   without reading the row, and the guess would return authored
+                   USER — which dominates every other author and is never
+                   overwritten by a re-read. The product would have promoted its
+                   own assumption to the user's word, permanently, on a click
+                   that meant "run it". Empty means "still ours". #}
+                <strong>{{ row.value }}</strong>
+                <div class="quiet small">assumed, not stated</div>
+                <input name="answer_{{ row.name }}" type="text" value=""
+                       placeholder="change it — now {{ row.value }}">
+                {% if row.examples %}
+                  <div class="quiet small">
+                    for example {{ row.examples | join(", ") }}
+                  </div>
+                {% endif %}
               {% else %}
                 {{ row.value or "—" }}
               {% endif %}
