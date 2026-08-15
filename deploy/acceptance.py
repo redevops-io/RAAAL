@@ -84,13 +84,34 @@ CHECKS_FAILED = "CHECKS_FAILED"
 INVENTORY_DRIFTED = "INVENTORY_DRIFTED"
 
 
-def fetch(base, path, headers=None):
+class _KeepRedirects(urllib.request.HTTPRedirectHandler):
+    """Hand back the redirect instead of following it.
+
+    Following is right for most checks — a health endpoint that moved is still
+    healthy. It is wrong for the one that asks whether a private page refuses a
+    signed-out request, because following turns "303 to /auth/login", which is
+    the refusal, into "200 from the login page", which reads as the workspace
+    being wide open. That is exactly what it reported: two failures against a
+    site that was correctly redirecting both paths to sign in.
+
+    A check that cannot tell a refusal from a breach, in the direction of
+    crying breach, gets muted after the second false alarm.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def fetch(base, path, headers=None, follow=True):
     """Never raises. A status of 0 means the deployment was not reachable.
 
     An unreachable host is a result, not a crash. Left to propagate, a wrong
     URL or a refusing instance produced a forty-line traceback and — worse —
     `--record` never ran, so the one run that most needed recording, the one
     where the deployment would not serve, was the one that left no evidence.
+
+    `follow=False` returns the redirect itself, for the caller that needs to
+    read where it points rather than what is at the end of it.
     """
     # Identify the tool. Behind a CDN with bot protection, the default
     # `Python-urllib/3.x` agent is refused before the request reaches the
@@ -102,8 +123,10 @@ def fetch(base, path, headers=None):
             "Accept": "*/*"}
     sent.update(headers or {})
     request = urllib.request.Request(base.rstrip("/") + path, headers=sent)
+    opener = (urllib.request.build_opener(_KeepRedirects) if not follow
+              else urllib.request.build_opener())
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+        with opener.open(request, timeout=TIMEOUT) as response:
             return response.status, response.read().decode("utf-8", "replace"), \
                 dict(response.headers)
     except urllib.error.HTTPError as error:
@@ -214,7 +237,7 @@ def main(base, record_to=None):
     # the one place that was never the problem.
     for prefix in _private_prefixes():
         path = prefix.rstrip("/") + "/"
-        status, body, headers = fetch(base, path)
+        status, body, headers = fetch(base, path, follow=False)
         location = next((value for name, value in (headers or {}).items()
                          if name.lower() == "location"), "")
         refused = status in (401, 403) or (
