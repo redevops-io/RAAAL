@@ -1,0 +1,85 @@
+name: Tests
+
+# The suite had no lane. Every other workflow here is `workflow_dispatch` and
+# switched off, so nothing ran on a push — which is why four defects reached a
+# hand-run of PostgreSQL in one afternoon: a delivery record that could not be
+# verified against its data, two tests unable to identify their own subject, and
+# a re-key that applied on one dialect only.
+#
+# **Two lanes, and the slow one is not optional.** SQLite is fast and runs
+# everywhere; it also cannot express the guarantees that matter most here.
+# `row[0]` is correct on `sqlite3.Row` and a `KeyError` on a mapping-only row,
+# so a defect that returned INTERNAL_ERROR on every saved plan passed every
+# test. A primary key can be moved on PostgreSQL and not on SQLite, so a
+# migration can be half-applied and green. And the digest that says which
+# observations produced a figure is checked only against a real database.
+#
+# So the PostgreSQL lane sets `QUANTIFY_REQUIRE_POSTGRES`, and in that lane a
+# skip is a failure. Without it the lane would run the SQLite suite, pass, and
+# report the same green as the fast one — which is how a database-specific
+# guarantee stops being checked without anybody deciding to stop checking it.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sqlite:
+    name: fast lane (SQLite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements-core.txt -r requirements-dev.txt
+      - run: python -m pytest tests/ -q --ignore=tests/test_container_reachability.py
+
+  postgres:
+    name: persistence lane (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: quantify
+        ports: ['5432:5432']
+        # Without this the suite starts before the database accepts
+        # connections, every PostgreSQL test skips for want of a URL that is
+        # set, and the lane reports green having checked nothing.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      QUANTIFY_TEST_POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/quantify
+      # A skip is a failure here. `tests/conftest.py` refuses to start without
+      # a database, fails the run on any test skipped for want of one, and
+      # checks by name that each PostgreSQL-only guarantee actually executed —
+      # a test can leave collection without ever reporting a skip.
+      QUANTIFY_REQUIRE_POSTGRES: '1'
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements-core.txt -r requirements-dev.txt
+      - run: python -m pytest tests/ -q --ignore=tests/test_container_reachability.py

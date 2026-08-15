@@ -34,6 +34,88 @@ SYNTHETIC = REPO_ROOT / "tests" / "fixtures" / "prices_synthetic.parquet"
 #: result cannot differ between two machines because one happened to have it.
 LICENSED = REPO_ROOT / "data" / "history" / "prices.parquet"
 
+# --- the PostgreSQL lane, where a skip is a failure -------------------------
+#
+# The checks live inside `pytest_sessionstart` and `pytest_sessionfinish`
+# further down, which already exist for the tree-freeze guard. Adding a second
+# pair of functions with those names would have been silent: Python keeps the
+# last definition in a module, so the new hooks simply never ran and the lane
+# reported green while checking nothing — the exact failure they are for.
+
+#: Set by the CI lane that exists to run these. Off everywhere else, so a
+#: developer without a database still gets a useful suite.
+REQUIRE_POSTGRES = "QUANTIFY_REQUIRE_POSTGRES"
+
+#: Guarantees that only run on PostgreSQL and must therefore be *seen* to run.
+#:
+#: Named individually rather than counted. A count is satisfied by any test at
+#: all, and the failure this prevents is precisely the one that already
+#: happened: the digest check was skipped on SQLite for its whole life, so a
+#: delivery record that could not be verified against its data went unnoticed
+#: until somebody ran the other lane by hand. A rename that drops one from this
+#: list is then a decision somebody makes in a diff, which is the point.
+MUST_RUN_ON_POSTGRES = (
+    "tests/test_provenance_journey.py::"
+    "TestTheStoredRunCitesTheDeliveryItConsumed::"
+    "test_the_stored_digest_is_the_resolver_digest",
+    "tests/test_provenance_journey.py::"
+    "TestTheStoredRunCitesTheDeliveryItConsumed::"
+    "test_the_recorded_request_is_what_the_plan_asked_for",
+    "tests/test_provenance_journey.py::"
+    "TestTheStoredRunCitesTheDeliveryItConsumed::"
+    "test_the_other_request_would_not_have_verified",
+    "tests/test_tenancy_invariant.py::TestTheSchemaLayer::"
+    "test_no_tenant_owned_table_is_unsafe",
+    "tests/test_tenancy_invariant.py::TestTheSchemaLayer::"
+    "test_the_exception_list_is_empty",
+)
+
+_ran: set = set()
+_skipped_for_postgres: list = []
+
+
+#: The exact phrases a "there is no database here" gate uses.
+#:
+#: Matched precisely rather than by looking for "postgres" anywhere in the
+#: reason, because not every skip that mentions a database is one. The restore
+#: drill declines when the database it would populate is not the container it
+#: would dump — a statement about topology, in a lane that has a perfectly good
+#: database — and a substring match flagged all eleven of its tests as
+#: unchecked guarantees. A guard that cries wolf about a correct skip gets
+#: switched off, which costs more than it was ever going to catch.
+NO_DATABASE_HERE = ("needs a reachable postgresql", "sqlite cannot")
+
+
+def pytest_runtest_logreport(report):
+    """Remember what ran and what stood aside for want of a database."""
+    if report.skipped:
+        reason = ""
+        if isinstance(report.longrepr, tuple) and len(report.longrepr) == 3:
+            reason = str(report.longrepr[2])
+        lowered = reason.lower()
+        if any(phrase in lowered for phrase in NO_DATABASE_HERE):
+            _skipped_for_postgres.append((report.nodeid, reason))
+    elif report.when == "call" and report.passed:
+        _ran.add(report.nodeid)
+
+
+def _lane_problems():
+    """Why this lane checked less than it exists to check, if it did.
+
+    Two questions, because either can hold while the other fails: did anything
+    stand aside *because* it wanted a database, and did each named guarantee
+    actually execute. A test can leave collection without ever reporting a skip
+    — a rename, a stray `-k`, a deleted file — and only the second notices.
+    """
+    if not os.environ.get(REQUIRE_POSTGRES):
+        return []
+    problems = [f"  skipped for want of a database: {nodeid}\n"
+                f"    {reason.strip()[:160]}"
+                for nodeid, reason in _skipped_for_postgres]
+    problems += [f"  did not run: {nodeid}" for nodeid in MUST_RUN_ON_POSTGRES
+                 if nodeid not in _ran]
+    return problems
+
 
 @pytest.fixture(autouse=True)
 def no_model_calls(request, monkeypatch):
@@ -110,11 +192,33 @@ def pytest_sessionstart(session):
     it was in flight — once a source file, once a new test file — and both
     times the rule that would have prevented it was a convention someone had
     to remember. It is checked here instead.
+
+    The PostgreSQL lane's precondition is here too, for the same reason it is
+    a precondition: a lane that asks for a database and is not given one would
+    run the SQLite suite, pass, and report the persistence lane green.
     """
+    if os.environ.get(REQUIRE_POSTGRES) and not os.environ.get(
+            "QUANTIFY_TEST_POSTGRES_URL"):
+        raise pytest.UsageError(
+            f"{REQUIRE_POSTGRES} is set and QUANTIFY_TEST_POSTGRES_URL is not. "
+            "This lane exists to run the guarantees SQLite cannot express; "
+            "without a database it would pass by skipping them")
     session.config._tree_at_start = _tree_state()
 
 
 def pytest_sessionfinish(session, exitstatus):
+    # First, because it is the cheaper failure to read and because the tree
+    # check below returns early on the ordinary path.
+    problems = _lane_problems()
+    if problems:
+        session.exitstatus = 1
+        reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+        say = reporter.write_line if reporter is not None else print
+        say("")
+        say("the PostgreSQL lane did not check what it exists to check:")
+        for problem in problems:
+            say(problem)
+
     before = getattr(session.config, "_tree_at_start", None)
     after = _tree_state()
     if before is None or after is None or before == after:
