@@ -276,3 +276,40 @@ case the digest identifies a frame nobody can reproduce.
 
 Diagnose before building any of the snapshot work; the snapshot-by-hash design
 assumes this property already holds.
+
+---
+
+## Parsing resolves; the first click still rarely draws a graph
+
+Measured over all 43 offered strategies under the deployed reader:
+
+| outcome | count |
+|---|---|
+| runs straight to a graph | 3 |
+| asks one question first | 37 |
+| refuses by name | 3 |
+
+Nothing is silent, every question appears as a row with an example, and every
+refusal names its dimension — the page contract holds. The parser is not the
+problem here.
+
+The dominant question is `assets`, asked for 22 strategies, and **in all 22 the
+sentence genuinely names no holding**: "I withdraw $20,000 from the portfolio
+each year", "I spend the taxable account first, then the IRA, then the Roth",
+"I take the required minimum distribution starting at 73". A human advisor
+would ask the same thing. The reading is right.
+
+But it makes for a poor first click. Somebody chooses a withdrawal rule to
+model *withdrawals* and is asked to invent a portfolio before the question they
+came with can be answered. Two ways out, and neither is parser work:
+
+* The catalogue sentence names a holding where the strategy does not care —
+  "…from a portfolio of VTI and BND". Honest, and it makes the entry concrete.
+* The table pre-fills a default and marks it as one, so the answer is a click
+  and the provenance says `assumed, not stated`. Better, because it keeps the
+  distinction between what somebody said and what we supplied — which is the
+  distinction the whole parameter table exists to hold.
+
+The second, with the default drawn from the strategy kind. Until then the
+honest description of the product is: it reads what you say, tells you what it
+still needs, and needs something roughly nine times in ten.
