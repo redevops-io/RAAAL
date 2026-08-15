@@ -215,6 +215,44 @@ def from_json(payload: Mapping[str, Any]) -> MarketSnapshot:
         version=payload["version"])
 
 
+def from_access(access, *, source=None,
+                adapter: Optional[SourceAdapter] = None) -> MarketSnapshot:
+    """Build a snapshot from a delivery, taking the request from the record.
+
+    The one entry point production should use. `describe` accepts a resolution
+    as an argument, which is right for a test constructing a case and wrong for
+    a caller that already has one: two statements of the same request can
+    disagree, and the one that would be believed is whichever the snapshot
+    happened to be handed.
+
+    So this reads `access.access_event.resolution` — the request recorded
+    beside the digest, by the resolver, at the moment the frame was produced.
+    That record exists precisely because nothing else could say which request
+    the bytes came from, and restating it here would reintroduce the gap it was
+    added to close.
+    """
+    event = getattr(access, "access_event", None)
+    if event is None:
+        raise ValueError(
+            "this delivery carries no access event, so nothing says which "
+            "request produced it — and a snapshot built without that cannot "
+            "be resolved again")
+    recorded = getattr(event, "resolution", None)
+    if recorded is None:
+        raise ValueError(
+            f"delivery {event.access_event_id} predates recorded resolution "
+            "requests. It is coherent and not reproducible, and a snapshot "
+            "claiming otherwise would say the data can be fetched again when "
+            "nobody knows what to ask for")
+
+    if source is None:
+        from .loader import synthetic_snapshot
+
+        source = synthetic_snapshot()
+    return describe(source, access.frame,
+                    resolution=recorded.to_json(), adapter=adapter)
+
+
 def describe(snapshot, observations, *, resolution: Mapping[str, Any],
              adapter: Optional[SourceAdapter] = None) -> MarketSnapshot:
     """Build the contract from a delivery, digesting what was delivered.

@@ -254,3 +254,78 @@ class TestItNamesTheSameBytesAsTheDeliveryRecord:
         recorded = access.access_event.resolution
         assert recorded is not None
         assert bool(recorded.reinvested) is bool(snapshot.resolution["reinvested"])
+
+
+class TestTheBuilderTakesTheRequestFromTheRecord:
+    """Step 8's builder step: `ResolutionRequest + delivery -> MarketSnapshot`.
+
+    `describe` accepts a resolution as an argument, which suits a test building
+    a case and not a caller that already has one — two statements of the same
+    request can disagree, and the believed one would be whichever the snapshot
+    was handed. `from_access` reads the request the resolver recorded beside
+    the digest, at the moment the frame was produced.
+    """
+
+    def test_it_reproduces_the_delivered_digest(self):
+        from src.market_data.access import resolve
+        from src.market_data.snapshot_contract import from_access
+
+        access = resolve(context="builder")
+        built = from_access(access, source=_source(),
+                            adapter=SourceAdapter("local-parquet", "1"))
+        assert built.snapshot_hash == access.access_event.frame_digest
+        assert built.verify(access.frame) == ()
+
+    def test_it_reproduces_the_total_return_twin(self):
+        from src.market_data.access import resolve
+        from src.market_data.snapshot_contract import from_access
+
+        price = from_access(resolve(context="builder", reinvested=False),
+                            source=_source())
+        total = from_access(resolve(context="builder", reinvested=True),
+                            source=_source())
+
+        assert price.corporate_actions == PRICE_ONLY
+        assert total.corporate_actions == TOTAL_RETURN
+        assert price.snapshot_hash != total.snapshot_hash
+
+    def test_the_request_is_the_recorded_one_and_not_a_restatement(self):
+        from src.market_data.access import resolve
+        from src.market_data.snapshot_contract import from_access
+
+        access = resolve(context="builder", reinvested=True)
+        built = from_access(access, source=_source())
+        assert built.resolution == access.access_event.resolution.to_json()
+
+    def test_a_delivery_with_no_record_is_refused(self):
+        """Rather than defaulted. A snapshot built without knowing the request
+        would claim the data can be fetched again when nobody knows what to
+        ask for."""
+        from src.market_data.snapshot_contract import from_access
+
+        class NoRecord:
+            frame = None
+            access_event = None
+
+        with pytest.raises(ValueError, match="no access event"):
+            from_access(NoRecord())
+
+    def test_a_delivery_predating_recorded_requests_is_refused(self):
+        from src.market_data.access import resolve
+        from src.market_data.snapshot_contract import from_access
+
+        access = resolve(context="builder")
+        older = dataclasses_replace(access.access_event, resolution=None)
+        with pytest.raises(ValueError, match="not reproducible"):
+            from_access(_Delivery(access.frame, older))
+
+
+from dataclasses import replace as dataclasses_replace  # noqa: E402
+
+
+class _Delivery:
+    """A delivery whose event can be swapped, for the case above."""
+
+    def __init__(self, frame, access_event):
+        self.frame = frame
+        self.access_event = access_event
