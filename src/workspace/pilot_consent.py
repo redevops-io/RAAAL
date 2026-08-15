@@ -54,12 +54,24 @@ request at any time. Participation is voluntary, and transcript recording is
 disabled unless you explicitly agree.\
 """
 
+#: `owner` is the tenant; `participant` is the study pseudonym. Two namespaces,
+#: kept apart on purpose: the tenant decides who may read the row, the
+#: participant says whose consent it records, and no foreign key joins the
+#: pseudonym to an authenticated user. Any mapping the study needs lives in its
+#: own narrowly-held table, so it can be destroyed without re-keying evidence.
+#:
+#: Both are in the key here, and only here. A consent record *is* the statement
+#: that one participant agreed, so the participant is intrinsic to its
+#: identity — unlike an event or a transcript, which happen to have been
+#: produced by one.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pilot_consent (
-    participant     TEXT PRIMARY KEY,
+    owner           TEXT NOT NULL,
+    participant     TEXT NOT NULL,
     state           TEXT NOT NULL,
     at              TEXT NOT NULL,
-    notice_version  TEXT NOT NULL
+    notice_version  TEXT NOT NULL,
+    PRIMARY KEY (owner, participant)
 )
 """
 
@@ -68,8 +80,11 @@ def _connect():
     from ..db.engine import Database
     from ..deploy.context import current
 
+    from .study_repair import ensure_owner
+
     connection = Database(current().database.url).connect()
     connection.execute(SCHEMA)
+    ensure_owner(connection, "pilot_consent")
     return connection
 
 
@@ -78,13 +93,18 @@ def _set(participant: str, state: str) -> None:
 
     connection = _connect()
     try:
-        connection.execute("DELETE FROM pilot_consent WHERE participant = ?",
-                           (participant,))
+        from .owner import current as owner_of
+
+        owner = owner_of()
         connection.execute(
-            "INSERT INTO pilot_consent (participant, state, at, notice_version)"
-            " VALUES (?, ?, ?, ?)",
-            (participant, state, datetime.now(timezone.utc).isoformat(),
-             NOTICE_VERSION))
+            "DELETE FROM pilot_consent WHERE owner = ? AND participant = ?",
+            (owner, participant))
+        connection.execute(
+            "INSERT INTO pilot_consent "
+            "(owner, participant, state, at, notice_version)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (owner, participant, state,
+             datetime.now(timezone.utc).isoformat(), NOTICE_VERSION))
         connection.commit()
     finally:
         connection.close()
@@ -133,9 +153,12 @@ def record_of(participant: str) -> Optional[Mapping[str, str]]:
     except Exception:                                          # noqa: BLE001
         return None
     try:
+        from .owner import current as owner_of
+
         row = connection.execute(
             "SELECT state, at, notice_version FROM pilot_consent "
-            "WHERE participant = ?", (participant,)).fetchone()
+            "WHERE owner = ? AND participant = ?",
+            (owner_of(), participant)).fetchone()
     except Exception:                                          # noqa: BLE001
         return None
     finally:

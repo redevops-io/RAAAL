@@ -52,10 +52,12 @@ def _rows() -> list:
 
     connection = _connect()
     try:
+        from .owner import current as owner_of
+
         found = connection.execute(
             "SELECT kind, participant, detail FROM pilot_events "
-            "WHERE kind IN (?, ?, ?, ?)",
-            (DISCOVERY_ASKED, DISCOVERY_ANSWERED, INTENT_SEALED,
+            "WHERE owner = ? AND kind IN (?, ?, ?, ?)",
+            (owner_of(), DISCOVERY_ASKED, DISCOVERY_ANSWERED, INTENT_SEALED,
              PLAN_RESUBMITTED)).fetchall()
     finally:
         connection.close()

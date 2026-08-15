@@ -167,15 +167,18 @@ class TestTheStudyInstrumentation:
         """`attempts_by` reads a COUNT positionally, which is the same defect
         wearing an aggregate's clothes — and its exception guard would have
         turned it into a permanent zero rather than an error."""
+        from src.workspace.owner import current as owner_of
+
         events = workspace["events"]
         connection = events._connect()
         try:
             connection.execute(
                 "INSERT INTO pilot_events "
-                "(event_id, at, kind, plan_id, participant, detail) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                ("e-1", "2026-08-14T00:00:00Z", events.PLAN_COMPILED,
-                 "plan-1", "participant-1", json.dumps({})))
+                "(owner, event_id, at, kind, plan_id, participant, detail) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (owner_of(), "e-1", "2026-08-14T00:00:00Z",
+                 events.PLAN_COMPILED, "plan-1", "participant-1",
+                 json.dumps({})))
             connection.commit()
         finally:
             connection.close()

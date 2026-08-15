@@ -98,8 +98,28 @@ pilot_plan = Table(
 # database partway through a deployment's life. `pilot_plans` is the one that
 # actually fired; these three had not been used yet on this deployment, which
 # is the only reason they had not.
+# Two namespaces across all three, and keeping them apart is the point.
+#
+#   owner        the tenant. Decides who may read the row. In the key, as it is
+#                on every other tenant-owned table, so one tenant's write can
+#                never replace another's.
+#   participant  the study pseudonym. Says which subject produced the row, and
+#                nothing else. No foreign key joins it to an authenticated
+#                user; a study that needs that mapping keeps it in its own
+#                narrowly-held table.
+#
+# `participant` is in the key only on `pilot_consent`, because a consent record
+# *is* the statement that one participant agreed — the pseudonym is intrinsic
+# to what the row is. An event and a transcript merely happen to have been
+# produced by one, so there the pseudonym stays out of the key and nullable.
+#
+# That is what lets the participant↔user association be deleted later without
+# destroying or re-keying the experimental evidence. Putting the pseudonym into
+# storage identity would have made deduplication, foreign keys, exports and
+# restores all start depending on the one link that has to stay severable.
 pilot_consent = Table(
     "pilot_consent", metadata,
+    Column("owner", Text, primary_key=True),
     Column("participant", Text, primary_key=True),
     Column("state", Text, nullable=False),
     Column("at", Text, nullable=False),
@@ -108,6 +128,7 @@ pilot_consent = Table(
 
 pilot_event = Table(
     "pilot_events", metadata,
+    Column("owner", Text, primary_key=True),
     Column("event_id", Text, primary_key=True),
     Column("at", Text, nullable=False),
     Column("kind", Text, nullable=False),
@@ -121,8 +142,12 @@ pilot_event = Table(
 
 pilot_transcript = Table(
     "pilot_transcripts", metadata,
+    Column("owner", Text, primary_key=True),
     Column("entry_id", Text, primary_key=True),
-    Column("participant", Text, nullable=False),
+    # Nullable so the pseudonym can be cleared from a transcript without
+    # destroying the words. `every_participant` filters the NULLs out rather
+    # than reporting a subject who never existed.
+    Column("participant", Text),
     Column("at", Text, nullable=False),
     Column("attempt", Integer, nullable=False),
     Column("text", Text, nullable=False),

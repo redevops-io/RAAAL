@@ -36,14 +36,26 @@ from typing import Any, Mapping, Optional, Sequence
 #: Opaque, and named so it reads as what it is in a browser's cookie list.
 COOKIE = "quantify_pilot_participant"
 
+#: `owner` is the tenant and decides who may read the row. `participant` is the
+#: study pseudonym, is not part of the key, and is nullable — so the pseudonym
+#: can be cleared from a transcript later without destroying or re-keying what
+#: was typed. There is no foreign key to an authenticated user; a study that
+#: needs that mapping keeps it in its own narrowly-held table, where it can be
+#: deleted on its own.
+#:
+#: A transcript is a record of words that were typed. Making the pseudonym part
+#: of its storage identity would put deduplication, exports and restores on the
+#: wrong side of a link that has to stay severable.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pilot_transcripts (
-    entry_id      TEXT PRIMARY KEY,
-    participant   TEXT NOT NULL,
+    owner         TEXT NOT NULL,
+    entry_id      TEXT NOT NULL,
+    participant   TEXT,
     at            TEXT NOT NULL,
     attempt       INTEGER NOT NULL,
     text          TEXT NOT NULL,
-    detail        TEXT NOT NULL
+    detail        TEXT NOT NULL,
+    PRIMARY KEY (owner, entry_id)
 )
 """
 
@@ -143,8 +155,11 @@ def _connect():
     from ..db.engine import Database
     from ..deploy.context import current
 
+    from .study_repair import ensure_owner
+
     connection = Database(current().database.url).connect()
     connection.execute(SCHEMA)
+    ensure_owner(connection, "pilot_transcripts")
     return connection
 
 
@@ -170,9 +185,13 @@ def last_prompt(participant: str) -> str:
     except Exception:                                          # noqa: BLE001
         return ""
     try:
+        from .owner import current as owner_of
+
         row = connection.execute(
-            "SELECT text FROM pilot_transcripts WHERE participant = ? "
-            "ORDER BY at DESC LIMIT 1", (participant,)).fetchone()
+            "SELECT text FROM pilot_transcripts "
+            "WHERE owner = ? AND participant = ? "
+            "ORDER BY at DESC LIMIT 1",
+            (owner_of(), participant)).fetchone()
         return str(row["text"]) if row else ""
     except Exception:                                          # noqa: BLE001
         return ""
@@ -213,11 +232,13 @@ def record(participant: str, text: str, attempt: int, **detail: Any) -> None:
     try:
         connection = _connect()
         try:
+            from .owner import current as owner_of
+
             connection.execute(
                 "INSERT INTO pilot_transcripts "
-                "(entry_id, participant, at, attempt, text, detail) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (entry_id, participant, at, attempt, text,
+                "(owner, entry_id, participant, at, attempt, text, detail) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (owner_of(), entry_id, participant, at, attempt, text,
                  json.dumps(detail, default=str)))
             connection.commit()
         finally:
@@ -230,9 +251,12 @@ def transcript(participant: str) -> Sequence[Mapping[str, Any]]:
     """One participant's chain, in order. For reading before their interview."""
     connection = _connect()
     try:
+        from .owner import current as owner_of
+
         rows = connection.execute(
             "SELECT at, attempt, text, detail FROM pilot_transcripts "
-            "WHERE participant = ? ORDER BY attempt", (participant,)).fetchall()
+            "WHERE owner = ? AND participant = ? ORDER BY attempt",
+            (owner_of(), participant)).fetchall()
     finally:
         connection.close()
     return [{"at": r["at"], "attempt": r["attempt"], "text": r["text"],
@@ -242,11 +266,17 @@ def transcript(participant: str) -> Sequence[Mapping[str, Any]]:
 def every_participant() -> Sequence[str]:
     connection = _connect()
     try:
+        from .owner import current as owner_of
+
         rows = connection.execute(
-            "SELECT DISTINCT participant FROM pilot_transcripts").fetchall()
+            "SELECT DISTINCT participant FROM pilot_transcripts "
+            "WHERE owner = ?", (owner_of(),)).fetchall()
     finally:
         connection.close()
-    return [r["participant"] for r in rows]
+    # A cleared pseudonym is not a participant. `participant` is nullable so it
+    # can be scrubbed while the words stay, and a NULL reaching this list would
+    # appear as an anonymous subject who never existed.
+    return [r["participant"] for r in rows if r["participant"]]
 
 
 def expire(now=None) -> int:
@@ -263,13 +293,22 @@ def expire(now=None) -> int:
     cutoff = (now - timedelta(days=current().study.retention_days)).isoformat()
     connection = _connect()
     try:
+        from .owner import current as owner_of
+
+        # Aliased and read by name. `removed[0]` is a lookup for a key named 0
+        # where a row is only a mapping — correct on one dialect, a `KeyError`
+        # on the other — and this one sits inside retention, where the
+        # exception would be swallowed and the deployment would report having
+        # deleted nothing while deleting everything.
+        owner = owner_of()
         removed = connection.execute(
-            "SELECT COUNT(*) FROM pilot_transcripts WHERE at < ?",
-            (cutoff,)).fetchone()
-        connection.execute("DELETE FROM pilot_transcripts WHERE at < ?",
-                           (cutoff,))
+            "SELECT COUNT(*) AS how_many FROM pilot_transcripts "
+            "WHERE owner = ? AND at < ?", (owner, cutoff)).fetchone()
+        connection.execute(
+            "DELETE FROM pilot_transcripts WHERE owner = ? AND at < ?",
+            (owner, cutoff))
         connection.commit()
-        return int(removed[0]) if removed else 0
+        return int(removed["how_many"]) if removed else 0
     finally:
         connection.close()
 
@@ -283,12 +322,20 @@ def forget(participant: str) -> int:
     """
     connection = _connect()
     try:
+        from .owner import current as owner_of
+
+        # The same positional read, and the same fix. This one answers somebody
+        # who asked to be removed from the study, so a swallowed error here
+        # would report a deletion that did not happen.
+        owner = owner_of()
         removed = connection.execute(
-            "SELECT COUNT(*) FROM pilot_transcripts WHERE participant = ?",
-            (participant,)).fetchone()
-        connection.execute("DELETE FROM pilot_transcripts WHERE participant = ?",
-                           (participant,))
+            "SELECT COUNT(*) AS how_many FROM pilot_transcripts "
+            "WHERE owner = ? AND participant = ?",
+            (owner, participant)).fetchone()
+        connection.execute(
+            "DELETE FROM pilot_transcripts WHERE owner = ? AND participant = ?",
+            (owner, participant))
         connection.commit()
-        return int(removed[0]) if removed else 0
+        return int(removed["how_many"]) if removed else 0
     finally:
         connection.close()

@@ -47,14 +47,28 @@ from __future__ import annotations
 import json
 from typing import Any, Mapping, Optional, Sequence
 
+#: Two namespaces, deliberately not one. `owner` is the tenant and decides who
+#: may read the row; `participant` is the study pseudonym and says which subject
+#: produced it. There is no foreign key from the pseudonym to an authenticated
+#: user, and any mapping the study needs lives in its own narrowly-held table —
+#: so that association can be destroyed later without re-keying or losing the
+#: experimental evidence.
+#:
+#: `participant` is therefore *not* part of the key and is nullable. An event is
+#: a fact about something that happened, not about who caused it, and making the
+#: pseudonym part of storage identity would let deduplication, foreign keys,
+#: exports and restores all start depending on the very link that has to stay
+#: severable.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pilot_events (
-    event_id      TEXT PRIMARY KEY,
+    owner         TEXT NOT NULL,
+    event_id      TEXT NOT NULL,
     at            TEXT NOT NULL,
     kind          TEXT NOT NULL,
     plan_id       TEXT,
     participant   TEXT,
-    detail        TEXT NOT NULL
+    detail        TEXT NOT NULL,
+    PRIMARY KEY (owner, event_id)
 )
 """
 
@@ -136,9 +150,12 @@ def _connect():
     from ..deploy.context import current
     from ..db.engine import Database
 
+    from .study_repair import ensure_owner
+
     connection = Database(current().database.url).connect()
     connection.execute(SCHEMA)
     _widen(connection)
+    ensure_owner(connection, "pilot_events")
     return connection
 
 
@@ -219,11 +236,13 @@ def record(kind: str, *, plan_id: str = "", participant: str = "",
     try:
         connection = _connect()
         try:
+            from .owner import current as owner_of
+
             connection.execute(
                 "INSERT INTO pilot_events "
-                "(event_id, at, kind, plan_id, participant, detail) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (event_id, at, kind, plan_id, participant,
+                "(owner, event_id, at, kind, plan_id, participant, detail) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (owner_of(), event_id, at, kind, plan_id, participant,
                  json.dumps(payload)))
             connection.commit()
         finally:
@@ -293,9 +312,12 @@ def _dimensions_seen(participant: str, kind: str) -> set:
     except Exception:                                          # noqa: BLE001
         return set()
     try:
+        from .owner import current as owner_of
+
         rows = connection.execute(
-            "SELECT detail FROM pilot_events WHERE participant = ? AND kind = ?",
-            (participant, kind)).fetchall()
+            "SELECT detail FROM pilot_events "
+            "WHERE owner = ? AND participant = ? AND kind = ?",
+            (owner_of(), participant, kind)).fetchall()
     except Exception:                                          # noqa: BLE001
         return set()
     finally:
@@ -507,9 +529,12 @@ def observe_save(reading, plan_id: str, participant: str = "") -> None:
 def every_event() -> Sequence[Mapping[str, Any]]:
     connection = _connect()
     try:
+        from .owner import current as owner_of
+
         rows = connection.execute(
             "SELECT event_id, at, kind, plan_id, participant, detail "
-            "FROM pilot_events ORDER BY at").fetchall()
+            "FROM pilot_events WHERE owner = ? ORDER BY at",
+            (owner_of(),)).fetchall()
     finally:
         connection.close()
     return [{"event_id": r["event_id"], "at": r["at"], "kind": r["kind"],
@@ -534,10 +559,12 @@ def attempts_by(participant: str) -> int:
     except Exception:                                          # noqa: BLE001
         return 0
     try:
+        from .owner import current as owner_of
+
         row = connection.execute(
             "SELECT COUNT(*) AS how_many FROM pilot_events "
-            "WHERE participant = ? AND kind = ?",
-            (participant, PLAN_COMPILED)).fetchone()
+            "WHERE owner = ? AND participant = ? AND kind = ?",
+            (owner_of(), participant, PLAN_COMPILED)).fetchone()
         return int(row["how_many"]) if row else 0
     except Exception:                                          # noqa: BLE001
         return 0
