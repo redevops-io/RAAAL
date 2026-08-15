@@ -203,3 +203,76 @@ The queue is a counterexample generator, not a fifth reopen trigger. A wrong
 executable meaning and a silent reduction already activate the first two
 triggers. An unsupported strategy appearing repeatedly is evidence for the
 fourth — counted demand — and not a decision on its own.
+
+---
+
+## Found by running the suite against PostgreSQL
+
+The suite runs on SQLite by default and reports clean. Roughly two hundred
+PostgreSQL-only guarantees skip for want of `QUANTIFY_TEST_POSTGRES_URL`, and
+that is the same blind spot that let `row[0]` — correct on `sqlite3.Row`,
+`KeyError: 0` on psycopg's `dict_row` — break every saved plan in production
+while every test passed.
+
+    docker run -d --rm --name pg -e POSTGRES_PASSWORD=x -e POSTGRES_DB=quantify \
+        -p 55444:5432 postgres:16-alpine
+    QUANTIFY_TEST_POSTGRES_URL=postgresql://postgres:x@127.0.0.1:55444/quantify \
+        python -m pytest -q
+
+    5 failed, 6688 passed, 3 skipped, 19 errors
+
+### 1. Tenancy invariant, three tables — caused by declaring them
+
+`test_tenancy_invariant.py::TestTheSchemaLayer` fails on `pilot_consent`,
+`pilot_events` and `pilot_transcripts`: "tenant-owned and has no `owner`
+column".
+
+`tenant_owned_tables()` returns every table in `TABLE_MUTABILITY`, and those
+three were added to that classification when the four runtime tables were
+declared. They scope by `participant` — an anonymous study token that is
+deliberately *not* a user identity — so they carry no `owner` column, and for
+`pilot_events` and `pilot_transcripts` the participant is not in the primary
+key either.
+
+The retention registry already models this correctly, with
+`owner_scope=DIRECT, owner_column="participant"`. So two registries disagree
+about what "owned" means. Two candidate fixes, and the choice is a real one:
+
+* Teach the invariant to read the declared owner column rather than assume the
+  name `owner`. Aligns the registries; leaves `pilot_events` and
+  `pilot_transcripts` failing, because their identity still omits the
+  participant.
+* Make the identity say what it is: composite keys `(participant, event_id)`
+  and `(participant, entry_id)`. A migration, and the honest shape — the ids
+  are already sha256 of the participant and the moment, so the scoping exists
+  and is merely implicit.
+
+Not exempted. `test_the_exception_list_is_empty` exists to stop exactly that,
+and it is right.
+
+### 2. Two failures that are test pollution, not defects
+
+`test_pilot_events.py::TestWhatIsDeliberatelyNotMeasured` and
+`test_pilot_session.py::TestTheUnnecessaryClarificationProxy` pass in isolation
+and fail in the full run. Every test shares one PostgreSQL database, where on
+SQLite each gets its own `tmp_path` file. The Postgres lane needs per-test
+isolation — a schema per test, or a truncate between them — before its results
+can be trusted as product signal.
+
+### 3. The provenance digest does not verify — and has never run here
+
+`test_provenance_journey.py::TestTheStoredRunCitesTheDeliveryItConsumed::test_the_stored_digest_is_the_resolver_digest`
+fails on a *clean* database, and is skipped entirely on SQLite. It recomputes
+`frame_digest(resolve(...).frame)` and compares it with the digest stored on
+the access event; the two differ.
+
+This is the most serious of the five. The stored digest is the mechanism that
+answers "which observations produced this figure", and it is the foundation the
+data-lake design in `Architecture.md` rests on. If a recomputed digest does not
+match a stored one, the provenance chain records something that cannot be
+checked against the data — which is the failure the mechanism exists to
+prevent. It may be that resolution is not deterministic across calls, in which
+case the digest identifies a frame nobody can reproduce.
+
+Diagnose before building any of the snapshot work; the snapshot-by-hash design
+assumes this property already holds.
