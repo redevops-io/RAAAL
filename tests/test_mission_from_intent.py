@@ -260,7 +260,17 @@ class TestAStatedNumberIsNeverQuietlyDefaulted:
         assert out.scenario.flow_schedule.cadence == "monthly"
 
     def test_and_so_is_a_currency_formatted_zero(self):
-        out = compile_intent(intent(amount="$0"), benchmark_rule=RULE)
+        """Through the layer that reads notation, which is no longer this one.
+
+        Mission used to strip `$`, `,` and currency words itself. That is a
+        reading question and `discovery.canonical` answers it; what arrives
+        here is a plain decimal. The property is unchanged — a stated zero is a
+        stated zero — and only the door it comes through has moved.
+        """
+        from src.discovery.canonical import canonicalise
+
+        canonical = canonicalise({"amount": "$0"}).fields["amount"][0]
+        out = compile_intent(intent(amount=canonical), benchmark_rule=RULE)
         assert out.scenario is not None
         assert out.scenario.flow_schedule.amount == 0.0
 
@@ -307,25 +317,42 @@ class TestAStatedNumberIsNeverQuietlyDefaulted:
             "unreadable value for them falls through to a default silently")
 
 
-class TestTheTwoLayersAgreeOnWhatASetMemberIs:
-    def test_mission_splits_holdings_the_way_fusion_compares_them(self):
-        """Mission may not import Discovery, so the rule exists twice. That is
-        a deliberate duplication and this is what keeps it honest — the copies
-        were *not* the same, and only fusion knew about `and`."""
+class TestTheSetMemberRuleLivesInOnePlaceNow:
+    """It used to live twice, and only one copy knew about `and`.
+
+    Mission may not import Discovery, so the separator was duplicated on both
+    sides and the copies were not the same: "split equally between VTI and BND"
+    compiled to one instrument called `"VTI and BND"`, weighted at 100%, while
+    fusion had agreed the sentence named two assets. `canonical_form` sorts the
+    assets, so the sort ran over a one-element list and reported nothing wrong.
+
+    The rule is now Discovery's alone, and what reaches Mission is a
+    comma-separated list. So the thing to protect changed shape: not "do the two
+    copies agree" but "is there still only one copy".
+    """
+
+    def test_mission_has_no_separator_of_its_own(self):
+        import src.mission.from_intent as compiler
+
+        assert not hasattr(compiler, "SET_SEPARATOR"), (
+            "Mission has a set-separator again, which means it is splitting "
+            "prose — the duplication that produced a portfolio of one")
+
+    def test_canonicalisation_splits_the_way_fusion_compares(self):
+        """The two rules that must still agree, both inside Discovery."""
+        from src.discovery.canonical import canonicalise
         from src.discovery.fusion import same_value
-        from src.mission.from_intent import SET_SEPARATOR
 
         assert same_value("VTI and BND", "BND, VTI", "SET"), (
-            "fusion no longer treats `and` as a member separator; the "
-            "duplicated rule in Mission now has no counterpart")
-        assert [p.strip() for p in SET_SEPARATOR.split("VTI and BND")] \
-            == ["VTI", "BND"]
+            "fusion no longer treats `and` as a member separator")
+        assert canonicalise({"assets": "VTI and BND"}).fields["assets"][0] \
+            == "VTI,BND"
 
     def test_two_holdings_named_with_and_are_two_holdings(self):
-        """"split equally between VTI and BND" built one instrument called
-        `"VTI and BND"`, weighted at 100%. Sorting the assets in
-        `canonical_form` sorted a one-element list and reported nothing."""
-        out = compile_intent(intent(assets="VTI and BND"), benchmark_rule=RULE)
+        from src.discovery.canonical import canonicalise
+
+        canonical = canonicalise({"assets": "VTI and BND"}).fields["assets"][0]
+        out = compile_intent(intent(assets=canonical), benchmark_rule=RULE)
         assert out.scenario.allocation_rule.assets == ("VTI", "BND")
 
     def test_and_naming_them_in_either_order_is_the_same_plan(self):
@@ -334,8 +361,11 @@ class TestTheTwoLayersAgreeOnWhatASetMemberIs:
         import json
         from hashlib import sha256
 
+        from src.discovery.canonical import canonicalise
+
         def digest(assets):
-            out = compile_intent(intent(assets=assets), benchmark_rule=RULE)
+            canonical = canonicalise({"assets": assets}).fields["assets"][0]
+            out = compile_intent(intent(assets=canonical), benchmark_rule=RULE)
             return sha256(json.dumps(out.scenario.canonical_form(),
                                      sort_keys=True,
                                      default=str).encode()).hexdigest()

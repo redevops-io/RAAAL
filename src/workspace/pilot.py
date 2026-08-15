@@ -40,13 +40,20 @@ from runtime_contracts import (
     VerifiedIntent,
 )
 
+from ..discovery.canonical import canonicalise
 from ..discovery.fusion import Fusion, Proposal, fuse
 from ..discovery.reader import ReadingSet, Schema
 from ..discovery.schema import QUANTIFY_SCHEMA
 from ..discovery.witnesses import MODEL_ONLY, SettledField, WitnessProfile, record
+from ..mission.capability import Refusal
 from ..mission.from_intent import Compiled, NotExecutable, compile_intent
 
 INTERPRETER_VERSION = "quantify-pilot-interpreter@1"
+
+#: Canonicalisation names its authors as strings so `discovery` need not import
+#: the contracts package to say who settled a value. Mapped here, once.
+_AUTHORS = {"MODEL": Author.MODEL, "READER": Author.READER,
+            "USER": Author.USER, "DEFAULT": Author.DEFAULT}
 
 
 class InterpreterUnavailable(RuntimeError):
@@ -254,8 +261,8 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
                                if not d.proceeds))
     absent_fields = tuple(sorted(reading.unread))
 
-    intent = _intent(text, decisions, reading, objective=objective,
-                     utterance_ref=utterance_ref or _ref(text))
+    intent, unreadable = _intent(text, decisions, reading, objective=objective,
+                                 utterance_ref=utterance_ref or _ref(text))
 
     compiled, refusals = None, ()
     if intent is not None and intent.is_verified:
@@ -264,6 +271,18 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
             refusals = compiled.refusals
         except NotExecutable as refused:
             refusals = refused.refusals
+
+    # A value stated and unreadable is refused by name, not asked about.
+    #
+    # It reaches the page from here rather than from Mission, which is the
+    # move: deciding that "200usd" cannot be read is a question about the
+    # words, and Mission no longer reads words. The refusal keeps the reason
+    # Discovery gave it — the generic "readers disagreed" that a blocked
+    # dimension would otherwise carry says nothing a person can act on.
+    refusals = tuple(refusals) + tuple(
+        Refusal(kind="UNRESOLVED_INPUT", dimension=name, detail=why)
+        for name, why in unreadable
+        if not any(r.dimension == name for r in refusals))
 
     built = PilotReading(
         text=text, intent=intent, compiled=compiled, settled=settled,
@@ -327,19 +346,38 @@ def _intent(text: str, decisions, reading: ReadingSet, *, objective: str,
                    result_changing=False)
         for name in reading.unread if name not in settled)
 
+    # Canonical before sealed, because a seal over prose is not a seal.
+    #
+    # Every value here is now in the form a consumer can act on without reading
+    # it: a cadence is one of six names, an amount is a plain decimal, holdings
+    # are comma-separated, and a negated disposal has become `sells_allowed`.
+    # Mission used to do this work itself, six times, after the meaning was
+    # supposed to be closed — so the same sealed artifact could compile
+    # differently as that code moved.
+    canonical = canonicalise(settled)
+
+    # A stated value that cannot be read blocks the seal rather than being
+    # dropped. Dropping it would leave the dimension absent, and absent means
+    # "the engine may apply its default" — so an unreadable cadence would
+    # quietly become a plan that runs once.
+    unresolved += tuple(
+        Unresolved(dimension=name, reason=OpenReason.UNRESOLVED_DISAGREEMENT,
+                   detail=why, result_changing=True)
+        for name, why in canonical.refusals)
+
     draft = VerifiedIntent(
         objective=objective,
         produced_by=f"{reading.reader_id}+{INTERPRETER_VERSION}",
         utterance_ref=utterance_ref,
-        fields={name: IntentField(value=value, author=Author.MODEL)
-                for name, value in settled.items()},
+        fields={name: IntentField(value=value, author=_AUTHORS[author])
+                for name, (value, author) in canonical.fields.items()},
         unresolved=unresolved)
     try:
-        return draft.seal()
+        return draft.seal(), canonical.refusals
     except Exception:                                          # NotSealable
         # Not an error. A draft is what an unanswered question looks like, and
         # the page is about to ask it.
-        return draft
+        return draft, canonical.refusals
 
 
 def answer(reading: PilotReading, answers: Mapping[str, Any]) -> PilotReading:
@@ -379,12 +417,27 @@ def settle(reading: PilotReading, values: Mapping[str, Any], *,
     if reading.intent is None:
         return reading
 
-    answers = values
+    # Canonicalised on the way in, exactly like a value the reader produced.
+    #
+    # Without this an answer typed into the page bypassed the layer that reads
+    # notation: somebody asked what to contribute, told "200usd", and settled a
+    # field Mission would then have to parse. The whole point of canonicalising
+    # at the seal is that there is one form downstream, so every door into the
+    # intent uses the same one.
+    supplied = {name: value for name, value in values.items()
+                if value not in (None, "")}
+    canonical = canonicalise(supplied)
+
     fields = dict(reading.intent.fields)
-    for name, value in answers.items():
-        if value in (None, ""):
-            continue
+    for name, (value, _author) in canonical.fields.items():
         fields[name] = IntentField(value=value, author=author)
+    # An answer that cannot be read settles nothing. Reported as rejected, which
+    # is what `rejected_answers` already means, so the page says "that is not a
+    # number I can use" rather than accepting it and asking again — the loop
+    # that ran forever on `1000 usd`.
+    unreadable = {name: why for name, why in canonical.refusals}
+    answers = {name: value for name, value in supplied.items()
+               if name not in unreadable}
 
     still_open = tuple(u for u in reading.intent.unresolved
                        if u.dimension not in answers)
@@ -424,7 +477,7 @@ def settle(reading: PilotReading, values: Mapping[str, Any], *,
     # Which answers settled nothing. Computed from the refusals the recompile
     # produced, not from a guess: a dimension the person just answered that is
     # still refused as unresolved input is an answer the runtime could not use.
-    rejected = {}
+    rejected = dict(unreadable)
     for refusal in refusals:
         name = getattr(refusal, "dimension", "")
         if name in answers and answers[name] not in (None, ""):

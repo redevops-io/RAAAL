@@ -85,6 +85,30 @@ DEFAULTS: Mapping[str, Any] = {
     "execution_timing": "next_session_open",
     "allocation_method": "equal_weight_at_purchase",
     "moving_average_window": 200,
+    # Both of these were applied silently and are now declared, which is the
+    # only difference that matters: `applied_defaults` is what a reader of the
+    # plan sees, and a default missing from it is a decision nobody can find.
+    #
+    # `cadence` fell out of `_funding` as `value("cadence") or "once"`. An
+    # intent stating only assets and an amount compiled to a plan that runs
+    # once, reported `('allocation_method', 'day_rule')`, and said nothing
+    # about the schedule at all.
+    "cadence": "once",
+    # `amount` fell out of `_funding` as `_decimal(...) or Decimal("0")`.
+    # Declared rather than refused, because a one-off plan with no
+    # contributions is a real thing to model — opening capital and nothing
+    # after it. What was wrong was that it happened without saying so, on a
+    # page whose whole job is to show which values nobody asked for. A
+    # *recurring* plan with no amount is still refused above: a cadence that
+    # moves money every month and an amount of zero are two halves that
+    # contradict each other.
+    "amount": "0",
+    # `dividend_policy` was an ENGINE_CONSTANT described as carrying no user
+    # meaning and changing no figure. That stopped being true when the engine
+    # gained a total-return path: `run_boundary._reinvests` reads this field to
+    # choose which price series is resolved, and the choice is now recorded in
+    # the delivery record. A value that selects the data is not a constant.
+    "dividend_policy": "reinvested",
 }
 """Silence, for dimensions the engine *executes*.
 
@@ -107,7 +131,6 @@ inside the very module built to prevent it."""
 #: Kept apart from DEFAULTS so they are never reported as choices the intent
 #: left open. Nobody left them open; they are not choices.
 ENGINE_CONSTANTS: Mapping[str, Any] = {
-    "dividend_policy": "reinvested",
     "tax_treatment": "NONE_APPLIED",
 }
 
@@ -115,6 +138,15 @@ _TRIGGER_KIND = {
     "crossing_event": SignalKind.CROSSED_BELOW_MOVING_AVERAGE,
     "persistent_condition": SignalKind.BELOW_MOVING_AVERAGE,
 }
+
+
+class _Absent:
+    """A stand-in for a field nobody stated, so a read needs no branch."""
+
+    value = None
+
+
+_absent = _Absent()
 
 
 class NotExecutable(ValueError):
@@ -150,52 +182,28 @@ class Compiled:
 #: is what makes that omission fail.
 NUMERIC = frozenset({"amount", "moving_average_window"})
 
-#: How the members of a set-valued dimension are separated.
-#:
-#: This split rule lives twice: here, and in `same_value` in Discovery's fusion,
-#: which uses it to decide whether two readers named the same holdings. It has
-#: to, because Mission may not import Discovery — the boundary is the point of
-#: this module. Duplicated deliberately and pinned by a cross-layer test rather
-#: than left to coincidence.
-#:
-#: Only one of the two copies knew about `and`, and the consequence was not a
-#: near-miss. "split equally between VTI and BND" compiled to a single holding
-#: named `"VTI and BND"` — one instrument, with a name no market has, weighted
-#: at 100%. Fusion had agreed the sentence named two assets; Mission then built
-#: a portfolio of one. `AllocationRule.canonical_form` sorts its assets, so the
-#: sort ran over a one-element list and reported nothing wrong.
-SET_SEPARATOR = re.compile(r"[,;]|\band\b")
-
-
-#: Currency written beside the figure rather than in front of it. People type
-#: "1000 usd" as readily as "$1,000", and a parser that reads one and refuses
-#: the other turns an ordinary answer into an unanswerable question.
-_CURRENCY = re.compile(
-    r"\b(usd|dollars?|eur|euros?|gbp|pounds?|cad|aud|chf|jpy|yen)\b", re.I)
+#: The set separator and the currency pattern used to live here, and both are
+#: gone rather than moved: they are in `discovery.canonical`, on the side of the
+#: boundary where reading happens. What arrives here is comma-separated and
+#: already a number. `TestTheSetMemberRuleLivesInOnePlaceNow` asserts this
+#: module has no separator, because a second copy is how the first defect
+#: happened — only one of them knew about `and`.
 
 
 def _decimal(value: Any) -> Optional[Decimal]:
-    """A stated figure, or `None` when it cannot be read as one.
+    """A canonical figure as a `Decimal`, or `None`.
 
-    `None` is never a zero — see `NUMERIC` above and rule 5 in
-    `docs/Semantics.md`. What this function decides is only whether a
-    number is *there*.
-
-    It could not read "1000 usd", and the consequence was worse than a refusal.
-    The flagship pilot sentence says "i buy 1000 usd of SP500 etf", so `amount`
-    was stated-but-unreadable, refused, and asked about — and the person's
-    answer was the same three characters and the same two letters, which was
-    equally unreadable. The clarification asked, accepted, and asked again,
-    forever. A recognition gap in one function became a non-terminating
-    product.
+    Strict on purpose. It used to strip currency words, commas and symbols —
+    "1000 usd", "$1,000" — which is notation parsing, and notation is language.
+    `discovery.canonical` does that now and refuses what it cannot read, so
+    anything arriving here has already been settled as a number. A lenient
+    parse at this point would be a second opinion about a closed question, and
+    the only values it could newly accept are ones Discovery decided against.
     """
     if value is None:
         return None
-    text = _CURRENCY.sub(" ", str(value))
-    text = text.replace(",", "").replace("$", "").replace("£", "")
-    text = text.replace("€", "").strip()
     try:
-        return Decimal(text)
+        return Decimal(str(value).strip())
     except (InvalidOperation, ValueError):
         return None
 
@@ -218,23 +226,21 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
 
     declared = {n: f.value for n, f in intent.fields.items()}
 
-    # Saying you never sell is not selling.
+    # Polarity arrives settled, as a policy rather than as a span.
     #
     # "I put $500 a month into VTI and never sold any of it" was refused by
-    # name for `sell_action`, on a build whose entire behaviour is buying and
-    # never selling. The reader extracts the span correctly — the span is
-    # "never sold any of it" — and `decide()` refuses any value of a REFUSED
-    # dimension, so the polarity never reached it. The person described this
-    # build exactly and was told it could not be run.
+    # name for `sell_action` on a build whose entire behaviour is buying and
+    # never selling: the reader extracted the span correctly, and `decide()`
+    # refuses any value of a REFUSED dimension, so the polarity never reached
+    # it. The person described this build exactly and was told it could not be
+    # run.
     #
-    # It is not dropped either. A negated disposal is a positive statement
-    # about the holdings policy, and it is honoured as one: `sells_allowed`
-    # is already False for every plan this build compiles, so the sentence
-    # agrees with the engine rather than asking anything of it.
-    negated = {n for n, v in declared.items()
-               if n in NEGATABLE_DISPOSALS and _is_negated(v)}
-    refusals = list(refusals_for({n: v for n, v in declared.items()
-                                  if n not in negated}))
+    # Deciding that "never sold any of it" denies the disposal is a question
+    # about meaning, so `discovery.canonical` answers it and seals
+    # `sells_allowed=False` instead of the disposal. Nothing is refused here
+    # because there is nothing left to refuse — the sentence agrees with the
+    # engine rather than asking anything of it.
+    refusals = list(refusals_for(declared))
     for open_dimension in intent.blocking:
         refusals.append(Refusal(
             kind="UNRESOLVED_INPUT", dimension=open_dimension.dimension,
@@ -285,9 +291,13 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
     # stated and unreadable; this one is a figure implied and never settled.
     # Both produced a plan indistinguishable from the one asked for except that
     # it invested nothing.
+    # A canonical cadence is one of six names, so this compares values rather
+    # than spellings. It used to test the reader's own words against string
+    # literals, which made a coherence rule depend on how a sentence happened
+    # to be phrased.
     cadence = intent.fields.get("cadence")
     amount = intent.fields.get("amount")
-    recurring = cadence is not None and str(cadence.value) not in ("once", "")
+    recurring = cadence is not None and str(cadence.value) != "once"
     # Absent, and *only* absent.
     #
     # The first version of this check read `amount is None or figure == 0`,
@@ -351,6 +361,64 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
                        "here would produce a plan that looks like the one you "
                        "asked for and is not"))
 
+    # More than one watched asset, and a trigger that observes one.
+    #
+    # `_funding` took the first of the list, silently. Watching SPY when
+    # somebody named SPY and QQQ is a different plan, and choosing by position
+    # is the substitution this boundary exists to prevent.
+    watched = intent.fields.get("observed_assets")
+    if watched is not None and "trigger_semantics" in intent.fields:
+        members = [part for part in str(watched.value).split(",") if part.strip()]
+        if len(members) > 1:
+            refusals.append(Refusal(
+                kind="UNSUPPORTED_DIMENSION", dimension="observed_assets",
+                stated_value=watched.value,
+                detail=f"{len(members)} assets are named as the thing to watch "
+                       "and this build's trigger observes one. Picking one for "
+                       "you would run a different rule under the same name"))
+
+    # A plan that says it never sells and asks to be rebalanced.
+    #
+    # Rebalancing is the one thing that makes this build sell, so the two
+    # statements contradict each other and only the person who wrote them can
+    # say which they meant. Refused rather than resolved: honouring the
+    # negation would drop a rebalancing schedule they described, and honouring
+    # the rebalancing would sell holdings they said they never sell.
+    #
+    # This is the enforcement half of the split. Deciding that "never sold any
+    # of it" denies the disposal is meaning and happens in Discovery; deciding
+    # what a plan may therefore do is execution and happens here.
+    declared_sells = intent.fields.get("sells_allowed")
+    rebalances = bool(_rebalancing_cadence(
+        (intent.fields.get("periodic_rebalancing") or _absent).value))
+    if declared_sells is not None and not declared_sells.value and rebalances:
+        refusals.append(Refusal(
+            kind="UNRESOLVED_INPUT", dimension="sells_allowed",
+            detail="this plan says it never sells and also asks to be "
+                   "rebalanced, and rebalancing is what makes this build sell. "
+                   "Both were read from what you wrote and only you can say "
+                   "which one you meant"))
+
+    # A stated execution timing this build cannot perform.
+    #
+    # `_timing` answered anything it did not recognise with
+    # `next_session_open`. That fires on a *stated* value, so somebody asking
+    # for an execution this build has no path for was given a different one
+    # with nothing saying so.
+    stated_timing = intent.fields.get("execution_timing")
+    if stated_timing is not None:
+        try:
+            _timing(str(stated_timing.value))
+        except UnsupportedValue:
+            from .funding import ExecutionTiming
+
+            refusals.append(Refusal(
+                kind="UNSUPPORTED_DIMENSION", dimension="execution_timing",
+                stated_value=stated_timing.value,
+                detail=f"{str(stated_timing.value)!r} is not an execution this "
+                       "build performs. It runs "
+                       + ", ".join(m.value for m in ExecutionTiming)))
+
     derivation = {"compiled_from": intent.intent_hash,
                   "compiled_by": COMPILER_VERSION,
                   "intent_produced_by": intent.produced_by}
@@ -376,6 +444,18 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
         return None
 
     funding, allocation = _funding(intent, value)
+
+    # Read before it is used, never inside the `and`.
+    #
+    # Written as `bool(rebalances) and value("sells_allowed") is not False`,
+    # Python short-circuits: on the common plan, which does not rebalance, the
+    # left side is False and `value` is never called — so `sells_allowed` was
+    # never marked consulted and the stranded check refused the very sentence
+    # sealing it was meant to let through. "and never sold any of it" came back
+    # refused for a dimension the user never named.
+    denied_selling = value("sells_allowed") is False
+    permits_selling = (bool(_rebalancing_cadence(value("periodic_rebalancing")))
+                       and not denied_selling)
     scenario = ScenarioSpecification(
         name=name,
         version=version,
@@ -386,12 +466,18 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
         # Rebalancing is the one thing that makes this build sell, so the two
         # permissions follow from whether a cadence was stated rather than
         # being hardcoded off. A plan that rebalances and forbids selling is
-        # incoherent, and `run_boundary` refuses it rather than picking a side.
+        # incoherent, and it is refused above rather than resolved here.
+        #
+        # `value("sells_allowed")` is read for its own sake: a sealed policy
+        # that no builder consumed would be stranded, and the stranded check
+        # would refuse the very sentence — "and never sold any of it" — that
+        # sealing it was meant to let through. Found by compiling that sentence
+        # end to end; the suite had no case that did.
         holdings_policy=HoldingsPolicy(
-            sells_allowed=bool(_rebalancing_cadence(value("periodic_rebalancing"))),
+            sells_allowed=permits_selling,
             rebalancing_allowed=bool(_rebalancing_cadence(value("periodic_rebalancing"))),
             rebalancing_cadence=_rebalancing_cadence(value("periodic_rebalancing")),
-            dividend_policy=str(ENGINE_CONSTANTS["dividend_policy"])),
+            dividend_policy=str(value("dividend_policy"))),
         benchmark_set=None if benchmark_rule is None else _benchmarks(benchmark_rule),
         tax_treatment=str(ENGINE_CONSTANTS["tax_treatment"]),
         funding=funding,
@@ -431,52 +517,24 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
 
 
 def _assets(intent: VerifiedIntent) -> Sequence[str]:
-    """Holdings, from the intent's own words.
+    """Holdings, read from the canonical comma-separated form.
 
     Never resolved to a ticker here. "a core index fund" stays that, and the
     engine refuses to price it — which is the correct failure, because choosing
     VTI on the user's behalf is the substitution this whole boundary exists to
     prevent.
+
+    Splitting on an English "and" used to happen here, from a copy of a rule
+    that also lived in Discovery, and only one copy knew the word. "split
+    equally between VTI and BND" compiled to a single holding named `"VTI and
+    BND"`. One copy now, in `discovery.canonical`, and what arrives here is a
+    list.
     """
     stated = intent.fields.get("assets")
     if stated is None:
         return ()
-    return tuple(part.strip() for part in SET_SEPARATOR.split(str(stated.value))
+    return tuple(part.strip() for part in str(stated.value).split(",")
                  if part.strip())
-
-
-#: Dimensions whose *absence* is what this build does natively, so a negated
-#: statement of them is agreement rather than a request.
-#:
-#: Only disposal. A negated cadence or a negated amount is not agreement with
-#: anything — "I don't contribute monthly" leaves the question open — and
-#: treating every negation as assent would turn refusals off wholesale.
-NEGATABLE_DISPOSALS = frozenset({"sell_action"})
-
-#: The shared vocabulary, plus the one word that only negates a disposal.
-#:
-#: `without` is not in the derived readers' set and is not added to it: there it
-#: would change how triggers are read, and "buy without waiting for a dip" does
-#: not deny the dip. Denying a *disposal* is unambiguous — "without selling"
-#: means no sale — so the extra word lives here, where its only effect is on
-#: this one question.
-from ..discovery.derived_readers import _NEGATIONS as _SHARED_NEGATIONS  # noqa: E402
-
-_NEGATION_WORDS = frozenset(_SHARED_NEGATIONS) | {"without"}
-
-
-def _is_negated(value: Any) -> bool:
-    """Whether a stated span denies what it names.
-
-    Word-boundary matching over the span, not a substring test: "another"
-    contains "not" and "nonetheless" contains "no", and either would have made
-    an ordinary sale read as a refusal to sell — the failure this check exists
-    to prevent, running backwards.
-    """
-    if value is None:
-        return False
-    words = re.findall(r"[a-z']+", str(value).lower())
-    return any(w in _NEGATION_WORDS or w.endswith("n't") for w in words)
 
 
 def _weights(intent: VerifiedIntent) -> Dict[str, Decimal]:
@@ -504,21 +562,14 @@ def _weights(intent: VerifiedIntent) -> Dict[str, Decimal]:
 
 
 def _rebalancing_cadence(stated: Any) -> str:
-    """The cadence inside a free-text rebalancing instruction, or "".
+    """The canonical cadence a rebalancing instruction carries, or "".
 
-    Read with the same normaliser the discovery path uses rather than a word
-    list written here. One place decides what "annually" means; a second would
-    eventually disagree with the first, and the disagreement would show up as
-    two users getting different schedules from the same sentence.
+    This used to normalise free text by importing `discovery.syntax`. Its
+    argument was right — one place must decide what "annually" means, or two
+    users get different schedules from the same sentence — and the place is
+    Discovery, which now seals the canonical name. What is left is a read.
     """
-    if stated in (None, ""):
-        return ""
-    from ..discovery.syntax import normalize
-
-    for value in normalize(str(stated)):
-        if value.kind == "cadence":
-            return str(value.canonical)
-    return ""
+    return "" if stated in (None, "") else str(stated)
 
 
 def _funding(intent: VerifiedIntent, value):
@@ -531,31 +582,59 @@ def _funding(intent: VerifiedIntent, value):
         weights={k: float(v) for k, v in _weights(intent).items()})
 
     if condition is None:
-        return Scheduled(cadence=str(value("cadence") or "once"),
+        # `value("cadence")` and nothing else. The `or "once"` that used to sit
+        # here supplied a schedule without declaring one; `cadence` is in
+        # DEFAULTS now, so the same value arrives through the path that reports
+        # it.
+        return Scheduled(cadence=str(value("cadence")),
                          amount=amount,
                          day_rule=str(value("day_rule"))), allocation
 
     watched = intent.fields.get("observed_assets")
-    subject = (str(watched.value).split(",")[0].strip() if watched is not None
+    subject = (_watched(watched) if watched is not None
                else (assets[0] if assets else ""))
     window = value("moving_average_window")
     return EventTriggered(
         trigger=Trigger(
             subject=subject,
-            window=int(_decimal(window) or DEFAULTS["moving_average_window"]),
+            window=int(_decimal(window)),
             estimator=Estimator.SIMPLE,
             kind=_TRIGGER_KIND[str(condition.value)]),
         amount=amount,
         execution_timing=_timing(str(value("execution_timing")))), allocation
 
 
+def _watched(stated) -> str:
+    """The single asset a trigger observes.
+
+    Taking the first of a stated list used to happen here, silently. Which
+    asset is watched is meaning, and a plan that watches SPY while the person
+    named SPY and QQQ is a different plan — so more than one is refused
+    upstream by `compile_intent` rather than resolved by position.
+    """
+    members = [part.strip() for part in str(stated.value).split(",")
+               if part.strip()]
+    return members[0] if members else ""
+
+
+class UnsupportedValue(ValueError):
+    """A stated value this build has no execution for."""
+
+
 def _timing(name: str):
+    """The declared timing, or a refusal.
+
+    It used to return `NEXT_SESSION_OPEN` for anything it did not recognise —
+    a substitution on a *stated* value, which is worse than one on an absent
+    field: somebody asked for an execution this build cannot perform and was
+    given a different one with no sign of it.
+    """
     from .funding import ExecutionTiming
 
     for member in ExecutionTiming:
         if member.value == name:
             return member
-    return ExecutionTiming.NEXT_SESSION_OPEN
+    raise UnsupportedValue(name)
 
 
 def _schedule(intent: VerifiedIntent, value, funding) -> FlowSchedule:

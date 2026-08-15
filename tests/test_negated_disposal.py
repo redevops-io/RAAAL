@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.mission.from_intent import _is_negated
+from src.discovery.canonical import _is_negated
 
 
 class TestNegationIsReadByWord:
@@ -60,7 +60,7 @@ class TestOnlyDisposalCountsAsAgreement:
         contribute monthly" leaves the question open. Treating every negation
         as assent would turn refusals off wholesale, which is the failure mode
         of a fix like this one."""
-        from src.mission.from_intent import NEGATABLE_DISPOSALS
+        from src.discovery.canonical import NEGATABLE_DISPOSALS
 
         assert NEGATABLE_DISPOSALS == {"sell_action"}
 
@@ -70,7 +70,7 @@ class TestTheCompilerStopsRefusingIt:
 
     def refusals(self, declared) -> set:
         from src.mission.capability import refusals_for
-        from src.mission.from_intent import NEGATABLE_DISPOSALS, _is_negated
+        from src.discovery.canonical import NEGATABLE_DISPOSALS, _is_negated
 
         negated = {n for n, v in declared.items()
                    if n in NEGATABLE_DISPOSALS and _is_negated(v)}

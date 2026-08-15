@@ -179,13 +179,21 @@ class TestAnAssumptionIsNeverTheUsersWord:
 
 class TestConfirmingChangesAuthorityAndNotHistory:
     def test_a_confirmed_value_becomes_the_users(self):
+        """`assets`, named rather than taken as the first assumed dimension.
+
+        It used to confirm `assumed_in(...)[0]`, which sorts — so once `amount`
+        joined the assumed set it was confirming a contribution of "SPY". That
+        passed while any string settled any field, and stopped the moment
+        answers were canonicalised: a value that is not a number no longer
+        settles an amount. The test was wrong and the change reported it.
+        """
         entry, before = self.__class__.pick()
         assumed = assume(before, entry.key)
-        name = assumed_in(assumed)[0]
-        confirmed = confirm(assumed, {name: "SPY"})
+        assert "assets" in assumed_in(assumed)
+        confirmed = confirm(assumed, {"assets": "SPY"})
 
-        assert confirmed.intent.fields[name].author is Author.USER
-        assert confirmed.intent.fields[name].value == "SPY"
+        assert confirmed.intent.fields["assets"].author is Author.USER
+        assert confirmed.intent.fields["assets"].value == "SPY"
 
     def test_the_record_still_says_it_began_as_a_guess(self):
         """Authoritative without rewriting provenance.

@@ -90,35 +90,31 @@ def test_the_check_would_notice_a_crossing():
         "has several — so a clean result from it means nothing")
 
 
-class TestWhatIsNotYetOnTheRightSideOfTheLine:
-    """`mission` is the step named "Mission Runtime", and it still reads words.
+class TestTheCompilerNoLongerReadsLanguage:
+    """It did, and this is the test that used to say so.
 
-    Recorded as a test rather than a comment so the shape of the problem is
-    measured and stays measured. It asserts what is true today; it is not an
-    exception list, because nothing here is permitted — the numbers exist so a
-    fix can be seen and a regression cannot hide.
+    `from_intent` scanned spans for negation words, split holdings on an
+    English "and", stripped currency words from figures, and ran Discovery's
+    normaliser to turn "annually" into a period — all inside the compiler,
+    after interpretation was supposed to have ended. The earlier version of
+    this class asserted those imports were present, so the shape of the problem
+    stayed measured; it also said that if they went away, it should be replaced
+    by exactly this.
+
+    Two consequences closed together. A sealed intent whose meaning depended on
+    code across the boundary could compile differently as that code moved,
+    which is what pinning an intent exists to prevent. And the evaluation
+    service could not have taken `discovery.syntax` with it.
     """
 
-    def test_from_intent_still_reads_language(self):
-        """A VerifiedIntent that needs re-reading was not finished.
-
-        `_is_negated` scans a stated span for negation words and `_cadence`
-        runs Discovery's normaliser to turn "annually" into a period — both
-        inside the compiler, after interpretation is supposed to have ended. So
-        a field can arrive as prose and mean something different depending on
-        code that lives on the other side of the boundary.
-
-        It matters for the split before it matters for the architecture: the
-        evaluation service cannot take `discovery.syntax` with it, so those
-        values have to be canonical in the specification instead of parsed out
-        of it.
-        """
+    def test_from_intent_imports_no_interpreter(self):
         found = imported_packages("mission")
         sites = [where for where in found.get("discovery", ())
                  if "from_intent" in where]
-        assert sites, (
-            "src/mission/from_intent.py no longer imports discovery — if that "
-            "is a fix, delete this test and say so in Architecture.md")
+        assert sites == [], (
+            f"src/mission/from_intent.py reads Discovery again at {sites}. "
+            "A value parsed here is a second opinion about a question the seal "
+            "already closed, and it cannot travel to the evaluation service")
 
     def test_the_gate_reads_a_version_and_not_a_sentence(self):
         """Not every crossing is the same crossing.
