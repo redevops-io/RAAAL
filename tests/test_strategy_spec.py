@@ -77,7 +77,26 @@ class TestItCarriesOnlyExecutionSemantics:
         assert conventions.vocabulary.startswith("QuantLib")
         assert conventions.business_day == "ModifiedFollowing"
         assert conventions.calendar == "NYSE"
-        assert conventions.annualisation == "Business/252"
+        assert conventions.settlement_lag == "T+1"
+        assert conventions.currency == "USD"
+
+    def test_the_frequency_comes_from_this_plans_cadence(self):
+        """Not a constant. A spec naming one frequency for every plan would let
+        the evaluator infer the schedule it is supposed to be told."""
+        assert spec(**BASE).conventions.schedule_frequency == "Monthly"
+        assert spec(**{**BASE, "cadence": "annual"}) \
+            .conventions.schedule_frequency == "Annual"
+
+    def test_measurement_conventions_are_not_in_the_specification(self):
+        """Two people running one strategy under different measurement
+        conventions are running one strategy. A `strategy_hash` that moved with
+        the annualisation basis would call them different plans."""
+        body = json.dumps(spec(**BASE).to_json())
+        for measurement in ("annualisation", "Business/252", "compounding",
+                            "evaluation_date", "sessions_per_year"):
+            assert measurement not in body, (
+                f"{measurement!r} is in the strategy identity, so changing how "
+                "a figure is measured changes which plan it is")
 
 
 class TestTheHashIsOverWhatExecutes:

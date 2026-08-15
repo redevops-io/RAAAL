@@ -30,7 +30,10 @@ from src.mission.from_intent import compile_intent
 from src.mission.strategy_spec import from_scenario
 
 ENGINE = "quantify-engine@test"
-POLICY = "SYNTHETIC_ONLY"
+from src.mission.evaluation_policy import declared_policy
+
+POLICY = declared_policy(data_policy="SYNTHETIC_ONLY",
+                         as_of="2026-08-15")
 
 SCHEDULED = {"assets": "VTI", "amount": "1000", "cadence": "monthly"}
 TRIGGERED = {"assets": "VOO", "amount": "1000", "observed_assets": "SPY",
@@ -112,7 +115,7 @@ class TestTheResultSaysWhatItWasComputedFrom:
     def test_the_versions_are_the_ones_it_was_given(self):
         out = evaluated(**SCHEDULED)
         assert out.engine_version == ENGINE
-        assert out.evaluation_policy == POLICY
+        assert out.evaluation_policy == POLICY.to_json()
         assert out.evaluator == EVALUATOR
         assert out.result_schema_version == RESULT_SCHEMA_VERSION
         assert out.conventions_version.startswith("QuantLib")

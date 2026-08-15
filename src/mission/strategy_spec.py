@@ -71,14 +71,28 @@ class Allocation:
 
 @dataclass(frozen=True)
 class Conventions:
-    """QuantLib's names for the rules, so a reader outside this repository can
-    check a claim against a definition that is not ours."""
+    """QuantLib's names for what the plan *does*.
+
+    Execution conventions only. How a figure is measured — compounding, the
+    annualisation basis, the date it is valued as of — lives in
+    `EvaluationPolicy`, because two people running one strategy under different
+    measurement conventions are running one strategy. A `strategy_hash` that
+    moved with the annualisation basis would call them different plans.
+
+    `annualisation` and `sessions_per_year` were here and have moved for that
+    reason. What replaced them is the vocabulary that was missing: when a trade
+    settles, what frequency the cadence is, and what currency the amounts are.
+    """
 
     vocabulary: str
     calendar: str
     business_day: str
-    annualisation: str
-    sessions_per_year: str
+    settlement_lag: str
+    """Named and *not applied* — this build simulates on session closes.
+    `EvaluationPolicy.models_settlement` says so, because a convention named
+    but not honoured is only safe when the record admits it."""
+    schedule_frequency: str
+    currency: str
 
 
 @dataclass(frozen=True)
@@ -209,7 +223,7 @@ def from_scenario(scenario, *, evaluation_window: str = "") -> StrategySpec:
                           cadence=str(money.cadence),
                           day_rule=str(money.day_rule))
 
-    from .conventions import declared
+    from .conventions import declared, frequency
 
     named = declared()
     benchmarks = getattr(scenario.benchmark_set, "members", ()) or ()
@@ -234,5 +248,11 @@ def from_scenario(scenario, *, evaluation_window: str = "") -> StrategySpec:
             vocabulary=str(named.get("vocabulary", "")),
             calendar=str(named.get("exchange", "")),
             business_day=str(named.get("contribution_convention", "")),
-            annualisation=str(named.get("annualisation", "")),
-            sessions_per_year=str(named.get("sessions_per_year", ""))))
+            settlement_lag=str(named.get("settlement_lag", "")),
+            # From this plan's own cadence, not from a constant: a monthly plan
+            # and an annual one carry different frequencies, and a spec that
+            # named one frequency for both would let the evaluator infer the
+            # schedule it was supposed to be told.
+            schedule_frequency=frequency(
+                funding.cadence if funding.kind == "scheduled" else "once"),
+            currency=str(named.get("currency", ""))))

@@ -186,6 +186,105 @@ def period(text: str):
     return ql.Period(text)
 
 
+# --- the five that were missing ---------------------------------------------
+#
+# Calendar, business-day convention and day count were named here already. The
+# rest of the vocabulary was not, which meant the evaluator either inferred them
+# or did not model them, and neither is visible in a result. A convention the
+# evaluator infers is a convention nobody can check a figure against.
+
+#: The canonical cadence, as QuantLib's own frequency.
+#:
+#: `Once` is QuantLib's word for it too, which is worth stating: this mapping is
+#: a translation, not a naming scheme invented here. The integers are QuantLib's
+#: values — 12 for Monthly, 1 for Annual — and `test_conventions` compares them
+#: against the library rather than against this table.
+FREQUENCIES = {
+    "once": "Once",
+    "weekly": "Weekly",
+    "biweekly": "Biweekly",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "annual": "Annual",
+}
+
+
+def frequency(cadence: str) -> str:
+    """QuantLib's name for a canonical cadence, or "" for one it has none for."""
+    return FREQUENCIES.get(str(cadence).strip().lower(), "")
+
+
+def frequency_value(cadence: str) -> Optional[int]:
+    """The integer QuantLib assigns it — how many times a year."""
+    name = frequency(cadence)
+    if not name or not AVAILABLE:
+        return None
+    return int(getattr(ql, name))
+
+
+#: How long after a trade the cash and the shares actually move.
+#:
+#: US equities settle T+1 since May 2024; they settled T+2 before. Stated rather
+#: than assumed because it is the kind of fact that changes under a build
+#: without the build noticing, and a run that does not say which it used cannot
+#: be compared with one that does.
+#:
+#: This build simulates on session closes and does not model settlement, so the
+#: value is declared and *not applied* — which the manifest and
+#: `EvaluationPolicy.models_settlement` both say out loud. A convention named
+#: but not honoured is only safe when the record says so; unnamed and unhonoured
+#: is how somebody assumes it was handled.
+SETTLEMENT_LAG = "T+1"
+SETTLEMENT_DAYS = 1
+
+
+def settles_on(trade_date):
+    """When a trade struck on this session settles, by the NYSE calendar."""
+    if not AVAILABLE:
+        return None
+    return calendar().advance(trade_date, ql.Period(SETTLEMENT_DAYS, ql.Days))
+
+
+#: How a rate is compounded when one is quoted.
+#:
+#: QuantLib's four. `Compounded` is this build's, because the figures it reports
+#: are period returns chained over sessions rather than a continuously
+#: compounded rate — and reporting a continuously compounded number under a
+#: discrete method is a different figure, not a rounding difference.
+COMPOUNDINGS = ("Simple", "Compounded", "Continuous", "SimpleThenCompounded")
+COMPOUNDING = "Compounded"
+
+#: The currency amounts are in.
+#:
+#: One, and declared. The engine does no conversion, so a plan stating euros
+#: and a snapshot priced in dollars would be arithmetic across two units with
+#: nothing saying so — the manifest refuses a stated currency this build cannot
+#: hold, and this is what it is compared against.
+CURRENCY = "USD"
+
+
+def currency_name() -> str:
+    """QuantLib's own name for it, so the code is checkable outside this repo."""
+    return ql.USDCurrency().name() if AVAILABLE else ""
+
+
+def evaluation_date(as_of=None) -> str:
+    """The date a valuation is made as of, ISO, or "" when unavailable.
+
+    An argument rather than a constant. QuantLib keeps a global
+    `Settings.instance().evaluationDate`, and reading that would make a result
+    depend on when it was computed rather than on what it was computed from —
+    which is the reproducibility defect this whole layer exists to prevent,
+    hidden in a library default.
+    """
+    if as_of is not None:
+        return str(as_of)
+    if not AVAILABLE:
+        return ""
+    today = ql.Settings.instance().evaluationDate
+    return f"{today.year():04d}-{today.month():02d}-{today.dayOfMonth():02d}"
+
+
 def declared() -> dict:
     """What this build's time conventions are, for the deployment record.
 
@@ -199,5 +298,8 @@ def declared() -> dict:
         "contribution_convention": CONTRIBUTION_CONVENTION.name,
         "annualisation": ANNUALISATION.name,
         "sessions_per_year": ANNUALISATION.per_year,
+        "settlement_lag": SETTLEMENT_LAG,
+        "compounding": COMPOUNDING,
+        "currency": CURRENCY,
         "vocabulary": f"QuantLib {ql.__version__}" if AVAILABLE else "absent",
     }

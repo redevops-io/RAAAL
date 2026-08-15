@@ -91,7 +91,7 @@ class EvaluationResult:
     evaluator_version: str
     engine_version: str
     conventions_version: str
-    evaluation_policy: str
+    evaluation_policy: Any
 
     streams: Mapping[str, Stream] = field(default_factory=dict)
     figures: Mapping[str, Any] = field(default_factory=dict)
@@ -140,12 +140,19 @@ def _fills(path) -> Stream:
     fills = getattr(path, "fills", None)
     if fills is None:
         return _absent("fills", "the run produced no path")
+    # Real attribute names, and no `getattr` default.
+    #
+    # This read `at`, `asset`, `units` and `cash`, none of which a `Fill` has —
+    # and every one defaulted to `""`, so the stream reported rows of empty
+    # strings while saying it had produced them. A default on a field access is
+    # a silent substitution, which is the defect this whole layer was built to
+    # stop, inside the layer. The conformance comparison found it in its first
+    # run because the second reading uses direct access and raised.
     return Stream("fills", True, tuple(
-        {"at": str(getattr(one, "at", "")),
-         "asset": str(getattr(one, "asset", "")),
-         "units": str(getattr(one, "units", "")),
-         "price": str(getattr(one, "price", "")),
-         "cash": str(getattr(one, "cash", ""))}
+        {"at": str(one.date), "asset": str(one.ticker),
+         "units": str(one.shares), "price": str(one.price),
+         "cash": str(one.notional), "cost": str(one.cost),
+         "reason": str(one.reason)}
         for one in fills))
 
 
@@ -160,11 +167,11 @@ def _orders(path) -> Stream:
     fills = getattr(path, "fills", None)
     if unfilled is None and fills is None:
         return _absent("orders", "the run produced no path")
-    rows = [{"at": str(getattr(one, "at", "")),
-             "asset": str(getattr(one, "asset", "")),
+    rows = [{"at": str(one.date), "asset": str(one.ticker),
+             "notional": str(one.notional), "reason": str(one.reason),
              "state": "filled"} for one in (fills or ())]
-    rows += [{"at": str(getattr(one, "at", "")),
-              "asset": str(getattr(one, "asset", "")),
+    rows += [{"at": str(one.date), "asset": str(one.ticker),
+              "notional": str(one.notional), "reason": str(one.reason),
               "state": "unfilled"} for one in (unfilled or ())]
     return Stream("orders", True, tuple(rows))
 
@@ -196,7 +203,8 @@ def _signals(spec, path) -> Stream:
     if fills is None:
         return _absent("signals", "the run produced no path")
     return Stream("signals", True, tuple(
-        {"at": str(getattr(one, "at", "")), "fired": True} for one in fills))
+        {"at": str(one.date), "asset": str(one.ticker), "fired": True}
+        for one in fills))
 
 
 def _metrics(result) -> Stream:
@@ -282,6 +290,12 @@ def evaluate(strategy_spec, market_snapshot_id: str, *,
     path = getattr(result, "path", None)
 
     named = declared()
+    # The policy is an object, not a label. It used to be a bare string, which
+    # named the data tier and said nothing about compounding, the annualisation
+    # basis or the date the valuation was made as of — three conventions the
+    # evaluator would otherwise have to infer, and one of which QuantLib keeps
+    # as a mutable global that defaults to today.
+    policy = evaluation_policy
     streams = {
         "eligible_sessions": _sessions(path),
         "signals": _signals(strategy_spec, path),
@@ -302,7 +316,8 @@ def evaluate(strategy_spec, market_snapshot_id: str, *,
         evaluator_version=EVALUATOR.split("@")[-1],
         engine_version=engine_version,
         conventions_version=str(named.get("vocabulary", "")),
-        evaluation_policy=evaluation_policy,
+        evaluation_policy=(policy.to_json() if hasattr(policy, "to_json")
+                           else {"data_policy": str(policy)}),
         streams=streams,
         figures={"unavailable": run.get("unavailable"),
                  "strategy_not_executed": run.get("strategy_not_executed")},
