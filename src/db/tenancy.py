@@ -232,10 +232,63 @@ def consumer_violations(statements: Iterable[str],
     return found
 
 
+#: Columns that identify a person or a tenant. A shared-reference table may
+#: carry none of them.
+#:
+#: Named broadly on purpose. The check is not "does it have `owner`" but "does
+#: it identify anybody", because the way a reference table acquires tenant data
+#: is somebody adding `user_id` to it for a reason that seemed local.
+TENANT_COLUMNS = ("owner", "participant", "tenant_id", "user_id", "subject",
+                  "account_id")
+
+
 def tenant_owned_tables() -> Tuple[str, ...]:
     """Every table carrying tenant records.
 
-    Derived from the mutability classification rather than restated: a table
-    that exists is classified there, so this cannot fall behind a new one.
+    Derived from the classification rather than restated: a table that exists
+    is classified there, so this cannot fall behind a new one. Ownership
+    defaults to tenant-owned, so a table nobody thought about is checked rather
+    than exempted.
     """
-    return tuple(sorted(TABLE_MUTABILITY))
+    from .mutability import Ownership
+
+    return tuple(sorted(
+        name for name, one in TABLE_MUTABILITY.items()
+        if getattr(one, "ownership", None) is not Ownership.SHARED_REFERENCE))
+
+
+def shared_reference_tables() -> Tuple[str, ...]:
+    """Tables that describe the world rather than a user."""
+    from .mutability import Ownership
+
+    return tuple(sorted(
+        name for name, one in TABLE_MUTABILITY.items()
+        if getattr(one, "ownership", None) is Ownership.SHARED_REFERENCE))
+
+
+def reference_violations(columns: Mapping[str, Sequence[Mapping]]
+                         ) -> List[TenancyViolation]:
+    """A shared-reference table carrying somebody's identity.
+
+    The stricter half of the split. A tenant-owned table must key by its
+    tenant; a shared one must not identify anybody at all — no `owner`, no
+    `participant`, nothing. This is not an exemption from the tenancy rule but
+    a different and harder one, and it is what makes declaring a table shared
+    safe rather than convenient.
+
+    A column that exists and means nothing is the danger: somebody will scope a
+    query by it, somebody else will read it as authoritative, and a reference
+    table will quietly become a place tenant data lives.
+    """
+    found: List[TenancyViolation] = []
+    for table in shared_reference_tables():
+        present = {c["name"] for c in columns.get(table, ())}
+        identifying = sorted(present & set(TENANT_COLUMNS))
+        if identifying:
+            found.append(TenancyViolation(
+                table, "schema",
+                f"declared SHARED_REFERENCE and carries {identifying}. A "
+                "reference table describes the world; a column identifying a "
+                "person makes it a place tenant data can live, unscoped and "
+                "unnoticed"))
+    return found

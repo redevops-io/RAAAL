@@ -38,6 +38,30 @@ class TableClass(str, Enum):
     MUTABLE_PROJECTION = "MUTABLE_PROJECTION"
 
 
+class Ownership(str, Enum):
+    """Who a row belongs to — a separate axis from how it may change.
+
+    Conflating the two would have been the easy move and the wrong one: a
+    reference table can be an immutable artifact or a mutable projection, and
+    a tenant's data can be either too. They are asked about separately because
+    they are different questions.
+    """
+
+    TENANT_OWNED = "TENANT_OWNED"
+    """A row belongs to somebody. Tenant identity is required in the key, and
+    every read, write and foreign key must be scoped by it."""
+
+    SHARED_REFERENCE = "SHARED_REFERENCE"
+    """A row describes the world rather than a user — a market snapshot, a
+    calendar, a licence record.
+
+    The rule here is *stricter* than the tenant one, not laxer: such a table
+    must contain no tenant-identifying column at all. Adding a meaningless
+    `owner` to satisfy a check would weaken the model, because a column that
+    exists and means nothing is one a future query will scope by and a future
+    reader will trust."""
+
+
 @dataclass(frozen=True)
 class Mutability:
     """One table's write policy, with the columns it protects."""
@@ -49,6 +73,11 @@ class Mutability:
 
     rationale: str = ""
 
+    ownership: Ownership = Ownership.TENANT_OWNED
+    """Defaults to tenant-owned, which is the safe direction: a new table
+    nobody classified is checked for tenant scoping rather than exempted from
+    it. Declaring a table shared is a decision somebody makes in a diff."""
+
 
 #: The body columns of an artifact: its payload, and the hash taken over it.
 #: Updating either is how a stored claim stops meaning what it said.
@@ -59,6 +88,22 @@ _BODY = ("payload", "content_hash")
 #: table is unclassified rather than silently mutable.
 TABLE_MUTABILITY: Mapping[str, Mutability] = {
     one.table: one for one in (
+        Mutability(
+            table="market_snapshot", kind=TableClass.IMMUTABLE_ARTIFACT,
+            ownership=Ownership.SHARED_REFERENCE,
+            immutable_columns=("snapshot_hash", "resolution", "symbols",
+                               "range_start", "range_end", "sessions",
+                               "corporate_actions"),
+            rationale="A description of market observations, addressed by the "
+                      "hash of the description itself. What the observations "
+                      "*are* may never move under a descriptor: editing the "
+                      "content hash, the request that produced it, or the "
+                      "span it covers would make a stored figure cite data it "
+                      "was not computed from. Licensing and provenance move "
+                      "by writing a new descriptor for the same bytes, which "
+                      "is why the key is the descriptor and not the content. "
+                      "SHARED_REFERENCE: it describes the world, not a user, "
+                      "and carries no tenant column at all."),
         Mutability(
             table="pilot_plans", kind=TableClass.IMMUTABLE_ARTIFACT,
             immutable_columns=("text", "artifact", "created_at"),

@@ -177,6 +177,11 @@ class RecordClass:
 
 ACTIVE_ACCOUNT = "retained while the account is active"
 
+#: For rows no account owns. A licence, not a user, decides how long market
+#: metadata may be held — so tying it to an account's lifetime would be the
+#: wrong clock, and leaving the policy blank would read as unconsidered.
+LICENCE_GOVERNED = "retained as the source licence permits; no account owns it"
+
 #: Every workspace table. A table absent here fails the inventory test, which
 #: reads the schema rather than this dictionary.
 WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
@@ -360,6 +365,23 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
             # sentence: its reading, its refusals, its settled quantities.
             contains_model_content=True,
             sensitive_fields=("text", "artifact")),
+        RecordClass(
+            table="market_snapshot",
+            data_class=DataClass.LICENSED_SOURCE,
+            # Nobody's. It describes observations, and the licence — not a
+            # user's account — governs how long it may be kept. An
+            # `owner_column` here would be the meaningless column the
+            # SHARED_REFERENCE classification exists to keep out.
+            owner_scope=OwnerScope.UNSCOPED, owner_column="",
+            retention_policy=LICENCE_GOVERNED,
+            deletion_behaviour=DeletionBehaviour.RETAIN,
+            export_behaviour="not included in a workspace export: it belongs "
+                             "to no workspace, and exporting it would ship "
+                             "licensed vendor metadata with a user's own data",
+            # Metadata about observations: hashes, symbols, a date range, a
+            # licence class. No positions, no amounts, nobody's money.
+            contains_sensitive_financial_data=False,
+            contains_model_content=False),
         RecordClass(
             table="pilot_consent",
             data_class=DataClass.PERSONAL_RECORD,

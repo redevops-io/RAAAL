@@ -74,6 +74,13 @@ class TestTheModelMatchesTheShippedSchema:
     #: as a declaration rather than by widening the comparison — an accidental
     #: table still fails.
     DELIBERATELY_ADDED_TABLES = {
+        "market_snapshot":
+            "the snapshot descriptor index. Shared reference data — it "
+            "describes market observations rather than a user — and the first "
+            "table declared SHARED_REFERENCE, so it carries no tenant column "
+            "at all. Keyed by descriptor hash with the content hash indexed, "
+            "because one set of observations legitimately carries several "
+            "descriptions as licensing and provenance are re-reviewed.",
         # The runtime's four tables. Each was created by its own module with a
         # `CREATE TABLE IF NOT EXISTS` on first use and declared nowhere, so
         # `pilot_plans` appeared in a production database partway through a

@@ -400,6 +400,47 @@ market_data_access_event = Table(
 Index("access_event_run", market_data_access_event.c.owner,
       market_data_access_event.c.run_id)
 
+# The snapshot descriptor index. Shared reference data, and it carries no
+# tenant column at all — see `Ownership.SHARED_REFERENCE`, whose rule is
+# stricter than the tenant one rather than an exemption from it. A market
+# snapshot describes the world; an `owner` here would mean nothing and would
+# eventually be trusted by somebody.
+#
+# Keyed by `descriptor_hash`, not by `snapshot_hash`. The same observation
+# bytes can legitimately have several descriptions over time — a licence
+# re-reviewed, an adapter version corrected, provenance filled in — and each is
+# a distinct record of what was believed about that data. The observations'
+# identity stays fixed while the description moves, which is exactly the
+# separation the contract draws.
+market_snapshot = Table(
+    "market_snapshot", metadata,
+    Column("descriptor_hash", Text, primary_key=True),
+    # Indexed rather than unique: several descriptors, one set of bytes.
+    Column("snapshot_hash", Text, nullable=False),
+    Column("snapshot_id", Text, nullable=False),
+    Column("dataset_id", Text, nullable=False),
+    Column("symbols", JsonText, nullable=False),
+    Column("range_start", Text, nullable=False),
+    Column("range_end", Text, nullable=False),
+    Column("sessions", Integer, nullable=False),
+    # What was asked for. Part of what produced the bytes, so a descriptor
+    # without it would describe observations nobody could ask for again.
+    Column("resolution", JsonText, nullable=False),
+    Column("corporate_actions", Text, nullable=False),
+    Column("calendar", Text, nullable=False),
+    Column("source_adapter", Text, nullable=False),
+    Column("source_adapter_version", Text, nullable=False),
+    Column("source_uri", Text, nullable=False),
+    Column("data_as_of", Text, nullable=False),
+    Column("license_class", Text, nullable=False),
+    Column("license_review_status", Text, nullable=False),
+    Column("content_digest_version", Text, nullable=False),
+    Column("contract_version", Text, nullable=False),
+    Column("recorded_at", Text, nullable=False),
+)
+
+Index("market_snapshot_by_content", market_snapshot.c.snapshot_hash)
+
 plan_migration = Table(
     "plan_migration", metadata,
     Column("owner", Text, primary_key=True),

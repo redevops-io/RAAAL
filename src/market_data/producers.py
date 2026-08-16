@@ -177,6 +177,21 @@ PRODUCERS: Mapping[str, Producer] = {
                    "`plan`, it states what to do and holds no result — the "
                    "provenance question belongs to whatever is run from it."),
         Producer(
+            table="market_snapshot", ownership=ProvenanceOwnership.DIRECT,
+            reason="It *is* the provenance. A descriptor names the observations "
+                   "by content hash and carries the request that produced them, "
+                   "the adapter that read them, the licence they arrive under "
+                   "and how corporate actions were treated. DIRECT rather than "
+                   "NOT_APPLICABLE because a row here holds a market-data "
+                   "identity in its own right — it is what other rows reference "
+                   "when they say which data a figure came from.",
+            # The row is the provenance, so the path is the row. Named rather
+            # than left empty: a DIRECT producer that could not say where its
+            # provenance sits would be claiming to carry one without pointing
+            # at it, which is the shape the check exists to refuse.
+            provenance_path="market_snapshot",
+            pricing_basis_path=None),
+        Producer(
             table="pilot_consent", ownership=ProvenanceOwnership.NOT_APPLICABLE,
             reason="Whether a participant agreed to be studied, and against "
                    "which notice. A permission, not a figure."),
