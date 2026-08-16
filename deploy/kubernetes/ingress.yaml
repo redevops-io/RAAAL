@@ -11,12 +11,17 @@
 # Serving it on a path under the application's name would make every token it
 # signs verify against a URL nobody can reach it at.
 #
-# **Two Ingress objects, one ALB.** They share `group.name: quantify`, so the
-# controller builds a single load balancer with two host rules. Split rather
-# than combined because health-check settings are per-Ingress and these two
-# have nothing in common: `quantify-web` answers `/health/live`, Zitadel
-# answers `/debug/healthz`, and one shared path would mean the ALB deciding a
-# healthy identity provider was down — on a rule the application defined.
+# **Two Ingress objects, and therefore two load balancers.** Auto Mode's
+# controller does not implement `alb.ingress.kubernetes.io/group.name` — that
+# belongs to the standalone AWS Load Balancer Controller — so there is no way
+# to merge these into one ALB. Measured, not assumed: both reconciled
+# successfully and reported different hostnames.
+#
+# They would have been split anyway. Health-check settings are per-Ingress and
+# these two have nothing in common: `quantify-web` answers `/health/live`,
+# Zitadel answers `/debug/healthz`, and one shared path would mean the ALB
+# deciding a healthy identity provider was down, on a rule the application
+# defined.
 #
 # **Only quantify-web and identity appear here.** quantify-data and
 # quantify-evaluate are deliberately absent: they are ClusterIP with no
@@ -50,7 +55,6 @@ metadata:
   name: quantify-web
   namespace: quantify
   annotations:
-    alb.ingress.kubernetes.io/group.name: quantify
     # Internal: the tunnel reaches it from inside the VPC, exactly as it
     # reaches the current ALB. An internet-facing scheme would put the
     # application on the public internet beside the tunnel rather than behind
@@ -59,6 +63,24 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/healthcheck-path: /health/live
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    # The bare root, sent to the product. Caddy did this with `redir /
+    # /workspace/ 302` and the reason is in its comment: the root returns the
+    # API's service metadata, so the first thing a pilot invitee saw was a
+    # document describing the service rather than a way in. Verified to have
+    # regressed the moment the tunnel moved — the apex answered 200 with that
+    # JSON.
+    #
+    # Exact, so only `/` moves. `/info`, `/health*` and `/docs` still answer as
+    # themselves.
+    #
+    # `Protocol` and `Port` are named rather than defaulted. Left out, the ALB
+    # fills them from the hop it is on — which is plain HTTP on port 80 — and
+    # the redirect came back as `http://quantify.club:80/workspace/`, sending
+    # every arriving browser down a scheme downgrade on the way to the login
+    # page. Observed after applying it, which is why it is written down here.
+    alb.ingress.kubernetes.io/actions.redirect-workspace: >
+      {"type":"redirect","redirectConfig":{"Path":"/workspace/","Port":"443",
+       "Protocol":"HTTPS","Query":"#{query}","StatusCode":"HTTP_302"}}
     # `www`, redirected rather than served — the job Caddy did on EC2, and it
     # has to be done by something. PUBLIC_BASE_URL and the registered OIDC
     # redirect URI are both the apex, so somebody signing in from `www` would
@@ -74,6 +96,13 @@ spec:
     - host: __WEB_HOST__
       http:
         paths:
+          # First, so the exact root matches before the catch-all prefix does.
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: redirect-workspace
+                port: { name: use-annotation }
           - path: /
             pathType: Prefix
             backend:
@@ -96,7 +125,6 @@ metadata:
   name: quantify-identity
   namespace: quantify
   annotations:
-    alb.ingress.kubernetes.io/group.name: quantify
     alb.ingress.kubernetes.io/scheme: internal
     alb.ingress.kubernetes.io/target-type: ip
     # Zitadel's own health endpoint, and the same one the pod's liveness probe

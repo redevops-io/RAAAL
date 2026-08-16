@@ -306,6 +306,39 @@ from .web.failure import install as install_failure_handling  # noqa: E402
 install_failure_handling(app)
 
 
+#: The response headers that must be on every answer this application gives.
+#:
+#: They used to be Caddy's, and moving the deployment to Kubernetes removed
+#: Caddy and took all four with it — silently, because nothing serves worse for
+#: their absence and no check looked. That is the argument for putting them
+#: here: a security header that exists only while a particular proxy is in
+#: front is a header that disappears exactly when the fronting changes, which
+#: is the moment nobody is reading response headers.
+#:
+#: HSTS is safe to assert because every hostname is HTTPS-only at Cloudflare
+#: already; it tells the browser to stop trying the other scheme.
+SECURITY_HEADERS = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+
+
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    """Set them, rather than default them.
+
+    Assignment and not `setdefault`: if something upstream has already put a
+    weaker value on the response, the weaker value is the one that would
+    survive, and "a header is present" is not the property worth having.
+    """
+    response = await call_next(request)
+    for name, value in SECURITY_HEADERS.items():
+        response.headers[name] = value
+    return response
+
+
 # --- the research dashboard ------------------------------------------------
 #
 # Served from a directory the deployment writes rather than from the image.

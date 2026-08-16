@@ -64,6 +64,16 @@ data:
         header_up X-Forwarded-Proto https
         header_up X-Forwarded-Port 443
       }
+      # The three the EC2 identity host carried. Not four: `X-Frame-Options
+      # DENY` was on the application host and not this one, and adding it here
+      # would be a new decision about whether a login page may be framed,
+      # taken during a move, in the file whose whole point is to change
+      # nothing.
+      header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+      }
     }
 ---
 apiVersion: apps/v1
