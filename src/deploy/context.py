@@ -247,6 +247,12 @@ class DatabaseTarget:
 #: to "what build is this" is precisely what the rule forbids.
 SNAPSHOT_ROOT_VAR = "QUANTIFY_SNAPSHOT_ROOT"
 
+#: Where quantify-evaluate reaches quantify-data. Empty on a deployment that
+#: still resolves market data in-process, which is every deployment until the
+#: cutover — and the evaluate service refuses to start without it rather than
+#: falling back to a local resolver it is not supposed to have.
+DATA_SERVICE_VAR = "QUANTIFY_DATA_URL"
+
 
 @dataclass(frozen=True)
 class MarketDataTarget:
@@ -640,6 +646,9 @@ class DeploymentContext:
     identity: "IdentityTarget" = field(default_factory=lambda: IdentityTarget())
     """The OIDC provider this deployment trusts, or nothing."""
 
+    market_data_service_url: str = ""
+    """The market-data service, for a deployment where evaluation is split out."""
+
     research_directory: str = "/var/lib/quantify/research"
     """Where the scheduled job leaves the built research dashboard.
 
@@ -789,6 +798,7 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
             public_base_url=(source.get(PUBLIC_BASE_URL_VAR) or "").rstrip("/"),
             internal_base_url=(source.get(OIDC_INTERNAL_BASE_URL_VAR)
                                or "").rstrip("/")),
+        market_data_service_url=(source.get(DATA_SERVICE_VAR) or "").rstrip("/"),
         research_directory=(source.get(RESEARCH_DIRECTORY_VAR)
                             or "/var/lib/quantify/research"),
         state_directory=source.get(STATE_DIRECTORY_VAR,

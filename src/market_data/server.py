@@ -67,6 +67,7 @@ def create_app(*, adapter, store, build=None):
     from .object_store import to_bytes
     from .snapshot_read import get as read_snapshot
     from .snapshot_store import descriptor as read_descriptor
+    from .snapshot_store import latest_descriptor  # noqa: F401
     from .snapshot_store import record
 
     app = FastAPI(title="Quantify market data",
@@ -128,6 +129,27 @@ def create_app(*, adapter, store, build=None):
                            f"no descriptor {descriptor_hash} is recorded")
         return {"contract_version": MARKET_DATA_CONTRACT_VERSION,
                 "descriptor": body}
+
+    @app.post("/snapshots/{snapshot_hash}/descriptor")
+    @app.get("/snapshots/{snapshot_hash}/descriptor")
+    def current_descriptor(snapshot_hash: str):
+        """Which description to verify these observations against.
+
+        The evaluator holds a snapshot hash and needs a descriptor hash to
+        check the bytes against. It cannot choose one — several may exist and
+        it has no basis for preferring any — so the service that owns the data
+        says which is current.
+        """
+        from .snapshot_store import latest_descriptor
+
+        found = latest_descriptor(snapshot_hash)
+        if found is None:
+            return _refuse(
+                Failure.DESCRIPTOR_MISSING,
+                f"no descriptor is recorded for observations {snapshot_hash}, "
+                "so there is nothing to verify them against")
+        return {"contract_version": MARKET_DATA_CONTRACT_VERSION,
+                "snapshot_hash": snapshot_hash, "descriptor_hash": found}
 
     @app.get("/snapshots/{snapshot_hash}/observations")
     def observations(snapshot_hash: str, descriptor: str):

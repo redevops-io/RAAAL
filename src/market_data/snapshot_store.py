@@ -156,3 +156,23 @@ def _as_contract(row) -> Dict[str, Any]:
         "license_review_status": row["license_review_status"],
         "content_digest_version": row["content_digest_version"],
     }
+
+
+def latest_descriptor(snapshot_hash: str) -> Optional[str]:
+    """The address of the current description of these observations.
+
+    "Current" means most recently recorded. A snapshot legitimately carries
+    several descriptors — a licence re-reviewed, an adapter corrected — and a
+    consumer has no basis for choosing between them, so the owner of the data
+    offers one. The older ones stay readable by address; this is which to
+    verify against by default, not which is the only one.
+    """
+    connection = _connect()
+    try:
+        row = connection.execute(
+            "SELECT descriptor_hash FROM market_snapshot "
+            "WHERE snapshot_hash = ? ORDER BY recorded_at DESC LIMIT 1",
+            (snapshot_hash,)).fetchone()
+    finally:
+        connection.close()
+    return row["descriptor_hash"] if row is not None else None

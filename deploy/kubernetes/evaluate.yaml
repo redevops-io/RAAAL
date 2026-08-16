@@ -1,0 +1,90 @@
+# quantify-evaluate: financial evaluation, and nothing else.
+#
+# What it is given is a market-data URL. What it is not given is the point:
+#
+#   no IAM role          there is no Pod Identity association for this service
+#                        account, so a pod here has no AWS credentials at all —
+#                        not the node's, not a shared one, none. Code that
+#                        later reaches for the market-data bucket will find
+#                        nothing to reach it with.
+#   no database          it never touches PostgreSQL, so it holds no
+#                        connection string. Verified rather than assumed: the
+#                        service starts and serves with no database configured.
+#   no snapshot root     it stores no payloads. It fetches them by hash and
+#                        verifies them, and keeps nothing.
+#
+# Together those turn the import-graph boundary into a deployment property.
+# `test_market_data_service` proves the evaluator cannot *import* provider
+# machinery; this proves that if somebody makes it import some anyway, it still
+# cannot reach the data.
+#
+# Internal only — ClusterIP, no Ingress. `quantify-web` reaches it; the
+# internet does not.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quantify-evaluate
+  namespace: quantify
+  # Deliberately unbound. `quantify-data` has a Pod Identity association in
+  # terraform; this one has none, and that absence is the enforcement.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantify-evaluate
+  namespace: quantify
+spec:
+  # Stateless, so more than one is fine — unlike quantify-data, which owns a
+  # filesystem. Two here for the ordinary reason: a node going away should not
+  # be an outage.
+  replicas: 2
+  selector:
+    matchLabels: { app: quantify-evaluate }
+  template:
+    metadata:
+      labels: { app: quantify-evaluate }
+    spec:
+      serviceAccountName: quantify-evaluate
+      containers:
+        - name: evaluate
+          image: IMAGE_PLACEHOLDER
+          command: ["uvicorn", "src.deploy.evaluate_asgi:create_app",
+                    "--factory", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+          env:
+            # The only thing it is told about where data comes from.
+            - name: QUANTIFY_DATA_URL
+              value: http://quantify-data
+            - name: PILOT_DATA_POLICY
+              value: SYNTHETIC_ONLY
+            - name: QUANTIFY_DEPLOYMENT_PROFILE
+              value: local
+            - name: QUANTIFY_BUILD_COMMIT
+              value: COMMIT_PLACEHOLDER
+            - name: QUANTIFY_IMAGE_DIGEST
+              value: DIGEST_PLACEHOLDER
+          resources:
+            requests: { cpu: 500m, memory: 1Gi }
+            limits: { memory: 2Gi }
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantify-evaluate
+  namespace: quantify
+spec:
+  type: ClusterIP
+  selector: { app: quantify-evaluate }
+  ports:
+    - port: 80
+      targetPort: 8000
