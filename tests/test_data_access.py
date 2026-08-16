@@ -53,6 +53,13 @@ NON_PRODUCTION_READERS = {
     "src/market_data/loader.py":
         "the gate's own implementation — it is what resolves a snapshot to a "
         "file, and is reached only through `access.resolve_prices`",
+    "src/market_data/object_store.py":
+        "the snapshot store's own implementation, and the same case as "
+        "`loader.py`: it is what holds observation bytes rather than a caller "
+        "that fetches them behind the gate's back. Its `read_parquet` is over "
+        "an in-memory buffer it was handed, never a path it chose — and "
+        "nothing reaches its bytes except `snapshot_read.get`, which verifies "
+        "them against a descriptor before returning them",
     "src/reporting.py":
         "writes CSV reports; reads nothing on a request path",
 }
