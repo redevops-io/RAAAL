@@ -67,6 +67,7 @@
         database_host: "{{ (tfvars.stdout | from_json).quantify_database_host }}"
         domain: "{{ (tfvars.stdout | from_json).quantify_domain }}"
         identity_domain: "{{ (tfvars.stdout | from_json).quantify_identity_domain }}"
+        snapshot_id: "{{ (tfvars.stdout | from_json).quantify_build_snapshot_id }}"
         targets: "{{ known_services if service == 'all' else [service] }}"
 
     - name: Refuse a service this playbook does not know
@@ -174,7 +175,12 @@
           metadata: { name: quantify-identity, namespace: "{{ k8s_namespace }}" }
           type: Opaque
           stringData:
-            ZITADEL_MASTERKEY: "{{ secret.masterkey }}"
+            # The stored secret is a JSON document; Zitadel wants the 32-byte
+            # key inside it. Passing the document gave "masterkey must be 32
+            # bytes, but is 48" — which is the good failure: a master key of
+            # the wrong length is refused at startup rather than accepted and
+            # used to decrypt nothing.
+            ZITADEL_MASTERKEY: "{{ (secret.masterkey | from_json).masterkey }}"
             # The same issuer it already publishes. Changing it would
             # invalidate every token in circulation and every stored redirect.
             ZITADEL_EXTERNALDOMAIN: "{{ identity_domain | default('auth.quantify.club') }}"
@@ -219,6 +225,16 @@
             # token exchange.
             OIDC_INTERNAL_BASE_URL: "http://quantify-identity"
             PUBLIC_BASE_URL: "https://{{ domain | default('quantify.club') }}"
+            # The names the preflight reads, taken from the template that
+            # already serves rather than invented here. `QUANTIFY_COMMIT`, not
+            # `QUANTIFY_BUILD_COMMIT` — and the snapshot id, whose absence is
+            # two thirds of why the first attempt refused with
+            # BUILD_UNOBSERVABLE. A production profile requires every stamp
+            # set, which is the rule that makes a running service able to say
+            # what it is.
+            QUANTIFY_COMMIT: "{{ build_commit }}"
+            QUANTIFY_IMAGE_DIGEST: "{{ image | regex_search('sha256:[0-9a-f]+') }}"
+            QUANTIFY_SNAPSHOT_ID: "{{ snapshot_id }}"
         state: present
       no_log: true
       when: "'web' in targets"
@@ -252,24 +268,36 @@
       changed_when: false
       when: "'data' in targets"
 
-    - name: Read what it did
+    # The Job's completion is the gate; its log is commentary.
+    #
+    # The first version asserted on the log and broke: the Job reported
+    # Complete and its pod was gone, because Auto Mode had consolidated the
+    # node it ran on. A completed pod is not durable and `kubectl logs job/…`
+    # then waits for one that will never appear.
+    #
+    # The evidence was never really the log. The Job asserts `AT_HEAD` itself
+    # and exits non-zero when the database is not at this build's head, so
+    # `wait --for=condition=complete` succeeding already carries that fact —
+    # and carries it whether or not anything survived to be read. Gating on
+    # the transcript made a durable check depend on a transient artifact.
+    - name: Read what it did, if the pod is still around to say
       ansible.builtin.command:
         cmd: >-
           kubectl -n {{ k8s_namespace }} logs
           job/quantify-migrate-{{ build_commit[:8] }}
       register: migration
       changed_when: false
+      failed_when: false
       when: "'data' in targets"
 
-    # `AT_HEAD=true` is asserted inside the Job, so this is the second reader
-    # of the same fact rather than the only one. A migration that ran without
-    # reaching the head this build expects produces a service that starts and
-    # refuses every request.
-    - name: Refuse to deploy onto a database that is not at this build's head
-      ansible.builtin.assert:
-        that: "'AT_HEAD=true' in migration.stdout"
-        fail_msg: "the database is not at this build's migration head: {{ migration.stdout }}"
-        success_msg: "{{ migration.stdout_lines | select('search', '=') | list }}"
+    - name: What the migration reported
+      ansible.builtin.debug:
+        msg: >-
+          {{ migration.stdout_lines | select('search', '=') | list
+             if (migration.stdout | default('')) else
+             'the Job completed; its pod is gone, so there is no transcript.
+              Completion is the assertion — the Job exits non-zero unless the
+              database is at this build head.' }}
       when: "'data' in targets"
 
     # --- the workloads -----------------------------------------------------
@@ -290,6 +318,25 @@
         definition: "{{ rendered[item] | from_yaml_all | list }}"
         state: present
       loop: "{{ targets }}"
+
+    # A Secret change does not restart anything.
+    #
+    # `envFrom` injects at pod start, so updating a Secret leaves every running
+    # pod on the old values while `kubectl get secret` shows the new ones — and
+    # the deployment reports success because nothing about the Deployment
+    # changed. That is how a corrected master key sat in the cluster for five
+    # minutes while the pod kept failing on the old one.
+    #
+    # Restarting unconditionally is the honest cost: a deploy that re-applies
+    # identical secrets restarts pods it did not need to, which is cheap and
+    # visible, where the alternative is a config change that silently does not
+    # take.
+    - name: Restart so the pods pick up their configuration
+      ansible.builtin.command:
+        cmd: >-
+          kubectl -n {{ k8s_namespace }} rollout restart deploy/quantify-{{ item }}
+      loop: "{{ targets }}"
+      changed_when: true
 
     - name: Wait for the rollout
       ansible.builtin.command:
