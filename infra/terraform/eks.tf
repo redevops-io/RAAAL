@@ -90,22 +90,10 @@ resource "aws_iam_role_policy_attachment" "eks_node" {
   policy_arn = each.value
 }
 
-# Subnet tags the load-balancer integration discovers by. Applied as their own
-# resources rather than by editing the subnets, so this migration adds tags
-# without taking ownership of networking it did not create.
-resource "aws_ec2_tag" "public_elb" {
-  count       = var.enable_kubernetes ? length(aws_subnet.public) : 0
-  resource_id = aws_subnet.public[count.index].id
-  key         = "kubernetes.io/role/elb"
-  value       = "1"
-}
-
-resource "aws_ec2_tag" "private_elb" {
-  count       = var.enable_kubernetes ? length(aws_subnet.private) : 0
-  resource_id = aws_subnet.private[count.index].id
-  key         = "kubernetes.io/role/internal-elb"
-  value       = "1"
-}
+# The load-balancer discovery tags are on the subnets themselves, in
+# `networking.tf`. They were `aws_ec2_tag` resources here first, which fought
+# the subnets' own `tags` attribute: one resource added the tag and the other
+# removed it as drift, so every plan showed the same four updates forever.
 
 resource "aws_eks_cluster" "main" {
   count    = var.enable_kubernetes ? 1 : 0
@@ -142,8 +130,22 @@ resource "aws_eks_cluster" "main" {
   }
 
   vpc_config {
-    # Both tiers: pods run private, load balancers need the public ones.
-    subnet_ids              = concat(aws_subnet.private[*].id, aws_subnet.public[*].id)
+    # Private only, and this was wrong in the first version.
+    #
+    # It listed both tiers on the reasoning that load balancers need the public
+    # subnets. They do — but they are discovered by the
+    # `kubernetes.io/role/elb` tags above, not from this list. What this list
+    # decides is where *nodes* are placed, and Auto Mode duly placed one in a
+    # public subnet, where it received no public IP because these subnets do
+    # not auto-assign one. A public subnet routes 0.0.0.0/0 to the internet
+    # gateway, and an instance with no public address cannot use it: the node
+    # came up Ready with no egress whatsoever, and every image pull timed out.
+    #
+    # Nothing in `describe-cluster` showed it. Status ACTIVE, Auto Mode
+    # enabled, node pool READY, a node provisioned and Ready, the pod
+    # scheduled — and ImagePullBackOff. That gap is the whole reason a cluster
+    # is not a claim until a workload has run on it.
+    subnet_ids              = aws_subnet.private[*].id
     endpoint_private_access = true
     # Public endpoint so an operator can probe the cluster without a bastion.
     # The *workloads* are not public — that is the ingress's business, and the

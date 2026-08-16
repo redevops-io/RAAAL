@@ -1,0 +1,71 @@
+# The acceptance probe for a freshly provisioned cluster.
+#
+# Not architecture. This exists to answer, once, the questions that separate a
+# cluster that was created from a cluster that works:
+#
+#   * does Auto Mode provision a node when a pod needs one
+#   * can that node pull an image through the existing NAT
+#   * does in-cluster DNS resolve a Service
+#   * can one pod reach another
+#
+# Every one of those has failed independently in somebody's first EKS cluster,
+# and none is visible from `describe-cluster` — which reports ACTIVE for a
+# control plane that cannot schedule anything.
+#
+# Kept rather than deleted after use, so re-verifying a cluster later is
+# applying a file rather than remembering what to check.
+#
+#   kubectl apply -f deploy/kubernetes/probe.yaml
+#   kubectl -n quantify wait --for=condition=available deploy/probe --timeout=10m
+#   kubectl -n quantify run check --rm -it --restart=Never \
+#       --image=public.ecr.aws/docker/library/busybox:1.36 -- wget -qO- probe
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: quantify
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe
+  namespace: quantify
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: probe }
+  template:
+    metadata:
+      labels: { app: probe }
+    spec:
+      containers:
+        - name: probe
+          # From the ECR public registry rather than Docker Hub: the node role
+          # carries registry pull permission, and Hub's anonymous rate limit is
+          # a failure that looks like a broken cluster.
+          image: public.ecr.aws/nginx/nginx:alpine
+          ports:
+            - containerPort: 80
+          # Small and explicit. Auto Mode sizes a node to what is requested, so
+          # a pod with no requests teaches nothing about provisioning.
+          resources:
+            requests: { cpu: 100m, memory: 64Mi }
+            limits: { memory: 128Mi }
+          readinessProbe:
+            httpGet: { path: /, port: 80 }
+            initialDelaySeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: probe
+  namespace: quantify
+spec:
+  # ClusterIP on purpose. Whether the cluster can expose something publicly is
+  # the ingress's question and belongs to a later step; this one asks only
+  # whether pods can reach each other.
+  type: ClusterIP
+  selector: { app: probe }
+  ports:
+    - port: 80
+      targetPort: 80

@@ -40,7 +40,15 @@ resource "aws_subnet" "public" {
   availability_zone       = local.azs[count.index]
   map_public_ip_on_launch = false
 
-  tags = { Name = "${local.name}-public-${local.azs[count.index]}" }
+  # The load-balancer discovery tag lives here rather than in an
+  # `aws_ec2_tag` beside it. Applied out of band it was added by one resource
+  # and removed by this one as drift on the very next plan — a tag that
+  # oscillates every apply, which reads as unexplained churn in exactly the
+  # networking somebody is trying not to disturb.
+  tags = merge(
+    { Name = "${local.name}-public-${local.azs[count.index]}" },
+    var.enable_kubernetes ? { "kubernetes.io/role/elb" = "1" } : {},
+  )
 }
 
 resource "aws_subnet" "private" {
@@ -50,7 +58,10 @@ resource "aws_subnet" "private" {
   cidr_block        = local.private_subnets[count.index]
   availability_zone = local.azs[count.index]
 
-  tags = { Name = "${local.name}-private-${local.azs[count.index]}" }
+  tags = merge(
+    { Name = "${local.name}-private-${local.azs[count.index]}" },
+    var.enable_kubernetes ? { "kubernetes.io/role/internal-elb" = "1" } : {},
+  )
 }
 
 resource "aws_eip" "nat" {
