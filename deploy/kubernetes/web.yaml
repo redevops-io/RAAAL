@@ -1,0 +1,76 @@
+# quantify-web: the product surface.
+#
+# It talks to PostgreSQL, to the identity provider, and — once the cutover is
+# made — to quantify-evaluate rather than evaluating in-process. Until then it
+# carries the in-process path too, which is why it holds a database credential
+# and quantify-evaluate does not.
+#
+# **Its secrets come from Secrets Manager via the playbook**, never from a file
+# in the repository and never from a terraform output written to disk. The
+# playbook fetches each with `no_log` and writes one Kubernetes Secret.
+#
+# **Reachable only through the Ingress.** The Service is ClusterIP; what makes
+# it public is `ingress.yaml`, which is a separate object so that "this is on
+# the internet" is a decision somebody makes in one obvious place.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quantify-web
+  namespace: quantify
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantify-web
+  namespace: quantify
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: quantify-web }
+  template:
+    metadata:
+      labels: { app: quantify-web }
+    spec:
+      serviceAccountName: quantify-web
+      containers:
+        - name: web
+          image: IMAGE_PLACEHOLDER
+          command: ["uvicorn", "src.api:create_app", "--factory",
+                    "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef: { name: quantify-web }
+          env:
+            # Where evaluation will come from after the cutover. Present now
+            # and unused, so the switch is a code path rather than a redeploy.
+            - name: QUANTIFY_EVALUATE_URL
+              value: http://quantify-evaluate
+            - name: QUANTIFY_BUILD_COMMIT
+              value: COMMIT_PLACEHOLDER
+            - name: QUANTIFY_IMAGE_DIGEST
+              value: DIGEST_PLACEHOLDER
+          resources:
+            requests: { cpu: 500m, memory: 1Gi }
+            limits: { memory: 2Gi }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8000 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantify-web
+  namespace: quantify
+spec:
+  type: ClusterIP
+  selector: { app: quantify-web }
+  ports:
+    - port: 80
+      targetPort: 8000

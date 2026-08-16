@@ -1,0 +1,53 @@
+# What is on the internet, in one file.
+#
+# Auto Mode's load-balancer integration provisions an ALB from this object. The
+# Cloudflare tunnel is then repointed at that ALB in terraform — the tunnel
+# config already names `aws_lb.main.dns_name`, so the cutover is a change of
+# which load balancer it addresses rather than a new network path.
+#
+# **Two hostnames, two backends.** The application and the identity provider
+# are reached by different names on purpose: Zitadel publishes its issuer in
+# OIDC discovery, and an issuer must be a hostname it is actually reached by.
+# Serving it on a path under the application's name would make every token it
+# signs verify against a URL nobody can reach it at.
+#
+# **Only quantify-web and identity appear here.** quantify-data and
+# quantify-evaluate are deliberately absent: they are ClusterIP with no Ingress,
+# and their acceptance evidence is that external traffic cannot reach them.
+# Adding them here would be the fastest way to undo the whole boundary.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: quantify
+  namespace: quantify
+  annotations:
+    # Internal: the tunnel reaches it from inside the VPC, exactly as it
+    # reaches the current ALB. An internet-facing scheme would put the
+    # application on the public internet beside the tunnel rather than behind
+    # it, which is a second front door nobody asked for.
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health/live
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - host: DOMAIN_PLACEHOLDER
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quantify-web
+                port: { number: 80 }
+    - host: IDENTITY_DOMAIN_PLACEHOLDER
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quantify-identity
+                port: { number: 80 }
