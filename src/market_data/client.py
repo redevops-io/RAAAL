@@ -54,12 +54,30 @@ class HttpMarketData:
 
     base: str = ""
 
+    def _call(self, what, *args):
+        """Any transport failure, as one classified outcome.
+
+        A timeout, a reset connection or a DNS failure used to propagate raw —
+        so a caller catching `MarketDataRefused` and `MarketDataUnreachable`
+        got neither, and an outage surfaced as an unhandled exception three
+        layers up. None of them is a statement about the request, which is
+        exactly what `MarketDataUnreachable` means.
+        """
+        try:
+            return what(*args)
+        except (MarketDataRefused, MarketDataUnreachable):
+            raise
+        except Exception as unreachable:                       # noqa: BLE001
+            raise MarketDataUnreachable(
+                f"the market-data service could not be reached: "
+                f"{type(unreachable).__name__}: {unreachable}") from unreachable
+
     def create(self, symbols: Sequence[str], *, reinvested: bool
                ) -> Tuple[str, str]:
         """Resolve, fetch and store. Returns the two addresses and nothing else."""
-        status, payload = self.post(f"{self.base}/snapshots",
-                                    create_request(symbols,
-                                                   reinvested=reinvested))
+        status, payload = self._call(
+            self.post, f"{self.base}/snapshots",
+            create_request(symbols, reinvested=reinvested))
         if status == 201:
             return payload["snapshot_hash"], payload["descriptor_hash"]
         raise self._refusal(status, payload)
@@ -74,14 +92,31 @@ class HttpMarketData:
         from .object_store import from_bytes
         from .snapshot_contract import from_json
 
-        status, body, _headers = self.fetch(
+        status, body, _headers = self._call(
+            self.fetch,
             f"{self.base}/snapshots/{snapshot_hash}/observations",
             {"descriptor": descriptor_hash})
         if status != 200:
             raise self._refusal(status, _as_json(body))
 
         described, descriptor_body = self._descriptor(descriptor_hash)
-        observations = from_bytes(body)
+
+        # A body that does not decode is a corrupt payload, not a crash.
+        #
+        # A truncated response — a proxy cutting a stream, a partial read —
+        # arrives as a 200 with short bytes, and `from_bytes` raised whatever
+        # the parquet reader raised. A caller cannot act on that: it is neither
+        # a refusal about the request nor an unreachable service, and it is the
+        # failure mode a network introduces that a local call never has.
+        try:
+            observations = from_bytes(body)
+        except Exception as undecodable:                       # noqa: BLE001
+            raise MarketDataRefused(
+                Failure.PAYLOAD_CORRUPT,
+                f"the observations for {snapshot_hash} did not decode "
+                f"({len(body)} bytes): {type(undecodable).__name__}. A "
+                "truncated or altered body is not the data this snapshot "
+                "names") from undecodable
 
         problems = described.verify(observations)
         if problems:
@@ -96,12 +131,24 @@ class HttpMarketData:
     def _descriptor(self, descriptor_hash: str):
         from .snapshot_contract import from_json
 
-        status, payload = self.post(
-            f"{self.base}/descriptors/{descriptor_hash}", None)
+        status, payload = self._call(
+            self.post, f"{self.base}/descriptors/{descriptor_hash}", None)
         if status != 200:
             raise self._refusal(status, payload)
-        body = payload["descriptor"]
-        return from_json(body), body
+        # A response that is not a descriptor is a contract failure, not a
+        # KeyError. `from_json` names every field it needs — which is the
+        # point — so a partial body raises from inside the parser, and a
+        # caller three layers up sees `KeyError: session_range` rather than
+        # "the service sent something that is not a descriptor".
+        try:
+            body = payload["descriptor"]
+            return from_json(body), body
+        except (KeyError, TypeError) as malformed:
+            raise MarketDataRefused(
+                Failure.CONTRACT_MISMATCH,
+                f"the response for descriptor {descriptor_hash} is not a "
+                f"descriptor this contract can read: missing {malformed}"
+            ) from malformed
 
     @staticmethod
     def _refusal(status: int, payload) -> Exception:

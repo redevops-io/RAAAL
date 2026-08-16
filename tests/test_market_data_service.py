@@ -327,3 +327,75 @@ class TestNoPathFromProviderToEvaluatorExceptByHash:
 
         assert result.market_snapshot_hash == snapshot_hash
         assert result.streams["fills"].produced
+
+
+class TestNetworkFailureModes:
+    """What a network introduces that a local call never had.
+
+    These need no cluster: the client's transport is injected, so a timeout, a
+    truncated body and a malformed response are all constructible here. They
+    are listed as part of the deployment gate and they are testable now, which
+    is the difference between a gate that waits on infrastructure and one that
+    waits on somebody getting to it.
+    """
+
+    def test_a_timeout_is_unreachable_and_not_a_refusal(self):
+        """An outage is not a statement about the request.
+
+        It used to propagate raw — a caller catching both client exceptions got
+        neither, and a timeout surfaced as an unhandled error three layers up.
+        """
+        def timing_out(*_args):
+            raise TimeoutError("timed out after 30s")
+
+        client = HttpMarketData(post=timing_out, fetch=timing_out)
+        with pytest.raises(MarketDataUnreachable, match="TimeoutError"):
+            client.create(["VTI"], reinvested=False)
+
+    def test_a_reset_connection_is_also_unreachable(self):
+        def reset(*_args):
+            raise ConnectionResetError("connection reset by peer")
+
+        client = HttpMarketData(post=reset, fetch=reset)
+        with pytest.raises(MarketDataUnreachable):
+            client.create(["VTI"], reinvested=False)
+
+    def test_a_truncated_body_is_a_corrupt_payload(self, market):
+        """A proxy cutting a stream produces a 200 with short bytes.
+
+        Neither a refusal about the request nor an unreachable service, and it
+        used to raise whatever the parquet reader raised — which a caller
+        cannot act on.
+        """
+        _http, client, store = market
+        snapshot_hash, descriptor_hash = client.create(["VTI"],
+                                                       reinvested=False)
+        whole = store.get(snapshot_hash)
+
+        truncated = HttpMarketData(
+            post=client.post,
+            fetch=lambda *_a: (200, whole[:len(whole) // 3], {}))
+        with pytest.raises(MarketDataRefused) as refused:
+            truncated.get(snapshot_hash, descriptor_hash)
+        assert refused.value.kind is Failure.PAYLOAD_CORRUPT
+        assert "did not decode" in refused.value.detail
+
+    def test_a_response_that_is_not_a_descriptor_is_a_contract_failure(self):
+        """`from_json` names every field it needs, which is the point — so a
+        partial body raised from inside the parser and a caller saw
+        `KeyError: session_range` rather than what actually happened."""
+        client = HttpMarketData(
+            post=lambda *_a: (200, {"descriptor": {"snapshot_hash": "x"}}),
+            fetch=lambda *_a: (200, b"", {}))
+        with pytest.raises(MarketDataRefused) as refused:
+            client.get("mdf1:x", "mds1:y")
+        assert refused.value.kind is Failure.CONTRACT_MISMATCH
+
+    def test_an_unclassified_error_body_is_unreachable_not_refused(self):
+        """A 500 with an HTML error page carries no failure kind. Guessing
+        which refusal it was would be inventing a reason for the user."""
+        client = HttpMarketData(
+            post=lambda *_a: (500, None),
+            fetch=lambda *_a: (500, b"<html>gateway error</html>", {}))
+        with pytest.raises(MarketDataUnreachable):
+            client.create(["VTI"], reinvested=False)
