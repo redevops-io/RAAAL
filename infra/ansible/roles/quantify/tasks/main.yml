@@ -880,20 +880,43 @@
 # to destroy. The application cannot start a login without this id and
 # re-bootstrapping would mint a different one, so a copy that outlives the
 # instance is what makes the teardown reversible rather than final.
-- name: Keep the client id somewhere the instance does not own
+#
+# **Written by the deployer, not by the instance.** The first version had the
+# host run `put-secret-value` and it was refused: the instance role may read
+# secrets and may not write them, which is correct and worth keeping. An
+# instance that can write to Secrets Manager is an instance whose compromise
+# rewrites credentials rather than merely reading them, and widening that role
+# to make a convenience work would have been the wrong repair.
+#
+# So the value is read from the host and written from the controller, which
+# already holds deployment credentials by definition.
+- name: Read the client id off the host
   when: quantify_identity_domain | default("") | length > 0
-  ansible.builtin.shell: |
-    set -euo pipefail
-    aws secretsmanager put-secret-value --region {{ quantify_region }} \
-      --secret-id {{ quantify_project | default("quantify") }}-{{ quantify_environment | default("test") }}/identity-client-id \
-      --secret-string "$(cat /opt/quantify/identity-client-id)" >/dev/null \
-      || aws secretsmanager create-secret --region {{ quantify_region }} \
-           --name {{ quantify_project | default("quantify") }}-{{ quantify_environment | default("test") }}/identity-client-id \
-           --secret-string "$(cat /opt/quantify/identity-client-id)" >/dev/null
-  args:
-    executable: /bin/bash
+  ansible.builtin.slurp:
+    src: /opt/quantify/identity-client-id
   become: true
+  register: client_id_on_disk
+  changed_when: false
+  no_log: true
+
+- name: Keep it somewhere the instance does not own
+  when: quantify_identity_domain | default("") | length > 0
+  delegate_to: localhost
+  become: false
+  ansible.builtin.command:
+    argv:
+      - aws
+      - secretsmanager
+      - put-secret-value
+      - --region
+      - "{{ quantify_region }}"
+      - --secret-id
+      - "{{ quantify_identity_client_secret_id | default('quantify-test/identity-client-id') }}"
+      - --secret-string
+      - "{{ client_id_on_disk.content | b64decode | trim }}"
+  register: stored_client_id
   changed_when: true
+  no_log: true
 
 # The first deploy rendered the environment before the application existed, so
 # the running container has an empty client id and cannot start a login. This
