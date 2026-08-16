@@ -122,6 +122,55 @@
       no_log: true
       when: "'data' in targets"
 
+    # --- migrations --------------------------------------------------------
+    #
+    # Before the workloads, for the reason `site.yml` gives: the application
+    # refuses to serve a database at the wrong head, so an unmigrated deploy
+    # fails readiness — which is the right refusal at the wrong moment. As a
+    # deploy step it is a migration somebody reads; as a readiness failure it
+    # is a rollout somebody debugs.
+    - name: Render the migration Job for this build
+      ansible.builtin.set_fact:
+        migration_job: >-
+          {{ lookup('file', playbook_dir + '/../../deploy/kubernetes/migrate.yaml')
+             | replace('IMAGE_PLACEHOLDER', image)
+             | replace('COMMIT_SHORT_PLACEHOLDER', build_commit[:8]) }}
+      when: "'data' in targets"
+
+    - name: Migrate
+      kubernetes.core.k8s:
+        definition: "{{ migration_job | from_yaml }}"
+        state: present
+      when: "'data' in targets"
+
+    - name: Wait for the migration to finish
+      ansible.builtin.command:
+        cmd: >-
+          kubectl -n {{ k8s_namespace }} wait --for=condition=complete
+          job/quantify-migrate-{{ build_commit[:8] }} --timeout=10m
+      changed_when: false
+      when: "'data' in targets"
+
+    - name: Read what it did
+      ansible.builtin.command:
+        cmd: >-
+          kubectl -n {{ k8s_namespace }} logs
+          job/quantify-migrate-{{ build_commit[:8] }}
+      register: migration
+      changed_when: false
+      when: "'data' in targets"
+
+    # `AT_HEAD=true` is asserted inside the Job, so this is the second reader
+    # of the same fact rather than the only one. A migration that ran without
+    # reaching the head this build expects produces a service that starts and
+    # refuses every request.
+    - name: Refuse to deploy onto a database that is not at this build's head
+      ansible.builtin.assert:
+        that: "'AT_HEAD=true' in migration.stdout"
+        fail_msg: "the database is not at this build's migration head: {{ migration.stdout }}"
+        success_msg: "{{ migration.stdout_lines | select('search', '=') | list }}"
+      when: "'data' in targets"
+
     # --- the workloads -----------------------------------------------------
 
     - name: Render each manifest with the pinned image

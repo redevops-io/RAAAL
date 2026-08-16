@@ -1,0 +1,77 @@
+# Migrations, as a deploy step rather than as an outage.
+#
+# The application refuses to serve a database at the wrong head, so an
+# unmigrated deployment fails readiness rather than serving a schema it does
+# not understand. That is the right refusal and the wrong moment: it arrives as
+# a service that will not come up, at the point where somebody is watching a
+# rollout rather than reading a migration. `site.yml` already runs migrations
+# before starting the container for exactly this reason, and this is the same
+# decision expressed in the cluster.
+#
+# **Named for the commit it carries.** A Job's pod template is immutable, so a
+# fixed name cannot be re-applied with a different image — and a Job left from
+# a previous deploy would report Complete without having run this build's
+# migrations. The name changes when the build does, which makes re-applying the
+# same build a no-op and a new build a new Job.
+#
+# **It is not idempotent by luck.** `migrate.upgrade` is; this manifest simply
+# does not hide what happened. The playbook reads the Job's log and prints the
+# revision it moved to, so "already at head" and "applied four migrations" are
+# different lines rather than the same silence.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: quantify-migrate-COMMIT_SHORT_PLACEHOLDER
+  namespace: quantify
+spec:
+  backoffLimit: 2
+  # Kept after completion so the log can be read. A Job that deleted itself on
+  # success would take the evidence with it.
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { app: quantify-migrate }
+    spec:
+      restartPolicy: Never
+      # The same identity as the service whose schema this is. A migration run
+      # by something with broader permissions than the service is a migration
+      # nobody can reason about from the service's own role.
+      serviceAccountName: quantify-data
+      containers:
+        - name: migrate
+          image: IMAGE_PLACEHOLDER
+          command:
+            - python
+            - -c
+            - |
+              import os
+              from src.db import migrate
+              from src.db.engine import Database
+
+              database = Database(os.environ["QUANTIFY_DATABASE_URL"])
+              before = migrate.applied_revision(database)
+              migrate.upgrade(database)
+              after = migrate.applied_revision(database)
+              print("BEFORE=" + str(before))
+              print("MIGRATED_TO=" + str(after))
+              print("CODE_HEAD=" + migrate.code_head())
+              # The check the deploy actually depends on. `upgrade` returning
+              # without raising is not the same as the database being at the
+              # head this build expects, and the difference is a service that
+              # starts and then refuses every request.
+              assert str(after) == str(migrate.code_head()), (
+                  "the database is at " + str(after) + " and this build "
+                  "expects " + migrate.code_head())
+              print("AT_HEAD=true")
+          env:
+            - name: QUANTIFY_DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: quantify-data, key: database_url }
+            - name: PILOT_DATA_POLICY
+              value: SYNTHETIC_ONLY
+            - name: QUANTIFY_DEPLOYMENT_PROFILE
+              value: local
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { memory: 1Gi }
