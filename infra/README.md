@@ -29,8 +29,8 @@ under which deploying would be worse than not deploying.
 
 | Refusal | Where |
 |---|---|
-| an image not pinned by digest | `terraform plan`, and again in `site.yml` |
-| a data policy other than `SYNTHETIC_ONLY` | `terraform plan`, and again in `site.yml` |
+| an image not pinned by digest | `terraform plan`, and again at deploy |
+| a data policy other than `SYNTHETIC_ONLY` | `terraform plan`, and again at deploy |
 | backup retention of zero | `terraform plan` |
 | an empty model key under `MODEL_ASSISTED` | the host, before the service starts |
 | a basic-auth secret with no hash | the host, before the service starts |
@@ -71,7 +71,7 @@ Then deploy:
 cd ../ansible
 ansible-galaxy install -r requirements.yml
 terraform -chdir=../terraform output -json ansible_variables > /tmp/quantify.json
-ansible-playbook -i inventory.aws_ec2.yml site.yml -e @/tmp/quantify.json
+ansible-playbook services.yml -e service=data,evaluate,web
 ```
 
 Finally, from your machine — against the public URL, not the container:

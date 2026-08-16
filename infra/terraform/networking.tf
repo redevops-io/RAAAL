@@ -111,35 +111,8 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# VPC endpoints for SSM. Session Manager works over the NAT gateway too, but
-# these keep the control path off the public internet and mean an operator can
-# still reach the host to diagnose an egress failure — which is precisely the
-# failure that would otherwise also cut them off from it.
-resource "aws_security_group" "endpoints" {
-  name        = "${local.name}-endpoints"
-  description = "Interface endpoints for SSM"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description     = "HTTPS from the application host"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.app.id]
-  }
-
-  tags = { Name = "${local.name}-endpoints" }
-}
-
-resource "aws_vpc_endpoint" "ssm" {
-  for_each = toset(["ssm", "ssmmessages", "ec2messages"])
-
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.region}.${each.value}"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.endpoints.id]
-  private_dns_enabled = true
-
-  tags = { Name = "${local.name}-${each.value}" }
-}
+# The SSM interface endpoints were removed with the host they served. They
+# existed so an operator could reach the application instance to diagnose an
+# egress failure without depending on that egress. There is no instance to
+# reach now: the cluster's nodes are managed by Auto Mode and are not a place
+# anybody logs into, and the workloads are reached with `kubectl`.

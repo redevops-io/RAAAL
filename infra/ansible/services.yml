@@ -4,9 +4,9 @@
 #   ansible-playbook services.yml            # every service in order
 #
 # **Runs locally, against the cluster API.** There is no host to reach: the
-# thing being configured is a control plane, not a machine. `site.yml` still
-# owns the EC2 deployment and is untouched by this — two deployment paths exist
-# while the migration is in progress, which is deliberate and temporary.
+# thing being configured is a control plane, not a machine. This is now the
+# only deployment path; the EC2 one it ran alongside during the migration is in
+# `archive/ec2-deployment/` and has nothing left to deploy to.
 #
 # **The database password is never read.** It is fetched from a sensitive
 # terraform output with `no_log`, handed to the cluster Secret, and never
@@ -59,6 +59,7 @@
         chdir: "{{ terraform_dir }}"
       register: tfvars
       changed_when: false
+      check_mode: false
 
     - name: Name what is being deployed
       ansible.builtin.set_fact:
@@ -292,7 +293,7 @@
 
     # --- migrations --------------------------------------------------------
     #
-    # Before the workloads, for the reason `site.yml` gives: the application
+    # Before the workloads, for the reason the EC2 deployment gave: the application
     # refuses to serve a database at the wrong head, so an unmigrated deploy
     # fails readiness — which is the right refusal at the wrong moment. As a
     # deploy step it is a migration somebody reads; as a readiness failure it

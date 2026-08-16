@@ -113,8 +113,12 @@ jobs:
         run: |
           set -euo pipefail
           ansible-galaxy install -r requirements.yml
-          terraform -chdir=../terraform output -json ansible_variables > /tmp/quantify.json
-          ansible-playbook -i inventory.aws_ec2.yml site.yml -e @/tmp/quantify.json
+          # The application services only. `identity` and `tunnel` are
+          # deliberately not deployed here: Zitadel restarts on a Recreate
+          # strategy and the connector is the sole ingress path, so a routine
+          # application deploy has no business interrupting either. Both are
+          # deployed on purpose, by name, when they change.
+          ansible-playbook services.yml -e service=data,evaluate,web
 
       - name: Prove the running service is this revision
         env:

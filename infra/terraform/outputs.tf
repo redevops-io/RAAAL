@@ -7,10 +7,6 @@ output "application_url" {
   value       = "https://${var.domain_name}"
 }
 
-output "instance_id" {
-  description = "EC2 instance. `aws ssm start-session --target <id>`."
-  value       = aws_instance.app.id
-}
 
 output "database_endpoint" {
   description = "RDS endpoint. Not publicly reachable."
@@ -52,7 +48,6 @@ output "ansible_variables" {
   description = "Feed to ansible-playbook with -e @<file>."
   value = {
     quantify_region                = var.region
-    quantify_instance_id           = aws_instance.app.id
     quantify_database_host         = aws_db_instance.main.address
     quantify_image                 = local.application_image
     quantify_registry_host         = var.registry_host
@@ -76,7 +71,5 @@ output "ansible_variables" {
     quantify_secret_model_key      = aws_secretsmanager_secret.model_api_key.name
     quantify_secret_basic_auth     = aws_secretsmanager_secret.workspace_basic_auth.name
     quantify_secret_tunnel_token   = aws_secretsmanager_secret.tunnel_token.name
-    quantify_alb_dns               = aws_lb.main.dns_name
-    quantify_ssm_bucket            = aws_s3_bucket.deploy_transfer.bucket
   }
 }

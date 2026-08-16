@@ -58,7 +58,7 @@ data:
     :8081 {
       reverse_proxy localhost:8080 {
         # The two headers that decide what the issuer says. Identical to
-        # infra/ansible/roles/quantify/templates/Caddyfile.j2, deliberately:
+        # archive/ec2-deployment/roles/quantify/templates/Caddyfile.j2,
         # the point of this container is to not be a different answer to a
         # problem production already solved.
         header_up X-Forwarded-Proto https

@@ -25,26 +25,6 @@ resource "aws_sns_topic_subscription" "email" {
 # application refuses to serve under: migration mismatch, schema drift,
 # unreachable database, unobservable build, undeclared parser. A refusal is
 # correct behaviour and still needs somebody told.
-resource "aws_cloudwatch_metric_alarm" "unhealthy_target" {
-  alarm_name          = "${local.name}-not-ready"
-  alarm_description   = "The application is not answering /health/ready. See docs/Runbook.md - Startup refusals."
-  namespace           = "AWS/ApplicationELB"
-  metric_name         = "UnHealthyHostCount"
-  statistic           = "Maximum"
-  period              = 60
-  evaluation_periods  = 3
-  threshold           = 0
-  comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "breaching"
-
-  dimensions = {
-    LoadBalancer = aws_lb.main.arn_suffix
-    TargetGroup  = aws_lb_target_group.app.arn_suffix
-  }
-
-  alarm_actions = [aws_sns_topic.alerts.arn]
-  ok_actions    = [aws_sns_topic.alerts.arn]
-}
 
 # --- the application failed --------------------------------------------------
 #
@@ -61,56 +41,10 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_target" {
 # So the alarm measures what its description claims: the server broke. A
 # refusal is not a break, and an alarm that fires on ordinary use is one nobody
 # reads by week three.
-resource "aws_cloudwatch_log_metric_filter" "server_fault" {
-  name           = "${local.name}-server-fault"
-  log_group_name = aws_cloudwatch_log_group.application.name
 
-  # Caddy's access log is JSON, so the status is a field rather than a token in
-  # a line. 501 is excluded by name: it is the only 5xx this build issues on
-  # purpose, and excluding the range instead would hide a genuine 500.
-  pattern = "{ ($.status >= 500) && ($.status != 501) }"
-
-  metric_transformation {
-    name          = "ServerFaultCount"
-    namespace     = "Quantify/${var.environment}"
-    value         = "1"
-    default_value = "0"
-  }
-}
-
-resource "aws_cloudwatch_metric_alarm" "server_fault" {
-  alarm_name          = "${local.name}-5xx"
-  alarm_description   = "The application failed — a 5xx that is not a deliberate capability refusal. Every one carries a correlation id; grep the log for it."
-  namespace           = "Quantify/${var.environment}"
-  metric_name         = aws_cloudwatch_log_metric_filter.server_fault.metric_transformation[0].name
-  statistic           = "Sum"
-  period              = 300
-  evaluation_periods  = 1
-  threshold           = 5
-  comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
-
-  alarm_actions = [aws_sns_topic.alerts.arn]
-  ok_actions    = [aws_sns_topic.alerts.arn]
-}
 
 # --- the host and the database --------------------------------------------
 
-resource "aws_cloudwatch_metric_alarm" "instance_cpu" {
-  alarm_name          = "${local.name}-instance-cpu"
-  alarm_description   = "Sustained CPU on the application host."
-  namespace           = "AWS/EC2"
-  metric_name         = "CPUUtilization"
-  statistic           = "Average"
-  period              = 300
-  evaluation_periods  = 3
-  threshold           = 85
-  comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
-
-  dimensions    = { InstanceId = aws_instance.app.id }
-  alarm_actions = [aws_sns_topic.alerts.arn]
-}
 
 resource "aws_cloudwatch_metric_alarm" "database_cpu" {
   alarm_name          = "${local.name}-database-cpu"

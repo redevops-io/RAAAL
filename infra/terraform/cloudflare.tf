@@ -25,43 +25,29 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "pilot" {
 
 # Ingress rules live in Cloudflare rather than in a config file on the host,
 # so the routing is one declarative thing rather than two that can disagree.
-# Where the tunnel sends traffic, as one variable rather than an edit.
+# Where the tunnel sends traffic.
 #
-# The move to Kubernetes changes which load balancer answers, not how the
-# traffic gets here — the tunnel, the hostnames and the certificates are
-# untouched. Making it a variable means the cutover is `-var tunnel_origin=...`
-# and the rollback is the same command with the other value, while EC2 is still
-# running and still healthy. An edit to a hardcoded name would make going back
-# a code change under pressure.
+# One origin per hostname, and no choice left in it. This was a variable during
+# the migration so the cutover and the rollback were the same command; EC2 is
+# gone, so a variable would now describe a decision nobody can make. It is also
+# the variable whose default silently moved production back to the old
+# deployment, which is an argument for having no default rather than a better
+# one.
 #
-# Two ALBs, not one: EKS Auto Mode's load-balancer controller does not
-# implement `alb.ingress.kubernetes.io/group.name` — that is the standalone AWS
-# Load Balancer Controller's feature — so each Ingress gets its own. Observed
-# rather than assumed: both Ingresses reconciled successfully and reported
-# different hostnames. It costs a second ALB and buys per-hostname health
-# checks, which these two need anyway: quantify-web answers `/health/live` and
-# Zitadel answers `/debug/healthz`.
+# Two ALBs, not one: EKS Auto Mode's controller does not implement
+# `alb.ingress.kubernetes.io/group.name`, so each Ingress gets its own.
+# Observed, not assumed — both reconciled and reported different hostnames.
 data "aws_lb" "cluster_web" {
-  count = var.tunnel_origin == "cluster" ? 1 : 0
-  tags  = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-web" }
+  tags = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-web" }
 }
 
 data "aws_lb" "cluster_identity" {
-  count = var.tunnel_origin == "cluster" ? 1 : 0
-  tags  = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-identity" }
+  tags = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-identity" }
 }
 
 locals {
-  # The application origin, and the identity origin. On EC2 they were the same
-  # load balancer because Caddy on the host routed by `Host`; in the cluster
-  # the routing is the Ingress and they are separate.
-  tunnel_web_origin = var.tunnel_origin == "cluster" ? (
-    "http://${data.aws_lb.cluster_web[0].dns_name}:80"
-  ) : "http://${aws_lb.main.dns_name}:80"
-
-  tunnel_identity_origin = var.tunnel_origin == "cluster" ? (
-    "http://${data.aws_lb.cluster_identity[0].dns_name}:80"
-  ) : "http://${aws_lb.main.dns_name}:80"
+  tunnel_web_origin      = "http://${data.aws_lb.cluster_web.dns_name}:80"
+  tunnel_identity_origin = "http://${data.aws_lb.cluster_identity.dns_name}:80"
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
