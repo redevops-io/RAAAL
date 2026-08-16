@@ -35,7 +35,7 @@
     # Which services this playbook knows, in the order they may be deployed.
     # Data first: evaluate is configured with its URL and has nothing to talk
     # to until it exists.
-    known_services: [data, evaluate, web]
+    known_services: [data, identity, evaluate, web]
 
   tasks:
     - name: Require a cluster to deploy to
@@ -64,6 +64,9 @@
       ansible.builtin.set_fact:
         image: "{{ (tfvars.stdout | from_json).quantify_image }}"
         build_commit: "{{ (tfvars.stdout | from_json).quantify_build_commit }}"
+        database_host: "{{ (tfvars.stdout | from_json).quantify_database_host }}"
+        domain: "{{ (tfvars.stdout | from_json).quantify_domain }}"
+        identity_domain: "{{ (tfvars.stdout | from_json).quantify_identity_domain }}"
         targets: "{{ known_services if service == 'all' else [service] }}"
 
     - name: Refuse a service this playbook does not know
@@ -95,7 +98,7 @@
       register: database_url
       changed_when: false
       no_log: true
-      when: "'data' in targets"
+      when: targets | intersect(['data', 'web']) | length > 0
 
     - name: Refuse an empty credential rather than deploying without one
       ansible.builtin.assert:
@@ -105,7 +108,7 @@
           string. A service deployed with a blank credential comes up, fails
           every request, and reports as running.
         success_msg: "a database URL was produced (value not shown)"
-      when: "'data' in targets"
+      when: targets | intersect(['data', 'web']) | length > 0
 
     - name: Give quantify-data its database URL
       kubernetes.core.k8s:
@@ -121,6 +124,104 @@
         state: present
       no_log: true
       when: "'data' in targets"
+
+    # --- the other credentials ---------------------------------------------
+    #
+    # Fetched from Secrets Manager, not from terraform outputs and not from a
+    # file. Each read and each write carries `no_log`: the value is in stdout
+    # for one and in task arguments for the other, and `-vvv` must not turn a
+    # deploy log into a credential store.
+    - name: Fetch the runtime secrets
+      ansible.builtin.command:
+        cmd: >-
+          aws secretsmanager get-secret-value --region {{ region | default('us-east-1') }}
+          --secret-id {{ item.id }} --query SecretString --output text
+        chdir: "{{ terraform_dir }}"
+      register: fetched
+      changed_when: false
+      no_log: true
+      loop:
+        - { name: db_password,  id: "quantify-test/database-password" }
+        - { name: masterkey,    id: "quantify-test/identity-masterkey" }
+        - { name: model_key,    id: "quantify-test/model-api-key" }
+        - { name: client_id,    id: "quantify-test/identity-client-id" }
+      when: targets | intersect(['identity', 'web']) | length > 0
+
+    - name: Name them without showing them
+      ansible.builtin.set_fact:
+        secret: "{{ dict(fetched.results | map(attribute='item.name')
+                    | zip(fetched.results | map(attribute='stdout'))) }}"
+      no_log: true
+      when: targets | intersect(['identity', 'web']) | length > 0
+
+    - name: Refuse blanks rather than deploying them
+      ansible.builtin.assert:
+        that: secret[item] | default('') | length > 4
+        fail_msg: >-
+          {{ item }} came back empty. A service deployed with a blank
+          credential comes up, fails every request, and reports as running —
+          and for the identity master key it would come up unable to decrypt
+          anything already stored.
+      loop: [db_password, masterkey, model_key, client_id]
+      no_log: true
+      when: targets | intersect(['identity', 'web']) | length > 0
+
+    - name: Give quantify-identity what Zitadel needs
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata: { name: quantify-identity, namespace: "{{ k8s_namespace }}" }
+          type: Opaque
+          stringData:
+            ZITADEL_MASTERKEY: "{{ secret.masterkey }}"
+            # The same issuer it already publishes. Changing it would
+            # invalidate every token in circulation and every stored redirect.
+            ZITADEL_EXTERNALDOMAIN: "{{ identity_domain | default('auth.quantify.club') }}"
+            ZITADEL_EXTERNALPORT: "443"
+            ZITADEL_EXTERNALSECURE: "true"
+            ZITADEL_DATABASE_POSTGRES_HOST: "{{ database_host }}"
+            ZITADEL_DATABASE_POSTGRES_PORT: "5432"
+            ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+            ZITADEL_DATABASE_POSTGRES_USER_USERNAME: quantify
+            ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: "{{ secret.db_password }}"
+            ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: require
+            ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: quantify
+            ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: "{{ secret.db_password }}"
+            ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: require
+        state: present
+      no_log: true
+      when: "'identity' in targets"
+
+    - name: Give quantify-web its configuration
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata: { name: quantify-web, namespace: "{{ k8s_namespace }}" }
+          type: Opaque
+          stringData:
+            QUANTIFY_DATABASE_URL: "{{ database_url.stdout | trim }}"
+            QUANTIFY_DEPLOYMENT_PROFILE: production
+            PILOT_DATA_POLICY: SYNTHETIC_ONLY
+            ANTHROPIC_API_KEY: "{{ secret.model_key }}"
+            QUANTIFY_PARSER_MODE: MODEL_ASSISTED
+            QUANTIFY_PARSER_MODEL: claude-sonnet-5
+            # The issuer stays what it is. `iss` is checked on every token and
+            # is published in discovery, so this is not a value to tidy.
+            OIDC_ISSUER: "https://{{ identity_domain | default('auth.quantify.club') }}"
+            OIDC_CLIENT_ID: "{{ secret.client_id }}"
+            OIDC_AUDIENCE: "{{ secret.client_id }}"
+            # Reached in-cluster, published externally. Zitadel's discovery is
+            # fetched over the internal Service while the issuer it advertises
+            # stays the public hostname — the same split the EC2 deployment
+            # makes, and the reason a Cloudflare bot rule once refused every
+            # token exchange.
+            OIDC_INTERNAL_BASE_URL: "http://quantify-identity"
+            PUBLIC_BASE_URL: "https://{{ domain | default('quantify.club') }}"
+        state: present
+      no_log: true
+      when: "'web' in targets"
 
     # --- migrations --------------------------------------------------------
     #
@@ -203,6 +304,30 @@
     # `rollout status` says Kubernetes is satisfied. It does not say the
     # service answers, and a pod that is running but misconfigured satisfies
     # Kubernetes completely.
+    - name: The ingress, once the services it names exist
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', playbook_dir + '/../../deploy/kubernetes/ingress.yaml')
+                        | replace('DOMAIN_PLACEHOLDER', domain)
+                        | replace('IDENTITY_DOMAIN_PLACEHOLDER', identity_domain)
+                        | from_yaml }}"
+        state: present
+      when: targets | intersect(['web', 'identity']) | length == 2
+
+    # Zitadel answers `/debug/ready`, not `/version`. Asked separately rather
+    # than widening the identity check, because "every service answers the same
+    # endpoint" is a convenience and this one is a different program.
+    - name: Ask identity whether it is ready
+      ansible.builtin.command:
+        cmd: >-
+          kubectl -n {{ k8s_namespace }} run readycheck-{{ 999 | random }}
+          --rm -i --restart=Never --quiet
+          --image=public.ecr.aws/docker/library/busybox:1.36
+          --command -- wget -qO- --timeout=20 http://quantify-identity/debug/ready
+      register: identity_ready
+      changed_when: false
+      failed_when: identity_ready.rc != 0
+      when: "'identity' in targets"
+
     - name: Ask each service to identify itself
       ansible.builtin.command:
         cmd: >-
@@ -210,7 +335,7 @@
           --rm -i --restart=Never --quiet
           --image=public.ecr.aws/docker/library/busybox:1.36
           --command -- wget -qO- --timeout=10 http://quantify-{{ item }}/version
-      loop: "{{ targets }}"
+      loop: "{{ targets | difference(['identity', 'web']) }}"
       register: identity
       changed_when: false
       failed_when: identity.rc != 0 or 'contract_version' not in identity.stdout

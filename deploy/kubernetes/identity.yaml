@@ -1,0 +1,88 @@
+# Zitadel, moved and not upgraded.
+#
+# **v2.65.1, the version already running.** Relocating a container and
+# upgrading an identity provider are two changes, and doing both at once means
+# a login regression has two plausible causes. The upgrade is a separate
+# decision for a separate day.
+#
+# **The same database, the same master key, the same issuer.** Zitadel's
+# durable state is in RDS — database `zitadel`, reached with the same
+# credential — so this move preserves the accounts that exist rather than
+# migrating them. The master key decrypts what is in that database; a new one
+# would leave every stored secret unreadable while the service came up looking
+# healthy. And the issuer is published in OIDC discovery and embedded in every
+# token already issued, so it stays exactly as it is: `auth.quantify.club`,
+# reached by that name through the same tunnel.
+#
+# **Probes that read and do not write.** `/debug/healthz` and `/debug/ready`
+# answer without touching identity state. A probe that authenticated, or
+# created anything, would make Kubernetes' own liveness checking a source of
+# writes to the account store — and a restart loop would then be an
+# ever-growing pile of them.
+#
+# **One replica, for the move.** Zitadel supports more, and adding replicas at
+# the same time as changing where it runs is the same mistake as upgrading it.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quantify-identity
+  namespace: quantify
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantify-identity
+  namespace: quantify
+spec:
+  replicas: 1
+  strategy:
+    # Recreate: two Zitadel processes racing to apply the same schema
+    # migrations against one database is a way to find out what its migration
+    # locking does under load, during a cutover, with real accounts in it.
+    type: Recreate
+  selector:
+    matchLabels: { app: quantify-identity }
+  template:
+    metadata:
+      labels: { app: quantify-identity }
+    spec:
+      serviceAccountName: quantify-identity
+      containers:
+        - name: identity
+          image: ghcr.io/zitadel/zitadel:v2.65.1
+          args: ["start", "--masterkeyFromEnv", "--tlsMode", "external"]
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef: { name: quantify-identity }
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { memory: 1Gi }
+          readinessProbe:
+            httpGet: { path: /debug/ready, port: 8080 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /debug/healthz, port: 8080 }
+            # Generous: Zitadel applies its own schema migrations at start, and
+            # a liveness probe that fires during them restarts the process
+            # mid-migration. `start` rather than `start-from-init` here, so the
+            # window is short — but "short" is not "instant" and a restart loop
+            # during a migration is how a working identity store stops being
+            # one.
+            initialDelaySeconds: 120
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantify-identity
+  namespace: quantify
+spec:
+  type: ClusterIP
+  selector: { app: quantify-identity }
+  ports:
+    - port: 80
+      targetPort: 8080

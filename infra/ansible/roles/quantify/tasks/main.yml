@@ -876,6 +876,25 @@
   become: true
   register: recorded_client_id
 
+# And in Secrets Manager, because the file is on a disk this deployment intends
+# to destroy. The application cannot start a login without this id and
+# re-bootstrapping would mint a different one, so a copy that outlives the
+# instance is what makes the teardown reversible rather than final.
+- name: Keep the client id somewhere the instance does not own
+  when: quantify_identity_domain | default("") | length > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    aws secretsmanager put-secret-value --region {{ quantify_region }} \
+      --secret-id {{ quantify_project | default("quantify") }}-{{ quantify_environment | default("test") }}/identity-client-id \
+      --secret-string "$(cat /opt/quantify/identity-client-id)" >/dev/null \
+      || aws secretsmanager create-secret --region {{ quantify_region }} \
+           --name {{ quantify_project | default("quantify") }}-{{ quantify_environment | default("test") }}/identity-client-id \
+           --secret-string "$(cat /opt/quantify/identity-client-id)" >/dev/null
+  args:
+    executable: /bin/bash
+  become: true
+  changed_when: true
+
 # The first deploy rendered the environment before the application existed, so
 # the running container has an empty client id and cannot start a login. This
 # re-renders with the value now known and restarts, which makes the first

@@ -214,3 +214,27 @@ resource "aws_secretsmanager_secret_version" "smtp" {
     ignore_changes = [secret_string]
   }
 }
+
+
+# The OIDC client id, which lives on a disk we intend to destroy.
+#
+# Zitadel mints it at bootstrap and the EC2 role writes it to
+# `/opt/quantify/identity-client-id`. That file is the only record: the
+# application cannot start a login without it, and re-bootstrapping would mint
+# a *different* client, so an instance teardown that took the file with it
+# would take every existing login with it too.
+#
+# Declared here without a version. Terraform owns the container; the playbook
+# writes the value, because the authoritative copy is the one the running
+# identity provider actually issued and not one this configuration invented.
+#
+# Not a credential — a public OIDC client identifier travels in every
+# authorization URL. It is in Secrets Manager because it is *critical state*
+# that needs somewhere durable and access-controlled, which is the same
+# facility for a different reason.
+resource "aws_secretsmanager_secret" "identity_client_id" {
+  count                   = var.identity_domain_name != "" ? 1 : 0
+  name                    = "${local.name}/identity-client-id"
+  description             = "OIDC client id minted by Zitadel at bootstrap"
+  recovery_window_in_days = 0
+}
