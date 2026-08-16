@@ -294,3 +294,16 @@ variable "alert_email" {
   description = "Address that receives CloudWatch alarms and budget notices."
   type        = string
 }
+
+variable "enable_kubernetes" {
+  description = <<-EOT
+    Whether this environment runs the EKS Auto Mode cluster.
+
+    Defaults to false so a routine application deploy cannot create a cluster
+    as a side effect. Set it in an environment's tfvars rather than passing it
+    on the command line: passed as a flag, the first apply that forgot it would
+    destroy the cluster, and "remember the flag" is not a control.
+  EOT
+  type    = bool
+  default = false
+}

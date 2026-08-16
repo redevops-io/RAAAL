@@ -49,3 +49,11 @@ parser_fallback   = "REFUSE"
 # --- alerts ----------------------------------------------------------------
 alert_email        = "operator@example.com"
 monthly_budget_usd = 150
+
+# Whether this environment runs the EKS Auto Mode cluster.
+#
+# Set here rather than passed on the command line. As a flag, the first apply
+# that forgot it would destroy the cluster — and "remember the flag" is not a
+# control. As a line in this file, turning it on is a diff somebody reviews and
+# every later apply keeps it.
+enable_kubernetes = true
