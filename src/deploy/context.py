@@ -237,6 +237,17 @@ class DatabaseTarget:
         return {"engine": self.dialect, "identity": self.display}
 
 
+#: Where immutable observation payloads are kept.
+#:
+#: Here for the reason everything else is: one module reads the environment. A
+#: service resolving its own snapshot root would be a second reader, which is
+#: how two halves of one deployment come to disagree about where their data
+#: lives. The build identity needs no equivalent — `BuildManifest.deployment`
+#: already maps `QUANTIFY_BUILD_COMMIT` to `build_commit`, and a second answer
+#: to "what build is this" is precisely what the rule forbids.
+SNAPSHOT_ROOT_VAR = "QUANTIFY_SNAPSHOT_ROOT"
+
+
 @dataclass(frozen=True)
 class MarketDataTarget:
     """Which data a request may obtain, and under which policy."""
@@ -247,6 +258,12 @@ class MarketDataTarget:
     different, and a caller that only sees `None` cannot tell them apart."""
 
     cache_directory: Optional[str] = None
+
+    snapshot_root: Optional[str] = None
+    """Where the market-data service keeps immutable observation payloads.
+
+    `None` where no service is deployed, which is every deployment that still
+    resolves market data in-process."""
 
     @property
     def configured(self) -> bool:
@@ -755,7 +772,8 @@ def resolve(environ: Optional[Mapping[str, str]] = None) -> DeploymentContext:
         database=target,
         market_data=MarketDataTarget(
             policy=policy, policy_error=problem,
-            cache_directory=source.get(CACHE_VARIABLE)),
+            cache_directory=source.get(CACHE_VARIABLE),
+            snapshot_root=source.get(SNAPSHOT_ROOT_VAR)),
         model=_model_target(source),
         telemetry=TelemetryTarget(
             path=source.get(TRACE_PATH_VAR, str(DEFAULT_TRACE_PATH)) or None,

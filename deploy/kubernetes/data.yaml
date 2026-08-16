@@ -1,0 +1,110 @@
+# quantify-data: owns bytes, descriptors, provenance and licensing.
+#
+# Internal only. There is no Ingress here and the Service is ClusterIP, so
+# nothing outside the cluster can reach it — which is half of the acceptance
+# evidence this step exists to produce. The other half is that
+# quantify-evaluate can reach it, and that only quantify-data can reach the
+# market-data store.
+#
+# **The payload volume is a PersistentVolumeClaim, not an emptyDir.** Auto Mode
+# provides block storage, and the difference is not tidiness: descriptors live
+# in PostgreSQL and survive a restart, so payloads on ephemeral disk would
+# leave every descriptor pointing at bytes that no longer exist. That state has
+# a name — PAYLOAD_MISSING — and it should arrive from an interrupted write,
+# not from the storage choice.
+#
+# **One replica, deliberately.** The object store is a filesystem and a
+# ReadWriteOnce volume cannot be shared. Replicating would be a second writer
+# to a create-once store, which is exactly the conflict the store raises on.
+# Horizontal scale waits for S3, where the create-once rule survives
+# concurrency.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quantify-data
+  namespace: quantify
+  # Pod Identity binds an IAM role to this service account. The association
+  # lives in terraform; naming it here is what the association points at.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quantify-data-payloads
+  namespace: quantify
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantify-data
+  namespace: quantify
+spec:
+  replicas: 1
+  strategy:
+    # Recreate, not RollingUpdate: two pods cannot mount one ReadWriteOnce
+    # volume, so a rolling update would deadlock waiting for a pod that can
+    # never schedule.
+    type: Recreate
+  selector:
+    matchLabels: { app: quantify-data }
+  template:
+    metadata:
+      labels: { app: quantify-data }
+    spec:
+      serviceAccountName: quantify-data
+      containers:
+        - name: data
+          image: IMAGE_PLACEHOLDER
+          command: ["uvicorn", "src.market_data.asgi:create_app", "--factory",
+                    "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+          env:
+            - name: QUANTIFY_SNAPSHOT_ROOT
+              value: /var/lib/quantify/snapshots
+            - name: PILOT_DATA_POLICY
+              value: SYNTHETIC_ONLY
+            - name: QUANTIFY_DEPLOYMENT_PROFILE
+              value: local
+            - name: QUANTIFY_DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: quantify-data, key: database_url }
+            - name: QUANTIFY_BUILD_COMMIT
+              value: COMMIT_PLACEHOLDER
+            - name: QUANTIFY_IMAGE_DIGEST
+              value: DIGEST_PLACEHOLDER
+          volumeMounts:
+            - name: payloads
+              mountPath: /var/lib/quantify/snapshots
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { memory: 1Gi }
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+      volumes:
+        - name: payloads
+          persistentVolumeClaim:
+            claimName: quantify-data-payloads
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantify-data
+  namespace: quantify
+spec:
+  type: ClusterIP
+  selector: { app: quantify-data }
+  ports:
+    - port: 80
+      targetPort: 8000
