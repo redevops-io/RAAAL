@@ -199,3 +199,85 @@ output "eks_kubeconfig_command" {
     "--name", aws_eks_cluster.main[0].name,
   ]) : ""
 }
+
+
+# --- Pod Identity -----------------------------------------------------------
+#
+# Each service assumes its own role. The node role grants nothing beyond
+# pulling images and joining, so a pod cannot reach AWS by borrowing the
+# node's permissions — which is what makes this an enforcement boundary rather
+# than a second copy of the import-graph rule.
+#
+# `quantify-data` owns the market-data store: it reads the database password
+# and, later, the S3 bucket holding payloads. `quantify-evaluate` gets no role
+# at all, and that absence is the point. Somebody who later writes code in the
+# evaluator that reaches for a bucket will find no credentials to reach it
+# with, which is a stronger guarantee than a test that reads imports.
+
+resource "aws_iam_role" "pod_data" {
+  count = var.enable_kubernetes ? 1 : 0
+  name  = "${local.eks_name}-pod-data"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "pods.eks.amazonaws.com" }
+      Action    = ["sts:AssumeRole", "sts:TagSession"]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "pod_data" {
+  count = var.enable_kubernetes ? 1 : 0
+  name  = "market-data-store"
+  role  = aws_iam_role.pod_data[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # The database password, by ARN rather than by wildcard. A service
+        # permitted to read every secret in the account is one whose blast
+        # radius is the account.
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = [aws_secretsmanager_secret.database_password.arn]
+      },
+    ]
+  })
+}
+
+resource "aws_eks_pod_identity_association" "data" {
+  count           = var.enable_kubernetes ? 1 : 0
+  cluster_name    = aws_eks_cluster.main[0].name
+  namespace       = "quantify"
+  service_account = "quantify-data"
+  role_arn        = aws_iam_role.pod_data[0].arn
+}
+
+# The connection string, assembled where both halves are already known.
+#
+# Marked sensitive so terraform will not print it, and fetched by the
+# deployment playbook with `no_log` so it reaches the cluster Secret without
+# passing through a log, a variables file or a shell history. It is
+# deliberately *not* part of `ansible_variables`: that output is written to a
+# file on disk, and a password in it would be a password in a file nobody
+# remembered to delete.
+output "database_url" {
+  description = "Postgres URL including the password. Never written to a file."
+  sensitive   = true
+  value = join("", [
+    "postgresql://", aws_db_instance.main.username, ":",
+    random_password.database.result, "@", aws_db_instance.main.endpoint,
+    "/", aws_db_instance.main.db_name,
+  ])
+}
+
+output "eks_pod_identity_roles" {
+  description = "Which role each service assumes. Evaluate has none, on purpose."
+  value = var.enable_kubernetes ? {
+    "quantify-data"     = aws_iam_role.pod_data[0].arn
+    "quantify-evaluate" = "none — it reaches market data through quantify-data"
+  } : {}
+}

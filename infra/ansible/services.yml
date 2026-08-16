@@ -1,0 +1,174 @@
+# Deploy the Quantify services to Kubernetes.
+#
+#   ansible-playbook services.yml -e service=data
+#   ansible-playbook services.yml            # every service in order
+#
+# **Runs locally, against the cluster API.** There is no host to reach: the
+# thing being configured is a control plane, not a machine. `site.yml` still
+# owns the EC2 deployment and is untouched by this — two deployment paths exist
+# while the migration is in progress, which is deliberate and temporary.
+#
+# **The database password is never read.** It is fetched from a sensitive
+# terraform output with `no_log`, handed to the cluster Secret, and never
+# printed, never written to a variables file, never placed in
+# `ansible_variables` — that output is written to disk, and a password in it is
+# a password in a file nobody remembered to delete. If this playbook is run
+# with `-vvv` the value still does not appear.
+#
+# **A rollout is not a deployment.** The last task asks the service what it is
+# and refuses a pod that is running but wrong: `kubectl rollout status`
+# reporting success means Kubernetes is satisfied, which is a different claim
+# from the service answering correctly.
+---
+- name: Deploy Quantify services to Kubernetes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    terraform_dir: "{{ playbook_dir }}/../terraform"
+    # `namespace` is reserved in Ansible; a variable using it can be shadowed
+    # by the engine's own, which is a class of bug that appears only under some
+    # execution paths.
+    k8s_namespace: quantify
+    service: all
+    # Which services this playbook knows, in the order they may be deployed.
+    # Data first: evaluate is configured with its URL and has nothing to talk
+    # to until it exists.
+    known_services: [data, evaluate, web]
+
+  tasks:
+    - name: Require a cluster to deploy to
+      ansible.builtin.command:
+        cmd: terraform output -raw eks_cluster_name
+        chdir: "{{ terraform_dir }}"
+      register: cluster
+      changed_when: false
+      failed_when: cluster.rc != 0 or cluster.stdout | trim == ""
+
+    - name: Point kubectl at it
+      ansible.builtin.command:
+        cmd: >-
+          aws eks update-kubeconfig --region {{ region | default('us-east-1') }}
+          --name {{ cluster.stdout | trim }}
+      changed_when: false
+
+    - name: Read the image this deployment pins
+      ansible.builtin.command:
+        cmd: terraform output -json ansible_variables
+        chdir: "{{ terraform_dir }}"
+      register: tfvars
+      changed_when: false
+
+    - name: Name what is being deployed
+      ansible.builtin.set_fact:
+        image: "{{ (tfvars.stdout | from_json).quantify_image }}"
+        build_commit: "{{ (tfvars.stdout | from_json).quantify_build_commit }}"
+        targets: "{{ known_services if service == 'all' else [service] }}"
+
+    - name: Refuse a service this playbook does not know
+      ansible.builtin.assert:
+        that: targets | difference(known_services) | length == 0
+        fail_msg: >-
+          {{ targets | difference(known_services) }} is not a service here.
+          Deploying by a name nobody declared would apply a manifest that does
+          not exist and report success.
+
+    - name: The namespace
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ k8s_namespace }}"
+        state: present
+
+    # --- the credential ----------------------------------------------------
+    #
+    # Fetched and handed over without being seen. `no_log` covers both tasks:
+    # the read, because the value is in stdout, and the write, because the
+    # value is in the task arguments.
+    - name: Fetch the database URL
+      ansible.builtin.command:
+        cmd: terraform output -raw database_url
+        chdir: "{{ terraform_dir }}"
+      register: database_url
+      changed_when: false
+      no_log: true
+      when: "'data' in targets"
+
+    - name: Refuse an empty credential rather than deploying without one
+      ansible.builtin.assert:
+        that: database_url.stdout | length > 20
+        fail_msg: >-
+          the database URL output is empty or too short to be a connection
+          string. A service deployed with a blank credential comes up, fails
+          every request, and reports as running.
+        success_msg: "a database URL was produced (value not shown)"
+      when: "'data' in targets"
+
+    - name: Give quantify-data its database URL
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: quantify-data
+            namespace: "{{ k8s_namespace }}"
+          type: Opaque
+          stringData:
+            database_url: "{{ database_url.stdout | trim }}"
+        state: present
+      no_log: true
+      when: "'data' in targets"
+
+    # --- the workloads -----------------------------------------------------
+
+    - name: Render each manifest with the pinned image
+      ansible.builtin.set_fact:
+        rendered: >-
+          {{ rendered | default({}) | combine({
+            item: lookup('file', playbook_dir + '/../../deploy/kubernetes/' + item + '.yaml')
+                  | replace('IMAGE_PLACEHOLDER', image)
+                  | replace('COMMIT_PLACEHOLDER', build_commit)
+                  | replace('DIGEST_PLACEHOLDER', image | regex_search('sha256:[0-9a-f]+') | default('', true))
+          }) }}
+      loop: "{{ targets }}"
+
+    - name: Apply
+      kubernetes.core.k8s:
+        definition: "{{ rendered[item] | from_yaml_all | list }}"
+        state: present
+      loop: "{{ targets }}"
+
+    - name: Wait for the rollout
+      ansible.builtin.command:
+        cmd: >-
+          kubectl -n {{ k8s_namespace }} rollout status deploy/quantify-{{ item }}
+          --timeout=10m
+      loop: "{{ targets }}"
+      changed_when: false
+
+    # --- and then ask it what it is ----------------------------------------
+    #
+    # `rollout status` says Kubernetes is satisfied. It does not say the
+    # service answers, and a pod that is running but misconfigured satisfies
+    # Kubernetes completely.
+    - name: Ask each service to identify itself
+      ansible.builtin.command:
+        cmd: >-
+          kubectl -n {{ k8s_namespace }} run probe-{{ item }}-{{ 999 | random }}
+          --rm -i --restart=Never --quiet
+          --image=public.ecr.aws/docker/library/busybox:1.36
+          --command -- wget -qO- --timeout=10 http://quantify-{{ item }}/version
+      loop: "{{ targets }}"
+      register: identity
+      changed_when: false
+      failed_when: identity.rc != 0 or 'contract_version' not in identity.stdout
+
+    - name: What answered
+      ansible.builtin.debug:
+        msg: "quantify-{{ item.item }} -> {{ item.stdout | trim }}"
+      loop: "{{ identity.results }}"
+      loop_control:
+        label: "{{ item.item }}"
