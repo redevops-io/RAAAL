@@ -281,3 +281,27 @@ output "eks_pod_identity_roles" {
     "quantify-evaluate" = "none — it reaches market data through quantify-data"
   } : {}
 }
+
+
+# The database, reachable from the cluster as well as from the EC2 host.
+#
+# Found by probing rather than by reading: `quantify-data` came up 1/1 Ready,
+# answered /health and /version, and hung on the first request that touched
+# PostgreSQL — because the pod's traffic arrives from the cluster security
+# group and the database admits only the application host's. A pod that is
+# Ready and cannot reach its database is exactly the shape `readinessProbe`
+# cannot see: /health asks whether the process is serving, not whether it can
+# do the thing it exists for.
+#
+# Added alongside the existing rule rather than replacing it. Both paths run
+# during the migration, and removing the EC2 host's access to make a point
+# about the new one would take production down to prove the cluster works.
+resource "aws_vpc_security_group_ingress_rule" "database_from_cluster" {
+  count                        = var.enable_kubernetes ? 1 : 0
+  security_group_id            = aws_security_group.database.id
+  description                  = "PostgreSQL from the EKS cluster"
+  referenced_security_group_id = aws_eks_cluster.main[0].vpc_config[0].cluster_security_group_id
+  from_port                    = 5432
+  to_port                      = 5432
+  ip_protocol                  = "tcp"
+}

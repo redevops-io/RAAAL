@@ -27,6 +27,29 @@ metadata:
   # Pod Identity binds an IAM role to this service account. The association
   # lives in terraform; naming it here is what the association points at.
 ---
+# Auto Mode enables block storage and ships no StorageClass to use it.
+#
+# The cluster comes with a `gp2` class whose provisioner is
+# `kubernetes.io/aws-ebs` — the in-tree plugin, which modern EKS no longer
+# implements. It exists, it is not marked default, and a PVC that found it
+# would wait forever on a driver that is not there. Auto Mode's actual driver
+# is `ebs.csi.eks.amazonaws.com`, and this is the class that names it.
+#
+# Not marked as the cluster default. A default silently changes what every
+# other workload gets; naming it on the claim keeps the decision where the
+# claim is.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: quantify-ebs
+provisioner: ebs.csi.eks.amazonaws.com
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  encrypted: "true"
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -34,6 +57,7 @@ metadata:
   namespace: quantify
 spec:
   accessModes: [ReadWriteOnce]
+  storageClassName: quantify-ebs
   resources:
     requests:
       storage: 20Gi
