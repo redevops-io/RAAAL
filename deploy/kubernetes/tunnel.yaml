@@ -1,0 +1,86 @@
+# The tunnel connector, moved off the host it was pinned to.
+#
+# This is the piece that makes retiring EC2 possible rather than fatal. Every
+# request to quantify.club arrives through `cloudflared`, which dials out to
+# Cloudflare and holds the connection open — nothing in this deployment listens
+# on a public address. Until this manifest existed, the only connector ran in
+# the docker-compose stack on the EC2 host, so terminating that instance would
+# have taken both hostnames dark. The application had already moved; the door
+# had not.
+#
+# **Two replicas, and they are not a load-balancing decision.** A tunnel with
+# one connector has a single point of failure that no amount of application
+# redundancy compensates for. Cloudflare balances across every registered
+# connector, so running two means a node replacement is not an outage — and it
+# is also what makes the EC2 connector's removal a non-event rather than a
+# cutover.
+#
+# **Token only, and the routing is not here.** `config_src = "cloudflare"` on
+# the tunnel resource means the ingress rules live in Cloudflare and are
+# managed by terraform. A `--config` file here would be a second copy of the
+# routing that can disagree with the first, and the failure mode is traffic
+# going somewhere terraform believes it does not.
+#
+# **Pinned by digest, matching the host deployment.** Same image, same digest,
+# so moving the connector is a change of where it runs and not which one it is.
+# `:latest` on the component that terminates every user request is a moving
+# target, and a connector that silently changed version would be
+# indistinguishable from a deployment that did not.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quantify-tunnel
+  namespace: quantify
+  # No Pod Identity association. The connector needs egress to Cloudflare and
+  # nothing from AWS.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantify-tunnel
+  namespace: quantify
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: quantify-tunnel }
+  template:
+    metadata:
+      labels: { app: quantify-tunnel }
+    spec:
+      serviceAccountName: quantify-tunnel
+      # Spread across nodes. Two replicas on one node is one node's worth of
+      # availability wearing a replica count.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app: quantify-tunnel }
+      containers:
+        - name: tunnel
+          image: cloudflare/cloudflared@sha256:b77d84e8704db38db22c22661cf7e56468c526e3a6a5fe9c8b7c151452fa1472
+          args: ["tunnel", "--no-autoupdate", "--metrics", "0.0.0.0:2000", "run"]
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef: { name: quantify-tunnel, key: TUNNEL_TOKEN }
+          ports:
+            - containerPort: 2000
+              name: metrics
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          readinessProbe:
+            # `/ready` reports whether this connector has live edge
+            # connections, which is the only definition of ready that matters
+            # for a process whose whole job is holding them open. A TCP check
+            # on the metrics port would pass while the tunnel was down.
+            httpGet: { path: /ready, port: 2000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /ready, port: 2000 }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

@@ -310,15 +310,25 @@ variable "enable_kubernetes" {
 
 # Which load balancer the Cloudflare tunnel addresses.
 #
-# `ec2` is the deployment that has been serving; `cluster` is EKS. Defaulted to
-# `ec2` so that applying unrelated changes never moves production traffic as a
-# side effect — the cutover should be a thing somebody decided to do, named on
-# the command line, and not something that happened while changing a DNS
-# record.
+# `ec2` is the deployment that used to serve; `cluster` is EKS, which is where
+# production runs.
+#
+# **Defaulted to `cluster`, and it started as `ec2`.** The reasoning for `ec2`
+# was that an unrelated apply should never move production traffic as a side
+# effect. That reasoning was sound and the conclusion was backwards: once the
+# cutover had happened, `ec2` was no longer the safe default but the dangerous
+# one, and the next apply — for an unrelated image pin, with no mention of the
+# tunnel on the command line — silently moved production back to the old
+# deployment. Nobody typed anything about the tunnel, which was exactly the
+# property this default was supposed to guarantee.
+#
+# A default cannot express "leave this alone". It always asserts a value, so it
+# should assert the one that is true. The state that must be typed out is now
+# the exceptional one: rolling back to EC2.
 variable "tunnel_origin" {
   description = "Which deployment the tunnel sends traffic to: ec2 or cluster."
   type        = string
-  default     = "ec2"
+  default     = "cluster"
 
   validation {
     condition     = contains(["ec2", "cluster"], var.tunnel_origin)
