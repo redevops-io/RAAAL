@@ -334,3 +334,39 @@ def evaluate(strategy_spec, market_snapshot_id: str, *,
         figures={"unavailable": run.get("unavailable"),
                  "strategy_not_executed": run.get("strategy_not_executed")},
         refusals=tuple(str(one) for one in (run.get("refusals") or ())))
+
+
+def evaluate_by_hash(strategy_spec, snapshot, *, evaluation_policy: Any,
+                     engine_version: str, run_plan) -> EvaluationResult:
+    """Evaluate against a snapshot the caller has already verified.
+
+    The hash-only entry point, and the architectural one. What arrives is a
+    verified snapshot — observations plus the hash that addresses them — and
+    nothing else: no symbols, no provider name, no URI, no resolution request.
+
+    An evaluator that could see any of those could reach the data another way,
+    and a second path to a figure is a path with none of the lifecycle's checks
+    on it. `tests/test_market_data_service.py` reads the import graph to say
+    the package has no such path rather than trusting this docstring.
+
+    The `access`-taking `evaluate` above stays for the production route until
+    the switch is made. Removing it first would leave nothing serving, which is
+    not a safer state than having two paths — it is no state at all.
+    """
+    # The delivery is built by the module that owns the descriptor, not here.
+    # A first version duck-typed one in this function and `_run` refused it —
+    # correctly: its guard exists because provenance assembled by whoever
+    # happens to hold the data is provenance that can be assembled wrong, and
+    # the run it was wrong on looks exactly like one it was not.
+    from ..market_data.client import as_delivery
+
+    policy = evaluation_policy
+    delivery = as_delivery(
+        snapshot,
+        policy_version=str(getattr(policy, "data_policy", policy)),
+        accessed_at=str(getattr(policy, "evaluation_date", "")))
+
+    return evaluate(strategy_spec, snapshot.snapshot_hash,
+                    evaluation_policy=evaluation_policy,
+                    engine_version=engine_version,
+                    access=delivery, run_plan=run_plan)
