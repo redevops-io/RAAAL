@@ -25,6 +25,45 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "pilot" {
 
 # Ingress rules live in Cloudflare rather than in a config file on the host,
 # so the routing is one declarative thing rather than two that can disagree.
+# Where the tunnel sends traffic, as one variable rather than an edit.
+#
+# The move to Kubernetes changes which load balancer answers, not how the
+# traffic gets here — the tunnel, the hostnames and the certificates are
+# untouched. Making it a variable means the cutover is `-var tunnel_origin=...`
+# and the rollback is the same command with the other value, while EC2 is still
+# running and still healthy. An edit to a hardcoded name would make going back
+# a code change under pressure.
+#
+# Two ALBs, not one: EKS Auto Mode's load-balancer controller does not
+# implement `alb.ingress.kubernetes.io/group.name` — that is the standalone AWS
+# Load Balancer Controller's feature — so each Ingress gets its own. Observed
+# rather than assumed: both Ingresses reconciled successfully and reported
+# different hostnames. It costs a second ALB and buys per-hostname health
+# checks, which these two need anyway: quantify-web answers `/health/live` and
+# Zitadel answers `/debug/healthz`.
+data "aws_lb" "cluster_web" {
+  count = var.tunnel_origin == "cluster" ? 1 : 0
+  tags  = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-web" }
+}
+
+data "aws_lb" "cluster_identity" {
+  count = var.tunnel_origin == "cluster" ? 1 : 0
+  tags  = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-identity" }
+}
+
+locals {
+  # The application origin, and the identity origin. On EC2 they were the same
+  # load balancer because Caddy on the host routed by `Host`; in the cluster
+  # the routing is the Ingress and they are separate.
+  tunnel_web_origin = var.tunnel_origin == "cluster" ? (
+    "http://${data.aws_lb.cluster_web[0].dns_name}:80"
+  ) : "http://${aws_lb.main.dns_name}:80"
+
+  tunnel_identity_origin = var.tunnel_origin == "cluster" ? (
+    "http://${data.aws_lb.cluster_identity[0].dns_name}:80"
+  ) : "http://${aws_lb.main.dns_name}:80"
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
   account_id = var.cloudflare_account_id
   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.pilot.id
@@ -35,7 +74,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
       # The internal load balancer. Keeping it in the path preserves the
       # target-group health check and the 5xx metric that the CloudWatch
       # alarms read — the tunnel itself reports nothing to AWS.
-      service = "http://${aws_lb.main.dns_name}:80"
+      service = local.tunnel_web_origin
 
       origin_request {
         connect_timeout = "30s"
@@ -56,7 +95,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
       for_each = var.identity_domain_name == "" ? [] : [1]
       content {
         hostname = var.identity_domain_name
-        service  = "http://${aws_lb.main.dns_name}:80"
+        service  = local.tunnel_identity_origin
 
         origin_request {
           connect_timeout = "30s"
@@ -75,7 +114,12 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
     # redirect lives in the proxy, which this token already manages.
     ingress_rule {
       hostname = "www.${var.domain_name}"
-      service  = "http://${aws_lb.main.dns_name}:80"
+      # The apex origin, because whatever serves the apex is what redirects
+      # `www` to it. On EC2 that is Caddy; in the cluster it is a redirect
+      # action on the web Ingress, verified to answer 301 with the path and
+      # query preserved. Pointing this at the identity origin instead would
+      # send `www` to the login page of a hostname it is not registered for.
+      service = local.tunnel_web_origin
     }
 
     ingress_rule {

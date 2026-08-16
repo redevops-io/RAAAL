@@ -307,3 +307,21 @@ variable "enable_kubernetes" {
   type    = bool
   default = false
 }
+
+# Which load balancer the Cloudflare tunnel addresses.
+#
+# `ec2` is the deployment that has been serving; `cluster` is EKS. Defaulted to
+# `ec2` so that applying unrelated changes never moves production traffic as a
+# side effect — the cutover should be a thing somebody decided to do, named on
+# the command line, and not something that happened while changing a DNS
+# record.
+variable "tunnel_origin" {
+  description = "Which deployment the tunnel sends traffic to: ec2 or cluster."
+  type        = string
+  default     = "ec2"
+
+  validation {
+    condition     = contains(["ec2", "cluster"], var.tunnel_origin)
+    error_message = "tunnel_origin must be \"ec2\" or \"cluster\"."
+  }
+}

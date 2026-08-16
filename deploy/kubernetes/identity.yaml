@@ -22,12 +22,49 @@
 #
 # **One replica, for the move.** Zitadel supports more, and adding replicas at
 # the same time as changing where it runs is the same mistake as upgrading it.
+#
+# **A proxy in front of it, because the issuer is built from the request.**
+# TLS terminates at Cloudflare, so every hop after it is plain HTTP, and
+# Zitadel derives its issuer scheme from `X-Forwarded-Proto`. The ALB sets that
+# header itself to `http` — it is an HTTP listener and is telling the truth
+# about its own hop — and discovery then published `http://auth.quantify.club`.
+# The application verifies `iss` exactly, so every token minted behind that
+# would be rejected. Measured, not predicted: through the ALB the cluster
+# published `http://`, while production publishes `https://`.
+#
+# `ZITADEL_EXTERNALSECURE=true` is set here and on EC2 and is not the fix — the
+# provider builds the issuer from the request it actually received. What it
+# needs is the scheme the *browser* used. Production supplies that with Caddy;
+# this is the same two headers, moved into the pod so the Ingress can stay a
+# plain HTTP listener and the tunnel path is unchanged.
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: quantify-identity
   namespace: quantify
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quantify-identity-proxy
+  namespace: quantify
+data:
+  Caddyfile: |
+    {
+      admin off
+      auto_https off
+    }
+    :8081 {
+      reverse_proxy localhost:8080 {
+        # The two headers that decide what the issuer says. Identical to
+        # infra/ansible/roles/quantify/templates/Caddyfile.j2, deliberately:
+        # the point of this container is to not be a different answer to a
+        # problem production already solved.
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Port 443
+      }
+    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -74,6 +111,27 @@ spec:
             # one.
             initialDelaySeconds: 120
             periodSeconds: 30
+        - name: proxy
+          image: public.ecr.aws/docker/library/caddy:2.8-alpine
+          ports:
+            - containerPort: 8081
+          volumeMounts:
+            - name: proxy-config
+              mountPath: /etc/caddy
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          readinessProbe:
+            # Through the proxy, so readiness means the path traffic actually
+            # takes is working — not that two containers are separately alive
+            # while nothing joins them.
+            httpGet: { path: /debug/ready, port: 8081 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 30
+      volumes:
+        - name: proxy-config
+          configMap: { name: quantify-identity-proxy }
 ---
 apiVersion: v1
 kind: Service
@@ -85,4 +143,7 @@ spec:
   selector: { app: quantify-identity }
   ports:
     - port: 80
-      targetPort: 8080
+      # 8081, not 8080: everything reaching Zitadel from outside the pod goes
+      # through the proxy, so nothing can arrive with the ALB's own
+      # `X-Forwarded-Proto: http` still on it.
+      targetPort: 8081

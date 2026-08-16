@@ -68,13 +68,20 @@
         domain: "{{ (tfvars.stdout | from_json).quantify_domain }}"
         identity_domain: "{{ (tfvars.stdout | from_json).quantify_identity_domain }}"
         snapshot_id: "{{ (tfvars.stdout | from_json).quantify_build_snapshot_id }}"
-        targets: "{{ known_services if service == 'all' else [service] }}"
+        release_ref: "{{ (tfvars.stdout | from_json).quantify_build_release_ref }}"
+        # `ingress` is a target and not a service: it deploys nothing, it
+        # publishes what is already deployed. Kept selectable on its own so the
+        # routing can be changed without restarting an identity provider that
+        # is serving sessions.
+        targets: "{{ known_services + ['ingress'] if service == 'all'
+                     else service | split(',') }}"
 
     - name: Refuse a service this playbook does not know
       ansible.builtin.assert:
-        that: targets | difference(known_services) | length == 0
+        that: targets | difference(known_services + ['ingress']) | length == 0
         fail_msg: >-
-          {{ targets | difference(known_services) }} is not a service here.
+          {{ targets | difference(known_services + ['ingress']) }} is not a
+          service here.
           Deploying by a name nobody declared would apply a manifest that does
           not exist and report success.
 
@@ -235,6 +242,11 @@
             QUANTIFY_COMMIT: "{{ build_commit }}"
             QUANTIFY_IMAGE_DIGEST: "{{ image | regex_search('sha256:[0-9a-f]+') }}"
             QUANTIFY_SNAPSHOT_ID: "{{ snapshot_id }}"
+            # The fourth required stamp, and the one I kept missing by fixing
+            # the three I had guessed. `REQUIRED_DEPLOYMENT_FACTS` names all
+            # four; reading that list is what ended two rounds of adding one
+            # variable at a time.
+            QUANTIFY_RELEASE_REF: "{{ release_ref }}"
         state: present
       no_log: true
       when: "'web' in targets"
@@ -311,13 +323,13 @@
                   | replace('COMMIT_PLACEHOLDER', build_commit)
                   | replace('DIGEST_PLACEHOLDER', image | regex_search('sha256:[0-9a-f]+') | default('', true))
           }) }}
-      loop: "{{ targets }}"
+      loop: "{{ targets | intersect(known_services) }}"
 
     - name: Apply
       kubernetes.core.k8s:
         definition: "{{ rendered[item] | from_yaml_all | list }}"
         state: present
-      loop: "{{ targets }}"
+      loop: "{{ targets | intersect(known_services) }}"
 
     # A Secret change does not restart anything.
     #
@@ -335,7 +347,7 @@
       ansible.builtin.command:
         cmd: >-
           kubectl -n {{ k8s_namespace }} rollout restart deploy/quantify-{{ item }}
-      loop: "{{ targets }}"
+      loop: "{{ targets | intersect(known_services) }}"
       changed_when: true
 
     - name: Wait for the rollout
@@ -343,7 +355,7 @@
         cmd: >-
           kubectl -n {{ k8s_namespace }} rollout status deploy/quantify-{{ item }}
           --timeout=10m
-      loop: "{{ targets }}"
+      loop: "{{ targets | intersect(known_services) }}"
       changed_when: false
 
     # --- and then ask it what it is ----------------------------------------
@@ -351,14 +363,60 @@
     # `rollout status` says Kubernetes is satisfied. It does not say the
     # service answers, and a pod that is running but misconfigured satisfies
     # Kubernetes completely.
+    # Named so neither is a substring of the other. They were
+    # `DOMAIN_PLACEHOLDER` and `IDENTITY_DOMAIN_PLACEHOLDER`, and substituting
+    # the first rewrote the tail of the second — the identity host became
+    # `IDENTITY_quantify.club`. Kubernetes rejected it only because `_` is
+    # illegal in a hostname; a placeholder pair that collided into something
+    # *valid* would have published the identity provider on the wrong name and
+    # broken every token it signs.
+    - name: Render the ingress
+      ansible.builtin.set_fact:
+        rendered_ingress: "{{ lookup('file', playbook_dir + '/../../deploy/kubernetes/ingress.yaml')
+                              | replace('__WEB_HOST__', domain)
+                              | replace('__IDENTITY_HOST__', identity_domain) }}"
+      when: "'ingress' in targets"
+
+    - name: Refuse an ingress with a placeholder still in it
+      ansible.builtin.assert:
+        that: "'PLACEHOLDER' not in rendered_ingress and '__' not in rendered_ingress"
+        fail_msg: >-
+          the rendered ingress still contains a placeholder, so at least one
+          host is not the name it was meant to be
+      when: "'ingress' in targets"
+
     - name: The ingress, once the services it names exist
       kubernetes.core.k8s:
-        definition: "{{ lookup('file', playbook_dir + '/../../deploy/kubernetes/ingress.yaml')
-                        | replace('DOMAIN_PLACEHOLDER', domain)
-                        | replace('IDENTITY_DOMAIN_PLACEHOLDER', identity_domain)
-                        | from_yaml }}"
+        definition: "{{ item }}"
         state: present
-      when: targets | intersect(['web', 'identity']) | length == 2
+      loop: "{{ rendered_ingress | from_yaml_all | select | list }}"
+      loop_control:
+        label: "{{ item.kind }}/{{ item.metadata.name }}"
+      when: "'ingress' in targets"
+
+    # An Ingress object exists the moment it is accepted. The load balancer it
+    # describes does not, and the gap is minutes. Waiting here rather than
+    # reporting success on the object means the playbook does not hand back a
+    # hostname that is still empty.
+    - name: Wait for the load balancer to be provisioned
+      ansible.builtin.command:
+        cmd: >-
+          kubectl -n {{ k8s_namespace }} get ingress quantify-web
+          -o jsonpath={.status.loadBalancer.ingress[0].hostname}
+      register: alb_hostname
+      changed_when: false
+      retries: 40
+      delay: 15
+      until: alb_hostname.stdout | length > 0
+      when: "'ingress' in targets"
+
+    - name: Report where the tunnel should be pointed
+      ansible.builtin.debug:
+        msg: >-
+          ALB {{ alb_hostname.stdout }} — this is what cloudflare.tf must
+          address for the cutover. It is internal, so it is reachable from the
+          VPC and not from the internet.
+      when: "'ingress' in targets"
 
     # Zitadel answers `/debug/ready`, not `/version`. Asked separately rather
     # than widening the identity check, because "every service answers the same
@@ -382,7 +440,8 @@
           --rm -i --restart=Never --quiet
           --image=public.ecr.aws/docker/library/busybox:1.36
           --command -- wget -qO- --timeout=10 http://quantify-{{ item }}/version
-      loop: "{{ targets | difference(['identity', 'web']) }}"
+      loop: "{{ targets | intersect(known_services)
+                          | difference(['identity', 'web']) }}"
       register: identity
       changed_when: false
       failed_when: identity.rc != 0 or 'contract_version' not in identity.stdout
