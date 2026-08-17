@@ -122,3 +122,61 @@ def runtime(readers, *, objective: str = "evaluate_investment_strategy"):
         objective=objective,
         fusion_policy=fusion_policy(),
     )
+
+
+# --- who established the value --------------------------------------------
+#
+# `draft_intent` stamps every field it drafts `Author.READER`, because a
+# generic runtime knows a reader produced the value and cannot know what kind
+# of reader. Quantify can: the evidence names its `ReaderKind`, and the mapping
+# from a kind to an author is a statement about what those witnesses mean here.
+#
+# It matters beyond tidiness. `author` is inside `canonical_form` and therefore
+# inside `intent_hash`, while producer, span and evidence are not — so two
+# implementations that classify the same witness differently produce different
+# identities for the same request, and an equivalence run would report a
+# mismatch that is really this gap.
+#
+# The internal path already says `MODEL` for a hosted-model reading, so that is
+# the classification both paths must agree on.
+WITNESS_AUTHORS = {
+    "MODEL": "MODEL",        # the hosted reader read it
+    "RULE": "READER",        # a deterministic parser read it
+    "RETRIEVAL": "READER",   # still a reader, with a different source
+    "PRIOR": "DEFAULT",      # an assumption: catalogue or system
+    "POLICY": "POLICY",      # imposed by policy, not read at all
+    "HUMAN": "USER",         # a structured action by the person
+}
+
+
+def author_for(evidence) -> Any:
+    """The author a piece of evidence implies, by its witness kind.
+
+    Defaults to `READER` for an unrecognised kind: something read it and we
+    cannot say what. Never `USER` — that is reserved for a structured action,
+    and guessing it would hand an unknown witness the one authority a re-read
+    can never correct.
+    """
+    from runtime_contracts import Author
+
+    kind = getattr(getattr(evidence, "kind", None), "value", "")
+    return getattr(Author, WITNESS_AUTHORS.get(kind, "READER"))
+
+
+def classify_authors(intent):
+    """Re-author a drafted intent from the witnesses its evidence names.
+
+    Applied after `draft_intent` rather than inside it: the runtime is right
+    not to guess, and this is the domain saying what its witnesses are. A field
+    with no evidence keeps whatever it arrived with — inventing an author for a
+    value nothing witnessed would be worse than leaving the generic one.
+    """
+    from dataclasses import replace
+
+    fields = {}
+    for name, field in intent.fields.items():
+        if not field.evidence:
+            fields[name] = field
+            continue
+        fields[name] = replace(field, author=author_for(field.evidence[0]))
+    return replace(intent, fields=fields)
