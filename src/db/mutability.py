@@ -114,6 +114,18 @@ TABLE_MUTABILITY: Mapping[str, Mutability] = {
                       "it, which is the failure the runtime exists to avoid. "
                       "A revision is a new plan, not an overwrite."),
         Mutability(
+            table="pilot_reviews", kind=TableClass.IMMUTABLE_ARTIFACT,
+            immutable_columns=("text", "artifact", "created_at"),
+            rationale="Where a person had got to when they submitted an "
+                      "answer, addressed by the content of that state. The "
+                      "GET that renders it must show what was persisted, so "
+                      "rewriting either the prose or the artifact would make "
+                      "a reload show something the submission never "
+                      "produced. A different answer is a different review, "
+                      "not an overwrite. TENANT_OWNED: it is one "
+                      "participant's working state and carries `owner` in "
+                      "the key."),
+        Mutability(
             table="pilot_consent", kind=TableClass.MUTABLE_LIFECYCLE,
             immutable_columns=("participant",),
             rationale="Consent is granted and withdrawn, so state, `at` and "

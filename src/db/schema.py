@@ -93,6 +93,33 @@ pilot_plan = Table(
     Column("artifact", Text, nullable=False),
 )
 
+# Clarification state, persisted so that answering a question is a write and
+# looking at the result is a read.
+#
+# It exists because `POST /pilot/answer` rendered its result at the POST URL.
+# A refresh, a Back, or a pasted link then issued a GET against a POST-only
+# route and got `Method Not Allowed`, and Back returned to the last real GET —
+# the empty form — losing everything the person had typed. The answers lived
+# only in a request body.
+#
+# Separate from `pilot_plans` on purpose. A saved plan is something a person
+# chose to keep; a review is where they are in the middle of being asked. They
+# have different lifecycles, and merging them would put every half-answered
+# attempt into "Your plans".
+pilot_review = Table(
+    "pilot_reviews", metadata,
+    # Owner first, keyed with the id, by the standing rule for tenant-owned
+    # tables: two participants must be able to hold the same content-addressed
+    # review without one upserting over the other.
+    Column("owner", Text, primary_key=True),
+    Column("review_id", Text, primary_key=True),
+    Column("created_at", Text, nullable=False),
+    Column("text", Text, nullable=False),
+    # The same pinned artifact `pilot_plans` stores: intent, settled record,
+    # refusals. The GET path rebuilds from this and constructs no reader.
+    Column("artifact", Text, nullable=False),
+)
+
 # The rest of the runtime's own tables, declared for the same reason. Each is
 # created by its module on first use, so each appeared — or would appear — in a
 # database partway through a deployment's life. `pilot_plans` is the one that

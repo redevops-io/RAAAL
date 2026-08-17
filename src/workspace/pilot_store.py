@@ -40,6 +40,17 @@ CREATE TABLE IF NOT EXISTS pilot_plans (
 )
 """
 
+REVIEW_SCHEMA = """
+CREATE TABLE IF NOT EXISTS pilot_reviews (
+    review_id     TEXT NOT NULL,
+    owner         TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    text          TEXT NOT NULL,
+    artifact      TEXT NOT NULL,
+    PRIMARY KEY (owner, review_id)
+)
+"""
+
 def PILOT_OWNER() -> str:
     """Whose workspace this request is in.
 
@@ -74,9 +85,20 @@ def _database() -> Database:
 
 
 def _connect():
+    """A connection with both of this module's tables present.
+
+    Both, and not whichever the caller happens to want. A per-function
+    `CREATE TABLE` is how `pilot_plans` came to exist in a database no
+    migration had declared — created by the first person to use the feature,
+    invisible until the next restart, when the schema-parity preflight
+    correctly refused to start. Creating them together means a fresh database
+    is usable before migrations run without either table's existence depending
+    on which route somebody visited first.
+    """
     database = _database()
     connection = database.connect()
     connection.execute(SCHEMA)
+    connection.execute(REVIEW_SCHEMA)
     return connection
 
 
@@ -162,3 +184,83 @@ def every_plan() -> list:
         connection.close()
     return [{"plan_id": r["plan_id"], "created_at": r["created_at"],
              **json.loads(r["artifact"])} for r in rows]
+
+
+def review_id_for(reading: PilotReading, picked: str = "") -> str:
+    """Addressed by the state it names, not by the request that produced it.
+
+    Two submissions that settle to the same reading *are* the same review, and
+    giving them different ids would mean a refresh landed somewhere new every
+    time — which is the defect this whole path exists to remove.
+
+    Derived from the artifact rather than from the intent hash alone, because a
+    review is frequently *not* sealed: it is where the questions still are, and
+    an unsealed reading has no intent hash to address. The artifact carries the
+    unresolved dimensions and the authorship, which is exactly what must not
+    change silently between the POST and the GET.
+    """
+    body = json.dumps(_addressable(reading, picked), sort_keys=True,
+                      separators=(",", ":"))
+    return "review-" + sha256(body.encode()).hexdigest()[:16]
+
+
+def _addressable(reading: PilotReading, picked: str = "") -> dict:
+    """The parts of a reading that identify it, with the incidental removed.
+
+    `deployment` is recorded on the stored artifact but excluded here: which
+    build answered a question is a fact worth keeping and not part of what the
+    answer *is*. Including it would give the same answers a new id after every
+    deploy, so a person's open tab would 404 the next time they refreshed it.
+    """
+    artifact = dict(reading.to_json())
+    artifact.pop("deployment", None)
+    artifact["text"] = reading.text
+    # Part of the identity, not decoration: the same answers against a
+    # different catalog selection are a different review, because the
+    # selection is what supplied the assumptions underneath them.
+    artifact["picked"] = picked
+    return artifact
+
+
+def save_review(reading: PilotReading, picked: str = "") -> str:
+    """Persist clarification state and return the id the GET will read.
+
+    Idempotent by address: re-submitting identical answers rewrites the same
+    row with the same content rather than accumulating rows that differ only
+    in their timestamp.
+    """
+    from datetime import datetime, timezone
+
+    review_id = review_id_for(reading, picked)
+    artifact = _addressable(reading, picked)
+    artifact["deployment"] = _deployment_record()
+
+    connection = _connect()
+    try:
+        connection.execute(
+            "DELETE FROM pilot_reviews WHERE review_id = ? AND owner = ?",
+            (review_id, PILOT_OWNER()))
+        connection.execute(
+            "INSERT INTO pilot_reviews "
+            "(review_id, owner, created_at, text, artifact) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (review_id, PILOT_OWNER(),
+             datetime.now(timezone.utc).isoformat(), reading.text,
+             json.dumps(artifact)))
+        connection.commit()
+    finally:
+        connection.close()
+    return review_id
+
+
+def load_review(review_id: str) -> Optional[Mapping[str, Any]]:
+    """One participant's review, or None. Scoped by owner like every read here."""
+    connection = _connect()
+    try:
+        row = connection.execute(
+            "SELECT artifact FROM pilot_reviews "
+            "WHERE review_id = ? AND owner = ?",
+            (review_id, PILOT_OWNER())).fetchone()
+    finally:
+        connection.close()
+    return None if row is None else json.loads(row["artifact"])

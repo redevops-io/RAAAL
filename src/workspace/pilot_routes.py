@@ -123,6 +123,19 @@ def _live_parser():
     return _PARSER["reader"]
 
 
+def _answers_in(form) -> Dict[str, str]:
+    """The `answer_*` fields a submission carried, by dimension.
+
+    One reader for every route that needs them. It was written out twice, in
+    `/pilot/answer` and `/pilot/save`, and two copies of "what counts as an
+    answer" is how the save path and the answer path come to disagree about
+    whether a blank field means anything.
+    """
+    return {k[len("answer_"):]: str(v).strip()
+            for k, v in form.items()
+            if k.startswith("answer_") and str(v).strip()}
+
+
 def _observe_attempt(request, describe: str, reading: PilotReading,
                      answers: Optional[Dict[str, str]] = None,
                      run: Optional[Dict[str, Any]] = None,
@@ -378,20 +391,32 @@ def pilot_new(request: Request, describe: str = "",
     return draft(request, describe, picked)
 
 
-@router.post("/pilot/answer", response_class=HTMLResponse)
+@router.post("/pilot/answer")
 async def pilot_answer(request: Request, describe: str = Form(...),
                        picked: str = Form("")):
-    """One human amendment, authored `USER` and carried into the intent."""
-    from .routes import TEMPLATES
+    """One human amendment, authored `USER`, persisted, then redirected to.
+
+    **Post-Redirect-Get, and the redirect is the point.** This handler used to
+    render HTML at its own URL. Nothing was stored, so the answers lived only
+    in the request body: a refresh, a Back, or a pasted link issued a GET
+    against a POST-only route and got `Method Not Allowed`, and Back returned
+    to the last real GET — the empty form — discarding everything typed.
+
+    So the write happens here and the rendering happens on the GET that follows
+    it. The browser is never left sitting on a URL it cannot re-request, which
+    is what makes refresh, Back and Forward ordinary navigation rather than
+    ways to lose work or repeat it.
+    """
+    from fastapi.responses import RedirectResponse
+
+    from .pilot_store import save_review
 
     refused = _refuse_unless_declared(request)
     if refused is not None:
         return refused
 
     form = await request.form()
-    answers = {k[len("answer_"):]: str(v).strip()
-               for k, v in form.items()
-               if k.startswith("answer_") and str(v).strip()}
+    answers = _answers_in(form)
 
     # Answers are edits to the selection, so they enter the structured path as
     # `USER` values rather than being applied afterwards to a model's reading.
@@ -403,6 +428,11 @@ async def pilot_answer(request: Request, describe: str = Form(...),
                            profile=_declared_profile(),
                            syntax_reader=configured_syntax_reader())
         except InterpreterUnavailable as down:
+            from .routes import TEMPLATES
+
+            # Rendered rather than redirected: there is no state to persist,
+            # so there is nothing for a GET to read. A redirect here would
+            # point at a review that was never written.
             return TEMPLATES.TemplateResponse(
                 request, "pilot.html",
                 {"text": describe, "reading": None, "unavailable": str(down)},
@@ -415,12 +445,67 @@ async def pilot_answer(request: Request, describe: str = Form(...),
     # posted field from being able to claim it was assumed.
     reading = assume(reading, picked) if picked else reading
     answered = answer(reading, answers)
-    run = execute(answered)
-    participant = _observe_attempt(request, describe, answered, answers, run,
-                                   picked=picked)
-    response = TEMPLATES.TemplateResponse(
-        request, "pilot.html",
-        dict(page(answered, text=describe, run=run), picked=picked))
+
+    # Persist before redirecting. A 303 pointing at a row that was not written
+    # is a worse failure than the one being fixed: the person's answers would
+    # be gone *and* the URL would look like it held them.
+    if answered.intent is None:
+        from .routes import TEMPLATES
+
+        # Nothing to review. A reading with no intent cannot be rebuilt by the
+        # GET — `reopen` refuses it rather than re-reading the sentence — so
+        # redirecting would point at a page that could only 404. Rendered
+        # here, like the unavailable case, for the same reason.
+        return TEMPLATES.TemplateResponse(
+            request, "pilot.html",
+            {"text": describe, "reading": None,
+             "unavailable": "this reading produced no intent to review"},
+            status_code=503)
+
+    review_id = save_review(answered, picked)
+
+    participant = _observe_attempt(request, describe, answered, answers,
+                                   run=None, picked=picked)
+    response = RedirectResponse(f"/pilot/reviews/{review_id}", status_code=303)
+    attach(response, participant)
+    return response
+
+
+@router.get("/pilot/reviews/{review_id}", response_class=HTMLResponse)
+def pilot_review(request: Request, review_id: str):
+    """The persisted clarification state, read and rendered. Nothing else.
+
+    **No reader is constructed on this path**, exactly as on
+    `/pilot/plans/{plan_id}`. `reopen` takes a dict and cannot reach one, so
+    refreshing this page cannot produce a Discovery call, cannot re-apply the
+    answers, and cannot mint a second plan. Reopening a clarification is a read
+    of what was settled, the same kind of operation as reopening a saved plan.
+    """
+    from .pilot_store import load_review
+    from .routes import TEMPLATES
+
+    refused = _refuse_unless_declared(request)
+    if refused is not None:
+        return refused
+
+    stored = load_review(review_id)
+    if stored is None:
+        # 404 rather than a redirect to a fresh form. A person who followed a
+        # stale link should be told the state is gone, not silently handed an
+        # empty page that looks like their answers were never submitted.
+        return TEMPLATES.TemplateResponse(
+            request, "pilot.html",
+            {"text": "", "reading": None,
+             "unavailable": "this review is no longer available"},
+            status_code=404)
+
+    reading = reopen(stored)
+    participant = participant_in(request) or new_participant()
+    run = execute(reading)
+    context = page(reading, text=stored.get("text", ""), run=run)
+    context["picked"] = stored.get("picked", "")
+    context["review_id"] = review_id
+    response = TEMPLATES.TemplateResponse(request, "pilot.html", context)
     attach(response, participant)
     return response
 
@@ -442,9 +527,7 @@ async def pilot_save(request: Request, describe: str = Form(...)):
     from .pilot_store import save
 
     form = await request.form()
-    answers = {k[len("answer_"):]: str(v).strip()
-               for k, v in form.items()
-               if k.startswith("answer_") and str(v).strip()}
+    answers = _answers_in(form)
 
     reading = read(describe, configured_reader(), schema=QUANTIFY_SCHEMA,
                    profile=_declared_profile(),
