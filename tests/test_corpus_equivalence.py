@@ -38,6 +38,14 @@ building the view.
 `engine_requirements` is projected alongside, and is reported rather than
 compared. It is real and it is not Discovery's.
 
+**Settled values are compared by the schema's rule, and version 2 was wrong to
+use `==`.** `70% stocks, 20% bonds, 10% cash` settles `assets` as
+'stocks, bonds, cash' on one side and 'stocks,bonds,cash' on the other;
+`assets` is `compare_as=SET`, so the schema says those are the same value and
+the harness was applying a stricter equality than the product does. It now uses
+`same_value` with the dimension's mode — the same rule fusion applies — so
+anything it admits is agreement the system already acts on.
+
 Three verdicts and no others. `EXPECTED_REPRESENTATION` is admissible only with
 the demonstration attached; `SEMANTIC_DIFFERENCE` blocks deletion.
 """
@@ -53,7 +61,7 @@ import pytest
 
 #: Bumped whenever the projection below changes. Printed in the artifact so a
 #: later reader can tell which mapping produced a given equivalence result.
-MAPPING_VERSION = "quantify-equivalence-view@2"
+MAPPING_VERSION = "quantify-equivalence-view@3"
 
 SCOPE = (
     "Establishes old/new Discovery semantic equivalence under frozen recorded "
@@ -168,9 +176,26 @@ def classify(old: ComparisonState, new: ComparisonState) -> str:
     if old.sealable != new.sealable:
         return "SEMANTIC_DIFFERENCE"
 
+    # Compared by the schema's own rule, not by string equality.
+    #
+    # Version 2 used `!=` and reported `70% stocks, 20% bonds, 10% cash` as a
+    # semantic difference because one side rendered `assets` as
+    # 'stocks, bonds, cash' and the other as 'stocks,bonds,cash'. `assets` is
+    # compare_as=SET — the same three tokens in any order — so the schema says
+    # those are one value, and the harness was inventing a stricter equality
+    # than the system it is measuring. Using `same_value` here is the same rule
+    # fusion applies, so a difference this admits is one the product already
+    # treats as agreement.
+    from discovery_runtime import same_value
+
+    from src.discovery import adapter
+
     shared = set(old.settled_fields) & set(new.settled_fields)
-    if any(old.settled_fields[k] != new.settled_fields[k] for k in shared):
-        return "SEMANTIC_DIFFERENCE"
+    for name in shared:
+        if not same_value(old.settled_fields[name], new.settled_fields[name],
+                          adapter.compare_as(name),
+                          normalizers=adapter.NORMALIZERS):
+            return "SEMANTIC_DIFFERENCE"
 
     if set(old.settled_fields) != set(new.settled_fields):
         # One settled a dimension the other did not. Which dimensions exist is
