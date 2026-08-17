@@ -1,4 +1,22 @@
-"""Every deployment template, rendered before it reaches a host.
+"""Every EC2 deployment template, rendered. **This is archived code.**
+
+The deployment these templates built no longer exists: Quantify runs on
+Kubernetes, the instance and its load balancer were destroyed, and
+`archive/ec2-deployment/` holds what is left. Nothing here validates anything
+that ships.
+
+It is kept, and pointed at the archive, because the two faults below were real
+and the templates record how they were solved — `Caddyfile.j2` in particular,
+whose four jobs each broke exactly once when Caddy disappeared. Deleting the
+tests would leave the templates unexercised in a directory nobody runs, which
+is how an archive becomes a pile of files nobody can trust to read.
+
+**Do not read a green run here as deployment coverage.** The live equivalents
+are `deploy/kubernetes/*.yaml`, `infra/ansible/services.yml`, and — for the
+identity properties this file also asserts — `tests/test_identity.py`, which
+tests `src/deploy/identity.py`, the code that actually runs.
+
+Every deployment template, rendered before it reaches a host.
 
 `render-env.sh.j2` shipped with `${#VAR}` in it — bash's parameter-length
 expansion, whose first two characters Jinja reads as the start of a comment. The
@@ -25,7 +43,8 @@ import pytest
 jinja2 = pytest.importorskip("jinja2")
 
 ROOT = Path(__file__).resolve().parent.parent
-TEMPLATES = ROOT / "infra" / "ansible" / "roles" / "quantify" / "templates"
+TEMPLATES = (ROOT / "archive" / "ec2-deployment" / "roles" / "quantify"
+             / "templates")
 
 #: What Terraform hands Ansible. Kept here rather than read from a live
 #: `terraform output`, so this runs with no cloud credentials — the values only
@@ -174,7 +193,8 @@ class TestTheShellBlocksSurviveAnsiblesParser:
 
         if shutil.which("ansible-playbook") is None:
             pytest.skip("ansible is not installed here")
-        root = Path(__file__).resolve().parent.parent / "infra" / "ansible"
+        root = (Path(__file__).resolve().parent.parent / "archive"
+                / "ec2-deployment")
         done = subprocess.run(
             ["ansible-playbook", "--syntax-check",
              "-i", str(root / "inventory.aws_ec2.yml"), str(root / "site.yml")],

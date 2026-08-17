@@ -121,7 +121,7 @@ from .spec import (
     Mission,
     Objective,
     Provenance,
-    Unresolved,
+    OpenQuestion,
 )
 
 __all__ = [
@@ -199,7 +199,7 @@ __all__ = [
     "Provenance",
     "SelectionBasis",
     "UndeclaredVisibility",
-    "Unresolved",
+    "OpenQuestion",
     "Visibility",
     "check_all",
     "check_reference",

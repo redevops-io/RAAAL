@@ -26,7 +26,7 @@ from src.mission import (
     Provenance,
     SelectionBasis,
     UndeclaredVisibility,
-    Unresolved,
+    OpenQuestion,
     check_reference,
     extract_rule,
     visibility_of,
@@ -115,7 +115,7 @@ class TestChoosingOnOutcomeIsASearch:
 class TestAMissionKnowsWhatItWasNotTold:
     def test_a_plan_with_open_questions_may_run_but_not_be_saved(self):
         m = plan(provenance=Provenance(unresolved=[
-            Unresolved("starting_capital", "How much are you starting with?",
+            OpenQuestion("starting_capital", "How much are you starting with?",
                        "Every figure scales with it."),
         ]))
 
@@ -157,7 +157,7 @@ class TestAMissionKnowsWhatItWasNotTold:
     def test_the_checklist_is_data_the_interface_renders(self):
         m = plan(provenance=Provenance(
             inferred=[Inference("dividends", "reinvested", "…", confirmed=True)],
-            unresolved=[Unresolved("starting_capital", "How much?", "Everything scales.")],
+            unresolved=[OpenQuestion("starting_capital", "How much?", "Everything scales.")],
         ))
         checklist = m.provenance.checklist()
 
@@ -250,7 +250,7 @@ class TestContributingBackExtractsARuleNotAPlan:
     def test_an_unconfirmed_plan_cannot_be_contributed(self):
         m = plan(events=[{"trigger": "t"}],
                  provenance=Provenance(unresolved=[
-                     Unresolved("x", "What?", "It matters.")]))
+                     OpenQuestion("x", "What?", "It matters.")]))
         extraction = extract_rule(m)
 
         assert not extraction.proposable

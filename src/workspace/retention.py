@@ -366,6 +366,25 @@ WORKSPACE_RECORDS: Mapping[str, RecordClass] = {
             contains_model_content=True,
             sensitive_fields=("text", "artifact")),
         RecordClass(
+            table="pilot_reviews",
+            # The same material as `pilot_plans` and at an earlier moment:
+            # what somebody typed, and what the runtime made of it. A plan is
+            # kept on purpose and a review is where they had got to, which is
+            # a difference in lifecycle and none at all in what the rows
+            # contain.
+            data_class=DataClass.PERSONAL_RECORD,
+            owner_scope=OwnerScope.DIRECT, owner_column="owner",
+            retention_policy=ACTIVE_ACCOUNT,
+            deletion_behaviour=DeletionBehaviour.DELETE_WITH_OWNER,
+            # Included. It is the person's own working state, and an export
+            # that returned the plans somebody saved while silently dropping
+            # the clarifications they were in the middle of would be an
+            # incomplete answer to "give me my data".
+            export_behaviour="included in a workspace export",
+            contains_sensitive_financial_data=True,
+            contains_model_content=True,
+            sensitive_fields=("text", "artifact")),
+        RecordClass(
             table="market_snapshot",
             data_class=DataClass.LICENSED_SOURCE,
             # Nobody's. It describes observations, and the licence — not a

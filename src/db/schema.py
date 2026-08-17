@@ -120,6 +120,12 @@ pilot_review = Table(
     Column("artifact", Text, nullable=False),
 )
 
+# Declared here as well as in the migration. The model and the migrations are
+# compared for parity, and an index created by one and unknown to the other is
+# a difference that shows up as drift on a database nobody changed.
+Index("ix_pilot_reviews_owner_created", pilot_review.c.owner,
+      pilot_review.c.created_at)
+
 # The rest of the runtime's own tables, declared for the same reason. Each is
 # created by its module on first use, so each appeared — or would appear — in a
 # database partway through a deployment's life. `pilot_plans` is the one that

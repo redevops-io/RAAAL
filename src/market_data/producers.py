@@ -177,6 +177,13 @@ PRODUCERS: Mapping[str, Producer] = {
                    "`plan`, it states what to do and holds no result — the "
                    "provenance question belongs to whatever is run from it."),
         Producer(
+            table="pilot_reviews", ownership=ProvenanceOwnership.NOT_APPLICABLE,
+            reason="Clarification state: a pinned intent part-way through "
+                   "being settled, with the questions still open and the "
+                   "answers so far. Like `pilot_plans` it states what to do "
+                   "and holds no figure, so the provenance question belongs "
+                   "to whatever is run from it rather than to the row."),
+        Producer(
             table="market_snapshot", ownership=ProvenanceOwnership.DIRECT,
             reason="It *is* the provenance. A descriptor names the observations "
                    "by content hash and carries the request that produced them, "

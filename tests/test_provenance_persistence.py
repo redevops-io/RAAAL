@@ -31,7 +31,7 @@ from src.mission.spec import (
     Provenance,
     ScenarioAmendment,
     ScenarioExclusion,
-    Unresolved,
+    OpenQuestion,
 )
 
 AT = "2026-08-06T00:00:00Z"
@@ -42,7 +42,7 @@ AT = "2026-08-06T00:00:00Z"
 FULL = Provenance(
     stated=("I buy $1,000 of VOO",),
     inferred=(Inference("dividends", "reinvested", "default set"),),
-    unresolved=(Unresolved("account_type", "Which account?", "tax differs"),),
+    unresolved=(OpenQuestion("account_type", "Which account?", "tax differs"),),
     contradictions=(Contradiction(between=("holdings_policy", "allocation_rule"),
                                   detail="never sell while maintaining weight"),),
     amended=(ScenarioAmendment(question_id="account_type", answer="TAXABLE",

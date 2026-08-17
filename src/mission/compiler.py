@@ -38,7 +38,7 @@ from .scenario import AllocationRule, BenchmarkSet, HoldingsPolicy, ScenarioSpec
 from .representation import representation_gaps
 from . import asset_identity, time_window, vocabulary
 from .funding import ExecutionTiming
-from .spec import AssetResolution, Contradiction, FlowSchedule, Inference, Objective, Provenance, Unresolved
+from .spec import AssetResolution, Contradiction, FlowSchedule, Inference, Objective, Provenance, OpenQuestion
 
 
 class Origin(str, Enum):
@@ -705,12 +705,12 @@ class CompilerResult:
     stated: Sequence[str]
     inferred: Sequence[Inference]
     contradictions: Sequence[Contradiction]
-    unresolved: Sequence[Unresolved]
+    unresolved: Sequence[OpenQuestion]
     defaults_ref: str
     scenario: Optional[ScenarioSpecification]
     verification: Sequence[str] = ()
     template_hint: Optional[str] = None
-    template_offer: Optional[Unresolved] = None
+    template_offer: Optional[OpenQuestion] = None
     """A better route exists for this description. An offer, deliberately not an
     `unresolved` entry: it does not block, and the blocking list is the one a
     reader has to be able to trust."""
@@ -1142,7 +1142,7 @@ def compile_scenario(
 
     stated: List[str] = [r.span for r in parsed.recognitions]
     inferred: List[Inference] = []
-    unresolved: List[Unresolved] = []
+    unresolved: List[OpenQuestion] = []
     _answers = {one.question_id: one for one in amendments}
     _excluded_items = {one.item for one in exclusions}
 
@@ -1193,7 +1193,7 @@ def compile_scenario(
         question, why = _QUESTIONS.get(
             field_name, (f"What should {field_name.replace('_', ' ')} be?",
                          "This changes the result."))
-        unresolved.append(Unresolved(field=field_name, question=question,
+        unresolved.append(OpenQuestion(field=field_name, question=question,
                                      why_it_matters=why))
         return None
 
@@ -1219,7 +1219,7 @@ def compile_scenario(
             if chosen and str(chosen).strip().isdigit():
                 average_window = int(str(chosen).strip())
             else:
-                unresolved.append(Unresolved(
+                unresolved.append(OpenQuestion(
                     "moving_average_window",
                     "How many sessions does the average cover?",
                     "A 50-session and a 200-session average cross on different "
@@ -1270,7 +1270,7 @@ def compile_scenario(
         if chosen:
             identified.append(chosen)
             continue
-        unresolved.append(Unresolved(
+        unresolved.append(OpenQuestion(
             field=key,
             question=(f"{question} You wrote '{ambiguous}' — "
                       f"{' or '.join(options)}?" if options
@@ -1321,7 +1321,7 @@ def compile_scenario(
             continue
         offered = " or ".join(
             f"{one.symbol} ({one.name})" for one in found.candidates)
-        unresolved.append(Unresolved(
+        unresolved.append(OpenQuestion(
             field=field,
             question=f"You wrote '{phrase}'. Did you mean {offered}?",
             why_it_matters=(found.reason or "") + (
@@ -1336,7 +1336,7 @@ def compile_scenario(
                     else _as_amount(answered("amount")))
     if amount_value is None:
         question, why = _QUESTIONS["amount"]
-        unresolved.append(Unresolved("amount", question, why))
+        unresolved.append(OpenQuestion("amount", question, why))
     if not cadence_value and amount_value and not has_signal:
         # Not asked when the description mentions a condition at all, rather
         # than asked and discarded. The user answered "once" to this question
@@ -1348,7 +1348,7 @@ def compile_scenario(
         # trigger settles later, so the narrower test asked for a cadence on
         # the first pass and withdrew the question on the second. A question
         # that appears and vanishes is the same defect one round trip later.
-        unresolved.append(Unresolved(
+        unresolved.append(OpenQuestion(
             "cadence", "How often does that contribution arrive?",
             "Contribution timing changes the money-weighted return even when the "
             "strategy is identical.",
@@ -1398,10 +1398,10 @@ def compile_scenario(
     if (not event_funded and flows.amount <= 0
             and flows.starting_capital <= 0):
         question, why = _QUESTIONS["starting_capital"]
-        unresolved.append(Unresolved("starting_capital", question, why))
+        unresolved.append(OpenQuestion("starting_capital", question, why))
 
     if window is not None and not window.supported:
-        unresolved.append(Unresolved(
+        unresolved.append(OpenQuestion(
             field=f"time_window:{window.kind.value}",
             question=(f"You wrote '{window.observed}'. This build can replay a "
                       f"trailing period — 'the past 5 years' — but not that."),
@@ -1412,7 +1412,7 @@ def compile_scenario(
 
     if benchmark_rule is None:
         question, why = _QUESTIONS["benchmark_set"]
-        unresolved.append(Unresolved("benchmark_set", question, why))
+        unresolved.append(OpenQuestion("benchmark_set", question, why))
 
     event_program: List[Dict[str, Any]] = []
     if trigger:
@@ -1523,7 +1523,7 @@ def compile_scenario(
             stated.append(
                 f"{covered}: asked directly rather than as unplaceable prose")
             continue
-        unresolved.append(Unresolved(
+        unresolved.append(OpenQuestion(
             field=canonical_key("unclear", phrase),
             question=f"What did you mean by '{phrase}'?",
             why_it_matters=(
@@ -1558,7 +1558,7 @@ def compile_scenario(
     # list of things that block, because that list is the one a reader trusts.
     template_offer = None
     if parsed.template_hint:
-        template_offer = (Unresolved(
+        template_offer = (OpenQuestion(
             field=f"template:{parsed.template_hint}",
             question=(
                 f"This looks like a {parsed.template_hint.replace('-', ' ')} "

@@ -34,7 +34,7 @@ from src.mission.spec import (
     Provenance,
     ScenarioAmendment,
     ScenarioExclusion,
-    Unresolved,
+    OpenQuestion,
 )
 from src.workspace.routes import _with_decisions
 
@@ -46,7 +46,7 @@ FULL = Provenance(
               Inference("signal_series", "close", "because", False)),
     contradictions=(Contradiction(between=("monthly", "event-triggered"),
                                   detail="one funding policy per scenario"),),
-    unresolved=(Unresolved(field="funding_source",
+    unresolved=(OpenQuestion(field="funding_source",
                            question="Does this buy come from new money?",
                            why_it_matters="it decides the return basis"),),
     amended=(ScenarioAmendment(question_id="account_type", answer="TAXABLE",

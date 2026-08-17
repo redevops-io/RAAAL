@@ -101,6 +101,11 @@ class TestTheModelMatchesTheShippedSchema:
         "pilot_transcripts":
             "what a participant typed and what the reader made of it — "
             "evidence about the interpreter rather than about a market.",
+        "pilot_reviews":
+            "clarification state, so that answering a question is a write and "
+            "looking at the result is a read. The answer route rendered at its "
+            "own POST URL and stored nothing, so a refresh or a Back issued a "
+            "GET against a POST-only route and lost everything typed.",
         "market_data_access_event":
             "the factual record that one execution received one realized "
             "frame. A stored run previously cited only what its producer "

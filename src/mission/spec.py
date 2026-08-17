@@ -67,8 +67,17 @@ class Inference:
 
 
 @dataclass(frozen=True)
-class Unresolved:
+class OpenQuestion:
     """Something nobody has decided. Blocks saving, not simulating.
+
+    Named `Unresolved` until the contracts migration, which was a different
+    type under the same name. `runtime_contracts.Unresolved` is the discovery
+    boundary's record of an open dimension — `dimension`, `reason`, `detail`,
+    `evidence`, `result_changing` — and this is a question to put to a person.
+    `src/mission/` imported both: `compiler` bound this one and
+    `verified_intent` bound the canonical one, so the package held two
+    incompatible types under one name and the only thing preventing a
+    conflation was that no single module had reason to import both.
 
     Simulating with a stated placeholder is useful — it shows the shape of the
     answer. Saving or tracking it would turn a placeholder into a commitment the
@@ -131,7 +140,7 @@ class ScenarioAmendment:
     """
 
     question_id: str
-    """The `Unresolved.field` this answers, so the two can be paired without
+    """The `OpenQuestion.field` this answers, so the two can be paired without
     matching on question text."""
 
     answer: str
@@ -266,7 +275,7 @@ class Provenance:
     stated: Sequence[str] = ()
     inferred: Sequence[Inference] = ()
     contradictions: Sequence[Contradiction] = ()
-    unresolved: Sequence[Unresolved] = ()
+    unresolved: Sequence[OpenQuestion] = ()
     amended: Sequence[ScenarioAmendment] = ()
     """Answers the user gave to questions the description left open. Stated by
     them, later than the description, and never merged into it."""
