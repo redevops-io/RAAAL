@@ -18,7 +18,7 @@ if `PilotReading` or `VerifiedIntent` changes shape later, the mapping has to
 change with it, and the version is what stops that silently redefining what
 "equivalent" meant.
 
-    internal PilotReading.settled       <->  runtime VerifiedIntent.fields
+    internal VerifiedIntent.fields      <->  runtime VerifiedIntent.fields
     internal intent.unsealable          <->  runtime intent.unsealable
     internal refusals                   <->  runtime refusal outcome
     clarification_needed  = a material unresolved dimension remains
@@ -37,6 +37,19 @@ building the view.
 
 `engine_requirements` is projected alongside, and is reported rather than
 compared. It is real and it is not Discovery's.
+
+**Both sides project from the sealed `VerifiedIntent`, and version 3 was wrong
+to read `PilotReading.settled`.** That is Quantify's working record on the way
+to the artifact, not the artifact: for `rebalance back to 60/40 every year` it
+holds `periodic_rebalancing = None`, while the sealed intent — on both
+implementations — holds the canonicalised `'annual'`. Comparing it against the
+runtime's `VerifiedIntent.fields` compared two *stages of one pipeline* and
+reported the runtime as wrong where the runtime was right.
+
+Equivalence is measured at the canonical contract boundary. Working records,
+intermediate stages and derived views are adjacent to the property and are not
+the property — the same category error as version 1's `questions`, one layer
+down.
 
 **Settled values are compared by the schema's rule, and version 2 was wrong to
 use `==`.** `70% stocks, 20% bonds, 10% cash` settles `assets` as
@@ -61,7 +74,7 @@ import pytest
 
 #: Bumped whenever the projection below changes. Printed in the artifact so a
 #: later reader can tell which mapping produced a given equivalence result.
-MAPPING_VERSION = "quantify-equivalence-view@3"
+MAPPING_VERSION = "quantify-equivalence-view@4"
 
 SCOPE = (
     "Establishes old/new Discovery semantic equivalence under frozen recorded "
@@ -144,17 +157,20 @@ def _internal_reading(text: str):
 
 
 def from_internal(reading) -> ComparisonState:
-    """`PilotReading` -> the comparison view.
+    """`PilotReading` -> the comparison view, projected from its sealed intent.
 
-    `settled` is last-entry-wins because `settle` appends: the record keeps the
-    history and the current value is the final entry, so a table built from the
-    first would call a value assumed after somebody accepted it.
+    `reading.settled` is deliberately not read. It is the working record the
+    internal path keeps on the way to the artifact and it holds pre-
+    canonicalisation values — including a literal `None` for a dimension the
+    sealed intent carries correctly. The artifact is what both implementations
+    are obliged to agree on, so the artifact is what is compared.
+
+    `provenance_summary` therefore reports the contract's `author` on both
+    sides rather than Quantify's provenance string, which has no counterpart in
+    a generic runtime.
     """
-    latest = {}
-    for entry in reading.settled or ():
-        latest[entry.field] = entry
-
     intent = reading.intent
+    latest = {} if intent is None else dict(intent.fields)
     open_dimensions = tuple(sorted(u.dimension for u in intent.unsealable)) \
         if intent is not None else ()
     return ComparisonState(
@@ -165,7 +181,7 @@ def from_internal(reading) -> ComparisonState:
         clarification_needed=bool(open_dimensions),
         sealable=bool(intent is not None and not intent.unsealable),
         intent_hash=intent.intent_hash if intent is not None else "",
-        provenance_summary={k: str(v.provenance) for k, v in latest.items()},
+        provenance_summary={k: v.author.value for k, v in latest.items()},
         engine_requirements=tuple(sorted(reading.questions or ())),
     )
 
