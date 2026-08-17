@@ -73,14 +73,24 @@ def from_compiled(result, parsed, *, objective: str = "evaluate_investment_strat
     """
     fields: Dict[str, IntentField] = {}
 
-    # The user's words first, so a stated value is never overwritten by an
-    # inference for the same field. USER dominates, and this is where that
-    # starts being true.
+    # Extracted from the person's words, so it outranks an inference for the
+    # same field and is still not the person's own statement of it.
+    #
+    # `READER`, not `USER`. Authorship is about who established the structured
+    # value, not who produced the sentence it was found in. The person wrote
+    # "invest $500 monthly"; a reader decided that means `amount=500` and
+    # `cadence=monthly`, and those are the reader's readings of their words.
+    #
+    # Marking them `USER` gave extraction the highest authority there is:
+    # `USER` dominates every other author and is never overwritten by a
+    # re-read, so a misreading became permanent and a better reader could not
+    # correct it. `READER` still beats `DEFAULT`, which is the ordering that
+    # actually matters here — a stated value is never lost to an assumption.
     for recognition in getattr(parsed, "recognitions", ()) or ():
         name = _named(recognition.field)
         fields[name] = IntentField(
             value=recognition.value,
-            author=Author.USER,
+            author=Author.READER,
             produced_by=READER_VERSION,
             source_span=str(recognition.span or ""),
             evidence=(DecisionEvidence(
@@ -143,8 +153,14 @@ def from_compiled(result, parsed, *, objective: str = "evaluate_investment_strat
 def _from_prose(text: str, already: Dict[str, IntentField]) -> Dict[str, IntentField]:
     """Dimensions the user stated in prose that never became a `Recognition`.
 
-    Each is `Author.USER` — they are the user's words — and each carries the
-    phrase that carried it, so a refusal can quote them back.
+    `Author.READER`, for the same reason as the recognitions above: these are
+    read out of the prose by the compiler rather than entered by the person, so
+    the reader established the structured value even though the person wrote
+    the sentence. Each carries the phrase that carried it, so a refusal can
+    quote them back.
+
+    `USER` is reserved for a structured action — answering a question, editing
+    a pre-filled field — where the person supplied the value itself.
     """
     from .compiler import stated_weights
     from .coverage import _PERIODIC_REBALANCING, _SELL_LEG, _UNSUPPORTED_WEIGHTING
@@ -157,7 +173,7 @@ def _from_prose(text: str, already: Dict[str, IntentField]) -> Dict[str, IntentF
         if name in already or name in found:
             return
         found[name] = IntentField(
-            value=value, author=Author.USER, produced_by=READER_VERSION,
+            value=value, author=Author.READER, produced_by=READER_VERSION,
             source_span=span,
             evidence=(DecisionEvidence(reader_id=READER_VERSION,
                                        kind=ReaderKind.RULE, value=value,

@@ -45,11 +45,23 @@ class TestWhoAuthoredEachField:
     offered back to the user to confirm, and thereby became indistinguishable
     from a choice they had made."""
 
-    def test_the_users_words_are_user_authored(self):
+    def test_the_users_words_are_reader_authored(self):
+        """The person wrote the sentence; a reader decided what it means.
+
+        Both of these come out of prose — `trigger_semantics` from "crosses
+        below" and `amount` from "$1,000" — so both are the reader's readings
+        of the person's words. They were `USER` until the authorship migration,
+        which gave extraction the one authority that is never overwritten by a
+        re-read and so made a misreading permanent.
+
+        What must still hold is the separation from `DEFAULT`, checked in
+        `test_a_compiler_default_is_not`: a value that came from the sentence
+        is not an assumption.
+        """
         i = intent_for(CROSSING)
-        assert i.fields["trigger_semantics"].author is Author.USER
+        assert i.fields["trigger_semantics"].author is Author.READER
         assert "crosses below" in i.fields["trigger_semantics"].source_span
-        assert i.fields["amount"].author is Author.USER
+        assert i.fields["amount"].author is Author.READER
 
     def test_a_compiler_default_is_not(self):
         i = intent_for(CROSSING)
@@ -58,7 +70,11 @@ class TestWhoAuthoredEachField:
 
     def test_the_two_are_enumerable_apart(self):
         i = intent_for(CROSSING)
-        assert "trigger_semantics" in i.user_authored
+        # Not `user_authored`. It is read out of the prose by the compiler, so
+        # the reader established the value even though the person wrote the
+        # sentence — and that is what keeps a later re-read able to correct it.
+        assert i.fields["trigger_semantics"].author is Author.READER
+        assert "trigger_semantics" not in i.user_authored
         assert "execution_timing" not in i.user_authored
 
     def test_a_stated_value_is_never_overwritten_by_a_default(self):
@@ -97,7 +113,7 @@ class TestTheReaderIsRecorded:
         reader is still user-authored."""
         i = intent_for(CROSSING)
         f = i.fields["trigger_semantics"]
-        assert f.author is Author.USER and f.produced_by == READER_VERSION
+        assert f.author is Author.READER and f.produced_by == READER_VERSION
 
     def test_the_derivation_names_the_intent_by_hash(self):
         i = intent_for(CROSSING)
@@ -159,9 +175,18 @@ class TestProseDeclarationsReachTheIntent:
     def test_a_stated_split_is_in_the_intent_at_all(self):
         assert "stated_weights" in intent_for(SIXTY_FORTY).fields
 
-    def test_it_is_attributed_to_the_user_not_to_a_default(self):
-        assert intent_for(SIXTY_FORTY).fields["stated_weights"].author \
-            is Author.USER
+    def test_it_is_attributed_to_the_reader_not_to_a_default(self):
+        """READER, not DEFAULT and not USER.
+
+        The distinction the split protects is against `DEFAULT`: a value read
+        out of the person's sentence must never be mistaken for an assumption
+        nobody made. It is not `USER` either — the compiler established the
+        structured value from prose, and reserving USER for a structured action
+        is what leaves a later re-read able to correct a misreading.
+        """
+        author = intent_for(SIXTY_FORTY).fields["stated_weights"].author
+        assert author is Author.READER
+        assert author is not Author.DEFAULT
 
     def test_the_quoted_phrase_stops_at_the_clause(self):
         """These patterns detect rather than delimit, so a match runs past the
