@@ -70,6 +70,17 @@
         identity_domain: "{{ (tfvars.stdout | from_json).quantify_identity_domain }}"
         snapshot_id: "{{ (tfvars.stdout | from_json).quantify_build_snapshot_id }}"
         release_ref: "{{ (tfvars.stdout | from_json).quantify_build_release_ref }}"
+        parser_mode: "{{ (tfvars.stdout | from_json).quantify_parser_mode }}"
+        parser_model: "{{ (tfvars.stdout | from_json).quantify_parser_model }}"
+        parser_provider: "{{ (tfvars.stdout | from_json).quantify_parser_provider }}"
+        parser_fallback: "{{ (tfvars.stdout | from_json).quantify_parser_fallback }}"
+        # Mirrors `PROVIDER_KEY_VARS` in src/deploy/context.py. Computed here
+        # so the Secret's key is a single-line expression: a multi-line Jinja
+        # mapping key is not YAML Ansible will parse, and it failed the whole
+        # playbook rather than that one line.
+        model_key_var: "{{ 'OPENAI_API_KEY'
+                           if (tfvars.stdout | from_json).quantify_parser_provider == 'OPENAI'
+                           else 'ANTHROPIC_API_KEY' }}"
         # `ingress` is a target and not a service: it deploys nothing, it
         # publishes what is already deployed. Kept selectable on its own so the
         # routing can be changed without restarting an identity provider that
@@ -173,6 +184,7 @@
           and for the identity master key it would come up unable to decrypt
           anything already stored.
       loop: [db_password, masterkey, model_key, client_id]
+      # `model_key` is checked as the application will read it, below.
       no_log: true
       when: targets | intersect(['identity', 'web', 'tunnel']) | length > 0
 
@@ -246,58 +258,78 @@
       no_log: true
       when: "'identity' in targets"
 
+    # The model key, under the name the declared provider reads.
+    #
+    # Merged in rather than written as a templated mapping key. Ansible does
+    # not resolve a Jinja expression used as a key inside `definition`, and the
+    # failure is a censored task with `no_log` on it — a dict built here and
+    # combined is both readable and debuggable.
+    #
+    # Two faults hid each other before this. The name was always
+    # `ANTHROPIC_API_KEY` while terraform declared OPENAI, so the key went into
+    # a variable the application never reads; and the value was the whole
+    # Secrets Manager document, `{"api_key": "sk-..."}`, not the key. Under
+    # MODEL_ASSISTED nothing checked, so it looked fine for as long as the
+    # declared mode was also being ignored.
+    - name: Name the model key as its provider reads it
+      ansible.builtin.set_fact:
+        model_key_env: >-
+          {{ {model_key_var: (secret.model_key | from_json).api_key} }}
+      no_log: true
+      when: "'web' in targets"
+
     - name: Give quantify-web its configuration
+      vars:
+        web_config:
+          QUANTIFY_DATABASE_URL: "{{ database_url.stdout | trim }}"
+          QUANTIFY_DEPLOYMENT_PROFILE: production
+          PILOT_DATA_POLICY: SYNTHETIC_ONLY
+          # Read from terraform, not written here. These were literals —
+          # MODEL_ASSISTED and claude-sonnet-5 — while terraform declared
+          # RUNTIME and gpt-5.4, so the deployment served one interpreter
+          # while every plan and cost report described another. Not
+          # cosmetic: `/workspace/new` serves a different template, form
+          # and route depending on it, so the path being tested was not
+          # the path being served. `deploy.context` exists so one place
+          # decides which reader a deployment uses; a playbook writing its
+          # own answer is a second place, and this is what that produces.
+          QUANTIFY_PARSER_MODE: "{{ parser_mode }}"
+          QUANTIFY_PARSER_MODEL: "{{ parser_model }}"
+          QUANTIFY_PARSER_PROVIDER: "{{ parser_provider }}"
+          QUANTIFY_PARSER_FALLBACK: "{{ parser_fallback }}"
+          # The issuer stays what it is. `iss` is checked on every token
+          # and is published in discovery, so this is not a value to tidy.
+          OIDC_ISSUER: "https://{{ identity_domain | default('auth.quantify.club') }}"
+          OIDC_CLIENT_ID: "{{ secret.client_id }}"
+          OIDC_AUDIENCE: "{{ secret.client_id }}"
+          OIDC_INTERNAL_BASE_URL: "http://quantify-identity"
+          PUBLIC_BASE_URL: "https://{{ domain | default('quantify.club') }}"
+          QUANTIFY_COMMIT: "{{ build_commit }}"
+          QUANTIFY_IMAGE_DIGEST: "{{ image | regex_search('sha256:[0-9a-f]+') }}"
+          QUANTIFY_SNAPSHOT_ID: "{{ snapshot_id }}"
+          QUANTIFY_RELEASE_REF: "{{ release_ref }}"
       kubernetes.core.k8s:
         definition:
           apiVersion: v1
           kind: Secret
           metadata: { name: quantify-web, namespace: "{{ k8s_namespace }}" }
           type: Opaque
-          stringData:
-            QUANTIFY_DATABASE_URL: "{{ database_url.stdout | trim }}"
-            QUANTIFY_DEPLOYMENT_PROFILE: production
-            PILOT_DATA_POLICY: SYNTHETIC_ONLY
-            ANTHROPIC_API_KEY: "{{ secret.model_key }}"
-            QUANTIFY_PARSER_MODE: MODEL_ASSISTED
-            QUANTIFY_PARSER_MODEL: claude-sonnet-5
-            # The issuer stays what it is. `iss` is checked on every token and
-            # is published in discovery, so this is not a value to tidy.
-            OIDC_ISSUER: "https://{{ identity_domain | default('auth.quantify.club') }}"
-            OIDC_CLIENT_ID: "{{ secret.client_id }}"
-            OIDC_AUDIENCE: "{{ secret.client_id }}"
-            # Reached in-cluster, published externally. Zitadel's discovery is
-            # fetched over the internal Service while the issuer it advertises
-            # stays the public hostname — the same split the EC2 deployment
-            # makes, and the reason a Cloudflare bot rule once refused every
-            # token exchange.
-            OIDC_INTERNAL_BASE_URL: "http://quantify-identity"
-            PUBLIC_BASE_URL: "https://{{ domain | default('quantify.club') }}"
-            # The names the preflight reads, taken from the template that
-            # already serves rather than invented here. `QUANTIFY_COMMIT`, not
-            # `QUANTIFY_BUILD_COMMIT` — and the snapshot id, whose absence is
-            # two thirds of why the first attempt refused with
-            # BUILD_UNOBSERVABLE. A production profile requires every stamp
-            # set, which is the rule that makes a running service able to say
-            # what it is.
-            QUANTIFY_COMMIT: "{{ build_commit }}"
-            QUANTIFY_IMAGE_DIGEST: "{{ image | regex_search('sha256:[0-9a-f]+') }}"
-            QUANTIFY_SNAPSHOT_ID: "{{ snapshot_id }}"
-            # The fourth required stamp, and the one I kept missing by fixing
-            # the three I had guessed. `REQUIRED_DEPLOYMENT_FACTS` names all
-            # four; reading that list is what ended two rounds of adding one
-            # variable at a time.
-            QUANTIFY_RELEASE_REF: "{{ release_ref }}"
-        state: present
+          # Merged, because the model key's *name* depends on the declared
+          # provider and Ansible does not resolve a Jinja expression used
+          # as a mapping key inside `definition` — it fails as a censored
+          # task with `no_log` on it, which is a bad way to learn that.
+          stringData: "{{ web_config | combine(model_key_env) }}"
+        # Replaced, not merged. `state: present` patches, so a key written by
+        # an earlier deploy survives under its old name: switching the declared
+        # provider from ANTHROPIC to OPENAI left ANTHROPIC_API_KEY in place
+        # holding a key for the other provider. Nothing reads it today, and the
+        # day something does it finds a credential that looks configured and is
+        # not. Inside the module arguments, not beside them — at task level it
+        # is a conflicting action statement and the play does not run.
+        force: true
       no_log: true
       when: "'web' in targets"
 
-    # --- migrations --------------------------------------------------------
-    #
-    # Before the workloads, for the reason the EC2 deployment gave: the application
-    # refuses to serve a database at the wrong head, so an unmigrated deploy
-    # fails readiness — which is the right refusal at the wrong moment. As a
-    # deploy step it is a migration somebody reads; as a readiness failure it
-    # is a rollout somebody debugs.
     - name: Render the migration Job for this build
       ansible.builtin.set_fact:
         migration_job: >-
