@@ -167,3 +167,135 @@ def test_the_graph_is_actually_read(package):
     assert outbound > 0, (
         f"the import reader found no imports from src/{package}/, so the "
         "layering checks above are passing on an empty graph")
+
+
+# --------------------------------------------------------------------------
+# The canonical runtimes, and which way they may be depended on.
+#
+#     Quantify domain code
+#         v
+#     discovery-runtime
+#         v
+#     runtime-contracts
+#
+# One direction. A canonical runtime that imported Quantify would stop being
+# canonical the moment it did — it would carry finance vocabulary into a
+# package whose whole claim is that it does not have any, and the other
+# consumer of the same contract would inherit it.
+
+CANONICAL_PACKAGES = ("runtime_contracts", "discovery_runtime")
+
+#: The vendored checkout, if it is present. The submodule is pinned but not
+#: wired in, so these run against whatever is on disk and skip nothing when it
+#: is absent — an assertion that silently disappears with its subject is how a
+#: guard stops guarding.
+VENDORED = pathlib.Path(__file__).resolve().parent.parent / "vendor"
+
+
+def _imports_of(root: pathlib.Path):
+    """Every module name imported anywhere under a directory tree."""
+    names = set()
+    for file in root.rglob("*.py"):
+        if "__pycache__" in str(file) or "/.git/" in str(file):
+            continue
+        try:
+            tree = ast.parse(file.read_text())
+        except (SyntaxError, UnicodeDecodeError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                # Absolute only. `from .mission import x` inside
+                # runtime_contracts.models names that package's own submodule
+                # and has nothing to do with Quantify's `mission` — reading the
+                # name without the level reported three false violations in
+                # the contracts package and one in the runtime, all of them
+                # relative imports of a sibling.
+                if node.level == 0 and node.module:
+                    names.add((node.module.split(".")[0], str(file)))
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    names.add((alias.name.split(".")[0], str(file)))
+    return names
+
+
+def test_the_canonical_runtimes_do_not_import_quantify():
+    """The direction, checked on whichever canonical packages are on disk.
+
+    `src` is the obvious name to look for and not the only one: a runtime that
+    reached for `workspace` or `mission` directly would be just as wrong and
+    would not contain the string "src".
+    """
+    import runtime_contracts
+
+    quantify_packages = {p.name for p in SRC.iterdir() if p.is_dir()
+                         and not p.name.startswith("__")} | {"src"}
+
+    roots = [pathlib.Path(runtime_contracts.__file__).parent]
+    vendored = VENDORED / "discovery-runtime" / "discovery_runtime"
+    if vendored.exists():
+        roots.append(vendored)
+
+    offences = []
+    for root in roots:
+        for name, where in _imports_of(root):
+            if name in quantify_packages:
+                offences.append(f"{where} imports {name}")
+    assert not offences, (
+        "a canonical runtime imports Quantify:\n  " + "\n  ".join(offences)
+        + "\n\nThe dependency runs the other way. A runtime that imports the "
+          "application is not application-neutral, and the other consumer of "
+          "the same contract inherits whatever it picked up.")
+
+
+def test_the_contracts_package_does_not_import_the_discovery_runtime():
+    """Contracts sit below the runtime, not beside it.
+
+    `discovery-runtime` depends on `runtime-contracts`. The reverse would be a
+    cycle between two separately released packages, which is resolvable only
+    by releasing them together forever.
+    """
+    import runtime_contracts
+
+    root = pathlib.Path(runtime_contracts.__file__).parent
+    offences = [f"{where} imports discovery_runtime"
+                for name, where in _imports_of(root)
+                if name == "discovery_runtime"]
+    assert not offences, "\n".join(offences)
+
+
+def test_quantify_has_no_fallback_to_a_local_discovery_runtime():
+    """No optional import that silently substitutes a local implementation.
+
+    A `try: from discovery_runtime import X / except ImportError: from
+    .something import X` would make the canonical dependency optional, and the
+    deployment that quietly ran the local half would be indistinguishable from
+    the one that did not — which is the failure the whole migration exists to
+    remove.
+    """
+    offenders = []
+    for file in SRC.rglob("*.py"):
+        if "__pycache__" in str(file):
+            continue
+        try:
+            tree = ast.parse(file.read_text())
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Try):
+                continue
+            imported = any(
+                isinstance(inner, (ast.Import, ast.ImportFrom))
+                and any(a.name.split(".")[0] in CANONICAL_PACKAGES
+                        for a in getattr(inner, "names", []))
+                or (isinstance(inner, ast.ImportFrom)
+                    and (inner.module or "").split(".")[0] in CANONICAL_PACKAGES)
+                for inner in ast.walk(node))
+            caught = any(
+                isinstance(h.type, ast.Name) and h.type.id == "ImportError"
+                for h in node.handlers)
+            if imported and caught:
+                offenders.append(
+                    f"{file.relative_to(SRC.parent)}:{node.lineno}")
+    assert not offenders, (
+        "a canonical runtime import is wrapped in an ImportError fallback: "
+        + ", ".join(offenders))

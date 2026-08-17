@@ -244,13 +244,14 @@ def pins(client, outcomes: Sequence[Outcome]) -> Dict[str, Any]:
     """Everything needed to say what was run, and to run it again."""
     import subprocess
 
-    try:
-        from runtime_contracts.canonical import CANONICALIZATION_VERSION
-    except ImportError:
-        # Optional here; the contracts package pins wire semantics for the
-        # control plane, not for this compiler. Recorded as absent rather than
-        # guessed, because a pin nobody verified is worse than a stated gap.
-        CANONICALIZATION_VERSION = "not-installed"
+    # Imported outright. This was wrapped in an ImportError fallback that
+    # recorded `"not-installed"`, from when the contracts package was optional
+    # here. It is a pinned dependency now — the suite asserts the installed
+    # version matches the pin — so the fallback cannot fire for the reason it
+    # describes, and the only way to reach it is a broken environment in which
+    # recording a provenance pin as "not-installed" states something false
+    # about what produced the run.
+    from runtime_contracts.canonical import CANONICALIZATION_VERSION
 
     def git(*args: str) -> str:
         try:
