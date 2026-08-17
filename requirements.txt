@@ -35,6 +35,7 @@ gymnasium>=0.29
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
 runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.2
+discovery-runtime @ git+https://github.com/redevops-io/discovery-runtime.git@v0.3.0
 
 # --- The Mission Runtime, for the cross-runtime replay gate ---
 # Tag-pinned for the same reason as the contracts above. Same licence family
