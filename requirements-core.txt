@@ -51,7 +51,7 @@ psycopg[binary]>=3.1
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
 runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.2
-discovery-runtime @ git+https://github.com/redevops-io/discovery-runtime.git@v0.4.0
+discovery-runtime @ git+https://github.com/redevops-io/discovery-runtime.git@v0.1.5
 
 # --- The Mission Runtime, for the cross-runtime replay gate ---
 # Tag-pinned for the same reason as the contracts above. Same licence family
