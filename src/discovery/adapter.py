@@ -180,3 +180,63 @@ def classify_authors(intent):
             continue
         fields[name] = replace(field, author=author_for(field.evidence[0]))
     return replace(intent, fields=fields)
+
+
+# --- Quantify's readers, in the runtime's protocol -------------------------
+
+class ReaderAdapter:
+    """A Quantify reader, presented as a `discovery_runtime.Reader`.
+
+    The two protocols differ in one way that matters: a Quantify reader returns
+    a `ReadingSet` — a flat list of per-dimension readings plus an `ok` flag —
+    and the runtime wants a `Reading` whose evidence is *filed under* the
+    dimension it supports. That is the same restructuring the contract makes,
+    so it happens once, here.
+
+    **A failed read produces no evidence, not empty evidence.** `ReadingSet.ok`
+    is false when the reader could not be reached, and a transport failure is
+    not a reading: scoring one as silence would let a timeout look like a
+    reader that had nothing to say.
+    """
+
+    def __init__(self, reader, kind=None, schema=None):
+        from runtime_contracts import ReaderKind
+
+        self._reader = reader
+        self.reader_id = getattr(reader, "id", None) or getattr(
+            reader, "reader_id", "quantify-reader")
+        self.kind = kind or ReaderKind.MODEL
+        self._schema = schema or QUANTIFY_SCHEMA
+
+    def read(self, text: str):
+        from runtime_contracts import DecisionEvidence
+
+        from discovery_runtime import Reading
+
+        reading_set = self._reader.read(text, self._schema)
+        if not getattr(reading_set, "ok", True):
+            return Reading(payload={})
+
+        payload, evidence = {}, {}
+        for one in reading_set.readings:
+            payload[one.dimension] = one.value
+            evidence.setdefault(one.dimension, []).append(
+                DecisionEvidence(
+                    reader_id=getattr(reading_set, "reader_id", self.reader_id),
+                    kind=self.kind, value=one.value,
+                    source_ref=str(getattr(one, "source_span", "") or "")))
+        return Reading(payload=payload, evidence=evidence)
+
+
+def intent_from(readers, text: str, *,
+                objective: str = "evaluate_investment_strategy"):
+    """Draft an intent through the runtime, with the domain's classification.
+
+    The two steps are separate on purpose: `draft_intent` produces a generic
+    reading and `classify_authors` says what the witnesses were. Combining them
+    upstream would make the runtime guess; leaving them apart here would let a
+    caller forget the second and produce an intent whose identity disagrees
+    with the internal path for no reason a person could see.
+    """
+    return classify_authors(
+        runtime(readers, objective=objective).draft(text))

@@ -109,6 +109,26 @@ def _resolved():
     return deploy_context.resolve({**os.environ, **DECLARED})
 
 
+def _runtime_intent(text: str):
+    """The runtime path, executed independently from the same reader.
+
+    Not derived from the internal path's artifact. Until this existed the
+    harness projected one artifact twice, which validated the view and proved
+    nothing about two implementations — the runtime side now runs its own
+    readers, its own fusion and its own draft.
+    """
+    from src.deploy import context as deploy_context
+    from src.discovery import adapter
+    from src.workspace import pilot_routes
+
+    original, deploy_context.current = deploy_context.current, lambda: _resolved()
+    try:
+        reader = adapter.ReaderAdapter(pilot_routes.configured_reader())
+        return adapter.intent_from([reader], text)
+    finally:
+        deploy_context.current = original
+
+
 def _internal_reading(text: str):
     from src.deploy import context as deploy_context
     from src.discovery.schema import QUANTIFY_SCHEMA
@@ -249,11 +269,10 @@ def test_the_full_corpus_has_no_unexplained_semantic_difference(capsys):
         if reading.intent is None:
             continue
         old = from_internal(reading)
-        # Both sides from the same reading: the runtime view is taken from the
-        # intent the internal path already built, so this compares the two
-        # *views* of one artifact. It is the projection that is under test
-        # here, not yet two independent pipelines.
-        new = from_runtime(reading.intent)
+        # Independently produced. The runtime path runs its own readers, its
+        # own fusion and its own draft over the same frozen readings; nothing
+        # here is taken from the artifact the internal path built.
+        new = from_runtime(_runtime_intent(text))
         verdicts.append((classify(old, new), text, old, new))
 
     print(f"\n{SCOPE}\nmapping: {MAPPING_VERSION}\n")
