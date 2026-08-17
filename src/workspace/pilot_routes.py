@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
+from urllib.parse import quote
+
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 
@@ -432,7 +434,8 @@ def pilot_new(request: Request, describe: str = "",
 
 @router.post("/pilot/answer")
 async def pilot_answer(request: Request, describe: str = Form(...),
-                       picked: str = Form("")):
+                       picked: str = Form(""),
+                       from_review: str = Form("")):
     """One human amendment, authored `USER`, persisted, then redirected to.
 
     **Post-Redirect-Get, and the redirect is the point.** This handler used to
@@ -503,15 +506,45 @@ async def pilot_answer(request: Request, describe: str = Form(...),
 
     review_id = save_review(answered, picked)
 
+    # A lap, not a step. The review is addressed by its content, so landing on
+    # the id we came from means this submission settled nothing — the answers
+    # were supplied and the state is identical. Redirecting silently would put
+    # the person back on the page they just left with no explanation, which
+    # reads as a broken button and is how a clarification loop feels from the
+    # outside.
+    #
+    # Named rather than blocked: the answers may be genuinely unusable, and
+    # refusing the submission would lose them. The page says which dimensions
+    # were sent and did not move.
+    # Two ways to arrive back where you started, and they are different
+    # situations for the person:
+    #
+    #   nothing was edited        the form was sent as it was rendered, so
+    #                             there was no new evidence to settle anything
+    #   answers were sent         and the state is still identical, so the
+    #                             values were unusable or already recorded
+    #
+    # Both land on the page they submitted from, and both read as a broken
+    # button without a word. The marker is separate from the list because the
+    # first case has no dimensions to name.
+    stalled = bool(from_review) and from_review == review_id
+    unmoved = ",".join(sorted(answers)) if stalled and answers else ""
+
     participant = _observe_attempt(request, describe, answered, answers,
                                    run=None, picked=picked)
-    response = RedirectResponse(f"/pilot/reviews/{review_id}", status_code=303)
+    target = f"/pilot/reviews/{review_id}"
+    if stalled:
+        target += "?stalled=1"
+        if unmoved:
+            target += f"&unchanged={quote(unmoved)}"
+    response = RedirectResponse(target, status_code=303)
     attach(response, participant)
     return response
 
 
 @router.get("/pilot/reviews/{review_id}", response_class=HTMLResponse)
-def pilot_review(request: Request, review_id: str):
+def pilot_review(request: Request, review_id: str,
+                 stalled: str = "", unchanged: str = ""):
     """The persisted clarification state, read and rendered. Nothing else.
 
     **No reader is constructed on this path**, exactly as on
@@ -544,6 +577,11 @@ def pilot_review(request: Request, review_id: str):
     context = page(reading, text=stored.get("text", ""), run=run)
     context["picked"] = stored.get("picked", "")
     context["review_id"] = review_id
+    # A property of the transition that reached this page, not of the state
+    # itself — which is why it arrives in the query and is not stored. The GET
+    # remains a read: the same URL without it renders the same page.
+    context["stalled"] = bool(stalled)
+    context["unchanged"] = [d for d in unchanged.split(",") if d]
     response = TEMPLATES.TemplateResponse(request, "pilot.html", context)
     attach(response, participant)
     return response

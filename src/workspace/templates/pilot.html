@@ -37,6 +37,37 @@
   </section>
 {% endif %}
 
+{% if stalled %}
+  {# The clarification did not move. Said here rather than left for somebody
+     to notice, because the page they land on is the page they submitted from
+     and the honest reading of that, without a word of explanation, is that
+     the button does nothing.
+
+     It names the dimensions instead of apologising: those are the answers
+     that were received and did not settle anything, which is what somebody
+     needs in order to try something different rather than the same thing
+     again. #}
+  <section class="refusal">
+    <h2>Those answers did not change anything</h2>
+    {% if unchanged %}
+      <p>
+        {{ unchanged | join(", ") }} came through and left the plan exactly as
+        it was — so this page is the one you submitted from, not a new step.
+      </p>
+      <p>
+        Nothing was lost: the values are still below. A value that reads as
+        the same thing already recorded, or that the engine cannot use as
+        written, settles nothing — the row's own note says which.
+      </p>
+    {% else %}
+      <p>
+        Nothing on the form was changed, so there was nothing new to settle
+        and this is the same page. Edit a value below and send it again.
+      </p>
+    {% endif %}
+  </section>
+{% endif %}
+
 {% if reading %}
 
   {% if reopened %}
@@ -59,6 +90,11 @@
     <form method="post" action="/pilot/answer" class="parameters">
       <input type="hidden" name="describe" value="{{ text }}">
       <input type="hidden" name="picked" value="{{ picked or "" }}">
+      {# Which state this submission is leaving, so the handler can tell a
+         step forward from a lap. Without it a submission that settles nothing
+         redirects to the page it came from and looks like the button is
+         broken. #}
+      <input type="hidden" name="from_review" value="{{ review_id or "" }}">
       <table>
         <thead>
           <tr><th>parameter</th><th>value</th><th>where it came from</th></tr>
