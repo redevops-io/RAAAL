@@ -1,0 +1,3 @@
+[submodule "vendor/discovery-runtime"]
+	path = vendor/discovery-runtime
+	url = git@github.com:redevops-io/discovery-runtime.git
