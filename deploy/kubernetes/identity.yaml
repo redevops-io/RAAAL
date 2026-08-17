@@ -69,10 +69,17 @@ data:
       # would be a new decision about whether a login page may be framed,
       # taken during a move, in the file whose whole point is to change
       # nothing.
+      # `>` forces a set. Without it Caddy appended to the headers Zitadel
+      # already sends, and the response carried two values for each — for
+      # Referrer-Policy that was `no-referrer` and `same-origin` together,
+      # where the last valid token wins, so Zitadel's value silently overrode
+      # the one this block exists to impose. Two identical HSTS values are
+      # merely untidy; two conflicting referrer policies is the stricter one
+      # not applying.
       header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Content-Type-Options nosniff
-        Referrer-Policy no-referrer
+        >Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        >X-Content-Type-Options nosniff
+        >Referrer-Policy no-referrer
       }
     }
 ---
