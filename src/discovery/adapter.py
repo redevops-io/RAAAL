@@ -108,7 +108,35 @@ def fusion_policy():
     return fuse_readings
 
 
-def runtime(readers, *, objective: str = "evaluate_investment_strategy"):
+def canonicalizer():
+    """Quantify's canonicalisation, and a place to keep what it refused.
+
+    `draft_intent` takes a canonicalizer that returns a mapping, so there is no
+    channel for "this value could not be canonicalised". The refusals are
+    captured in the closure and folded into `unresolved` by `intent_from`.
+
+    They must be, and this is the defect that made the gate red: a stated value
+    that cannot be read blocks the seal rather than being dropped. Dropping it
+    leaves the dimension *absent*, and absent means the engine may apply its
+    default — so an unreadable `4%` would quietly become a plan that runs on a
+    number nobody stated.
+    """
+    from .canonical import canonicalise
+
+    refused: list = []
+
+    def canonicalize(payload):
+        refused.clear()
+        settled = dict(payload or {})
+        result = canonicalise(settled)
+        refused.extend(result.refusals)
+        return {name: value for name, (value, _author) in result.fields.items()}
+
+    return canonicalize, refused
+
+
+def runtime(readers, *, objective: str = "evaluate_investment_strategy",
+            canonicalize=None):
     """A `DiscoveryRuntime` configured for Quantify.
 
     The schema travels as `schema` so a caller can introspect its own
@@ -120,6 +148,7 @@ def runtime(readers, *, objective: str = "evaluate_investment_strategy"):
         readers=list(readers),
         schema=QUANTIFY_SCHEMA,
         objective=objective,
+        canonicalize=canonicalize or canonicalizer()[0],
         fusion_policy=fusion_policy(),
     )
 
@@ -238,5 +267,22 @@ def intent_from(readers, text: str, *,
     caller forget the second and produce an intent whose identity disagrees
     with the internal path for no reason a person could see.
     """
-    return classify_authors(
-        runtime(readers, objective=objective).draft(text))
+    from runtime_contracts import OpenReason, Unresolved
+
+    canonicalize, refused = canonicalizer()
+    intent = classify_authors(
+        runtime(readers, objective=objective,
+                canonicalize=canonicalize).draft(text))
+
+    if not refused:
+        return intent
+
+    # Folded in exactly as the internal path does: a value Discovery cannot
+    # canonicalise is result-changing and blocks the seal.
+    from dataclasses import replace
+
+    return replace(intent, unresolved=intent.unresolved + tuple(
+        Unresolved(dimension=name,
+                   reason=OpenReason.UNRESOLVED_DISAGREEMENT,
+                   detail=why, result_changing=True)
+        for name, why in refused))
