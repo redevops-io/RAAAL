@@ -213,6 +213,59 @@ def classify_authors(intent):
 
 # --- Quantify's readers, in the runtime's protocol -------------------------
 
+def as_intent_relation(relation):
+    """Quantify's `RelationReading` as the contract's `IntentRelation`.
+
+    The vocabulary boundary. The two shapes correspond almost exactly — kind,
+    members, attributes, source_span — and the translation lives here because
+    what an `account_transition` *is* stays Quantify's, while the contract only
+    needs to know a relation was established, between whom, and by whom.
+
+    `author=READER` rather than the field-level classification: a relation is
+    established by whichever reader found it, and no relation reaches this from
+    a structured user action today. If one ever does, it arrives with its own
+    evidence and this is where that would be read.
+    """
+    from runtime_contracts import Author, IntentRelation, RelationMember
+
+    members = tuple(
+        RelationMember(role=str(role), subject=str(subject),
+                       qualifiers=dict(qualifiers or {}))
+        for role, subject, qualifiers in getattr(relation, "members", ()) or ())
+    return IntentRelation(
+        kind=str(getattr(relation, "kind", "")),
+        members=members,
+        attributes=dict(getattr(relation, "attributes", {}) or {}),
+        author=Author.READER,
+        produced_by="quantify-binding",
+        source_span=str(getattr(relation, "source_span", "") or ""),
+    )
+
+
+def relation_fields(relations) -> Dict[str, str]:
+    """Relation kinds as flat markers, so Mission's compiler can refuse them.
+
+    Mirrors `workspace.pilot._relation_fields`. Kept here rather than upstream
+    because the need is Mission's flat-field compiler, not the contract — the
+    contract carries relations structurally and always has.
+    """
+    summary: Dict[str, str] = {}
+    for relation in relations or ():
+        kind = getattr(relation, "kind", "")
+        if not kind:
+            continue
+        # `role=subject` pairs, matching `workspace.pilot._relation_fields`
+        # exactly. The marker names what the person described — "from=traditional
+        # IRA, to=Roth" — so a refusal can quote it back; the bare kind would
+        # tell somebody a relation existed and nothing about which one.
+        members = ", ".join(
+            f"{role}={subject}" for role, subject, *_ in
+            (m if isinstance(m, (tuple, list)) else (m, "", "")
+             for m in getattr(relation, "members", ())))
+        summary[str(kind)] = members or str(kind)
+    return summary
+
+
 class ReaderAdapter:
     """A Quantify reader, presented as a `discovery_runtime.Reader`.
 
@@ -254,7 +307,21 @@ class ReaderAdapter:
                     reader_id=getattr(reading_set, "reader_id", self.reader_id),
                     kind=self.kind, value=one.value,
                     source_ref=str(getattr(one, "source_span", "") or "")))
-        return Reading(payload=payload, evidence=evidence)
+
+        # Relations, and the flat markers Mission needs to see them.
+        #
+        # `compile_intent` builds what it asks the manifest about from a flat
+        # name -> value map of dimensions, so a relation it cannot see is a
+        # refusal that exists in the manifest and never fires. The relation
+        # itself stays structured; this adds a marker under the relation's own
+        # name so a refusal can name what the person described.
+        #
+        # The flattening is Quantify's, not the runtime's: it exists because
+        # Mission reads flat fields, which is a fact about Mission.
+        found = list(getattr(reading_set, "relations", ()) or ())
+        payload.update(relation_fields(found))
+        return Reading(payload=payload, evidence=evidence,
+                       relations=[as_intent_relation(r) for r in found])
 
 
 def intent_from(readers, text: str, *,
