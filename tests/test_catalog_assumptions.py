@@ -259,23 +259,56 @@ class TestThePageSaysWhatIsOurs:
             "a reading with no assumptions must say nothing rather than "
             "reassure")
 
-    def test_the_input_is_empty_so_a_click_cannot_confirm(self):
+    def test_a_click_cannot_confirm_what_nobody_touched(self):
         """The authority inversion, at the last place it can happen.
 
-        If the input carried the assumed value, pressing "run it" would post it
-        back and `answer` would record our guess as USER — the strongest author
-        there is — for anybody who did not read the row. Empty means silence
-        stays silence, and only a typed value speaks.
+        If pressing "run it" recorded the row's contents, the catalogue's guess
+        would come back authored USER — the strongest author there is — for
+        anybody who did not read it.
+
+        This used to be enforced by rendering the input empty, and asserted by
+        searching the template for `value=""`. Both were proxies. Emptiness is
+        correlated with "nobody stated this" and is not the same fact, and the
+        price was a page of blank boxes with the assumed value printed beside
+        each one, asking people to retype what was already there.
+
+        The value is pre-filled now and the form states authorship instead, so
+        the assertion moved to the function that decides: an assumed row
+        carried back unchanged is not an answer, however non-empty it is. That
+        is the property; `value=""` was one way of getting it.
+        """
+        from src.workspace.pilot_routes import _answers_in
+
+        untouched = _answers_in({"answer_assets": "VTI",
+                                 "original_assets": "VTI",
+                                 "author_assets": "ASSUMED"})
+        assert untouched == {}, (
+            "an assumed row submitted exactly as it was offered counted as an "
+            "answer, so pressing the button records the catalogue's guess as "
+            f"the user's own word: {untouched}")
+
+        typed = _answers_in({"answer_assets": "VOO",
+                             "original_assets": "VTI",
+                             "author_assets": "ASSUMED"})
+        assert typed == {"assets": "VOO"}, (
+            "a changed value was not recorded as the person's, which would "
+            "make the row impossible to correct")
+
+    def test_the_assumed_value_is_visible(self):
+        """Shown, not hidden. The complaint that changed the mechanism.
+
+        Read from the template because this one genuinely is about rendering:
+        the question is whether the person can see the value without typing it.
         """
         from pathlib import Path
 
         template = (Path(__file__).resolve().parent.parent / "src" /
                     "workspace" / "templates" / "pilot.html").read_text()
-        block = template.split('row.state == "ASSUMED"')[1].split("{% else %}")[0]
-        assert 'value=""' in block, (
-            "the assumed row's input is pre-filled, so pressing the button "
-            "records the catalogue's guess as the user's own word")
+        block = template.split('row.state == "ASSUMED"')[1].split("{% elif")[0]
         assert "row.value" in block, "the assumed value is not shown at all"
+        assert 'value=""' not in block, (
+            "the assumed row renders an empty input again, so the value is on "
+            "the page as text and has to be retyped to be kept")
 
 
 class TestTheGainIsReal:

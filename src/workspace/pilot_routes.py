@@ -124,16 +124,55 @@ def _live_parser():
 
 
 def _answers_in(form) -> Dict[str, str]:
-    """The `answer_*` fields a submission carried, by dimension.
+    """Which submitted values are the person's own words.
 
-    One reader for every route that needs them. It was written out twice, in
-    `/pilot/answer` and `/pilot/save`, and two copies of "what counts as an
-    answer" is how the save path and the answer path come to disagree about
-    whether a blank field means anything.
+    One reader for every route that needs them, because two copies of "what
+    counts as an answer" is how the save path and the answer path come to
+    disagree.
+
+    **Authorship comes from change, not from emptiness.** The form states what
+    each row was offered as (`original_*`) and whose it was (`author_*`), and
+    this compares them:
+
+        submitted differs from what was offered   -> the person's, authored USER
+        already theirs, carried back unchanged    -> stays theirs
+        offered as an assumption, unchanged       -> stays an assumption
+
+    The rule it replaces was "a non-empty box is the user's". That is
+    correlated with authorship and is not the same fact, and the cost was
+    real: to keep an assumed value ours it had to be rendered as an empty box,
+    so a page with a dozen assumptions asked somebody to retype all twelve. The
+    safety property is unchanged — pressing the button without touching a row
+    still cannot turn a guess into a stated preference — but now the value is
+    visible while it stays ours.
+
+    A row carrying no `original_` is treated as an edit. Older forms and
+    hand-made requests have no such field, and the safe reading of "somebody
+    typed this and I cannot tell what it was offered as" is that it is theirs:
+    it over-attributes to the person, never the other way.
     """
-    return {k[len("answer_"):]: str(v).strip()
-            for k, v in form.items()
-            if k.startswith("answer_") and str(v).strip()}
+    answers: Dict[str, str] = {}
+    for key, raw in form.items():
+        if not key.startswith("answer_"):
+            continue
+        name = key[len("answer_"):]
+        submitted = str(raw).strip()
+        if not submitted:
+            continue
+
+        author = str(form.get(f"author_{name}", "") or "")
+        if author == "USER":
+            # Theirs already. Carried back so a later submission does not drop
+            # it — the reading is rebuilt from scratch each time, and a value
+            # left out of the answers would silently revert to whatever the
+            # reader says.
+            answers[name] = submitted
+            continue
+
+        original = form.get(f"original_{name}")
+        if original is None or submitted != str(original).strip():
+            answers[name] = submitted
+    return answers
 
 
 def _observe_attempt(request, describe: str, reading: PilotReading,

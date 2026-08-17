@@ -77,6 +77,13 @@
                 <input name="answer_{{ row.name }}" type="text"
                        value="{{ row.value }}"
                        placeholder="{{ row.examples | first if row.examples }}">
+                {# What this row was offered as, so the handler can tell an
+                   edit from a value that was simply carried back. Authorship
+                   is stated, never inferred from whether the box is empty. #}
+                <input type="hidden" name="original_{{ row.name }}"
+                       value="{{ row.value }}">
+                <input type="hidden" name="author_{{ row.name }}"
+                       value="{{ row.author }}">
                 {% if row.provenance %}
                   <div class="quiet small">{{ row.provenance }}</div>
                 {% endif %}
@@ -91,18 +98,49 @@
                   </div>
                 {% endif %}
               {% elif row.state == "ASSUMED" %}
-                {# The value is shown as text and the input beside it is EMPTY,
-                   with the assumed value only as a placeholder. A pre-filled
-                   input would be posted back by anyone who pressed the button
-                   without reading the row, and the guess would return authored
-                   USER — which dominates every other author and is never
-                   overwritten by a re-read. The product would have promoted its
-                   own assumption to the user's word, permanently, on a click
-                   that meant "run it". Empty means "still ours". #}
-                <strong>{{ row.value }}</strong>
-                <div class="quiet small">assumed, not stated</div>
-                <input name="answer_{{ row.name }}" type="text" value=""
+                {# Pre-filled, and it stays ours until somebody changes it.
+                   The input used to be rendered EMPTY so that a click-through
+                   could not promote the guess to authored USER — which
+                   dominates every other author and is never overwritten by a
+                   re-read. That reasoning was right and the mechanism was a
+                   proxy: it inferred authorship from whether the box was
+                   blank, so the only way to keep a value ours was to make the
+                   person retype it. With dozens of assumed rows that is a
+                   form nobody fills in.
+
+                   The form states the authorship instead. `original_` carries
+                   what was offered and `author_` carries whose it is, so the
+                   handler compares the submitted value with the offered one:
+                   unchanged stays ASSUMED, different becomes USER. The value
+                   is visible and editable, and pressing the button without
+                   touching it changes nothing about who said it. #}
+                <input name="answer_{{ row.name }}" type="text"
+                       value="{{ row.value }}"
                        placeholder="change it — now {{ row.value }}">
+                <input type="hidden" name="original_{{ row.name }}"
+                       value="{{ row.value }}">
+                <input type="hidden" name="author_{{ row.name }}"
+                       value="{{ row.author }}">
+                <div class="quiet small">assumed, not stated — edit to make it yours</div>
+              {% elif row.author == "USER" %}
+                {# Their own value, rendered as an input and carried back.
+
+                   It used to render as plain text with no field at all, and
+                   the consequence was not cosmetic: the reading is rebuilt
+                   from the sentence on every submission, so a value that is
+                   not in the form is not in the reading. Somebody who set
+                   this and pressed the button again had it silently replaced
+                   by the catalogue's assumption — their own word, overwritten
+                   by a guess, with nothing on the page to say so.
+
+                   Editable rather than hidden, because a value the person
+                   stated is the one they are most entitled to change. #}
+                <input name="answer_{{ row.name }}" type="text"
+                       value="{{ row.value }}">
+                <input type="hidden" name="original_{{ row.name }}"
+                       value="{{ row.value }}">
+                <input type="hidden" name="author_{{ row.name }}" value="USER">
+                <div class="quiet small">yours</div>
                 {% if row.examples %}
                   <div class="quiet small">
                     for example {{ row.examples | join(", ") }}

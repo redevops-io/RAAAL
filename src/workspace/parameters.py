@@ -70,6 +70,19 @@ class Parameter:
     #: whose example is not executable would be an invitation to a refusal.
     executable: Sequence[str] = ()
     detail: str = ""
+    #: Who the value belongs to, for the form to state rather than infer.
+    #:
+    #: `provenance` above is display text and must never be what a decision
+    #: keys on — it is prose, it is localisable, and it already varies between
+    #: "the reason, where there is one" and a raw outcome code. This is the
+    #: machine-readable half: "ASSUMED", "USER", or "".
+    #:
+    #: It exists because authorship used to be inferred from whether an input
+    #: was left blank. Blankness is correlated with "the person did not state
+    #: this" and is not the same fact, so assumed values had to be rendered
+    #: empty to stop a click-through promoting a guess to the user's word.
+    #: Stating the author lets the value be shown and still stay ours.
+    author: str = ""
 
     @property
     def needs_an_answer(self) -> bool:
@@ -215,6 +228,9 @@ def rows(reading) -> Sequence[Parameter]:
         found.append(Parameter(
             name=name, state=ASSUMED if assumed else SETTLED,
             value=str(settled.value),
+            author=("ASSUMED" if assumed
+                    else "USER" if settled.provenance == "USER_ANSWERED"
+                    else ""),
             # The reason, where there is one, rather than the code. A row
             # reading `CATALOG_ASSUMED (catalogue)` tells somebody a machine
             # was involved and not whether the value suits them.
