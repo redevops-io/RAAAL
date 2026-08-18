@@ -65,11 +65,22 @@ def test_the_image_installs_the_runtime_the_suite_runs_against():
     assert "COPY vendor/discovery-runtime" in dockerfile, (
         "the submodule is never copied into the build context")
 
-    core = CORE.read_text()
-    assert not re.search(r"^discovery-runtime\s*@\s*git\+", core, re.M), (
-        "requirements-core.txt fetches discovery-runtime from git as well; "
-        "two installs of one package is how the image comes to hold a "
-        "different version than the one that was copied in")
+    # *Both* requirements files, not just the one the image reads.
+    #
+    # This checked requirements-core.txt only, and requirements.txt went on
+    # pinning v0.1.7 while the submodule was v0.1.9 — so CI would install one
+    # runtime and the suite report on another. A guard that covers the file
+    # somebody happened to be looking at is how the second file drifts.
+    for name in ("requirements-core.txt", "requirements.txt"):
+        text = (ROOT / name).read_text()
+        assert not re.search(r"^discovery-runtime\s*@\s*git\+", text, re.M), (
+            f"{name} fetches discovery-runtime from git; two installs of one "
+            "package is how a build comes to hold a different version than "
+            "the one the tests import")
+
+    assert "./vendor/discovery-runtime" in (ROOT / "requirements.txt").read_text(), (
+        "requirements.txt does not install the vendored runtime, so the test "
+        "environment and the image install different things")
 
     # And the submodule is a release, not a commit somebody happened to be on.
     assert _submodule_tag().startswith("v")
@@ -103,3 +114,46 @@ def test_both_pins_are_tags_rather_than_branches_or_commits():
         pin = _pinned_in_requirements(package)
         assert re.fullmatch(r"v\d+\.\d+\.\d+", pin), (
             f"{package} is pinned to {pin!r}, which is not a release tag")
+
+
+def test_the_submodule_can_be_fetched_without_a_credential():
+    """CI has no SSH key, and it needs the submodule to build.
+
+    `.gitmodules` used `git@github.com:` while the repository was private, so
+    `actions/checkout` — which does not fetch submodules by default anyway —
+    could not have got it even when asked. The vendoring fix worked on a
+    developer machine, where the submodule is already checked out, and moved
+    the failure into the pipeline.
+    """
+    import configparser
+
+    parser = configparser.ConfigParser()
+    parser.read_string((ROOT / ".gitmodules").read_text())
+    urls = [parser[s]["url"] for s in parser.sections() if "url" in parser[s]]
+    assert urls, "no submodules are declared"
+    for url in urls:
+        assert url.startswith("https://"), (
+            f"{url} needs a credential a CI checkout does not have")
+
+
+def test_every_workflow_that_installs_the_runtime_fetches_the_submodule():
+    """`actions/checkout` does not fetch submodules unless told to.
+
+    Without it `vendor/discovery-runtime` is an empty directory and `pip
+    install ./vendor/discovery-runtime` fails — on a path that exists locally,
+    which is the shape that makes this invisible until a pipeline runs.
+    """
+    workflows = ROOT / ".github" / "workflows"
+    if not workflows.exists():
+        pytest.skip("no workflows in this checkout")
+
+    missing = []
+    for path in sorted(workflows.glob("*.yml")):
+        text = path.read_text()
+        installs = ("requirements.txt" in text or "requirements-core.txt" in text
+                    or "docker build" in text)
+        if installs and "submodules:" not in text:
+            missing.append(path.name)
+    assert not missing, (
+        f"{missing} install this project and do not fetch submodules, so the "
+        "runtime they build against would be an empty directory")
