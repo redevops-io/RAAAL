@@ -61,6 +61,16 @@ anything it admits is agreement the system already acts on.
 
 Three verdicts and no others. `EXPECTED_REPRESENTATION` is admissible only with
 the demonstration attached; `SEMANTIC_DIFFERENCE` blocks deletion.
+
+**Version 6 tightened two rules that were admitting real differences.** A
+differing author is now semantic: author is identity-bearing and decides
+whether a later reader may correct a value, which is authority rather than
+presentation — and the leniency is exactly what hid the missing relation
+markers for two runs. A differing field set is now semantic too: a dimension
+one lane settles and the other does not is a missing part of the request. What
+remains representational is a differing `intent_hash` with everything else
+equal, and that is admissible only because the 25-case StrategySpec proof
+demonstrated it execution-neutral.
 """
 from __future__ import annotations
 
@@ -74,7 +84,7 @@ import pytest
 
 #: Bumped whenever the projection below changes. Printed in the artifact so a
 #: later reader can tell which mapping produced a given equivalence result.
-MAPPING_VERSION = "quantify-equivalence-view@5"
+MAPPING_VERSION = "quantify-equivalence-view@6"
 
 SCOPE = (
     "Establishes old/new Discovery semantic equivalence under frozen recorded "
@@ -252,12 +262,22 @@ def classify(old: ComparisonState, new: ComparisonState) -> str:
                           normalizers=adapter.NORMALIZERS):
             return "SEMANTIC_DIFFERENCE"
 
+    # Author is identity-bearing and controls dominance: USER is final and is
+    # never overwritten by a re-read. Two implementations disagreeing about who
+    # established a value disagree about whether a later reader may correct it,
+    # which is authority and not presentation.
+    #
+    # Admitted as representational until version 6, which is how missing
+    # relations hid: their marker fields carried no evidence, fell back to a
+    # generic READER, and the leniency swallowed it.
+    if old.provenance_summary != new.provenance_summary:
+        return "SEMANTIC_DIFFERENCE"
+
     if set(old.settled_fields) != set(new.settled_fields):
-        # One settled a dimension the other did not. Which dimensions exist is
-        # the domain's schema, not fusion's, so a difference here is coverage
-        # rather than meaning — but it is not nothing, and it is not silently
-        # equivalent either.
-        return "EXPECTED_REPRESENTATION"
+        # One settled a dimension the other did not. A missing dimension is a
+        # missing part of the request — this was EXPECTED_REPRESENTATION until
+        # version 6 and it swallowed the relation gap for two runs.
+        return "SEMANTIC_DIFFERENCE"
     if old.unresolved_dimensions != new.unresolved_dimensions:
         return "EXPECTED_REPRESENTATION"
     if old.intent_hash != new.intent_hash:
@@ -330,3 +350,71 @@ def test_the_full_corpus_has_no_unexplained_semantic_difference(capsys):
     assert verdicts, "no case produced an intent; nothing was compared"
     assert not unexplained, (
         f"{len(unexplained)} of {len(verdicts)} cases differ semantically")
+
+
+def _downstream(intent):
+    """What this intent produces for the engine, as a comparable value.
+
+    Not only the `StrategySpec`: an intent that refuses, or that seals nothing,
+    has an outcome too, and comparing only the specs would silently skip every
+    case that does not compile — which is most of the corpus.
+    """
+    import dataclasses
+
+    from src.mission.from_intent import NotExecutable, compile_intent
+    from src.mission.strategy_spec import from_scenario
+
+    if intent is None or not intent.is_verified:
+        return ("UNSEALED", "")
+    try:
+        compiled = compile_intent(intent)
+    except NotExecutable as refused:
+        return ("REFUSED",
+                ",".join(sorted(r.dimension for r in refused.refusals)))
+    if compiled.scenario is None:
+        return ("NO_SCENARIO", "")
+    return ("SPEC", json.dumps(
+        dataclasses.asdict(from_scenario(compiled.scenario)),
+        sort_keys=True, default=str))
+
+
+def test_every_representational_difference_is_execution_neutral(capsys):
+    """The demonstration `EXPECTED_REPRESENTATION` is only admissible with.
+
+    A differing `intent_hash` with everything else equal is representational
+    *if* the two intents produce the same thing downstream — and that is a
+    claim to prove, not a rule to assert. Every case classified representational
+    is compiled on both lanes and required to agree.
+
+    Stated honestly in the output: most of the corpus does not compile to a
+    spec at all, so the majority agree on producing none. That is outcome
+    equivalence and it is weaker evidence than byte-identical specs. Both are
+    counted separately rather than summed into one reassuring number.
+    """
+    from collections import Counter
+
+    outcomes = Counter()
+    differing = []
+    for text in _texts():
+        reading = _internal_reading(text)
+        if reading.intent is None:
+            continue
+        old, new = from_internal(reading), from_runtime(_runtime_intent(text))
+        if classify(old, new) != "EXPECTED_REPRESENTATION":
+            continue
+        a, b = _downstream(reading.intent), _downstream(_runtime_intent(text))
+        outcomes[a[0] if a == b else "DIFFER"] += 1
+        if a != b:
+            differing.append((text, a[0], b[0]))
+
+    print(f"\n{SCOPE}\nmapping: {MAPPING_VERSION}\n")
+    print("  representational differences, proved downstream:")
+    for kind, n in sorted(outcomes.items()):
+        print(f"    {kind:<14} {n}")
+    print(f"    {'byte-identical StrategySpec':<14} "
+          f"{outcomes.get('SPEC', 0)} of {sum(outcomes.values())}")
+
+    assert sum(outcomes.values()), "nothing was classified representational"
+    assert not differing, (
+        "these are classified representational and are not execution-neutral:\n"
+        + "\n".join(f"  {t[:60]!r}: {a} vs {b}" for t, a, b in differing))
