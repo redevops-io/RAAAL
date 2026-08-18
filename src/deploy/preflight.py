@@ -175,29 +175,6 @@ def run(environ: Optional[Mapping[str, str]] = None,
             "defaulting to a local SQLite file would be a live path quietly "
             "reading a database nobody authorised")
 
-    # The declared witnesses are the witnesses this process has.
-    #
-    # `_declared_profile` reads the declaration rather than checking whether
-    # Stanza imported, which is right — a plan carries MODEL_ONLY or BOTH for
-    # its whole life and inferring it from an import is how an artifact comes
-    # to claim two witnesses because a package happened to be installed. The
-    # cost of that correctness is that a deployment can *say* BOTH and serve
-    # one, so the declaration is checked here instead.
-    #
-    # It is checked by loading the parser, not by importing the package. The
-    # model is a separate 500MB download that `StanzaReader` deliberately will
-    # not fetch at runtime, so `import stanza` succeeding proves nothing about
-    # whether a sentence can be parsed.
-    #
-    # Refusing matters because the missing witness is silent. Every syntax
-    # guard and every derived reader runs on the two-witness branch; without a
-    # parse they simply do not fire, and three strategy families that must be
-    # refused by name compiled into plans instead. Nothing logged, nothing
-    # failed — which is why this is a startup refusal rather than a warning.
-    problem = _syntax_witness_problem(context, profile)
-    if problem:
-        return refuse(Result.REFUSED_CONFIGURATION, problem)
-
     url = context.database.url
     if context.database.problem:
         return refuse(Result.REFUSED_CONFIGURATION, context.database.problem)
@@ -228,6 +205,17 @@ def run(environ: Optional[Mapping[str, str]] = None,
     # profile decides is whether a refusal stops the service, not whether the
     # question is asked — a developer pointed at an unmigrated database wants
     # to know, and only production refuses to serve.
+    # Last, because it is the expensive one.
+    #
+    # Loading the parser takes seconds and every check above is a string
+    # comparison or a socket. An operator at three in the morning wants to
+    # learn the database URL is wrong immediately, not after a model has
+    # loaded — and this was first placed between two configuration checks for
+    # no reason but where it was easy to insert.
+    problem = _syntax_witness_problem(context, profile)
+    if problem:
+        return refuse(Result.REFUSED_CONFIGURATION, problem)
+
     return _check_database(url, profile, facts, checked_at)
 
 
