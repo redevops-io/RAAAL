@@ -481,3 +481,89 @@ def intent_from(readers, text: str, *,
                    reason=OpenReason.UNRESOLVED_DISAGREEMENT,
                    detail=why, result_changing=True)
         for name, why in refused))
+
+
+# --- the two-witness profile ------------------------------------------------
+#
+# The model proposes; syntax argues. This asymmetry is product semantics, not
+# an implementation detail, and it is the one thing that must not be lost in
+# the move to a runtime whose default stance is that no reader is privileged.
+#
+#     model + syntax agree        settle, syntax recorded as supporting evidence
+#     model + syntax contradict   unresolved: the words argue with the reading
+#     model silent, syntax speaks unresolved: syntax alone never carries a field
+#     model speaks, syntax silent settle: silence is not an argument
+#
+# The two middle rows are asymmetric on purpose. A deterministic candidate is
+# evidence *about* the model's reading rather than a competing reading, so it
+# can contradict a value and cannot supply one. Passing syntax to the runtime
+# as a second reader would invert that: it would become a peer proposal source
+# and could carry a field alone, which is a different product.
+
+def two_witness_readings(model_reading, syntax_evidence):
+    """One `Reading` where syntax argues with the model rather than competing.
+
+    `syntax_evidence` is keyed by dimension — the deterministic candidates for
+    each — and is folded in three ways, none of which lets it propose:
+
+      agreeing        appended as `DecisionEvidence` on the model's field, so
+                      the record says two witnesses concurred
+      contradicting   left out of the payload, so `fuse` sees a field whose
+                      value the words argue with
+      model-silent    not in the payload at all, so `fuse` receives a
+                      dimension with no proposals and returns DISAGREE, which
+                      is exactly "syntax alone never carries a field"
+
+    Returned as a single reading rather than two, because two readings is how
+    the runtime models two *peers*.
+    """
+    from runtime_contracts import DecisionEvidence, ReaderKind
+
+    from discovery_runtime import Reading
+
+    reader_id = getattr(model_reading, "reader_id", "model")
+    payload, evidence, contradicted = {}, {}, {}
+
+    proposed = {}
+    for one in one_reading_per_set_dimension(model_reading.readings):
+        proposed[one.dimension] = one
+
+    for name, one in proposed.items():
+        payload[name] = one.value
+        evidence[name] = [DecisionEvidence(
+            reader_id=reader_id, kind=ReaderKind.MODEL, value=one.value,
+            source_ref=str(getattr(one, "source_span", "") or ""))]
+
+    modes = compare_modes()
+    for name, candidates in (syntax_evidence or {}).items():
+        for candidate in candidates:
+            value = getattr(candidate, "proposed_value", None)
+            span = str(getattr(candidate, "source_span", "") or "")
+            if name not in proposed:
+                # Syntax speaks where the model did not. Recorded so the
+                # decision can say what argued, and deliberately not added to
+                # the payload: an unproposed dimension reaches fuse with no
+                # proposals and comes back DISAGREE.
+                evidence.setdefault(name, []).append(DecisionEvidence(
+                    reader_id="syntax", kind=ReaderKind.RULE, value=value,
+                    source_ref=span))
+                continue
+            agrees = same_value_for(name, proposed[name].value, value, modes)
+            if agrees:
+                evidence[name].append(DecisionEvidence(
+                    reader_id="syntax", kind=ReaderKind.RULE, value=value,
+                    source_ref=span))
+            else:
+                contradicted[name] = (
+                    f"the words say {value!r} where the reading says "
+                    f"{proposed[name].value!r}")
+    return Reading(payload=payload, evidence=evidence), contradicted
+
+
+def same_value_for(dimension, one, other, modes=None):
+    """The schema's comparison rule, applied by name."""
+    from discovery_runtime import same_value
+
+    modes = modes or compare_modes()
+    return same_value(one, other, modes.get(dimension, "TEXT"),
+                      normalizers=NORMALIZERS)
