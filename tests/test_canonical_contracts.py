@@ -120,8 +120,17 @@ def test_the_dependency_is_pinned_to_a_tag_not_a_branch():
         if not path.exists():
             continue
         for line in path.read_text().splitlines():
-            if "runtime-contracts" in line:
-                declared.append((name, line.strip()))
+            # Requirement lines only. A comment mentioning the package is
+            # prose, and this scanned it: a note explaining *why*
+            # `runtime-contracts` stays a tag fetch was read as a requirement
+            # pinning it to nothing, and the test failed on its own
+            # explanation. `#` is a requirements file's comment syntax, so this
+            # is a fact about the format rather than a guess.
+            stripped = line.strip()
+            if stripped.startswith("#") or not stripped:
+                continue
+            if "runtime-contracts" in stripped:
+                declared.append((name, stripped))
 
     assert declared, "runtime-contracts is not declared in any requirements file"
     for name, line in declared:

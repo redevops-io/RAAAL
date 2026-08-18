@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import importlib.util
 import re
+
+import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -42,6 +44,21 @@ TAG = re.compile(r"^v\d+\.\d+\.\d+")
 
 MODULE = {"runtime-contracts": "runtime_contracts", "agentic-os": "agentic_os"}
 
+#: Packages deliberately absent from the image the pilot runs, with the reason
+#: and the test that keeps the reason true.
+#:
+#: An entry here is a claim that the serving path cannot reach the package —
+#: not that somebody would rather not install it — and the third field is what
+#: makes that claim checkable after the person who made it has moved on.
+NOT_IN_THE_IMAGE = {
+    "agentic-os": (
+        ("requirements-core.txt",),
+        "it pins runtime-contracts v0.2.2 against Quantify's v0.2.4, so an "
+        "image installing both is unsatisfiable; the serving path reaches no "
+        "module under src/agentic and no agentic_os import at all",
+        "test_serving_image_closure.py"),
+}
+
 
 def _pins():
     for name in REQUIREMENTS:
@@ -56,12 +73,46 @@ class TestThePinIsStable:
     def test_every_requirements_file_asks_for_each_of_them(self):
         """Two files install this project — the image builds from the core one.
         A pin in only one of them is a dependency that exists on a developer's
-        machine and not in the container that runs the pilot."""
+        machine and not in the container that runs the pilot.
+
+        That is the direction this was written for and it still holds. The
+        other direction — a package deliberately kept *out* of the image —
+        needs an argument, not an exemption, so `NOT_IN_THE_IMAGE` names the
+        package, the reason, and the test that proves the reason.
+        """
         for package in FAMILY:
             pinned = {name for name, pkg, _ in _pins() if pkg == package}
-            assert pinned == set(REQUIREMENTS), (
-                f"{package} is pinned in {sorted(pinned)} but not in "
-                f"{sorted(set(REQUIREMENTS) - pinned)}")
+            absent, _, _ = NOT_IN_THE_IMAGE.get(package, ((), "", ""))
+            expected = set(REQUIREMENTS) - set(absent)
+            assert pinned == expected, (
+                f"{package} is pinned in {sorted(pinned)} and expected in "
+                f"{sorted(expected)}")
+
+    @pytest.mark.parametrize("package", sorted(NOT_IN_THE_IMAGE))
+    def test_a_package_kept_out_of_the_image_has_a_proof(self, package):
+        """A declared exception is not a justified one.
+
+        `agentic-os@v0.2.3` pins `runtime-contracts@v0.2.2` against Quantify's
+        `v0.2.4`, so an image installing both is unsatisfiable — the build
+        failed with `ResolutionImpossible`, and had done since the contracts
+        pin moved, unnoticed because nothing built the image.
+
+        Removing it is only safe while the serving path cannot reach it, and
+        that is a property somebody has to keep checking. So the exception
+        names the test that checks it, and this asserts that test exists and
+        is about this package.
+        """
+        _, reason, proof = NOT_IN_THE_IMAGE[package]
+        assert len(reason.split()) >= 12, f"{package}: {reason!r}"
+
+        path = ROOT / "tests" / proof
+        assert path.exists(), (
+            f"{package} is kept out of the image on the strength of {proof}, "
+            "which does not exist")
+        text = path.read_text()
+        assert MODULE[package] in text or package in text, (
+            f"{proof} does not mention {package}, so it is not the proof that "
+            "the serving path cannot reach it")
 
     def test_each_is_a_tag_and_not_a_moving_ref(self):
         """The whole reason the vendored copy outlived its other justifications.
