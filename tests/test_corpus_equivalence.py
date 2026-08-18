@@ -74,7 +74,7 @@ import pytest
 
 #: Bumped whenever the projection below changes. Printed in the artifact so a
 #: later reader can tell which mapping produced a given equivalence result.
-MAPPING_VERSION = "quantify-equivalence-view@4"
+MAPPING_VERSION = "quantify-equivalence-view@5"
 
 SCOPE = (
     "Establishes old/new Discovery semantic equivalence under frozen recorded "
@@ -137,9 +137,28 @@ def _runtime_intent(text: str):
     original, deploy_context.current = deploy_context.current, lambda: _resolved()
     try:
         reader = adapter.ReaderAdapter(pilot_routes.configured_reader())
-        return adapter.intent_from([reader], text)
+        intent = adapter.intent_from([reader], text)
     finally:
         deploy_context.current = original
+
+    # Seal only when meaning is closed, which is the contract's own rule and
+    # the reason `draft` and `seal` are separate calls. The harness must not
+    # force closure to make compilation possible — that would compare a
+    # sealed artifact against one the runtime would never have sealed.
+    #
+    # Version 4 stopped at the draft, so every runtime intent stayed DRAFT and
+    # `compile_intent` refused it: 22 of 25 hash-only cases failed to compile
+    # for a lifecycle reason and 3 more read as StrategySpec differences that
+    # were the same cause wearing another label. That result is invalid as
+    # evidence about execution equivalence and is recorded as such.
+    if not intent.unsealable:
+        try:
+            return intent.seal()
+        except Exception:                                      # noqa: BLE001
+            # Refused by the contract. Returned unsealed so the difference is
+            # visible as a sealability difference rather than disappearing.
+            return intent
+    return intent
 
 
 def _internal_reading(text: str):
