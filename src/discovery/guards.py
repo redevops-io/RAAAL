@@ -121,7 +121,8 @@ def as_decisions(parse, decisions: Sequence[Any]) -> Sequence[Any]:
     predicate *means* stays the reader's answer, and a sealed intent will never
     contain a value this module invented.
     """
-    from .fusion import Decision, Fusion
+    from .claims import Decision
+    from discovery_runtime.fusion import Fusion
     from .syntax import SyntaxEvidence
 
     out = []

@@ -134,6 +134,21 @@ def classify(draws: list) -> str:
     return UNSTABLE_SAFE
 
 
+def _installed(distribution: str) -> str:
+    """A package's version as the running environment reports it.
+
+    `unknown` rather than a guess or a raise: an artifact that cannot say which
+    runtime produced it should say so, and a lane that dies because a version
+    string is missing has turned a provenance field into a dependency.
+    """
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version(distribution)
+    except PackageNotFoundError:
+        return "unknown"
+
+
 def _provenance(model_reader, syntax_reader, texts: list, draws: int) -> dict:
     """Everything needed to say whether this artifact still applies.
 
@@ -148,7 +163,7 @@ def _provenance(model_reader, syntax_reader, texts: list, draws: int) -> dict:
     from shadow_run import schema_fingerprint                   # noqa: E402
 
     from src.discovery.hosted_recording import PROMPT_VERSION
-    from src.discovery.pipeline import PIPELINE_VERSION
+    from src.discovery.semantics import PIPELINE_VERSION
     from src.discovery.schema import QUANTIFY_SCHEMA
     from src.discovery.witnesses import BOTH
 
@@ -176,7 +191,19 @@ def _provenance(model_reader, syntax_reader, texts: list, draws: int) -> dict:
         "syntax_witness_version": getattr(syntax_reader, "id", "")
                                   or f"stanza@{getattr(syntax_reader, '_version', '?')}",
         "pipeline_version": PIPELINE_VERSION,
-        "fusion_version": "quantify-fusion@1",
+        # Read from the packages, not restated. This field said
+        # `quantify-fusion@1` for the whole migration, which stopped being true
+        # the day fusion moved to discovery-runtime and would have stamped a
+        # false attribution onto every artifact the live lane produced — the
+        # exact failure this function's own docstring warns about, in this
+        # function.
+        #
+        # `importlib.metadata` rather than `__version__`, because that is what
+        # the deployed distribution reports and the two can disagree: the
+        # module said 0.1.8 while the installed metadata said 0.1.4 until the
+        # package was reinstalled.
+        "fusion_version": f"discovery-runtime@{_installed('discovery-runtime')}",
+        "contracts_version": f"runtime-contracts@{_installed('runtime-contracts')}",
         "witness_profile": sorted(w.value if hasattr(w, "value") else str(w)
                                   for w in BOTH.available),
         "draws_per_prompt": draws,

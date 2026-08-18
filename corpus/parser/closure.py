@@ -41,7 +41,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from corpus.parser.loader import load                       # noqa: E402
 from src.discovery.binding import BindingStatus, bind       # noqa: E402
-from src.discovery.fusion import Fusion, Proposal, fuse     # noqa: E402
+# Fusion moved to discovery-runtime with the migration; this tool drove the
+# internal implementation and cannot run until it is repointed.
+from discovery_runtime.fusion import Fusion, fuse            # noqa: E402
+from src.discovery.claims import Proposal                    # noqa: E402
 from src.discovery.semantics import propose                 # noqa: E402
 from src.discovery.syntax import normalize                  # noqa: E402
 from src.discovery.syntax_stanza import RecordedReader      # noqa: E402
@@ -131,7 +134,7 @@ def classify(case, recorded: RecordedReader,
     that label was measuring the absence of one producer and calling it the
     absence of all of them.
     """
-    from src.discovery.pipeline import read
+    from src.discovery.adapter import two_witness_run as read
     from src.discovery.schema import QUANTIFY_SCHEMA
     from src.discovery.semantics import INTERMEDIATE_FIELDS
 
@@ -220,14 +223,14 @@ def classify(case, recorded: RecordedReader,
     # renders an amount as `£1k` and the corpus writes `1000`; calling that a
     # mismatch here would reintroduce, in the report, exactly the formatting-as-
     # conflict defect that `compare_as` was added to fusion to remove.
-    from src.discovery.fusion import REQUIREMENTS, Requirement, same_value
+    from src.discovery.adapter import compare_as, same_value_for
 
-    rule = REQUIREMENTS.get(wanted, Requirement()).compare_as
+    rule = compare_as(wanted)
     common = {"field": wanted, "witnesses": witnesses,
               "value": produced, "expected": expected, "compared_as": rule,
               "matches_expected": (produced is not None and expected is not None
-                                   and same_value(produced, expected, rule,
-                                                  dimension=wanted))}
+                                   and same_value_for(wanted, produced,
+                                                      expected))}
 
     if decision.outcome is Fusion.AMBIGUOUS_BY_LANGUAGE:
         return {"state": AMBIGUOUS_BY_LANGUAGE, "reason": decision.detail,

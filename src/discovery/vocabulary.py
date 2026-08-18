@@ -84,3 +84,18 @@ REQUIREMENTS: Mapping[str, Requirement] = {
     "account_allocation": Requirement(material=True, binds="account"),
     "dividend_policy": Requirement(material=False),
 }
+
+
+#: Dimensions where a trailing `m` counts periods rather than millions.
+#:
+#: `m` is the one genuinely ambiguous magnitude letter. A reader writing `12m`
+#: for an amount means twelve million; writing `12m` for a moving-average
+#: window it means twelve months, and scaling that produced a twelve-million
+#: session window that disagreed with syntax's 12 — a case that had been
+#: answered correctly for months, broken by the fix for `2.5k`.
+#:
+#: `k`, `b` and `bn` are not ambiguous and are scaled everywhere.
+PERIOD_DIMENSIONS = frozenset({
+    "moving_average_window", "evaluation_period", "holding_period",
+    "rebalancing_period", "lookback_window",
+})

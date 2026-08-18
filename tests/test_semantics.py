@@ -20,7 +20,8 @@ import pytest
 
 from corpus.parser.loader import load
 from src.discovery.binding import bind
-from src.discovery.fusion import Fusion, Proposal, fuse
+from discovery_runtime.fusion import Fusion
+from src.discovery.claims import Proposal
 from src.discovery.semantics import INTERMEDIATE_FIELDS, propose
 from src.discovery.syntax import normalize
 from src.discovery.syntax_stanza import RecordedReader
@@ -45,14 +46,14 @@ CASES = [c for c in load() if c.id in ANSWERABLE]
 
 def run(case):
     """Both witnesses, end to end, exactly as the pipeline runs them."""
+    from src.discovery.adapter import two_witness_run
     from src.discovery.hosted_recording import RecordedHostedReader
-    from src.discovery.pipeline import read
     from src.discovery.schema import QUANTIFY_SCHEMA
 
     hosted = RecordedHostedReader()
-    result = read(case.text, RECORDED.parse(case.text, case.language),
-                  hosted.read(case.text, QUANTIFY_SCHEMA), QUANTIFY_SCHEMA,
-                  language=case.language)
+    result = two_witness_run(case.text, RECORDED.parse(case.text, case.language),
+                             hosted.read(case.text, QUANTIFY_SCHEMA),
+                             QUANTIFY_SCHEMA, language=case.language)
     wanted = case.asserts["field"]
     decision = result.by_field.get(wanted)
     assert decision is not None, (
@@ -187,7 +188,8 @@ class TestTheCorpusCannotSelectItselfDown:
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.id)
 def test_the_pipeline_produces_the_field_and_the_value(case, request):
-    from src.discovery.fusion import REQUIREMENTS, Requirement, same_value
+    from src.discovery.adapter import same_value_for
+    from src.discovery.vocabulary import REQUIREMENTS, Requirement
 
     if case.id in DRIFTED:
         request.node.add_marker(pytest.mark.xfail(
@@ -201,8 +203,8 @@ def test_the_pipeline_produces_the_field_and_the_value(case, request):
     # The dimension is passed, not just the rule. `12m` is twelve million
     # for an amount and twelve periods for a window, and a comparison that
     # does not know which is being asked reports one of them wrongly.
-    assert same_value(decision.value, case.asserts["value"], rule,
-                      dimension=decision.dimension), (
+    assert same_value_for(decision.dimension, decision.value,
+                          case.asserts["value"]), (
         f"{case.text!r} -> {decision.value!r}, expected "
         f"{case.asserts['value']!r} (compared as {rule}). {case.note}")
 

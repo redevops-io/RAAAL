@@ -340,10 +340,10 @@ class TestTheSetMemberRuleLivesInOnePlaceNow:
 
     def test_canonicalisation_splits_the_way_fusion_compares(self):
         """The two rules that must still agree, both inside Discovery."""
+        from src.discovery.adapter import same_value_for
         from src.discovery.canonical import canonicalise
-        from src.discovery.fusion import same_value
 
-        assert same_value("VTI and BND", "BND, VTI", "SET"), (
+        assert same_value_for("assets", "VTI and BND", "BND, VTI"), (
             "fusion no longer treats `and` as a member separator")
         assert canonicalise({"assets": "VTI and BND"}).fields["assets"][0] \
             == "VTI,BND"

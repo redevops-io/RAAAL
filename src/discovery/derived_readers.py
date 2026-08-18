@@ -42,7 +42,7 @@ import re
 
 from typing import Optional, Sequence
 
-from .fusion import Proposal
+from .claims import Proposal
 
 #: Versioned like every other reader. A derived reading whose rules changed
 #: under a fixed id would make two runs look comparable when they are not.

@@ -2,1321 +2,187 @@
   "cases": [
     {
       "case": "invest $500 monthly into VTI",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "amount": "500",
-          "assets": "VTI",
-          "cadence": "monthly",
-          "objective": "evaluate_investment_strategy"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "assets": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "amount": "AGREE",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "cadence": "AGREE",
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "amount": "500",
-          "assets": "VTI",
-          "cadence": "monthly",
-          "objective": "evaluate_investment_strategy"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "assets": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "amount": "AGREE",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "cadence": "AGREE",
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "put $250 into the index fund every two weeks",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "amount": "250"
-        },
-        "open": [
-          "cadence"
-        ],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "DISAGREE"
-        },
-        "provenance": {
-          "amount": "AGREE",
-          "cadence": "DISAGREE"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "amount": "250"
-        },
-        "open": [
-          "cadence"
-        ],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "DISAGREE"
-        },
-        "provenance": {
-          "amount": "AGREE",
-          "cadence": "DISAGREE"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "contribute $1,000 a quarter",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "amount": "1000",
-          "cadence": "quarterly"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE"
-        },
-        "provenance": {
-          "amount": "AGREE",
-          "cadence": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "amount": "1000",
-          "cadence": "quarterly"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE"
-        },
-        "provenance": {
-          "amount": "AGREE",
-          "cadence": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "buy VOO when SPY falls below its 200-day moving average",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "assets": "VOO",
-          "moving_average_window": "200",
-          "objective": "evaluate_investment_strategy",
-          "observed_assets": "SPY",
-          "trigger_semantics": "crossing_event"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "moving_average_window": "AGREE",
-          "objective": "AGREE",
-          "observed_assets": "AGREE",
-          "trigger_semantics": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "moving_average_window": "AGREE",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "observed_assets": "MODEL_ONLY_ACCEPTED",
-          "trigger_semantics": "AGREE"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "assets": "VOO",
-          "moving_average_window": "200",
-          "objective": "evaluate_investment_strategy",
-          "observed_assets": "SPY",
-          "trigger_semantics": "crossing_event"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "moving_average_window": "AGREE",
-          "objective": "AGREE",
-          "observed_assets": "AGREE",
-          "trigger_semantics": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "moving_average_window": "AGREE",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "observed_assets": "MODEL_ONLY_ACCEPTED",
-          "trigger_semantics": "AGREE"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "add to BND while TLT is under its 200-day",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "assets": "BND",
-          "moving_average_window": "200",
-          "objective": "evaluate_investment_strategy",
-          "observed_assets": "TLT",
-          "trigger_semantics": "persistent_condition"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "moving_average_window": "AGREE",
-          "objective": "AGREE",
-          "observed_assets": "AGREE",
-          "trigger_semantics": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "moving_average_window": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "observed_assets": "MODEL_ONLY_ACCEPTED",
-          "trigger_semantics": "AGREE"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "assets": "BND",
-          "moving_average_window": "200",
-          "objective": "evaluate_investment_strategy",
-          "observed_assets": "TLT",
-          "trigger_semantics": "persistent_condition"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "moving_average_window": "AGREE",
-          "objective": "AGREE",
-          "observed_assets": "AGREE",
-          "trigger_semantics": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "moving_average_window": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "observed_assets": "MODEL_ONLY_ACCEPTED",
-          "trigger_semantics": "AGREE"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "withdraw 4% of the portfolio each year, adjusted for inflation",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "amount": "4%",
-          "cadence": "annual",
-          "objective": "assess_withdrawal",
-          "sell_action": "withdraw 4% of the portfolio each year, adjusted for inflation"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "amount": "4%",
-          "cadence": "annual",
-          "objective": "assess_withdrawal",
-          "sell_action": "withdraw 4% of the portfolio each year, adjusted for inflation"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "draw down 3% a year in retirement",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "objective": "assess_withdrawal",
-          "sell_action": "draw down 3% a year"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "objective": "AGREE",
-          "sell_action": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "objective": "assess_withdrawal",
-          "sell_action": "draw down 3% a year"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "objective": "AGREE",
-          "sell_action": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "take $40,000 a year out of the portfolio",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "amount": "40000",
-          "cadence": "annual",
-          "objective": "assess_withdrawal",
-          "sell_action": "take $40,000 a year out of the portfolio"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "amount": "40000",
-          "cadence": "annual",
-          "objective": "assess_withdrawal",
-          "sell_action": "take $40,000 a year out of the portfolio"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "spend the taxable account first, then the IRA, then the Roth",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "objective": "assess_withdrawal"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "objective": "assess_withdrawal"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "take from bonds in a down year and from stocks otherwise",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "assets": "bonds, stocks",
-          "sell_action": "take from bonds in a down year and from stocks otherwise"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "assets": "bonds, stocks",
-          "sell_action": "take from bonds in a down year and from stocks otherwise"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "take the required minimum distribution starting at 73",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "objective": "assess_withdrawal",
-          "sell_action": "take the required minimum distribution"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "objective": "assess_withdrawal",
-          "sell_action": "take the required minimum distribution"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "harvest losses whenever a position falls 10% below its cost basis",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "conditional_amount": "whenever a position falls 10% below its cost basis",
-          "sell_action": "harvest losses",
-          "trigger_semantics": "persistent_condition"
-        },
-        "open": [],
-        "outcomes": {
-          "conditional_amount": "AGREE",
-          "sell_action": "AGREE",
-          "trigger_semantics": "AGREE"
-        },
-        "provenance": {
-          "conditional_amount": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "trigger_semantics": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "conditional_amount": "whenever a position falls 10% below its cost basis",
-          "sell_action": "harvest losses",
-          "trigger_semantics": "persistent_condition"
-        },
-        "open": [],
-        "outcomes": {
-          "conditional_amount": "AGREE",
-          "sell_action": "AGREE",
-          "trigger_semantics": "AGREE"
-        },
-        "provenance": {
-          "conditional_amount": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "trigger_semantics": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "sell the loser and buy a similar fund to avoid a wash sale",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "sell_action": "sell the loser and buy a similar fund to avoid a wash sale"
-        },
-        "open": [],
-        "outcomes": {
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "sell_action": "sell the loser and buy a similar fund to avoid a wash sale"
-        },
-        "open": [],
-        "outcomes": {
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "sell VTI and buy BND",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "assets": "BND",
-          "sell_action": "sell VTI"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "assets": "BND",
-          "sell_action": "sell VTI"
-        },
-        "open": [],
-        "outcomes": {
-          "assets": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "convert $30,000 from the traditional IRA to the Roth each year",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "amount": "30000",
-          "cadence": "annual",
-          "objective": "assess_conversion",
-          "sell_action": "convert"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "amount": "30000",
-          "cadence": "annual",
-          "objective": "assess_conversion",
-          "sell_action": "convert"
-        },
-        "open": [],
-        "outcomes": {
-          "amount": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "convert up to the top of the 22% bracket each year",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "cadence": "annual",
-          "objective": "assess_conversion",
-          "sell_action": "convert up to the top of the 22% bracket each year"
-        },
-        "open": [],
-        "outcomes": {
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "cadence": "annual",
-          "objective": "assess_conversion",
-          "sell_action": "convert up to the top of the 22% bracket each year"
-        },
-        "open": [],
-        "outcomes": {
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "hold the bonds in the IRA and the stocks in the taxable account",
-      "detail": [],
-      "internal": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "runtime": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "keep the REITs in the Roth",
-      "detail": [],
-      "internal": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "runtime": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "rebalance back to 60/40 every year",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "stated_weights": "60/40"
-        },
-        "open": [
-          "periodic_rebalancing"
-        ],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "periodic_rebalancing": "AMBIGUOUS_BY_LANGUAGE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "periodic_rebalancing": "AMBIGUOUS_BY_LANGUAGE",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "stated_weights": "60/40"
-        },
-        "open": [
-          "periodic_rebalancing"
-        ],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "periodic_rebalancing": "AMBIGUOUS_BY_LANGUAGE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "periodic_rebalancing": "AMBIGUOUS_BY_LANGUAGE",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "rebalance whenever an allocation drifts more than 5 points",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "periodic_rebalancing": "rebalance whenever an allocation drifts more than 5 points"
-        },
-        "open": [],
-        "outcomes": {
-          "periodic_rebalancing": "AGREE"
-        },
-        "provenance": {
-          "periodic_rebalancing": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "periodic_rebalancing": "rebalance whenever an allocation drifts more than 5 points"
-        },
-        "open": [],
-        "outcomes": {
-          "periodic_rebalancing": "AGREE"
-        },
-        "provenance": {
-          "periodic_rebalancing": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "a 60/40 portfolio",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "assets": "portfolio",
-          "stated_weights": "60/40"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "assets": "AGREE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "assets": "portfolio",
-          "stated_weights": "60/40"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "assets": "AGREE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "70% stocks, 20% bonds, 10% cash",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "assets": "stocks, bonds, cash",
-          "stated_weights": "70/20/10"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "assets": "AGREE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "assets": "stocks, bonds, cash",
-          "stated_weights": "70/20/10"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "assets": "AGREE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "shift 1% from stocks to bonds every year as I get older",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "amount": "1%",
-          "assets": "stocks, bonds",
-          "cadence": "annual",
-          "objective": "other",
-          "sell_action": "shift 1% from stocks to bonds"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "amount": "AGREE",
-          "assets": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "amount": "1%",
-          "assets": "stocks, bonds",
-          "cadence": "annual",
-          "objective": "other",
-          "sell_action": "shift 1% from stocks to bonds"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "amount": "AGREE",
-          "assets": "AGREE",
-          "cadence": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "amount": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "hold my age in bonds",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "assets": "bonds",
-          "objective": "other",
-          "stated_weights": "my age"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "assets": "AGREE",
-          "objective": "AGREE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "allocation_method": "stated_weights",
-          "assets": "bonds",
-          "objective": "other",
-          "stated_weights": "my age"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "assets": "AGREE",
-          "objective": "AGREE",
-          "stated_weights": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "assets": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "keep three years of expenses in cash and the rest in stocks",
-      "detail": [],
-      "internal": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "runtime": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "refill the cash bucket from stocks after a good year",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "objective": "other"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "objective": "other"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "allocate by inverse volatility",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "allocation_method": "inverse_volatility"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "allocation_method": "inverse_volatility"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "run it at a 10% volatility target",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "allocation_method": "volatility_target",
-          "conditional_amount": "10% volatility target"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "conditional_amount": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "conditional_amount": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "allocation_method": "volatility_target",
-          "conditional_amount": "10% volatility target"
-        },
-        "open": [],
-        "outcomes": {
-          "allocation_method": "AGREE",
-          "conditional_amount": "AGREE"
-        },
-        "provenance": {
-          "allocation_method": "MODEL_ONLY_ACCEPTED",
-          "conditional_amount": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "tilt 20% toward small cap value",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "objective": "evaluate_investment_strategy"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "objective": "evaluate_investment_strategy"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "sell covered calls one strike out of the money each month",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "cadence": "monthly",
-          "sell_action": "sell covered calls"
-        },
-        "open": [],
-        "outcomes": {
-          "cadence": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "cadence": "monthly",
-          "sell_action": "sell covered calls"
-        },
-        "open": [],
-        "outcomes": {
-          "cadence": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "cadence": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "annuitize a third of the portfolio at 70",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "objective": "other"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "objective": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "objective": "other"
-        },
-        "open": [
-          "stated_weights"
-        ],
-        "outcomes": {
-          "objective": "AGREE",
-          "stated_weights": "DISAGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "stated_weights": "DISAGREE"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "live off the dividends and never touch the principal",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "dividend_policy": "held_as_cash",
-          "objective": "assess_withdrawal",
-          "sell_action": "never touch the principal"
-        },
-        "open": [],
-        "outcomes": {
-          "dividend_policy": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "dividend_policy": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "dividend_policy": "held_as_cash",
-          "objective": "assess_withdrawal",
-          "sell_action": "never touch the principal"
-        },
-        "open": [],
-        "outcomes": {
-          "dividend_policy": "AGREE",
-          "objective": "AGREE",
-          "sell_action": "AGREE"
-        },
-        "provenance": {
-          "dividend_policy": "MODEL_ONLY_ACCEPTED",
-          "objective": "MODEL_ONLY_ACCEPTED",
-          "sell_action": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "do not reinvest the dividends",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "dividend_policy": "held_as_cash"
-        },
-        "open": [],
-        "outcomes": {
-          "dividend_policy": "AGREE"
-        },
-        "provenance": {
-          "dividend_policy": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "dividend_policy": "held_as_cash"
-        },
-        "open": [],
-        "outcomes": {
-          "dividend_policy": "AGREE"
-        },
-        "provenance": {
-          "dividend_policy": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "hold 2x leverage on the equity sleeve",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "holding_period": "hold"
-        },
-        "open": [],
-        "outcomes": {
-          "holding_period": "AGREE"
-        },
-        "provenance": {
-          "holding_period": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "holding_period": "hold"
-        },
-        "open": [],
-        "outcomes": {
-          "holding_period": "AGREE"
-        },
-        "provenance": {
-          "holding_period": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "keep six months of expenses in cash before investing anything",
-      "detail": [],
-      "internal": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "runtime": {
-        "claims": {},
-        "open": [],
-        "outcomes": {},
-        "provenance": {}
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     },
     {
       "case": "pay off the mortgage instead of investing",
-      "detail": [],
-      "internal": {
-        "claims": {
-          "objective": "assess_debt_repayment"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "runtime": {
-        "claims": {
-          "objective": "assess_debt_repayment"
-        },
-        "open": [],
-        "outcomes": {
-          "objective": "AGREE"
-        },
-        "provenance": {
-          "objective": "MODEL_ONLY_ACCEPTED"
-        }
-      },
-      "verdict": "EQUIVALENT"
+      "detail": "ModuleNotFoundError: No module named 'src.discovery.pipeline'",
+      "verdict": "COULD_NOT_RUN"
     }
   ],
   "counts": {
-    "EQUIVALENT": 36
+    "COULD_NOT_RUN": 36
   },
   "profile": "two-witness (recorded model + recorded parse)",
   "scope": "Establishes substitutability of discovery-runtime for the internal implementation under frozen recorded witnesses. Does not establish behaviour of the deployed model."

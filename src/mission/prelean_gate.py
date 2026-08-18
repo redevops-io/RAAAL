@@ -80,7 +80,7 @@ def _current_versions() -> dict:
     from shadow_run import schema_fingerprint                   # noqa: E402
 
     from ..discovery.hosted_recording import PROMPT_VERSION
-    from ..discovery.pipeline import PIPELINE_VERSION
+    from ..discovery.semantics import PIPELINE_VERSION
     from ..discovery.schema import QUANTIFY_SCHEMA
 
     # `hosted_model_id` is here because the gate was blind to it, and the gap

@@ -58,8 +58,11 @@ CLASSIFICATION = {
         "adapter.compare_modes, read from QUANTIFY_SCHEMA rather than restated"),
     "normalizers": (
         SUPPLIED,
-        "adapter.NORMALIZERS: NUMBER via discovery.syntax.normalize. TEXT and "
-        "SET are the runtime's own and deliberately not overridden"),
+        "adapter.NORMALIZERS: NUMBER via discovery.syntax.normalize, PERIOD "
+        "for dimensions where `12m` counts months, HOLDINGS for sets whose "
+        "members are written in English, WEIGHTS for splits. TEXT and SET stay "
+        "the runtime's: a domain mode is added beside a generic one, never "
+        "over it"),
     "ambiguity": (
         SUPPLIED,
         "adapter.ambiguity, from discovery.vocabulary.AMBIGUOUS_TERMS, which stays "
@@ -100,6 +103,12 @@ ADAPTER_SIDE = {
         SUPPLIED,
         "adapter.one_reading_per_set_dimension unions members a reader emitted "
         "separately, on both lanes, through one function"),
+    "binding as a fusion input": (
+        SUPPLIED,
+        "adapter.fuse_with_bindings answers `requires_binding` from "
+        "binding.is_bound and folds the witnesses through "
+        "decisions_via_runtime, so there is one implementation of the "
+        "two-witness asymmetry rather than a second one for this entry point"),
 }
 
 
@@ -157,7 +166,8 @@ def test_every_supplied_seam_names_something_that_exists():
     named = ("canonicalizer", "fusion_policy", "compare_modes", "NORMALIZERS",
              "ambiguity", "material", "ReaderAdapter", "classify_authors",
              "as_intent_relation", "relation_fields",
-             "one_reading_per_set_dimension", "runtime")
+             "one_reading_per_set_dimension", "runtime", "fuse_with_bindings",
+             "decisions_via_runtime")
     missing = [n for n in named if not hasattr(adapter, n)]
     assert not missing, (
         f"the classifications name {missing}, which the adapter does not have")

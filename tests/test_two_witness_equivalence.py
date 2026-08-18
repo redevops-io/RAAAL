@@ -22,6 +22,7 @@ is how it would be lost.
 from __future__ import annotations
 
 import os
+import pathlib
 
 import pytest
 
@@ -149,76 +150,67 @@ def two_witness(monkeypatch):
     return settings
 
 
-def test_the_internal_lane_agrees_on_all_four(two_witness):
-    """The same four rows through Quantify's own fusion.
+#: The policy as data: (model reading, syntax reading, does it settle).
+#:
+#: One table, so that adding a row without a test is impossible and the four
+#: named in the module docstring are the four exercised. The rows used to be
+#: run twice — once through Quantify's own fusion and once through the runtime
+#: — and the agreement of the two was the migration evidence. The internal lane
+#: has since been deleted, so that comparison cannot be re-run: it is recorded
+#: in `corpus/parser/two_witness_differential.pre_cutover.json` and in the
+#: commit that removed `src/discovery/fusion.py`, and what remains asserted
+#: here is the policy itself against the implementation that now serves.
+POLICY = [
+    ("monthly", "monthly", True, "agreement settles"),
+    ("monthly", "annual", False, "a contradiction goes to the person"),
+    (None, "monthly", False, "syntax alone never carries a field"),
+    ("monthly", None, True, "silence is not an argument"),
+]
 
-    Compared as *outcomes* rather than by calling the same function twice: the
-    point is that both implementations of the policy agree, and a test that ran
-    one implementation would prove only that it is self-consistent.
+
+@pytest.mark.parametrize("model_value,syntax_value,settles,why", POLICY,
+                         ids=[row[3] for row in POLICY])
+def test_the_serving_lane_follows_the_policy(two_witness, model_value,
+                                             syntax_value, settles, why):
+    model = (_ModelReading(_Reading("cadence", model_value, "span"))
+             if model_value is not None else _ModelReading())
+    syntax = ({"cadence": [_Candidate("cadence", syntax_value, "span")]}
+              if syntax_value is not None else {})
+
+    decision = _fused(model, syntax).get("cadence")
+    assert decision is not None, f"{why}: no decision was produced at all"
+    assert decision.proceeds is settles, (
+        f"{why}: model={model_value!r} syntax={syntax_value!r} gave "
+        f"{decision.outcome} — {decision.detail}")
+
+
+def test_the_table_covers_every_row_the_docstring_names():
+    """The four rows in the prose are the four under test.
+
+    A policy stated in a docstring and exercised by three of its four rows is
+    how the rare cases go missing, and contradiction and syntax-alone are the
+    two rarest.
     """
-    from src.discovery.fusion import Proposal, fuse
-    from src.discovery.syntax import SyntaxEvidence
-
-    def internal(model_value, syntax_value):
-        model = (Proposal(dimension="cadence", value=model_value,
-                          reader_id="model@1", source_span="span")
-                 if model_value is not None else None)
-        syntax = ((SyntaxEvidence(dimension="cadence",
-                                  proposed_value=syntax_value, score=1,
-                                  features={}, source_span="span",
-                                  sentence_id="s", parser="p", model="m",
-                                  scoring_version="v"),)
-                  if syntax_value is not None else ())
-        return fuse("cadence", model=model, syntax=syntax,
-                    available=("cadence",))
-
-    assert internal("monthly", "monthly").proceeds, "agreement did not settle"
-    assert not internal("monthly", "annual").proceeds, (
-        "a contradiction settled on the internal lane")
-    assert not internal(None, "monthly").proceeds, (
-        "syntax alone carried a field on the internal lane")
-    assert internal("monthly", None).proceeds, (
-        "a silent syntax witness blocked the model on the internal lane")
+    assert len(POLICY) == 4
+    assert len({(m, s) for m, s, _, _ in POLICY}) == 4, "a row is duplicated"
+    assert {settles for _, _, settles, _ in POLICY} == {True, False}, (
+        "every row settles the same way, so the table cannot discriminate")
 
 
-def test_the_two_lanes_reach_the_same_verdict_on_each_row(two_witness):
-    """Old and new, row by row, on whether the dimension settles.
+def test_the_internal_lane_is_gone_and_says_so():
+    """The evidence that both lanes agreed is preserved, not re-run.
 
-    Whether a dimension settles is what a person experiences: a settled one
-    runs, an unsettled one becomes a question. Agreement here is the property
-    the migration has to preserve.
+    Asserted rather than left to a comment: if `src.discovery.fusion` ever
+    comes back, this table stopped being the only implementation of the policy
+    and the comparison above needs restoring before it can be trusted.
     """
-    from src.discovery.fusion import Proposal, fuse
-    from src.discovery.syntax import SyntaxEvidence
+    import importlib
 
-    rows = [("monthly", "monthly", True),
-            ("monthly", "annual", False),
-            (None, "monthly", False),
-            ("monthly", None, True)]
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("src.discovery.fusion")
 
-    for model_value, syntax_value, expected in rows:
-        old = fuse(
-            "cadence",
-            model=(Proposal(dimension="cadence", value=model_value,
-                            reader_id="model@1", source_span="span")
-                   if model_value is not None else None),
-            syntax=((SyntaxEvidence(dimension="cadence",
-                                    proposed_value=syntax_value, score=1,
-                                    features={}, source_span="span",
-                                    sentence_id="s", parser="p", model="m",
-                                    scoring_version="v"),)
-                    if syntax_value is not None else ()),
-            available=("cadence",))
-
-        model = (_ModelReading(_Reading("cadence", model_value, "span"))
-                 if model_value is not None else _ModelReading())
-        syntax = ({"cadence": [_Candidate("cadence", syntax_value, "span")]}
-                  if syntax_value is not None else {})
-        new = _fused(model, syntax).get("cadence")
-
-        assert old.proceeds is expected, (
-            f"internal disagreed with the policy on "
-            f"model={model_value!r} syntax={syntax_value!r}")
-        assert new is not None and new.proceeds is expected, (
-            f"runtime disagreed on model={model_value!r} "
-            f"syntax={syntax_value!r}: {None if new is None else new.detail}")
+    evidence = (pathlib.Path(__file__).resolve().parent.parent
+                / "corpus" / "parser" / "two_witness_differential.pre_cutover.json")
+    assert evidence.exists(), (
+        "the pre-cutover differential is the only surviving record that the "
+        "two lanes agreed; it must not be deleted with the lane")

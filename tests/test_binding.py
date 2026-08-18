@@ -26,7 +26,8 @@ from src.discovery.binding import (
     phrase_of,
     value_id,
 )
-from src.discovery.fusion import Fusion, Proposal, fuse_with_bindings
+from discovery_runtime.fusion import Fusion
+from src.discovery.claims import Proposal
 from src.discovery.syntax import normalize
 from src.discovery.syntax_stanza import RecordedReader
 
@@ -167,6 +168,8 @@ class TestFusionConsumesRealBindings:
     """`INSUFFICIENT_RELATION` firing on live input rather than a parameter."""
 
     def test_a_bound_ratio_proceeds(self):
+        from src.discovery.adapter import fuse_with_bindings
+
         parse = RECORDED.parse(ACCOUNTS)
         values = normalize(ACCOUNTS)
         found = bind(parse, values)
@@ -179,6 +182,8 @@ class TestFusionConsumesRealBindings:
         """The same dimension, the same model reading, a sentence whose
         structure establishes nothing — and the outcome changes. Without this
         pair, "it always agrees" and "it always refuses" would both pass."""
+        from src.discovery.adapter import fuse_with_bindings
+
         text = "70/30 vs 60/40"
         parse, values = RECORDED.parse(text), normalize(text)
         found = bind(parse, values)
@@ -188,44 +193,62 @@ class TestFusionConsumesRealBindings:
         assert decision.outcome is Fusion.INSUFFICIENT_RELATION
 
     def test_fusion_still_cannot_see_a_parse(self):
-        """The seam. `fuse` takes a boolean; the binder produces it. If fusion
-        ever imported a parse it would be the second parser this architecture
-        exists to avoid."""
+        """The seam, now that fusion is upstream.
+
+        `fuse` takes a boolean; the binder produces it. The property used to be
+        that Quantify's fusion module imported `is_bound` and no structural
+        type. Fusion has since moved to discovery-runtime, which makes the
+        first half *stronger* — the runtime cannot import Quantify at all — and
+        moves the second half to the adapter, which is now the only place a
+        parse and a fusion decision meet.
+
+        Checked as a *dependency*, not as a substring. Two earlier versions of
+        this test scanned the source text for the word "parse" — first inside
+        `fuse`'s own explanation of why it does not parse, then inside a
+        refusal message written for a user. A text search cannot tell an access
+        from prose about the access, and an import graph says it exactly.
+        """
         import ast
         from pathlib import Path
 
-        from src.discovery import fusion
+        import discovery_runtime.fusion as runtime_fusion
 
-        # Checked as a *dependency*, not as a substring.
-        #
-        # Two earlier versions of this test scanned the source text and matched
-        # the word "parse" — first inside `fuse`'s own explanation of why it
-        # does not parse, then inside a refusal message written for a user.
-        # That is the self-matching scan this project has now produced three
-        # times: a text search cannot tell an access from prose about the
-        # access. What the property actually is, is that fusion does not depend
-        # on the structural types, and an import graph says that exactly.
-        tree = ast.parse(Path(fusion.__file__).read_text())
-        imported = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                imported.update(f"{node.module}.{alias.name}"
-                                for alias in node.names)
-            elif isinstance(node, ast.Import):
-                imported.update(alias.name for alias in node.names)
+        from src.discovery import adapter
+
+        def imports_of(module):
+            tree = ast.parse(Path(module.__file__).read_text())
+            names = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom):
+                    names.update(f"{node.module}.{alias.name}"
+                                 for alias in node.names)
+                elif isinstance(node, ast.Import):
+                    names.update(alias.name for alias in node.names)
+            return names
 
         structural = {"Parse", "Sentence", "Token", "Aligned", "align"}
-        offenders = [name for name in imported
-                     if name.rsplit(".", 1)[-1] in structural
-                     or "syntax_stanza" in name]
-        assert not offenders, (
-            f"fusion imports {offenders}; deciding whether a reading proceeds "
-            "and reading structure are different jobs, and the seam between "
-            "them is the only thing stopping fusion becoming a second parser")
 
-        # And the one structural thing it *is* allowed: the binder's predicate,
-        # which returns a boolean and no structure at all.
-        assert any("is_bound" in name for name in imported)
+        runtime_imports = imports_of(runtime_fusion)
+        offenders = [name for name in runtime_imports
+                     if name.rsplit(".", 1)[-1] in structural
+                     or "syntax_stanza" in name
+                     or name.split(".")[0] in {"src", "quantify"}]
+        assert not offenders, (
+            f"discovery-runtime's fusion imports {offenders}; deciding whether "
+            "a reading proceeds and reading structure are different jobs, and "
+            "the seam between them is the only thing stopping fusion becoming "
+            "a second parser")
+
+        # The adapter is where the boolean is computed. It may see the binder's
+        # predicate — that is its job — and still not hand structure onward.
+        adapter_imports = imports_of(adapter)
+        assert any("is_bound" in name for name in adapter_imports), (
+            "nothing consumes the binder's predicate, so `requires_binding` is "
+            "answered by a caller's guess rather than by a parse")
+        leaked = [name for name in adapter_imports
+                  if name.rsplit(".", 1)[-1] in structural]
+        assert not leaked, (
+            f"the adapter imports {leaked} and passes them toward fusion")
 
     def test_is_bound_is_the_only_predicate(self):
         parse, values = RECORDED.parse(ACCOUNTS), normalize(ACCOUNTS)

@@ -33,8 +33,12 @@ from decimal import Decimal, InvalidOperation
 
 import pytest
 
-from src.discovery import fusion as internal
 from src.discovery.schema import QUANTIFY_SCHEMA
+
+try:
+    from src.discovery import fusion as internal
+except ImportError:                                            # pragma: no cover
+    internal = None
 
 try:
     from discovery_runtime import fusion as upstream
@@ -42,7 +46,12 @@ except ImportError:                                            # pragma: no cove
     upstream = None
 
 pytestmark = pytest.mark.skipif(
-    upstream is None, reason="discovery-runtime is not installed")
+    upstream is None or internal is None,
+    reason=("the internal fusion has been deleted, so there is no second "
+            "implementation to compare against. That is this harness "
+            "succeeding: it existed to establish substitutability before the "
+            "cutover, and the evidence it produced is preserved in "
+            "corpus/parser/two_witness_differential.pre_cutover.json"))
 
 #: The sentence in the artifact, repeated where a reader of results will see it.
 SCOPE = (

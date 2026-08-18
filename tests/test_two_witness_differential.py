@@ -83,19 +83,34 @@ def _profile(decisions):
             "open": sorted(open_fields), "provenance": provenance}
 
 
+INTERNAL_GONE = (
+    "the internal Discovery implementation has been deleted, so there is no "
+    "second implementation left to differ from. The evidence this file "
+    "produced is preserved in two_witness_differential.pre_cutover.json, taken "
+    "while both existed — which is the only time it could be taken.")
+
+
+def _internal_lane():
+    """The legacy two-witness fusion, or None once it is gone."""
+    try:
+        from src.discovery.pipeline import read as internal_two_witness
+    except ImportError:
+        return None
+    return internal_two_witness
+
+
 def _both_paths(text):
     """One utterance, two implementations, same frozen witnesses."""
     from src.discovery.adapter import decisions_via_runtime, deterministic_witness
     from src.discovery.hosted_recording import RecordedHostedReader
-    from src.discovery.pipeline import read as internal_two_witness
     from src.discovery.schema import QUANTIFY_SCHEMA
     from src.discovery.syntax_stanza import RecordedReader
 
     model = RecordedHostedReader().read(text, QUANTIFY_SCHEMA)
     parse = RecordedReader().parse(text)
 
-    internal = list(internal_two_witness(text, parse, model,
-                                         QUANTIFY_SCHEMA).decisions)
+    internal = list(_internal_lane()(text, parse, model,
+                                     QUANTIFY_SCHEMA).decisions)
     evidence, derived = deterministic_witness(text, parse)
     runtime = decisions_via_runtime(model, syntax_evidence=evidence,
                                     derived=derived)
@@ -136,8 +151,34 @@ def test_the_corpus_is_reachable_under_both_witnesses(declared):
     assert len(_texts()) >= 20, "too few cases for this to mean anything"
 
 
+def test_the_pre_cutover_evidence_survives_deletion():
+    """The artifact outlives the code it compared.
+
+    Deleting the internal implementation removes the ability to reproduce this
+    measurement. The record of it must therefore not be deletable by accident,
+    and must still say 36/36 — a file that silently emptied would leave the
+    deletion resting on nothing.
+    """
+    preserved = (pathlib.Path(__file__).resolve().parent.parent / "corpus"
+                 / "parser" / "two_witness_differential.pre_cutover.json")
+    assert preserved.exists(), (
+        "the pre-cutover differential is gone; it is the only evidence that "
+        "the two implementations agreed, and it cannot be regenerated")
+    recorded = json.loads(preserved.read_text())
+    assert recorded["counts"] == {"EQUIVALENT": 36}, recorded["counts"]
+
+
 def test_two_witness_differential(declared, capsys):
-    """The gate, and the artifact it leaves behind."""
+    """The gate, and the artifact it leaves behind.
+
+    Skipped once the internal implementation is deleted. That is not the test
+    going quiet on a failure — it is the test having nothing left to compare,
+    because the second implementation it existed to check against is gone. The
+    pre-cutover artifact is the evidence, and it could only ever have been
+    taken while both existed.
+    """
+    if _internal_lane() is None:
+        pytest.skip(INTERNAL_GONE)
     rows, counts = [], Counter()
     for text in _texts():
         try:

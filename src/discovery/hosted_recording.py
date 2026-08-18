@@ -138,7 +138,7 @@ def proposals(reading_set: ReadingSet, fields: Optional[Sequence[str]] = None):
     nothing to say — the defect the shadow runner already carries a category
     for.
     """
-    from .fusion import Proposal
+    from .claims import Proposal
 
     if not reading_set.ok:
         return ()

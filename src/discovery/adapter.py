@@ -35,13 +35,25 @@ from .schema import QUANTIFY_SCHEMA
 NUMERIC_KINDS = ("money", "duration", "percentage", "moving_average_window")
 
 
-def number(raw: Any) -> Optional[Decimal]:
+#: Magnitude letters and what they scale by. `m` is absent from the period
+#: form because it is the one genuinely ambiguous letter: `12m` is twelve
+#: million for an amount and twelve months for a window, and scaling it in a
+#: window produced a twelve-million-session lookback that disagreed with
+#: syntax's 12 — a case answered correctly for months, broken by the fix for
+#: `2.5k`.
+MAGNITUDES = {"k": 1_000, "m": 1_000_000, "b": 1_000_000_000,
+              "bn": 1_000_000_000}
+
+
+def _number(raw: Any, *, scale_m: bool) -> Optional[Decimal]:
     """What a written number is worth, by the reader's own rule.
 
     `None` when it cannot be read, which the runtime treats as "not equal to
     anything" — including to another unreadable value. That is the safe
     direction: two things nobody could parse are not thereby the same thing.
     """
+    import re
+
     from .syntax import normalize
 
     text = str(raw).strip()
@@ -52,13 +64,41 @@ def number(raw: Any) -> Optional[Decimal]:
             except (InvalidOperation, ValueError):
                 return None
 
-    # A bare figure the normaliser does not claim: `500`, `1,000`. Not a
-    # fallback that guesses — anything with a suffix or a symbol has already
-    # been handled above, and this only strips separators.
+    # A bare magnitude suffix with no currency in front of it. The normaliser
+    # knows `£2.5k` and not `2.5k`, and a reader that returns the amount
+    # without the currency — which gpt-5.4 does — would otherwise fall through
+    # to the digits and produce 2.5: not a failure to compare but a wrong
+    # number, a thousand times too small.
+    letters = "k|m|bn?" if scale_m else "k|bn?"
+    suffix = re.fullmatch(rf"\s*([\d.,]+)\s*({letters})\s*", text, re.I)
+    if suffix:
+        try:
+            return (Decimal(suffix.group(1).replace(",", ""))
+                    * MAGNITUDES[suffix.group(2).lower()])
+        except (InvalidOperation, ValueError, KeyError):
+            return None
+
+    # An unrecognised unit falls through to its digits, which is what it has
+    # always done. The blanket rule once tried here — refuse any string
+    # containing a letter — took out `500 dollars`, `monthly` rendered
+    # numerically, and every other unit-carrying value, and 131 tests went red
+    # at once. What needed fixing was narrower and is fixed above: a magnitude
+    # suffix must not be silently discarded.
+    cleaned = re.sub(r"[^\d.]", "", text)
     try:
-        return Decimal(text.replace(",", "").lstrip("$£€"))
+        return Decimal(cleaned) if cleaned else None
     except (InvalidOperation, ValueError):
         return None
+
+
+def number(raw: Any) -> Optional[Decimal]:
+    """A magnitude, where `m` means million."""
+    return _number(raw, scale_m=True)
+
+
+def period(raw: Any) -> Optional[Decimal]:
+    """A count of periods, where `m` means months and is not scaled."""
+    return _number(raw, scale_m=False)
 
 
 #: Mode name -> what the mode means here. `TEXT` and `SET` are deliberately
@@ -100,7 +140,7 @@ def weights(raw: Any):
 #: deterministic reader's `0.6` and `0.4` reached fusion as two claims about
 #: `stated_weights` and were compared individually against the model's `60/40`,
 #: which reported a contradiction between readers that agreed.
-AGGREGATED = {"SET": ", ", "WEIGHTS": "/"}
+AGGREGATED = {"HOLDINGS": ", ", "WEIGHTS": "/"}
 
 
 def one_claim_per_dimension(observations, *, value_of=None, dimension_of=None):
@@ -147,10 +187,44 @@ def one_claim_per_dimension(observations, *, value_of=None, dimension_of=None):
 #: Mode name -> what the mode means here. `TEXT` and `SET` are deliberately
 #: absent: the runtime implements both, and supplying our own would replace a
 #: generic rule with a domain one that happens to agree today.
-#: Mode name -> what the mode means here. `TEXT` and `SET` are deliberately
-#: absent: the runtime implements both, and supplying our own would replace a
-#: generic rule with a domain one that happens to agree today.
+def members(raw: Any) -> frozenset:
+    """A written list of holdings as the set of holdings it names.
+
+    Split on the separators English actually uses, and a leading article
+    dropped: "a core index fund" and "core index fund" are one holding, and two
+    readers disagreeing about a determiner is a rendering difference of exactly
+    the kind a compare mode exists to absorb — the same reason NUMBER does not
+    distinguish `$500` from `500`.
+
+    Not a loosening towards "close enough". It removes one closed, meaningless
+    class of English function word. Nothing here can make two different
+    holdings equal: `SPX ETF` and `SPY` still differ, which is the substitution
+    the whole boundary prevents.
+
+    Registered as `HOLDINGS`, not as `SET`. Two reasons, and the first is the
+    one that matters: a determiner list is a fact about English, the runtime
+    compares sets in any language, and overriding the generic rule would bake
+    `a|an|the` into something that has to work for the next corpus. The second
+    is mechanical — `same_value` answers `SET` before it consults
+    `normalizers`, so a rule supplied under that name is never reached. That is
+    an upstream seam that exists and cannot be used, and it is recorded in
+    `docs/Benchmark-Queue.md` rather than worked around silently.
+
+    SET was left unsupplied at first on the argument that the generic rule
+    agreed with the domain one. Two corpus cases showed it does not: `an SPX
+    ETF` and `SPX ETF` were read as two different holdings.
+    """
+    import re
+
+    separators = re.compile(r"[,;]|\band\b")
+    article = re.compile(r"^(?:a|an|the)\s+", re.I)
+    return frozenset(article.sub("", part.strip()).lower()
+                     for part in separators.split(str(raw)) if part.strip())
+
+
 NORMALIZERS: Mapping[str, Callable[[Any], Any]] = {"NUMBER": number,
+                                                   "PERIOD": period,
+                                                   "HOLDINGS": members,
                                                    "WEIGHTS": weights}
 
 
@@ -175,10 +249,28 @@ def compare_modes() -> Dict[str, str]:
 
     modes = {d.name: getattr(d, "compare_as", "TEXT")
              for d in QUANTIFY_SCHEMA.dimensions}
+    from .vocabulary import PERIOD_DIMENSIONS
+
     for name, requirement in REQUIREMENTS.items():
         declared = getattr(requirement, "compare_as", "")
         if declared:
             modes[name] = declared
+
+    # A dimension that counts periods compares as one. The old comparison took
+    # the dimension name as an argument and branched inside; the runtime keys
+    # normalisers by mode, so the distinction becomes a mode — which is where
+    # it belongs, since "how is this dimension the same value" is exactly what
+    # a mode answers.
+    for name in PERIOD_DIMENSIONS:
+        if modes.get(name) == "NUMBER":
+            modes[name] = "PERIOD"
+
+    # And a set whose members are holdings compares as holdings. Same shape as
+    # PERIOD: the generic mode is right for the runtime and too coarse for a
+    # dimension whose members are written by people in English.
+    for name, mode in list(modes.items()):
+        if mode == "SET":
+            modes[name] = "HOLDINGS"
     return modes
 
 
@@ -187,9 +279,12 @@ def compare_as(dimension: str) -> str:
 
     `TEXT` for an unknown dimension, which reports a difference a rule might
     have reconciled rather than inventing an agreement.
+
+    Reads `compare_modes`, not the schema. Two sources for one dimension's mode
+    is the defect that let `stated_weights` be SET here and WEIGHTS in fusion,
+    and a caller asking this function got the answer fusion was not using.
     """
-    found = QUANTIFY_SCHEMA.dimension(dimension)
-    return getattr(found, "compare_as", "TEXT") if found is not None else "TEXT"
+    return compare_modes().get(dimension, "TEXT")
 
 
 def one_reading_per_set_dimension(readings):
@@ -798,7 +893,7 @@ def deterministic_witness(text: str, parse, *, language: str = "en"):
     """
     from .binding import bind
     from .derived_readers import DERIVED_READERS
-    from .pipeline import as_evidence
+    from .semantics import as_evidence
     from .semantics import propose
     from .syntax import normalize
 
@@ -834,7 +929,7 @@ def syntax_evidence_for(text: str, parse, schema=None, *, language: str = "en"):
     silence that could never have been anything else.
     """
     from .binding import bind
-    from .pipeline import as_evidence
+    from .semantics import as_evidence
     from .semantics import propose
     from .syntax import normalize
 
@@ -846,3 +941,115 @@ def syntax_evidence_for(text: str, parse, schema=None, *, language: str = "en"):
             continue
         found.setdefault(candidate.field, []).append(as_evidence(candidate))
     return found
+
+
+def two_witness_run(text: str, parse, model_reading, schema=None, *,
+                    language: str = "en"):
+    """One utterance through both witnesses, as a `Read`.
+
+    The orchestration `pipeline.read` used to be, with the fusion taken out of
+    it: normalise, bind, propose, derive — all Quantify's — and then hand the
+    result to `discovery-runtime` to decide. Kept because corpus tools and the
+    semantics suite need the whole record of a run, not only its decisions.
+
+    This is application orchestration around Discovery, not an implementation
+    of it. Nothing here compares two readings, aggregates observations or
+    settles an outcome; it assembles the domain's evidence and reports what the
+    runtime concluded.
+    """
+    from .binding import bind
+    from .claims import Read
+    from .semantics import propose
+    from .syntax import normalize
+
+    values = normalize(text, language)
+    bindings = bind(parse, values)
+    candidates = propose(bindings, values)
+
+    evidence, derived = deterministic_witness(text, parse, language=language)
+    decisions = decisions_via_runtime(model_reading, syntax_evidence=evidence,
+                                      derived=derived)
+    return Read(text=text, values=values, bindings=bindings,
+                candidates=candidates, model=model_reading,
+                decisions=tuple(decisions))
+
+
+def fuse_with_bindings(dimension: str, value, *, bindings, model=None,
+                       syntax=(), requirement=None):
+    """One dimension's decision, with `requires_binding` answered by a binder.
+
+    The seam in one function: `binding.is_bound` reads structure and returns a
+    boolean, the runtime reads the boolean and decides. Neither imports the
+    other's judgement — fusion still cannot see a parse, and the binder still
+    cannot see an outcome.
+
+    It lives here rather than upstream because both halves are Quantify's:
+    which dimensions need a relation established is `Requirement.binds`, and
+    what establishes one is a dependency parse of English. The runtime is right
+    to take the answer and not the question.
+
+    **The witnesses are folded by `decisions_via_runtime`, not by this
+    function.** Written the other way first — syntax evidence turned into
+    proposals alongside the model's — it let a syntax candidate carry a field
+    the model never proposed, which is the one thing the two-witness profile
+    exists to forbid. Building a second, subtly different way to weigh two
+    witnesses is the duplication this whole migration removed; there is one.
+
+    `value` is the normalised `Value` a binding would be about. Passing the
+    value rather than its id keeps identity in one place; two modules computing
+    an id separately is how a lookup starts silently missing.
+    """
+    from discovery_runtime.fusion import Fusion
+
+    from .binding import is_bound
+    from .vocabulary import REQUIREMENTS, Requirement
+
+    requirement = requirement or REQUIREMENTS.get(dimension, Requirement())
+    established = (True if not requirement.binds
+                   else bool(value is not None and is_bound(bindings, value)))
+
+    reading = _OneReading(dimension, model)
+    evidence = {dimension: list(syntax)} if syntax else {}
+
+    for decision in decisions_via_runtime(reading, syntax_evidence=evidence):
+        if decision.dimension == dimension:
+            if established or decision.outcome is not Fusion.AGREE:
+                return decision
+            break
+
+    # An unbound dimension that would otherwise have settled. Asked of the
+    # runtime rather than constructed here, so the outcome and its wording come
+    # from the one implementation that produces them.
+    from discovery_runtime import Proposal, fuse
+
+    proposals = ([Proposal(value=getattr(model, "value", model),
+                           reader_id=getattr(model, "reader_id", "model"))]
+                 if model is not None else [])
+    return RuntimeDecision(
+        fuse(dimension, proposals, mode=compare_as(dimension),
+             normalizers=NORMALIZERS, requires_binding=True),
+        model=model, syntax=tuple(syntax), material=material(dimension))
+
+
+class _OneReading:
+    """A model reading carrying a single dimension, in the adapter's shape."""
+
+    __slots__ = ("readings", "reader_id", "relations", "unread")
+
+    def __init__(self, dimension, proposal):
+        self.readings = ([_Proposed(dimension, proposal)]
+                         if proposal is not None else [])
+        self.reader_id = getattr(proposal, "reader_id", "model")
+        self.relations = ()
+        self.unread = ()
+
+
+class _Proposed:
+    """One dimension's reading, from whatever shape the caller had."""
+
+    __slots__ = ("dimension", "value", "source_span")
+
+    def __init__(self, dimension, proposal):
+        self.dimension = dimension
+        self.value = getattr(proposal, "value", proposal)
+        self.source_span = str(getattr(proposal, "source_span", "") or "")

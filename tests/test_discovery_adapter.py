@@ -36,30 +36,136 @@ def test_the_mode_is_the_one_fusion_uses():
     modes = adapter.compare_modes()
     assert len(modes) >= len(QUANTIFY_SCHEMA.dimensions)
 
+    from src.discovery.vocabulary import PERIOD_DIMENSIONS
+
     for name, requirement in REQUIREMENTS.items():
         declared = getattr(requirement, "compare_as", "")
-        if declared:
-            assert modes[name] == declared, (
-                f"{name}: the adapter reports {modes[name]} and fusion's "
-                f"requirement says {declared}")
+        if not declared:
+            continue
+        # A numeric dimension that counts periods refines NUMBER to PERIOD.
+        # That is the one permitted departure from the requirement and it is
+        # enumerated, not a wildcard: any other divergence is the schema
+        # winning over fusion again.
+        if declared == "NUMBER" and name in PERIOD_DIMENSIONS:
+            assert modes[name] == "PERIOD", f"{name}: {modes[name]}"
+            continue
+        if declared == "SET":
+            assert modes[name] == "HOLDINGS", f"{name}: {modes[name]}"
+            continue
+        assert modes[name] == declared, (
+            f"{name}: the adapter reports {modes[name]} and fusion's "
+            f"requirement says {declared}")
 
     assert modes["stated_weights"] == "WEIGHTS", (
         "the known divergence regressed to the schema's SET")
+    assert "SET" not in modes.values(), (
+        "a SET dimension is comparing generically, so `an SPX ETF` and `SPX "
+        "ETF` are two holdings again")
 
 
 def test_only_domain_modes_are_supplied():
-    """`TEXT` and `SET` belong to the runtime.
+    """`TEXT` and `SET` belong to the runtime, and we do not redefine them.
 
-    Supplying our own would replace a generic rule with a domain one that
-    happens to agree today and can drift tomorrow — and the drift would be
-    invisible, because both would still be called TEXT.
+    Redefining a generic mode would replace a rule that works in any language
+    with one that happens to agree today — and the drift would be invisible,
+    because both would still be called SET.
 
-    `NUMBER` and `WEIGHTS` are ours: what `£2.5k` is worth, and that `60/40`
-    and `VTI=60,BND=40` are the same split with one of them saying which
-    holding takes which share, are both facts about finance.
+    The four supplied here are all facts about English finance: what `£2.5k` is
+    worth, that `12m` is twelve months in a window and twelve million in an
+    amount, that `60/40` and `VTI=60,BND=40` are the same split with one of
+    them saying which holding takes which share, and that `an SPX ETF` and `SPX
+    ETF` name one holding.
+
+    `HOLDINGS` is the one that had to be learned. It was left to the runtime's
+    SET on the argument that the generic rule agreed with the domain one, and
+    two corpus cases showed it does not — `the S&P 500 tracker` against `S&P
+    500 tracker` was reported as a disagreement. The fix is a new mode rather
+    than an override of SET, so the generic rule stays generic.
     """
-    assert set(adapter.NORMALIZERS) == {"NUMBER", "WEIGHTS"}
-    assert not {"TEXT", "SET"} & set(adapter.NORMALIZERS)
+    assert set(adapter.NORMALIZERS) == {"NUMBER", "PERIOD", "HOLDINGS", "WEIGHTS"}
+    assert not {"TEXT", "SET"} & set(adapter.NORMALIZERS), (
+        "a generic mode has been redefined; the runtime's rule and ours now "
+        "differ under one name")
+
+
+def test_the_holdings_rule_absorbs_a_determiner_and_nothing_more():
+    """The line the rule must not cross.
+
+    Dropping `a|an|the` removes one closed class of English function word.
+    Anything wider starts making two different holdings equal, which is the
+    substitution the whole boundary exists to prevent — a reader must never
+    turn "an S&P 500 tracker" into VTI on the person's behalf.
+    """
+    assert adapter.same_value_for("assets", "an SPX ETF", "SPX ETF")
+    assert adapter.same_value_for("assets", "the S&P 500 tracker",
+                                  "S&P 500 tracker")
+    assert adapter.same_value_for("assets", "VTI and BND", "BND, VTI")
+
+    assert not adapter.same_value_for("assets", "SPX ETF", "SPY")
+    assert not adapter.same_value_for("assets", "an S&P 500 tracker", "VTI")
+    assert not adapter.same_value_for("assets", "VTI, BND", "VTI")
+
+
+def test_the_period_mode_reaches_the_dimensions_that_count_periods():
+    """`PERIOD` is a mode, not a branch inside the comparison.
+
+    The old comparison took the dimension name as an argument and asked
+    `dimension in PERIOD_DIMENSIONS` inside itself. The runtime keys
+    normalisers by mode, so the distinction has to become a mode — and if the
+    assignment were dropped the modes would all read NUMBER and a window
+    written `12m` would settle as twelve million sessions.
+    """
+    from src.discovery.vocabulary import PERIOD_DIMENSIONS
+
+    modes = adapter.compare_modes()
+    assert modes["moving_average_window"] == "PERIOD"
+    assert modes["amount"] == "NUMBER", (
+        "an amount was swept into PERIOD, so `12m` no longer means millions")
+
+    # Only dimensions that compare numerically can be scaled, so only those
+    # need protecting from it. The rest are recorded below rather than
+    # asserted, because the reachable set is smaller than the list suggests.
+    for name in PERIOD_DIMENSIONS:
+        assert modes.get(name) in ("PERIOD", "TEXT", None), (
+            f"{name} compares as {modes[name]} and would scale `12m` to "
+            "twelve million")
+
+
+def test_most_of_the_period_vocabulary_never_reaches_the_numeric_path():
+    """Recorded, because the name `PERIOD_DIMENSIONS` overstates its reach.
+
+    Five dimensions are listed and one compares numerically. Two others
+    compare as TEXT — where `12m` and `12` are simply unequal strings, no
+    silent scaling but no equality either — and two are not schema dimensions
+    at all. None of that changed in the migration; the numeric branch was
+    always guarded by the mode. It is written down so nobody reads the list as
+    five protected dimensions, and so that promoting one of them to NUMBER
+    fails here rather than settling a twelve-million-session window.
+    """
+    from src.discovery.vocabulary import PERIOD_DIMENSIONS
+
+    modes = adapter.compare_modes()
+    numeric = {n for n in PERIOD_DIMENSIONS if modes.get(n) in ("NUMBER", "PERIOD")}
+    textual = {n for n in PERIOD_DIMENSIONS if modes.get(n) == "TEXT"}
+    absent = {n for n in PERIOD_DIMENSIONS if n not in modes}
+
+    assert numeric == {"moving_average_window"}, numeric
+    assert textual == {"evaluation_period", "holding_period"}, textual
+    assert absent == {"lookback_window", "rebalancing_period"}, absent
+
+
+def test_one_dimension_has_one_mode():
+    """`compare_as` and `compare_modes` answer the same question.
+
+    They did not. `compare_as` read the schema and fusion read the
+    requirement, so `stated_weights` was SET to one caller and WEIGHTS to the
+    other — a divergence nothing detected because both answers were plausible
+    mode names.
+    """
+    modes = adapter.compare_modes()
+    disagree = {name: (adapter.compare_as(name), mode)
+                for name, mode in modes.items() if adapter.compare_as(name) != mode}
+    assert not disagree, f"two sources give different modes: {disagree}"
 
 
 def test_the_normaliser_is_the_readers_own():

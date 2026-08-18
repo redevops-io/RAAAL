@@ -31,7 +31,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Sequence
 
-from .fusion import Decision, Fusion
+from .claims import Decision
+from discovery_runtime.fusion import Fusion
 
 
 class Witness(str, Enum):

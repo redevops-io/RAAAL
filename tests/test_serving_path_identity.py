@@ -110,23 +110,20 @@ def test_a_real_read_calls_the_runtimes_fusion(declared, monkeypatch,
 
 
 @pytest.mark.parametrize("with_syntax", [False, True], ids=["single", "two"])
-def test_a_read_succeeds_with_the_legacy_fusion_disabled(declared, monkeypatch,
-                                                         with_syntax):
+def test_a_read_succeeds_with_no_legacy_implementation_present(declared,
+                                                               with_syntax):
     """Negative, and the one that cannot pass by accident.
 
-    The internal `fuse` is replaced with a function that raises. A read that
-    still succeeds cannot have called it — no import-graph oversight and no
-    mis-attached counter can fake that.
+    This used to replace the internal `fuse` with a function that raises. The
+    internal implementation is deleted now, so the stronger form is available:
+    the module is not importable at all, and a read still succeeds. Nothing can
+    be calling what does not exist.
     """
-    import src.discovery.fusion as legacy
+    import importlib
 
-    def refuse(*_args, **_kwargs):
-        raise AssertionError(
-            "the serving path called the internal fusion. The cutover is not "
-            "complete, or something reintroduced a fallback.")
-
-    monkeypatch.setattr(legacy, "fuse", refuse)
-    monkeypatch.setattr(legacy, "fuse_with_bindings", refuse, raising=False)
+    for gone in ("src.discovery.fusion", "src.discovery.pipeline"):
+        with pytest.raises(ImportError):
+            importlib.import_module(gone)
 
     reading = _read(with_syntax)
     assert reading.intent is not None
@@ -151,3 +148,94 @@ def test_no_fallback_to_the_legacy_implementation():
                     offenders.append(f"pilot.py:{node.lineno}")
     assert not offenders, (
         f"a legacy implementation is imported inside a try at {offenders}")
+
+
+#: The modules the migration deleted, by their absolute dotted path. Absolute
+#: rather than a suffix or a pattern: the first version of this check matched
+#: any module ending in `fusion` that mentioned `discovery`, which flagged
+#: every `discovery_runtime.fusion` import in the codebase — the correct
+#: imports — as violations. An assertion has to name the exact surface it
+#: means, and "ends with" is not "is".
+DELETED = ("src.discovery.fusion", "src.discovery.pipeline")
+
+
+def _resolved(node, module_path, root):
+    """An ImportFrom as an absolute dotted module, relative levels included.
+
+    A relative import carries no package in the tree; `from .fusion import x`
+    inside `src/discovery/` and inside `src/mission/` are different modules and
+    the node looks identical. Resolving against the importing file is the only
+    way to tell them apart.
+    """
+    package = module_path.relative_to(root.parent).with_suffix("").parts[:-1]
+    if node.level == 0:
+        return node.module or ""
+    base = package[:len(package) - node.level + 1]
+    return ".".join((*base, node.module)) if node.module else ".".join(base)
+
+
+def test_nothing_in_production_imports_a_deleted_module():
+    """Repo-wide, not just the serving module.
+
+    `pilot.py` was the module that had to change, so it is the module the rest
+    of this file checks. But an import anywhere under `src/` would fail at load
+    time in production and pass every test that does not import that module —
+    which is the failure mode of checking one file.
+    """
+    import ast
+
+    root = pathlib.Path(__file__).resolve().parent.parent / "src"
+    offenders = []
+    for file in sorted(root.rglob("*.py")):
+        if "__pycache__" in str(file):
+            continue
+        try:
+            tree = ast.parse(file.read_text())
+        except SyntaxError:
+            continue
+        where = f"{file.relative_to(root.parent)}"
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                if _resolved(node, file, root) in DELETED:
+                    offenders.append(f"{where}:{node.lineno}")
+            elif isinstance(node, ast.Import):
+                if any(a.name in DELETED for a in node.names):
+                    offenders.append(f"{where}:{node.lineno}")
+    assert not offenders, (
+        f"{offenders} import a module the migration deleted. It would raise at "
+        "import time in production and pass every test that does not load it.")
+
+
+def test_the_walk_catches_a_planted_import(tmp_path):
+    """The mutation, both forms — and the false positive that motivated it.
+
+    A relative import from inside the discovery package is a violation; the
+    same text from a sibling package is a different module; and an import of
+    `discovery_runtime.fusion` is the correct thing this check previously
+    reported as a violation.
+    """
+    import ast
+
+    root = tmp_path / "src"
+    (root / "discovery").mkdir(parents=True)
+    (root / "mission").mkdir(parents=True)
+
+    inside = root / "discovery" / "reader.py"
+    inside.write_text("from .fusion import fuse\n")
+    sibling = root / "mission" / "compile.py"
+    sibling.write_text("from .fusion import fuse\n")
+    correct = root / "discovery" / "adapter.py"
+    correct.write_text("from discovery_runtime.fusion import Fusion\n")
+
+    def offends(path):
+        tree = ast.parse(path.read_text())
+        return [_resolved(n, path, root) for n in ast.walk(tree)
+                if isinstance(n, ast.ImportFrom)
+                and _resolved(n, path, root) in DELETED]
+
+    assert offends(inside) == ["src.discovery.fusion"]
+    assert offends(sibling) == [], (
+        "a sibling package's own `.fusion` was read as the deleted module")
+    assert offends(correct) == [], (
+        "the runtime's fusion was reported as the deleted one, which is the "
+        "false positive this check was rewritten to remove")

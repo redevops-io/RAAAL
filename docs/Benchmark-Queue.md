@@ -313,3 +313,41 @@ came with can be answered. Two ways out, and neither is parser work:
 The second, with the default drawn from the strategy kind. Until then the
 honest description of the product is: it reads what you say, tells you what it
 still needs, and needs something roughly nine times in ten.
+
+---
+
+## Open upstream: `same_value` answers `SET` before it reads `normalizers`
+
+Found while restoring Quantify's holding comparison after the internal fusion
+was deleted.
+
+`discovery_runtime.fusion.same_value` advertises `normalizers` as the way a
+caller supplies what a mode means, and then answers `SET` from its own token
+comparison before consulting the mapping:
+
+```python
+if mode == "SET":
+    return _tokens(left) == _tokens(right)
+
+reader = (normalizers or {}).get(mode)
+```
+
+So a rule registered under `SET` is accepted, never reached, and never
+complained about. That is the same class of defect the adapter-completeness
+guard exists for — a seam that exists and cannot be used — except that this one
+is worse, because supplying the rule *looks* like it worked.
+
+**Quantify is not blocked on it.** The domain rule is registered as `HOLDINGS`
+and `compare_modes` maps the SET dimensions onto it, which is the better
+arrangement anyway: dropping `a|an|the` is a fact about English, and the
+runtime compares sets in any language. Overriding the generic mode would have
+been wrong even if the seam worked.
+
+What the fix upstream should be, when the pin next moves: consult `normalizers`
+first for every mode and keep `_tokens` as the fallback for `SET`, so the
+precedence is the same for all modes rather than special-cased for one. Worth
+doing because the next consumer will register a `SET` rule and get silence.
+
+**What it cost here:** two corpus cases, `the S&P 500 tracker` against `S&P 500
+tracker` and `an SPX ETF` against `SPX ETF`, each reported as a disagreement
+between readers that had read the same holding.

@@ -381,7 +381,7 @@ class TestTheAssetLocationGapIsClosed:
         reading = RecordedHostedReader().read(
             "hold the bonds in the IRA and the stocks in the taxable account",
             QUANTIFY_SCHEMA)
-        from src.discovery.fusion import same_value
+        from src.discovery.adapter import same_value_for
 
         pairs = [dict((role, subject) for role, subject, *_ in r.members)
                  for r in reading.relations if r.kind == "asset_location"]
@@ -394,8 +394,13 @@ class TestTheAssetLocationGapIsClosed:
         # a determiner. `same_value` already encodes that decision for SET
         # dimensions; re-deciding it here by hand is how two layers end up
         # disagreeing about what a holding is.
+        #
+        # Asked by dimension rather than by mode name. `assets` compares as
+        # HOLDINGS now, and a test that passed the mode literally would have
+        # gone on asserting the generic SET rule after the dimension stopped
+        # using it.
         holdings = ", ".join(p["holding"] for p in pairs)
-        assert same_value(holdings, "bonds, stocks", "SET"), holdings
+        assert same_value_for("assets", holdings, "bonds, stocks"), holdings
 
         # The property the family exists for: each holding keeps *its own*
         # account. Two placements naming one account between them would pass

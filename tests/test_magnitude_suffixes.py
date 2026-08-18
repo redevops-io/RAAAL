@@ -22,7 +22,20 @@ from decimal import Decimal
 
 import pytest
 
-from src.discovery.fusion import same_value
+from src.discovery.adapter import NORMALIZERS
+
+
+def same_value_for_mode(one, other, mode, dimension=""):
+    """The runtime's comparison, with Quantify's normalisers and the mode a
+    dimension declares. `dimension` selects the mode where one is given, since
+    `12m` is twelve million for an amount and twelve periods for a window."""
+    from discovery_runtime import same_value
+
+    from src.discovery.adapter import compare_as
+
+    if dimension:
+        mode = compare_as(dimension)
+    return same_value(one, other, mode, normalizers=NORMALIZERS)
 
 
 class TestAMagnitudeSuffixIsNotDiscarded:
@@ -32,26 +45,26 @@ class TestAMagnitudeSuffixIsNotDiscarded:
         ("2bn", 2_000_000_000), ("1,5k", 15_000),
     ])
     def test_it_scales(self, written, value):
-        assert same_value(written, Decimal(value), "NUMBER"), (
+        assert same_value_for_mode(written, Decimal(value), "NUMBER"), (
             f"{written!r} did not compare equal to {value}")
 
     def test_the_old_behaviour_would_have_failed_this(self):
         """The specific regression, stated as the number it produced. Stripping
         the letter gave `2.5`, so this pair compared equal and a plan would have
         contributed 2.5 rather than 2500."""
-        assert not same_value("2.5k", Decimal("2.5"), "NUMBER")
+        assert not same_value_for_mode("2.5k", Decimal("2.5"), "NUMBER")
 
     def test_a_currency_symbol_still_works(self):
         """The path that always worked, kept under test so the new branch is
         not the only one exercised."""
-        assert same_value("£2.5k", Decimal(2_500), "NUMBER")
-        assert same_value("$500", "500", "NUMBER")
+        assert same_value_for_mode("£2.5k", Decimal(2_500), "NUMBER")
+        assert same_value_for_mode("$500", "500", "NUMBER")
 
     def test_different_magnitudes_are_not_equal(self):
         """Nothing here may make two different amounts equal, which is the rule
         the whole comparison is written under."""
-        assert not same_value("2.5k", Decimal(2_500_000), "NUMBER")
-        assert not same_value("1k", "1m", "NUMBER")
+        assert not same_value_for_mode("2.5k", Decimal(2_500_000), "NUMBER")
+        assert not same_value_for_mode("1k", "1m", "NUMBER")
 
 
 class TestTheAmbiguousLetterIsReadByDimension:
@@ -66,24 +79,24 @@ class TestTheAmbiguousLetterIsReadByDimension:
     """
 
     def test_a_window_reads_it_as_periods(self):
-        assert same_value("12m", "12", "NUMBER", "moving_average_window")
+        assert same_value_for_mode("12m", "12", "NUMBER", "moving_average_window")
 
     def test_an_amount_reads_it_as_millions(self):
-        assert same_value("12m", "12000000", "NUMBER", "amount")
-        assert not same_value("12m", "12", "NUMBER", "amount")
+        assert same_value_for_mode("12m", "12000000", "NUMBER", "amount")
+        assert not same_value_for_mode("12m", "12", "NUMBER", "amount")
 
     def test_the_unambiguous_letters_scale_everywhere(self):
         """`k`, `b` and `bn` mean one thing wherever they appear, so the
         dimension does not change them. If it did, a window would be the place
         `2.5k` silently became 2.5 again."""
         for dimension in ("amount", "moving_average_window", ""):
-            assert same_value("2.5k", "2500", "NUMBER", dimension), dimension
-            assert not same_value("2.5k", "2.5", "NUMBER", dimension), dimension
+            assert same_value_for_mode("2.5k", "2500", "NUMBER", dimension), dimension
+            assert not same_value_for_mode("2.5k", "2.5", "NUMBER", dimension), dimension
 
     @pytest.mark.parametrize("written", ["12m", "12mo", "6w", "3y"])
     def test_an_abbreviated_period_keeps_its_count(self, written):
         digits = "".join(c for c in written if c.isdigit())
-        assert same_value(written, digits, "NUMBER", "moving_average_window")
+        assert same_value_for_mode(written, digits, "NUMBER", "moving_average_window")
 
     def test_a_spelled_out_unit_is_still_the_open_schema_gap(self):
         """`12 months` does *not* compare equal to `12`, and this test asserts
@@ -96,7 +109,7 @@ class TestTheAmbiguousLetterIsReadByDimension:
         `moving_average_window has no unit` is in docs/Benchmark-Queue.md, and
         it stays a schema question.
         """
-        assert not same_value("12 months", "12", "NUMBER",
+        assert not same_value_for_mode("12 months", "12", "NUMBER",
                               "moving_average_window")
 
 
@@ -111,10 +124,10 @@ class TestWhatIsAndIsNotGuaranteed:
     """
 
     def test_a_plain_number_is_unaffected(self):
-        assert same_value("2500", Decimal(2_500), "NUMBER")
-        assert same_value("2,500", "2500", "NUMBER")
+        assert same_value_for_mode("2500", Decimal(2_500), "NUMBER")
+        assert same_value_for_mode("2,500", "2500", "NUMBER")
 
     def test_an_unrecognised_unit_still_falls_through_to_its_digits(self):
         """Recorded rather than asserted as desirable. If this ever changes,
         it should change deliberately and this test should say so."""
-        assert same_value("500 shares", "500", "NUMBER")
+        assert same_value_for_mode("500 shares", "500", "NUMBER")

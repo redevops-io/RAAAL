@@ -162,7 +162,9 @@ class TestAnOpenDimensionIsNotMissing:
         stays quiet. Two entries for one dimension would show a person the same
         question twice and make `open_fields` disagree with itself.
         """
-        from src.discovery.fusion import Decision, Fusion
+        from discovery_runtime.fusion import Fusion
+
+        from src.discovery.claims import Decision
         from src.discovery.guards import missing
 
         parse = parser.parse("sell VTI and buy BND")

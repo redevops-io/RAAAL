@@ -61,7 +61,7 @@ class TestTheRecordedVersionsAreTheRealOnes:
     @pytest.mark.parametrize("module,name", [
         ("src.mission.capability", "MANIFEST_SCHEMA"),
         ("src.discovery.hosted_recording", "PROMPT_VERSION"),
-        ("src.discovery.pipeline", "PIPELINE_VERSION"),
+        ("src.discovery.semantics", "PIPELINE_VERSION"),
         ("src.evaluation.runner", "DRAWDOWN_SEMANTICS"),
         ("src.mission.mwr_contract", "CONTRACT_VERSION"),
     ])

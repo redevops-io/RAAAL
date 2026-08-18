@@ -53,14 +53,64 @@ def test_quantify_declares_no_fusion_of_its_own():
         "true for values of the other.")
 
 
-def test_the_name_quantify_imports_is_the_runtimes():
+def test_every_name_quantify_binds_is_the_runtimes():
+    """Not one module's import — every module that holds the name.
+
+    This used to check `src.discovery.fusion.Fusion`, which was fine while
+    there was one place to check and became vacuous when that module was
+    deleted. The property was never about a module: it is that no binding of
+    the name `Fusion` anywhere in Quantify refers to anything but the runtime's
+    type, since a single stale one restores the identity bug in whichever
+    comparison happens to use it.
+
+    Imported modules are walked, not files, because a file that declares
+    nothing can still bind a wrong object through an alias.
+    """
+    import importlib
+    import pkgutil
+    import sys
+
     from discovery_runtime.fusion import Fusion as Runtime
 
-    from src.discovery.fusion import Fusion as Imported
+    import src
 
-    assert Imported is Runtime, (
-        "src.discovery.fusion.Fusion is not the runtime's type; something has "
-        "reintroduced a local one")
+    for info in pkgutil.walk_packages(src.__path__, prefix="src."):
+        try:
+            importlib.import_module(info.name)
+        except Exception:                      # optional deps, deploy-only code
+            continue
+
+    wrong = []
+    for name, module in list(sys.modules.items()):
+        if not name.startswith("src.") or module is None:
+            continue
+        for attribute, value in list(vars(module).items()):
+            if attribute == "Fusion" and value is not Runtime:
+                wrong.append(f"{name}.{attribute}")
+    assert not wrong, (
+        f"{wrong} bind a Fusion that is not the runtime's. An `is` comparison "
+        "against one enum is always true for a value of the other, which is "
+        "how every agreed field was once stored as 'AGREE'.")
+
+
+def test_the_walk_would_notice_a_wrong_binding(monkeypatch):
+    """The mutation. A walk that imports nothing passes the test above."""
+    import enum
+    import sys
+
+    import src.discovery.claims as claims
+
+    class Fusion(enum.Enum):
+        AGREE = "AGREE"
+
+    monkeypatch.setattr(claims, "Fusion", Fusion, raising=False)
+
+    from discovery_runtime.fusion import Fusion as Runtime
+
+    wrong = [f"{n}.Fusion" for n, m in list(sys.modules.items())
+             if n.startswith("src.") and m is not None
+             and getattr(m, "Fusion", Runtime) is not Runtime]
+    assert "src.discovery.claims.Fusion" in wrong
 
 
 @pytest.mark.parametrize("member", ["AGREE", "DISAGREE",

@@ -408,3 +408,25 @@ def by_field(candidates: Sequence[SemanticCandidate]) -> Mapping[str, list]:
     for candidate in candidates:
         grouped.setdefault(candidate.field, []).append(candidate)
     return grouped
+
+
+#: The deterministic witness's version, and how one of its candidates
+#: becomes evidence about a model reading. Both moved here when
+#: `pipeline.py` went: the pipeline was the two-witness fusion loop and
+#: `discovery-runtime` owns that now, but restating a candidate as
+#: evidence is a statement about Quantify's own semantics and stays.
+#: The score a deterministic candidate carries as evidence. Interpretable
+#: rather than probabilistic: a sum of named observations, never decisive.
+ASSERTS = 1
+
+PIPELINE_VERSION = "quantify-pipeline@1"
+
+
+def as_evidence(candidate: "SemanticCandidate") -> "SyntaxEvidence":
+    """A deterministic candidate, restated as evidence about a model reading."""
+    from .syntax import SyntaxEvidence
+
+    return SyntaxEvidence(
+        dimension=candidate.field, proposed_value=candidate.value,
+        score=ASSERTS, features=tuple(candidate.evidence),
+        source_span=candidate.source_span)

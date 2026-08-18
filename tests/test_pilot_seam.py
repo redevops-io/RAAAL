@@ -111,14 +111,33 @@ class TestModelOnlyIsAProfileNotAWeakerRule:
     def test_the_same_decision_would_read_AGREE_with_two_witnesses(self):
         """The discriminating opposite. Without it, `MODEL_ONLY_ACCEPTED`
         could be a constant rather than a reading of what happened."""
-        from src.discovery.fusion import Proposal, fuse
-        from src.discovery.syntax import SyntaxEvidence
+        from src.discovery.adapter import decisions_via_runtime
 
-        model = Proposal("cadence", "monthly", "claude-sonnet-5@1")
-        alone = fuse("cadence", model=model)
-        both = fuse("cadence", model=model,
-                    syntax=[SyntaxEvidence(dimension="cadence",
-                                           proposed_value="monthly", score=1)])
+        class _Proposed:
+            def __init__(self, dimension, value):
+                self.dimension, self.value, self.source_span = dimension, value, "span"
+
+        class _Model:
+            reader_id = "claude-sonnet-5@1"
+            relations = ()
+            unread = ()
+
+            def __init__(self):
+                self.readings = [_Proposed("cadence", "monthly")]
+
+        class _Candidate:
+            def __init__(self, value):
+                self.dimension, self.proposed_value = "cadence", value
+                self.source_span, self.score = "span", 1
+                self.rule = "cadence_rule"
+
+        def decision(syntax):
+            found = {d.dimension: d for d in
+                     decisions_via_runtime(_Model(), syntax_evidence=syntax)}
+            return found["cadence"]
+
+        alone = decision(None)
+        both = decision({"cadence": [_Candidate("monthly")]})
         assert provenance_of(alone, MODEL_ONLY) == "MODEL_ONLY_ACCEPTED"
         assert provenance_of(both, BOTH) == "AGREE"
 

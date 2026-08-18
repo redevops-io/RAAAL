@@ -34,6 +34,27 @@ CASES = json.loads(
 )["cases"]
 
 
+class _Proposed:
+    """A reading in the shape the adapter reads: a dimension and a value."""
+
+    def __init__(self, dimension, value, source_span=""):
+        self.dimension = dimension
+        self.value = value
+        self.source_span = source_span
+        self.reader_id = "derived"
+
+
+class _Model:
+    """A model reading carrying only what the adapter asks it for."""
+
+    reader_id = "hosted@test"
+
+    def __init__(self, readings):
+        self.readings = list(readings)
+        self.relations = ()
+        self.unread = ()
+
+
 def _read(text: str):
     """Candidates and the parse, because the reader needs both — the parse is
     how it sees a negation the candidates cannot show it."""
@@ -117,31 +138,49 @@ class TestRemovingItReintroducesTheInstability:
 
     TEXT = "buy VOO when SPY falls below its 200-day moving average"
 
-    def test_without_the_derived_reading_a_silent_model_leaves_it_open(self):
-        from src.discovery.fusion import Fusion, fuse
+    def _decision(self, *, model_value=None, derived=None):
+        """One dimension through the runtime, exactly as the serving path does.
 
-        without = fuse("trigger_semantics", model=None, derived=None)
-        assert without.outcome is not Fusion.AGREE
-        assert not without.proceeds
+        Built from `decisions_via_runtime` rather than by calling fusion
+        directly: the derived reader's whole claim is about what the *pipeline*
+        does when the model is silent, and a test that fused by hand would go
+        on passing after the pipeline stopped passing derived readings through.
+        """
+        from src.discovery.adapter import decisions_via_runtime
+
+        model = _Model([_Proposed("trigger_semantics", model_value)]
+                       if model_value is not None else [])
+        supplied = ({"trigger_semantics": _Proposed("trigger_semantics", derived.value)}
+                    if derived is not None else None)
+        by_dimension = {d.dimension: d
+                        for d in decisions_via_runtime(model, derived=supplied)}
+        return by_dimension.get("trigger_semantics")
+
+    def test_without_the_derived_reading_a_silent_model_leaves_it_open(self):
+        from discovery_runtime.fusion import Fusion
+
+        without = self._decision()
+        assert without is None or (without.outcome is not Fusion.AGREE
+                                   and not without.proceeds), (
+            "a dimension no reader spoke for settled anyway")
 
     def test_with_it_the_same_silence_settles(self):
-        from src.discovery.fusion import Fusion, fuse
+        from discovery_runtime.fusion import Fusion
 
         derived = trigger_semantics(*_read(self.TEXT))
         assert derived is not None, "the grammar states the answer here"
-        with_it = fuse("trigger_semantics", model=None, derived=derived)
-        assert with_it.outcome is Fusion.AGREE
+        with_it = self._decision(derived=derived)
+        assert with_it is not None and with_it.outcome is Fusion.AGREE
         assert with_it.value == "crossing_event"
 
     def test_and_a_disagreement_still_goes_to_the_person(self):
         """Settling on one reader's silence is not the same as settling over
         another reader's objection."""
-        from src.discovery.fusion import Fusion, Proposal, fuse
+        from discovery_runtime.fusion import Fusion
 
         derived = trigger_semantics(*_read(self.TEXT))
-        model = Proposal("trigger_semantics", "persistent_condition", "hosted")
-        out = fuse("trigger_semantics", model=model, derived=derived)
-        assert out.outcome is Fusion.DISAGREE
+        out = self._decision(model_value="persistent_condition", derived=derived)
+        assert out is not None and out.outcome is Fusion.DISAGREE
         assert not out.proceeds
 
 
@@ -172,19 +211,30 @@ class TestTheDocumentDescribesTheReaderThatExists:
         assert "crosses below and stays below" in lowered
 
     def test_the_four_fusion_rules_it_states_are_the_four_implemented(self):
-        from src.discovery.fusion import Fusion, Proposal, fuse
+        """The document's table, through the implementation that now serves.
 
-        model = Proposal("trigger_semantics", "crossing_event", "hosted")
-        derived = Proposal("trigger_semantics", "crossing_event",
-                           TRIGGER_READER_ID)
-        other = Proposal("trigger_semantics", "persistent_condition",
-                         TRIGGER_READER_ID)
+        A derived reader is a reader, weighed by the ordinary rules — so these
+        run through `decisions_via_runtime` rather than through a fusion call
+        built for the occasion. The four rows are the same four; what changed
+        is that nothing here can pass while the pipeline drops the derived
+        reading on the floor.
+        """
+        from discovery_runtime.fusion import Fusion
 
-        assert fuse("trigger_semantics", model=model,
-                    derived=derived).outcome is Fusion.AGREE
-        assert fuse("trigger_semantics", model=None,
-                    derived=derived).outcome is Fusion.AGREE
-        assert fuse("trigger_semantics", model=model,
-                    derived=other).outcome is not Fusion.AGREE
-        assert fuse("trigger_semantics", model=None,
-                    derived=None).outcome is not Fusion.AGREE
+        from src.discovery.adapter import decisions_via_runtime
+
+        def outcome(model_value, derived_value):
+            model = _Model([_Proposed("trigger_semantics", model_value)]
+                           if model_value is not None else [])
+            supplied = ({"trigger_semantics":
+                         _Proposed("trigger_semantics", derived_value)}
+                        if derived_value is not None else None)
+            found = {d.dimension: d
+                     for d in decisions_via_runtime(model, derived=supplied)}
+            decision = found.get("trigger_semantics")
+            return None if decision is None else decision.outcome
+
+        assert outcome("crossing_event", "crossing_event") is Fusion.AGREE
+        assert outcome(None, "crossing_event") is Fusion.AGREE
+        assert outcome("crossing_event", "persistent_condition") is not Fusion.AGREE
+        assert outcome(None, None) is not Fusion.AGREE
