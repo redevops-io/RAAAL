@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from corpus.parser.loader import load                              # noqa: E402
 from src.discovery.hosted_recording import (                       # noqa: E402
-    PROMPT_VERSION, RECORDING_SCHEMA, key, to_json,
+    PROMPT_VERSION, RECORDING_SCHEMA, key, question_digest, to_json,
 )
 from src.discovery.readers_quantify import (                       # noqa: E402
     HostedReader, OpenAIReader,
@@ -201,7 +201,8 @@ def main(argv: list) -> int:
             # sentence nobody asked about.
             failures.append((text, reading_set.failed))
         recorded[key(text, reader.id)] = to_json(
-            reading_set, text, schema_version=QUANTIFY_SCHEMA.version)
+            reading_set, text, schema_version=QUANTIFY_SCHEMA.version,
+            question=question_digest(QUANTIFY_SCHEMA))
         print(f"  {'!' if not reading_set.ok else ' '} {text[:60]}")
 
     OUT.write_text(json.dumps(
@@ -210,6 +211,7 @@ def main(argv: list) -> int:
                            else {"reader_id": reader.id, "model": reader.model,
                                  "prompt_version": PROMPT_VERSION,
                                  "schema_version": QUANTIFY_SCHEMA.version,
+                                 "question_digest": question_digest(QUANTIFY_SCHEMA),
                                  "max_tokens": reader.max_tokens}),
          "count": len(recorded),
          "note": ("Replayed by the corpus. A recording is not an answer — "

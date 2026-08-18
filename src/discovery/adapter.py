@@ -909,15 +909,8 @@ def deterministic_witness(text: str, parse, *, language: str = "en"):
     derived = {}
     for _reader_id, derive in DERIVED_READERS:
         found = derive(candidates, parse, text)
-        if found is None:
-            continue
-        # A reader may claim one dimension or several. `unsupported_family`
-        # returns one claim per family the sentence names, because a sentence
-        # can name two — "hold my age in bonds and tilt toward value" is both,
-        # and refusing it by one name tells somebody half of why it will not
-        # run. The single-proposal readers are unchanged.
-        for claim in (found if isinstance(found, (list, tuple)) else (found,)):
-            derived[claim.dimension] = claim
+        if found is not None:
+            derived[found.dimension] = found
     return evidence, derived
 
 

@@ -5,7 +5,9 @@
     "model": "gpt-5.4-2026-03-05",
     "prompt_version": "quantify-hosted-prompt@1",
     "schema_version": "quantify-discovery-schema@6",
-    "max_tokens": 8000
+    "max_tokens": 8000,
+    "question_digest": "3302b5389e1e2018",
+    "question_digest_note": "The question the @6 replies answer. Added after the fact and verified by building the prompt from the @6 schema as committed: it is byte-identical to @7's, because @7's two new dimensions are asked=False. Every entry's schema_version is left as recorded — that is what they were recorded under and it is not this migration's to rewrite. The three @2 entries are deliberately unstamped: nothing here proves what @2 asked, and a digest asserted without that proof is the relabelling this avoids."
   },
   "count": 791,
   "note": "Replayed by the corpus. A recording is not an answer — fusion decides whether the model's proposal proceeds, exactly as it would for a live reply.",
@@ -45,7 +47,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 a month, equal weight across VTI and BND",
@@ -106,7 +109,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 into VTI each time it breaks below its 200 day moving average",
@@ -167,7 +171,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 into VTI on every day it stays below the 200-day average",
@@ -228,7 +233,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 monthly, sixty percent VTI, forty percent BND",
@@ -295,7 +301,8 @@
         "evaluation_period",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$100 into VTI each week",
@@ -340,7 +347,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$500/month into VTI",
@@ -387,7 +395,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "70% stocks, 20% bonds, 10% cash",
@@ -436,7 +445,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "At a minimum, I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs.",
@@ -503,7 +513,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "At the moment I invest $50 every week.",
@@ -541,7 +552,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Beyond that, I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually.",
@@ -594,7 +606,8 @@
         "day_rule",
         "evaluation_period",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Currently I invest 31 EUR/month but plan to go to around 100 to 150 EUR/month once I start by PhD position.",
@@ -650,7 +663,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Every three months I add money to the portfolio and rebalance it back to 70/30.",
@@ -711,7 +725,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
@@ -772,7 +787,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "However, consider that I start with a 60-40 equity to fixed asset allocation.",
@@ -821,7 +837,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I allocate across my holdings by inverse volatility rather than by dollars.",
@@ -849,7 +866,8 @@
         "objective",
         "periodic_rebalancing",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
@@ -886,7 +904,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am also contributing $5500 to my Roth IRA each year.",
@@ -930,7 +949,8 @@
         "assets",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
@@ -979,7 +999,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I annuitize a third of the portfolio at 70.",
@@ -1008,7 +1029,8 @@
         "account_type",
         "assets",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I buy VOO when SPY falls below its 200-day moving average.",
@@ -1069,7 +1091,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I buy VOO whenever SPY falls below its 200-day moving average.",
@@ -1130,7 +1153,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I can probably invest 500€-600€ monthly for something.",
@@ -1179,7 +1203,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute $10,000 to the portfolio once a year.",
@@ -1218,7 +1243,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute $50 into each of two accounts every month.",
@@ -1250,7 +1276,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute 22% of my salary to my 401k, up to the $18,000 annual limit.",
@@ -1306,7 +1333,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
@@ -1361,7 +1389,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute monthly and rebalance at year end",
@@ -1404,7 +1433,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I convert $30,000 from the traditional IRA to the Roth each year.",
@@ -1461,7 +1491,8 @@
       "unread": [
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I currently max out my HSA contributions.",
@@ -1490,7 +1521,8 @@
         "amount",
         "cadence",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I fully fund my Roth IRA each year and max out my 403(b) as well.",
@@ -1529,7 +1561,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I harvest losses whenever a position falls 10% below its cost basis.",
@@ -1578,7 +1611,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I have $10,000 and I compare paying down a 5% mortgage with investing it.",
@@ -1619,7 +1653,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I have a Roth",
@@ -1656,7 +1691,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 100% of my 401k in an S&P 500 index fund.",
@@ -1681,7 +1717,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 2x leverage on the equity sleeve of my portfolio.",
@@ -1726,7 +1763,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 60/40 and rebalance back to those weights once a year.",
@@ -1774,7 +1812,8 @@
         "dividend_policy",
         "evaluation_period",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 73% stocks, 23% bonds and 4% other.",
@@ -1814,7 +1853,8 @@
         "evaluation_period",
         "objective",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold a 60/40 portfolio: 60% stocks and 40% bonds.",
@@ -1870,7 +1910,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold each position for 21 days and then close it.",
@@ -1903,7 +1944,8 @@
         "cadence",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold the bonds in the IRA and the stocks in the taxable account.",
@@ -1982,7 +2024,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest $50 into VTI every week.",
@@ -2026,7 +2069,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest $500 into VTI every month, on the same day each month.",
@@ -2068,7 +2112,8 @@
       "unread": [
         "dividend_policy",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest 100 EUR a month now and raise it to 150 EUR a month next year.",
@@ -2119,7 +2164,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep 12 months of expenses in cash before investing anything.",
@@ -2167,7 +2213,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep six months of expenses in cash before investing anything.",
@@ -2215,7 +2262,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep three years of expenses in cash and the rest in stocks.",
@@ -2256,7 +2304,8 @@
         "day_rule",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I live off the dividends and never touch the principal.",
@@ -2298,7 +2347,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I make 100% of my 401k contributions Roth rather than pre-tax.",
@@ -2341,7 +2391,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I make 100% of my 401k contributions pre-tax rather than Roth.",
@@ -2373,7 +2424,8 @@
         "cadence",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I pay off the mortgage instead of investing.",
@@ -2410,7 +2462,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
@@ -2453,7 +2506,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
@@ -2508,7 +2562,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put $10,000 into an emergency fund and invest the remaining $20,000.",
@@ -2573,7 +2628,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
@@ -2612,7 +2668,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 10% of my after-tax salary into a traditional IRA every year.",
@@ -2667,7 +2724,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 100% of my 401k into an S&P index fund.",
@@ -2721,7 +2779,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 8% of every paycheck into my 401k.",
@@ -2776,7 +2835,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I sell covered calls one strike out of the money each month.",
@@ -2810,7 +2870,8 @@
         "execution_timing",
         "objective",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I set my weights by mean-variance optimisation across 30 holdings.",
@@ -2853,7 +2914,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I shift 1% from stocks to bonds every year as I get older.",
@@ -2885,7 +2947,8 @@
         "dividend_policy",
         "evaluation_period",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I size the portfolio to target 10% annualised volatility.",
@@ -2922,7 +2985,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I spend the taxable account first, then the IRA, then the Roth.",
@@ -2957,7 +3021,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I take the required minimum distribution starting at 73.",
@@ -2987,7 +3052,8 @@
         "amount",
         "cadence",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I tilt 20% of my portfolio toward small cap value.",
@@ -3037,7 +3103,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I understand that rebalancing once a year is better than doing it once every two years.",
@@ -3087,7 +3154,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I use $5,000 of cash to pay down the margin loan on my stock position.",
@@ -3129,7 +3197,8 @@
         "execution_timing",
         "observed_assets",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I want to add $500 to VTI every month",
@@ -3174,7 +3243,8 @@
         "dividend_policy",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw $18,000 from the portfolio to pay off my debt.",
@@ -3229,7 +3299,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw $20,000 from the portfolio each year.",
@@ -3273,7 +3344,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw 4% of the portfolio each year, adjusted for inflation.",
@@ -3309,7 +3381,8 @@
         "account_type",
         "assets",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI",
@@ -3355,7 +3428,8 @@
         "dividend_policy",
         "evaluation_period",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm about to start putting roughly 8-10% of paychecks into my 401k but havent as of yet.",
@@ -3410,7 +3484,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
@@ -3460,7 +3535,8 @@
         "allocation_method",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
@@ -3501,7 +3577,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "If I don't touch it, he will continue to put in $50 a month.",
@@ -3537,7 +3614,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "In other words, I would like to target, say, an 10% annualised volatility.",
@@ -3574,7 +3652,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Invest $500 monthly into VTI.",
@@ -3619,7 +3698,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Mutual Funds - No tax rebate/exemption, I invest 5% of salary per month.",
@@ -3673,7 +3753,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "My employer contributes $100 to my HSA and matches the next $400 I put in.",
@@ -3728,7 +3809,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Now, what I'm thinking of doing is putting a portion of my cash savings into I-Bonds every year.",
@@ -3775,7 +3857,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split.",
@@ -3803,7 +3886,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Savings Bank Account - No tax rebate/exemption, I put 15% of salary per month.",
@@ -3858,7 +3942,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
@@ -3907,7 +3992,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month.",
@@ -3952,7 +4038,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "To do this, I employed this methodology: Set a portfolio holding period of 21 days.",
@@ -3989,7 +4076,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 20% allocation tilted to small-cap value",
@@ -4014,7 +4102,8 @@
           "source_span": "a 20% allocation tilted to small-cap value"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 60/40 portfolio",
@@ -4046,7 +4135,8 @@
         "cadence",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 60/40 split of $1,000 a month between VTI and BND",
@@ -4113,7 +4203,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a cash bucket covering three years, equities for the rest",
@@ -4166,7 +4257,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a single $10,000 purchase of VTI",
@@ -4215,7 +4307,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add $2.5k quarterly",
@@ -4253,7 +4346,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add $250 every two weeks",
@@ -4290,7 +4384,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add to BND while TLT is under its 200-day",
@@ -4344,7 +4439,8 @@
         "day_rule",
         "evaluation_period",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add when it trades beneath the 12-month moving average",
@@ -4381,7 +4477,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "allocate $1,000 monthly by inverse volatility across VTI and BND",
@@ -4442,7 +4539,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "allocate by inverse volatility",
@@ -4479,7 +4577,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "an annual $40,000 withdrawal",
@@ -4523,7 +4622,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "an annual withdrawal of four percent",
@@ -4560,7 +4660,8 @@
         "amount",
         "assets",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annually convert $30,000 of traditional IRA to Roth",
@@ -4628,7 +4729,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annually rebalance to a 60/40 target",
@@ -4664,7 +4766,8 @@
         "account_type",
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annuitize a third of the portfolio at 70",
@@ -4707,7 +4810,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "as long as SPY is under trend",
@@ -4750,7 +4854,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "bring it back to target when drift exceeds five percentage points",
@@ -4781,7 +4886,8 @@
         "assets",
         "cadence",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of SPY every time it closes below its 200 day moving average, on the next trading day",
@@ -4842,7 +4948,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of SPY on any day it is trading below its 200 day moving average",
@@ -4901,7 +5008,8 @@
         "observed_assets",
         "selection_rule",
         "sell_action"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI when it crosses below its 200 DMA",
@@ -4956,7 +5064,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI when it crosses below its 200-day moving average",
@@ -5017,7 +5126,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI whenever it is below its 200-day moving average",
@@ -5078,7 +5188,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $10,000 of VTI, just once",
@@ -5133,7 +5244,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $100 of VTI every week",
@@ -5178,7 +5290,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $500 of VTI each month",
@@ -5222,7 +5335,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VOO when SPY crosses below its average",
@@ -5277,7 +5391,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VOO when SPY falls below its 200-day moving average",
@@ -5338,7 +5453,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VTI and BND",
@@ -5375,7 +5491,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VTI below its 200-day moving average",
@@ -5430,7 +5547,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy a core index fund monthly",
@@ -5466,7 +5584,8 @@
         "account_type",
         "amount",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy any time SPY is below the 200-day average",
@@ -5521,7 +5640,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy at the next open",
@@ -5558,7 +5678,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy the index rather than through an ETF",
@@ -5595,7 +5716,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy through an ETF",
@@ -5632,7 +5754,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy when it falls below the 200-day moving average",
@@ -5667,7 +5790,8 @@
         "execution_timing",
         "objective",
         "observed_assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $1,000 a quarter",
@@ -5706,7 +5830,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $1,000 monthly",
@@ -5744,7 +5869,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 a month to VTI",
@@ -5789,7 +5915,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 monthly to my Roth IRA",
@@ -5833,7 +5960,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 monthly, rebalanced annually",
@@ -5879,7 +6007,8 @@
         "day_rule",
         "evaluation_period",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute a fixed $500",
@@ -5911,7 +6040,8 @@
         "cadence",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute £1k a month",
@@ -5949,7 +6079,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the Roth to the traditional IRA",
@@ -6011,7 +6142,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth",
@@ -6073,7 +6205,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth each year",
@@ -6129,7 +6262,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert up to the top of the 22% bracket each year",
@@ -6168,7 +6302,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "deposit $100 a week",
@@ -6206,7 +6341,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "directly, not through a fund",
@@ -6271,7 +6407,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "do not reinvest the dividends",
@@ -6308,7 +6445,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "double leverage on the stock sleeve",
@@ -6333,7 +6471,8 @@
           "source_span": "double leverage on the stock sleeve"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw $40,000 per year",
@@ -6388,7 +6527,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw down 3% a year in retirement",
@@ -6436,7 +6576,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw down 4% annually",
@@ -6473,7 +6614,8 @@
         "amount",
         "assets",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "each month hold whichever of VTI and BND performed best",
@@ -6509,7 +6651,8 @@
         "objective",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "each year, bring the portfolio back to 60/40",
@@ -6541,7 +6684,8 @@
         "cadence",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "equal weight across the four",
@@ -6578,7 +6722,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "evaluate over the past five years",
@@ -6609,7 +6754,8 @@
         "amount",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "execute at the close",
@@ -6646,7 +6792,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "fill on the signal bar",
@@ -6683,7 +6830,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "harvest losses whenever a position falls 10% below its cost basis",
@@ -6726,7 +6874,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold 2x leverage on the equity sleeve",
@@ -6751,7 +6900,8 @@
           "source_span": "hold 2x leverage on the equity sleeve"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold VTI for 200 days",
@@ -6794,7 +6944,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold my age in bonds",
@@ -6837,7 +6988,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold the bonds in the IRA and the stocks in the taxable account",
@@ -6909,7 +7061,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold the bonus for 90 days",
@@ -6946,7 +7099,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold three years of spending in cash, invest the remainder",
@@ -6995,7 +7149,8 @@
         "cadence",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA - only ones on the next business day. what would be my total return and the final cash amount over the past 5 years",
@@ -7074,7 +7229,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "if VTI moves from above its 200-day MA to below it, buy $1,000",
@@ -7133,7 +7289,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "sell_action"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 in VTI on any day it sits under the 200 DMA",
@@ -7194,7 +7351,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 in VTI the day it drops beneath the 200-day average",
@@ -7255,7 +7413,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly into VTI",
@@ -7300,7 +7459,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly split equally between BND and VTI",
@@ -7352,7 +7512,8 @@
         "dividend_policy",
         "evaluation_period",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly split equally between VTI and BND",
@@ -7406,7 +7567,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, 40% VTI and 60% BND",
@@ -7473,7 +7635,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, 60% VTI and 40% BND",
@@ -7534,7 +7697,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, volatility-weighted across VTI and BND",
@@ -7588,7 +7752,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 equally into VTI and BND as a one-off purchase",
@@ -7649,7 +7814,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 in VTI once",
@@ -7693,7 +7859,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 into VTI as a lump sum",
@@ -7741,7 +7908,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $100 weekly into VTI",
@@ -7786,7 +7954,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1k monthly into VTI",
@@ -7833,7 +8002,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $2,000 into VTI whenever it drops 10% below its highest close of the last year",
@@ -7875,7 +8045,8 @@
         "execution_timing",
         "moving_average_window",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $3,000 into QQQ every quarter",
@@ -7928,7 +8099,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month into VTI",
@@ -7973,7 +8145,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month into VTI and BND, 60/40",
@@ -8032,7 +8205,8 @@
         "dividend_policy",
         "evaluation_period",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month split equally between VTI and BND",
@@ -8086,7 +8260,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month, 60% in VTI and 40% in BND",
@@ -8140,7 +8315,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly",
@@ -8178,7 +8354,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly into BND",
@@ -8223,7 +8400,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly into VTI",
@@ -8267,7 +8445,8 @@
         "allocation_method",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 weekly into VTI",
@@ -8311,7 +8490,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $750 into VTI on the first trading day of each month",
@@ -8362,7 +8542,8 @@
         "allocation_method",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest 10% of my salary monthly",
@@ -8401,7 +8582,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest in the S&P 500 tracker",
@@ -8444,7 +8626,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest whatever is left over each month",
@@ -8475,7 +8658,8 @@
         "amount",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep bonds in my IRA, equities in taxable",
@@ -8545,7 +8729,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep it for six months",
@@ -8582,7 +8767,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep six months of expenses in cash before investing anything",
@@ -8623,7 +8809,8 @@
         "amount",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep the REITs in the Roth",
@@ -8678,7 +8865,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep three years of expenses in cash and the rest in stocks",
@@ -8732,7 +8920,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "live off the dividends and never touch the principal",
@@ -8770,7 +8959,8 @@
         "assets",
         "cadence",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "maintain 60/40 by contributions and rebalance at year end",
@@ -8802,7 +8992,8 @@
         "cadence",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "make a one-off $10,000 investment",
@@ -8845,7 +9036,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "market-cap weighted",
@@ -8882,7 +9074,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "measured across ten years",
@@ -8907,7 +9100,8 @@
         "cadence",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "mid-month",
@@ -8944,7 +9138,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $1,000 divided equally between VTI and BND",
@@ -9004,7 +9199,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $1,000 weighted 60/40 across VTI and BND",
@@ -9065,7 +9261,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $500 purchase of VTI",
@@ -9111,7 +9308,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly, buy the better performer of VTI or BND",
@@ -9166,7 +9364,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "move $30,000 a year from my traditional IRA into a Roth",
@@ -9221,7 +9420,8 @@
       "unread": [
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "move one percent a year out of equities into fixed income",
@@ -9269,7 +9469,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "on the first trading day of the month",
@@ -9312,7 +9513,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "one-off $10,000 investment in VTI",
@@ -9361,7 +9563,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "overweight small cap value by 20%",
@@ -9389,7 +9592,8 @@
       "unread": [
         "account_type",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "pay off the mortgage instead of investing",
@@ -9426,7 +9630,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "purchase VTI whenever QQQ drops 10%",
@@ -9477,7 +9682,8 @@
         "execution_timing",
         "holding_period",
         "sell_action"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $1,000 monthly into VTI and BND, evenly",
@@ -9529,7 +9735,8 @@
         "dividend_policy",
         "evaluation_period",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $10,000 into VTI as a lump sum",
@@ -9570,7 +9777,8 @@
         "execution_timing",
         "objective",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $100 a week into VTI",
@@ -9613,7 +9821,8 @@
         "account_type",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $100 into VOO every week",
@@ -9657,7 +9866,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $250 into the index fund every two weeks",
@@ -9701,7 +9911,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $500 into VTI every month",
@@ -9746,7 +9957,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put a grand into VTI on the day it falls through its 200-day average",
@@ -9806,7 +10018,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "sell_action"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put in $1,000 each quarter",
@@ -9844,7 +10057,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put in half of any bonus",
@@ -9876,7 +10090,8 @@
         "cadence",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put it into an SPX ETF",
@@ -9913,7 +10128,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put the fixed income in the IRA and the shares in the brokerage",
@@ -9978,7 +10194,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put the money into the mortgage instead of the market",
@@ -10002,7 +10219,8 @@
         "assets",
         "cadence",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rather than through an ETF",
@@ -10073,7 +10291,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance back to 60/40 every year",
@@ -10107,7 +10326,8 @@
         "evaluation_period",
         "objective",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance if any holding moves 5% away from its target",
@@ -10142,7 +10362,8 @@
         "execution_timing",
         "objective",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance on the last session of each quarter",
@@ -10190,7 +10411,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance to 70/30",
@@ -10233,7 +10455,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance whenever an allocation drifts more than 5 points",
@@ -10267,7 +10490,8 @@
         "evaluation_period",
         "objective",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "reduce the equity share by 1% annually",
@@ -10310,7 +10534,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "refill the cash bucket from stocks after a good year",
@@ -10355,7 +10580,8 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "reinvest the dividends",
@@ -10392,7 +10618,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rotate monthly into the stronger of VTI and BND",
@@ -10439,7 +10666,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "run it at a 10% volatility target",
@@ -10476,7 +10704,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "run the equity portion at two times leverage",
@@ -10521,7 +10750,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell VTI and buy BND",
@@ -10564,7 +10794,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell covered calls one strike out of the money each month",
@@ -10594,7 +10825,8 @@
         "amount",
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell losers that are down 10% from what I paid",
@@ -10631,7 +10863,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell the loser and buy a similar fund to avoid a wash sale",
@@ -10680,7 +10913,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell when it drops under its 50-day average",
@@ -10727,7 +10961,8 @@
         "day_rule",
         "evaluation_period",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "set aside $500 for VTI monthly",
@@ -10772,7 +11007,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "shift 1% from stocks to bonds every year as I get older",
@@ -10794,7 +11030,8 @@
         "account_type",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "should I overpay the mortgage rather than invest",
@@ -10831,7 +11068,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "since January 2020",
@@ -10868,7 +11106,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "size positions for 10% vol",
@@ -10905,7 +11144,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "spend 4% of the balance every year",
@@ -10942,7 +11182,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "spend the taxable account first, then the IRA, then the Roth",
@@ -11005,7 +11246,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "split it 70/30 between stocks and bonds",
@@ -11054,7 +11296,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take $40,000 a year out of the portfolio",
@@ -11098,7 +11341,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take $40,000 out each year",
@@ -11145,7 +11389,8 @@
         "dividend_policy",
         "evaluation_period",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take from bonds in a down year and from stocks otherwise",
@@ -11201,7 +11446,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take out 4% a year",
@@ -11238,7 +11484,8 @@
         "amount",
         "assets",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take the dividends as cash",
@@ -11275,7 +11522,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take the required minimum distribution starting at 73",
@@ -11305,7 +11553,8 @@
         "amount",
         "cadence",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "target 10% annualised volatility",
@@ -11330,7 +11579,8 @@
         "cadence",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "tax-loss harvest positions 10% underwater",
@@ -11367,7 +11617,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "through an ETF",
@@ -11442,7 +11693,8 @@
         "day_rule",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "trade at the following day's open",
@@ -11479,7 +11731,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "weekly $100 contribution to VTI",
@@ -11524,7 +11777,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "weight by inverse volatility",
@@ -11561,7 +11815,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "when SPY crosses below its 200-day average",
@@ -11610,7 +11865,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "whenever SPY drops under the 200-day",
@@ -11653,7 +11909,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "whenever VTI crosses under the 200 DMA, invest $1,000",
@@ -11712,7 +11969,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "while SPY stays below its average",
@@ -11755,7 +12013,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "while VTI is beneath its 200-day average, put in $1,000",
@@ -11816,7 +12075,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw $1,000 monthly",
@@ -11860,7 +12120,8 @@
         "assets",
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw $40,000 a year from the portfolio",
@@ -11902,7 +12163,8 @@
       "unread": [
         "account_type",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw 4% of the portfolio each year",
@@ -11941,7 +12203,8 @@
         "day_rule",
         "dividend_policy",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
@@ -11982,7 +12245,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "yearly rebalancing to 60% stocks and 40% bonds",
@@ -12037,7 +12301,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 a month weighted by inverse volatility",
@@ -12086,7 +12351,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 a month, equal weight across VTI and BND",
@@ -12141,7 +12407,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 into VTI each time it breaks below its 200 day moving average",
@@ -12202,7 +12469,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 into VTI on every day it stays below the 200-day average",
@@ -12257,7 +12525,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 monthly, sixty percent VTI, forty percent BND",
@@ -12318,7 +12587,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$100 into VTI each week",
@@ -12367,7 +12637,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$500/month into VTI",
@@ -12416,7 +12687,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "70% stocks, 20% bonds, 10% cash",
@@ -12465,7 +12737,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "At a minimum, I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs.",
@@ -12530,7 +12803,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "At the moment I invest $50 every week.",
@@ -12579,7 +12853,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Beyond that, I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually.",
@@ -12648,7 +12923,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Currently I invest 31 EUR/month but plan to go to around 100 to 150 EUR/month once I start by PhD position.",
@@ -12711,7 +12987,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Every three months I add money to the portfolio and rebalance it back to 70/30.",
@@ -12765,7 +13042,8 @@
         "observed_assets",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
@@ -12826,7 +13104,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "However, consider that I start with a 60-40 equity to fixed asset allocation.",
@@ -12875,7 +13154,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I allocate across my holdings by inverse volatility rather than by dollars.",
@@ -12912,7 +13192,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
@@ -12961,7 +13242,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am also contributing $5500 to my Roth IRA each year.",
@@ -13016,7 +13298,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
@@ -13065,7 +13348,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I annuitize a third of the portfolio at 70.",
@@ -13124,7 +13408,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I buy VOO when SPY falls below its 200-day moving average.",
@@ -13185,7 +13470,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I buy VOO whenever SPY falls below its 200-day moving average.",
@@ -13246,7 +13532,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I can probably invest 500€-600€ monthly for something.",
@@ -13289,7 +13576,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute $10,000 to the portfolio once a year.",
@@ -13338,7 +13626,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute $50 into each of two accounts every month.",
@@ -13387,7 +13676,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute 22% of my salary to my 401k, up to the $18,000 annual limit.",
@@ -13436,7 +13726,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
@@ -13485,7 +13776,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute monthly and rebalance at year end",
@@ -13528,7 +13820,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I convert $30,000 from the traditional IRA to the Roth each year.",
@@ -13597,7 +13890,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I currently max out my HSA contributions.",
@@ -13640,7 +13934,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I fully fund my Roth IRA each year and max out my 403(b) as well.",
@@ -13690,7 +13985,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I harvest losses whenever a position falls 10% below its cost basis.",
@@ -13739,7 +14035,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I have $10,000 and I compare paying down a 5% mortgage with investing it.",
@@ -13806,7 +14103,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I have a Roth",
@@ -13843,7 +14141,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 100% of my 401k in an S&P 500 index fund.",
@@ -13892,7 +14191,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 2x leverage on the equity sleeve of my portfolio.",
@@ -13937,7 +14237,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 60/40 and rebalance back to those weights once a year.",
@@ -13980,7 +14281,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 73% stocks, 23% bonds and 4% other.",
@@ -14023,7 +14325,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold a 60/40 portfolio: 60% stocks and 40% bonds.",
@@ -14066,7 +14369,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold each position for 21 days and then close it.",
@@ -14109,7 +14413,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold the bonds in the IRA and the stocks in the taxable account.",
@@ -14174,7 +14479,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest $50 into VTI every week.",
@@ -14229,7 +14535,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest $500 into VTI every month, on the same day each month.",
@@ -14290,7 +14597,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest 100 EUR a month now and raise it to 150 EUR a month next year.",
@@ -14340,7 +14648,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep 12 months of expenses in cash before investing anything.",
@@ -14388,7 +14697,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep six months of expenses in cash before investing anything.",
@@ -14436,7 +14746,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep three years of expenses in cash and the rest in stocks.",
@@ -14490,7 +14801,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I live off the dividends and never touch the principal.",
@@ -14533,7 +14845,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I make 100% of my 401k contributions Roth rather than pre-tax.",
@@ -14595,7 +14908,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I make 100% of my 401k contributions pre-tax rather than Roth.",
@@ -14630,7 +14944,8 @@
       "unread": [
         "cadence",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I pay off the mortgage instead of investing.",
@@ -14667,7 +14982,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
@@ -14703,7 +15019,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
@@ -14752,7 +15069,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put $10,000 into an emergency fund and invest the remaining $20,000.",
@@ -14812,7 +15130,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
@@ -14861,7 +15180,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 10% of my after-tax salary into a traditional IRA every year.",
@@ -14916,7 +15236,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 100% of my 401k into an S&P index fund.",
@@ -14965,7 +15286,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 8% of every paycheck into my 401k.",
@@ -15020,7 +15342,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I sell covered calls one strike out of the money each month.",
@@ -15069,7 +15392,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I set my weights by mean-variance optimisation across 30 holdings.",
@@ -15112,7 +15436,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I shift 1% from stocks to bonds every year as I get older.",
@@ -15189,7 +15514,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I size the portfolio to target 10% annualised volatility.",
@@ -15232,7 +15558,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I spend the taxable account first, then the IRA, then the Roth.",
@@ -15298,7 +15625,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I take the required minimum distribution starting at 73.",
@@ -15335,7 +15663,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I tilt 20% of my portfolio toward small cap value.",
@@ -15392,7 +15721,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I understand that rebalancing once a year is better than doing it once every two years.",
@@ -15436,7 +15766,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I use $5,000 of cash to pay down the margin loan on my stock position.",
@@ -15485,7 +15816,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I want to add $500 to VTI every month",
@@ -15540,7 +15872,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw $18,000 from the portfolio to pay off my debt.",
@@ -15589,7 +15922,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw $20,000 from the portfolio each year.",
@@ -15644,7 +15978,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw 4% of the portfolio each year, adjusted for inflation.",
@@ -15699,7 +16034,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI",
@@ -15754,7 +16090,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm about to start putting roughly 8-10% of paychecks into my 401k but havent as of yet.",
@@ -15809,7 +16146,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
@@ -15864,7 +16202,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
@@ -15914,7 +16253,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "If I don't touch it, he will continue to put in $50 a month.",
@@ -15963,7 +16303,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "In other words, I would like to target, say, an 10% annualised volatility.",
@@ -16000,7 +16341,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Invest $500 monthly into VTI.",
@@ -16055,7 +16397,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Mutual Funds - No tax rebate/exemption, I invest 5% of salary per month.",
@@ -16104,7 +16447,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "My employer contributes $100 to my HSA and matches the next $400 I put in.",
@@ -16154,7 +16498,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Now, what I'm thinking of doing is putting a portion of my cash savings into I-Bonds every year.",
@@ -16209,7 +16554,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split.",
@@ -16246,7 +16592,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Savings Bank Account - No tax rebate/exemption, I put 15% of salary per month.",
@@ -16307,7 +16654,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
@@ -16356,7 +16704,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month.",
@@ -16399,7 +16748,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "To do this, I employed this methodology: Set a portfolio holding period of 21 days.",
@@ -16436,7 +16786,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 20% allocation tilted to small-cap value",
@@ -16499,7 +16850,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 60/40 portfolio",
@@ -16542,7 +16894,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 60/40 split of $1,000 a month between VTI and BND",
@@ -16603,7 +16956,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a cash bucket covering three years, equities for the rest",
@@ -16639,7 +16993,8 @@
       ],
       "unread": [
         "account_type"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a single $10,000 purchase of VTI",
@@ -16688,7 +17043,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add $2.5k quarterly",
@@ -16737,7 +17093,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add $250 every two weeks",
@@ -16786,7 +17143,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add to BND while TLT is under its 200-day",
@@ -16847,7 +17205,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add when it trades beneath the 12-month moving average",
@@ -16896,7 +17255,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "allocate $1,000 monthly by inverse volatility across VTI and BND",
@@ -16957,7 +17317,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "allocate by inverse volatility",
@@ -16994,7 +17355,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "an annual $40,000 withdrawal",
@@ -17043,7 +17405,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "an annual withdrawal of four percent",
@@ -17092,7 +17455,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annually convert $30,000 of traditional IRA to Roth",
@@ -17161,7 +17525,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annually rebalance to a 60/40 target",
@@ -17204,7 +17569,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annuitize a third of the portfolio at 70",
@@ -17247,7 +17613,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "as long as SPY is under trend",
@@ -17296,7 +17663,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "bring it back to target when drift exceeds five percentage points",
@@ -17333,7 +17701,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of SPY every time it closes below its 200 day moving average, on the next trading day",
@@ -17406,7 +17775,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of SPY on any day it is trading below its 200 day moving average",
@@ -17473,7 +17843,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI when it crosses below its 200 DMA",
@@ -17540,7 +17911,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI when it crosses below its 200-day moving average",
@@ -17607,7 +17979,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI whenever it is below its 200-day moving average",
@@ -17674,7 +18047,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $10,000 of VTI, just once",
@@ -17723,7 +18097,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $100 of VTI every week",
@@ -17778,7 +18153,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $500 of VTI each month",
@@ -17833,7 +18209,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VOO when SPY crosses below its average",
@@ -17888,7 +18265,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VOO when SPY falls below its 200-day moving average",
@@ -17949,7 +18327,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VTI and BND",
@@ -17992,7 +18371,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VTI below its 200-day moving average",
@@ -18047,7 +18427,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy a core index fund monthly",
@@ -18096,7 +18477,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy any time SPY is below the 200-day average",
@@ -18157,7 +18539,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy at the next open",
@@ -18200,7 +18583,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy the index rather than through an ETF",
@@ -18250,7 +18634,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy through an ETF",
@@ -18293,7 +18678,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy when it falls below the 200-day moving average",
@@ -18342,7 +18728,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $1,000 a quarter",
@@ -18391,7 +18778,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $1,000 monthly",
@@ -18440,7 +18828,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 a month to VTI",
@@ -18489,7 +18878,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 monthly to my Roth IRA",
@@ -18544,7 +18934,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 monthly, rebalanced annually",
@@ -18599,7 +18990,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute a fixed $500",
@@ -18642,7 +19034,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute £1k a month",
@@ -18691,7 +19084,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the Roth to the traditional IRA",
@@ -18754,7 +19148,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth",
@@ -18817,7 +19212,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth each year",
@@ -18886,7 +19282,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert up to the top of the 22% bracket each year",
@@ -18921,7 +19318,8 @@
       "unread": [
         "account_type",
         "amount"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "deposit $100 a week",
@@ -18970,7 +19368,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "do not reinvest",
@@ -19007,7 +19406,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "do not reinvest the dividends",
@@ -19044,7 +19444,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "double leverage on the stock sleeve",
@@ -19096,7 +19497,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw $40,000 per year",
@@ -19151,7 +19553,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw down 3% a year in retirement",
@@ -19200,7 +19603,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw down 4% annually",
@@ -19255,7 +19659,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "each month hold whichever of VTI and BND performed best",
@@ -19304,7 +19709,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "each year, bring the portfolio back to 60/40",
@@ -19351,7 +19757,8 @@
         "observed_assets",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "equal weight across the four",
@@ -19371,7 +19778,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "evaluate over the past five years",
@@ -19414,7 +19822,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "execute at the close",
@@ -19451,7 +19860,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "fill on the signal bar",
@@ -19488,7 +19898,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "harvest losses whenever a position falls 10% below its cost basis",
@@ -19536,7 +19947,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold 2x leverage on the equity sleeve",
@@ -19588,7 +20000,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold VTI for 200 days",
@@ -19631,7 +20044,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold my age in bonds",
@@ -19674,7 +20088,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold the bonds in the IRA and the stocks in the taxable account",
@@ -19739,7 +20154,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold the bonus for 90 days",
@@ -19776,7 +20192,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold three years of spending in cash, invest the remainder",
@@ -19837,7 +20254,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA - only ones on the next business day. what would be my total return and the final cash amount over the past 5 years",
@@ -19910,7 +20328,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "if VTI moves from above its 200-day MA to below it, buy $1,000",
@@ -19977,7 +20396,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 in VTI on any day it sits under the 200 DMA",
@@ -20044,7 +20464,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 in VTI the day it drops beneath the 200-day average",
@@ -20105,7 +20526,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly into VTI",
@@ -20160,7 +20582,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly split equally between BND and VTI",
@@ -20221,7 +20644,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly split equally between VTI and BND",
@@ -20282,7 +20706,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, 40% VTI and 60% BND",
@@ -20343,7 +20768,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, 60% VTI and 40% BND",
@@ -20404,7 +20830,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, volatility-weighted across VTI and BND",
@@ -20459,7 +20886,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 equally into VTI and BND as a one-off purchase",
@@ -20520,7 +20948,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 in VTI once",
@@ -20575,7 +21004,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 into VTI as a lump sum",
@@ -20630,7 +21060,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $100 weekly into VTI",
@@ -20685,7 +21116,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1k monthly into VTI",
@@ -20740,7 +21172,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $2,000 into VTI whenever it drops 10% below its highest close of the last year",
@@ -20813,7 +21246,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $3,000 into QQQ every quarter",
@@ -20868,7 +21302,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month into VTI",
@@ -20923,7 +21358,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month into VTI and BND, 60/40",
@@ -20990,7 +21426,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month split equally between VTI and BND",
@@ -21051,7 +21488,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month, 60% in VTI and 40% in BND",
@@ -21118,7 +21556,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly",
@@ -21167,7 +21606,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly into BND",
@@ -21222,7 +21662,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly into VTI",
@@ -21277,7 +21718,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 weekly into VTI",
@@ -21332,7 +21774,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $750 into VTI on the first trading day of each month",
@@ -21387,7 +21830,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest 10% of my salary monthly",
@@ -21436,7 +21880,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest in the S&P 500 tracker",
@@ -21478,7 +21923,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest whatever is left over each month",
@@ -21527,7 +21973,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep bonds in my IRA, equities in taxable",
@@ -21606,7 +22053,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep it for six months",
@@ -21643,7 +22091,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep six months of expenses in cash before investing anything",
@@ -21691,7 +22140,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep the REITs in the Roth",
@@ -21739,7 +22189,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep three years of expenses in cash and the rest in stocks",
@@ -21775,7 +22226,8 @@
       ],
       "unread": [
         "account_type"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "live off the dividends and never touch the principal",
@@ -21824,7 +22276,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "maintain 60/40 by contributions and rebalance at year end",
@@ -21867,7 +22320,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "make a one-off $10,000 investment",
@@ -21916,7 +22370,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "market-cap weighted",
@@ -21953,7 +22408,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "measured across ten years",
@@ -21990,7 +22446,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "mid-month",
@@ -22027,7 +22484,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $1,000 divided equally between VTI and BND",
@@ -22082,7 +22540,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $1,000 weighted 60/40 across VTI and BND",
@@ -22143,7 +22602,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $500 purchase of VTI",
@@ -22192,7 +22652,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly, buy the better performer of VTI or BND",
@@ -22247,7 +22708,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "move $30,000 a year from my traditional IRA into a Roth",
@@ -22316,7 +22778,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "move one percent a year out of equities into fixed income",
@@ -22385,7 +22848,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "on the first trading day of the month",
@@ -22428,7 +22892,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "one-off $10,000 investment in VTI",
@@ -22477,7 +22942,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "overweight small cap value by 20%",
@@ -22520,7 +22986,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "pay off the mortgage instead of investing",
@@ -22557,7 +23024,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "purchase VTI whenever QQQ drops 10%",
@@ -22612,7 +23080,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $1,000 monthly into VTI and BND, evenly",
@@ -22667,7 +23136,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $10,000 into VTI as a lump sum",
@@ -22722,7 +23192,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $100 a week into VTI",
@@ -22777,7 +23248,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $100 into VOO every week",
@@ -22832,7 +23304,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $250 into the index fund every two weeks",
@@ -22887,7 +23360,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $500 into VTI every month",
@@ -22942,7 +23416,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put a grand into VTI on the day it falls through its 200-day average",
@@ -22997,7 +23472,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put in $1,000 each quarter",
@@ -23040,7 +23516,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put in half of any bonus",
@@ -23089,7 +23566,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put it into an SPX ETF",
@@ -23132,7 +23610,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put the fixed income in the IRA and the shares in the brokerage",
@@ -23197,7 +23676,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put the money into the mortgage instead of the market",
@@ -23234,7 +23714,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance VTI and BND monthly",
@@ -23277,7 +23758,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance back to 60/40 every year",
@@ -23320,7 +23802,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance if any holding moves 5% away from its target",
@@ -23355,7 +23838,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance on the last session of each quarter",
@@ -23404,7 +23888,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance to 70/30",
@@ -23446,7 +23931,8 @@
         "observed_assets",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance whenever an allocation drifts more than 5 points",
@@ -23482,7 +23968,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "reduce the equity share by 1% annually",
@@ -23531,7 +24018,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "refill the cash bucket from stocks after a good year",
@@ -23588,7 +24076,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "reinvest the dividends",
@@ -23625,7 +24114,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rotate monthly into the stronger of VTI and BND",
@@ -23680,7 +24170,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "run it at a 10% volatility target",
@@ -23723,7 +24214,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "run the equity portion at two times leverage",
@@ -23775,7 +24267,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell VTI and buy BND",
@@ -23818,7 +24311,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell covered calls one strike out of the money each month",
@@ -23861,7 +24355,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell losers that are down 10% from what I paid",
@@ -23898,7 +24393,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell the loser and buy a similar fund to avoid a wash sale",
@@ -23947,7 +24443,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell when it drops under its 50-day average",
@@ -23996,7 +24493,8 @@
         "periodic_rebalancing",
         "selection_rule",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "set aside $500 for VTI monthly",
@@ -24051,7 +24549,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "shift 1% from stocks to bonds every year as I get older",
@@ -24114,7 +24613,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "should I overpay the mortgage rather than invest",
@@ -24157,7 +24657,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "since January 2020",
@@ -24194,7 +24695,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "size positions for 10% vol",
@@ -24231,7 +24733,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "spend 4% of the balance every year",
@@ -24280,7 +24783,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "spend the taxable account first, then the IRA, then the Roth",
@@ -24348,7 +24852,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "split it 70/30 between stocks and bonds",
@@ -24397,7 +24902,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take $40,000 a year out of the portfolio",
@@ -24452,7 +24958,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take $40,000 out each year",
@@ -24507,7 +25014,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take from bonds in a down year and from stocks otherwise",
@@ -24544,7 +25052,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take out 4% a year",
@@ -24587,7 +25096,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take the dividends as cash",
@@ -24624,7 +25134,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take the required minimum distribution starting at 73",
@@ -24667,7 +25178,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "target 10% annualised volatility",
@@ -24697,7 +25209,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "tax-loss harvest positions 10% underwater",
@@ -24740,7 +25253,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "tilt 20% toward small cap value",
@@ -24798,7 +25312,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "trade at the following day's open",
@@ -24835,7 +25350,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "weekly $100 contribution to VTI",
@@ -24890,7 +25406,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "weight by inverse volatility",
@@ -24927,7 +25444,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "when SPY crosses below its 200-day average",
@@ -24976,7 +25494,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "whenever SPY drops under the 200-day",
@@ -25025,7 +25544,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "whenever VTI crosses under the 200 DMA, invest $1,000",
@@ -25085,7 +25605,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "while SPY stays below its average",
@@ -25128,7 +25649,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "while VTI is beneath its 200-day average, put in $1,000",
@@ -25201,7 +25723,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw $1,000 monthly",
@@ -25250,7 +25773,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw $40,000 a year from the portfolio",
@@ -25287,7 +25811,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw 4% of the portfolio each year",
@@ -25336,7 +25861,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
@@ -25385,7 +25911,8 @@
         "selection_rule",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "yearly rebalancing to 60% stocks and 40% bonds",
@@ -25428,7 +25955,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 a month weighted by inverse volatility",
@@ -25463,7 +25991,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 a month, equal weight across VTI and BND",
@@ -25507,7 +26036,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 into VTI each time it breaks below its 200 day moving average",
@@ -25561,7 +26091,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 into VTI on every day it stays below the 200-day average",
@@ -25611,7 +26142,8 @@
         "cadence",
         "execution_timing",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$1,000 monthly, sixty percent VTI, forty percent BND",
@@ -25663,7 +26195,8 @@
         "dividend_policy",
         "objective",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$100 into VTI each week",
@@ -25700,7 +26233,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "$500/month into VTI",
@@ -25736,7 +26270,8 @@
         "account_type",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "70% stocks, 20% bonds, 10% cash",
@@ -25785,7 +26320,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "At a minimum, I'd like to maintain a 12 month emergency fund, plus ~5% for unexpected home repairs.",
@@ -25829,7 +26365,8 @@
       ],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "At the moment I invest $50 every week.",
@@ -25858,7 +26395,8 @@
         "account_type",
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Beyond that, I fully fund our Roth IRAs each year, and I also max out my 403(b) contribution annually.",
@@ -25914,7 +26452,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Currently I invest 31 EUR/month but plan to go to around 100 to 150 EUR/month once I start by PhD position.",
@@ -25963,7 +26502,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Every three months I add money to the portfolio and rebalance it back to 70/30.",
@@ -26015,7 +26555,8 @@
         "assets",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Every three months, I will add money into the portfolio, and rebalance the portfolio to restore its 70/30 allocation.",
@@ -26067,7 +26608,8 @@
         "assets",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "However, consider that I start with a 60-40 equity to fixed asset allocation.",
@@ -26096,7 +26638,8 @@
         "account_type",
         "allocation_method",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I allocate across my holdings by inverse volatility rather than by dollars.",
@@ -26116,7 +26659,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am 40-something, live in London, who paid off my mortgage early and converted monthly payments to savings.",
@@ -26158,7 +26702,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am also contributing $5500 to my Roth IRA each year.",
@@ -26193,7 +26738,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I am most comfortable in mutual funds, and I have been periodically investing this spare cash in a brokerage account.",
@@ -26230,7 +26776,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I annuitize a third of the portfolio at 70.",
@@ -26251,7 +26798,8 @@
       "unread": [
         "account_type",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I buy VOO when SPY falls below its 200-day moving average.",
@@ -26306,7 +26854,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I buy VOO whenever SPY falls below its 200-day moving average.",
@@ -26361,7 +26910,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I can probably invest 500€-600€ monthly for something.",
@@ -26391,7 +26941,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute $10,000 to the portfolio once a year.",
@@ -26421,7 +26972,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute $50 into each of two accounts every month.",
@@ -26457,7 +27009,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute 22% of my salary to my 401k, up to the $18,000 annual limit.",
@@ -26498,7 +27051,8 @@
         "dividend_policy",
         "periodic_rebalancing",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute about $750/month to my 401k, and we pay about $300 towards some life insurance policies, etc.",
@@ -26547,7 +27101,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I contribute monthly and rebalance at year end",
@@ -26580,7 +27135,8 @@
         "day_rule",
         "objective",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I convert $30,000 from the traditional IRA to the Roth each year.",
@@ -26639,7 +27195,8 @@
           "source_span": "convert $30,000 from the traditional IRA to the Roth"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I currently max out my HSA contributions.",
@@ -26667,7 +27224,8 @@
       "unread": [
         "amount",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I fully fund my Roth IRA each year and max out my 403(b) as well.",
@@ -26709,7 +27267,8 @@
       "unread": [
         "amount",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I harvest losses whenever a position falls 10% below its cost basis.",
@@ -26746,7 +27305,8 @@
         "assets",
         "execution_timing",
         "holding_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I have $10,000 and I compare paying down a 5% mortgage with investing it.",
@@ -26789,7 +27349,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I have a Roth",
@@ -26802,7 +27363,8 @@
       "unread": [
         "account_type",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 100% of my 401k in an S&P 500 index fund.",
@@ -26875,7 +27437,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 2x leverage on the equity sleeve of my portfolio.",
@@ -26891,7 +27454,8 @@
         "assets",
         "objective",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 60/40 and rebalance back to those weights once a year.",
@@ -26951,7 +27515,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold 73% stocks, 23% bonds and 4% other.",
@@ -26985,7 +27550,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold a 60/40 portfolio: 60% stocks and 40% bonds.",
@@ -27025,7 +27591,8 @@
         "dividend_policy",
         "objective",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold each position for 21 days and then close it.",
@@ -27053,7 +27620,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I hold the bonds in the IRA and the stocks in the taxable account.",
@@ -27098,7 +27666,8 @@
           "source_span": "the stocks in the taxable account"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest $50 into VTI every week.",
@@ -27142,7 +27711,8 @@
         "allocation_method",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest $500 into VTI every month, on the same day each month.",
@@ -27176,7 +27746,8 @@
       "relations": [],
       "unread": [
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I invest 100 EUR a month now and raise it to 150 EUR a month next year.",
@@ -27233,7 +27804,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep 12 months of expenses in cash before investing anything.",
@@ -27261,7 +27833,8 @@
           "source_span": "keep 12 months of expenses in cash before investing anything"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep six months of expenses in cash before investing anything.",
@@ -27289,7 +27862,8 @@
           "source_span": "keep six months of expenses in cash before investing anything"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I keep three years of expenses in cash and the rest in stocks.",
@@ -27325,7 +27899,8 @@
       ],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I live off the dividends and never touch the principal.",
@@ -27355,7 +27930,8 @@
         "amount",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I make 100% of my 401k contributions Roth rather than pre-tax.",
@@ -27390,7 +27966,8 @@
       "unread": [
         "cadence",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I make 100% of my 401k contributions pre-tax rather than Roth.",
@@ -27425,7 +28002,8 @@
       "unread": [
         "amount",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I pay off the mortgage instead of investing.",
@@ -27455,7 +28033,8 @@
         "amount",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I perform the rebalancing of weights with differently frequencies (daily, weekly and fortnightly).",
@@ -27480,7 +28059,8 @@
         "evaluation_period",
         "objective",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I plan to sell all of my equity stake as I vest, quarter by quarter.",
@@ -27517,7 +28097,8 @@
         "amount",
         "assets",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put $10,000 into an emergency fund and invest the remaining $20,000.",
@@ -27577,7 +28158,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 10% of my after-tax salary in a traditional IRA every year (earning 0.60% apr).",
@@ -27614,7 +28196,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 10% of my after-tax salary into a traditional IRA every year.",
@@ -27656,7 +28239,8 @@
       "unread": [
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 100% of my 401k into an S&P index fund.",
@@ -27735,7 +28319,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I put 8% of every paycheck into my 401k.",
@@ -27777,7 +28362,8 @@
       "unread": [
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I sell covered calls one strike out of the money each month.",
@@ -27815,7 +28401,8 @@
         "assets",
         "day_rule",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I set my weights by mean-variance optimisation across 30 holdings.",
@@ -27842,7 +28429,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I shift 1% from stocks to bonds every year as I get older.",
@@ -27900,7 +28488,8 @@
         "allocation_method",
         "periodic_rebalancing",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I size the portfolio to target 10% annualised volatility.",
@@ -27923,7 +28512,8 @@
         "assets",
         "evaluation_period",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I spend the taxable account first, then the IRA, then the Roth.",
@@ -27941,7 +28531,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I take the required minimum distribution starting at 73.",
@@ -27970,7 +28561,8 @@
         "account_type",
         "amount",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I tilt 20% of my portfolio toward small cap value.",
@@ -28013,7 +28605,8 @@
         "allocation_method",
         "assets",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I understand that rebalancing once a year is better than doing it once every two years.",
@@ -28048,7 +28641,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I use $5,000 of cash to pay down the margin loan on my stock position.",
@@ -28091,7 +28685,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I want to add $500 to VTI every month",
@@ -28133,7 +28728,8 @@
       "unread": [
         "account_type",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw $18,000 from the portfolio to pay off my debt.",
@@ -28168,7 +28764,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw $20,000 from the portfolio each year.",
@@ -28212,7 +28809,8 @@
         "assets",
         "day_rule",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I withdraw 4% of the portfolio each year, adjusted for inflation.",
@@ -28240,7 +28838,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm 42 and have been thinking about this for a while. invest $500 monthly into VTI",
@@ -28277,7 +28876,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm about to start putting roughly 8-10% of paychecks into my 401k but havent as of yet.",
@@ -28311,7 +28911,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm contributing $550 monthly to my 401k, which over the last 12 months has had a 12.98% rate of return.",
@@ -28355,7 +28956,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "I'm doing above my company match: putting in 22% to max out my $18,000 limit for the year.",
@@ -28392,7 +28994,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "If I don't touch it, he will continue to put in $50 a month.",
@@ -28428,7 +29031,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "In other words, I would like to target, say, an 10% annualised volatility.",
@@ -28459,7 +29063,8 @@
         "assets",
         "cadence",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Invest $500 monthly into VTI.",
@@ -28502,7 +29107,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Mutual Funds - No tax rebate/exemption, I invest 5% of salary per month.",
@@ -28537,7 +29143,8 @@
       "unread": [
         "account_type",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "My employer contributes $100 to my HSA and matches the next $400 I put in.",
@@ -28593,7 +29200,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Now, what I'm thinking of doing is putting a portion of my cash savings into I-Bonds every year.",
@@ -28628,7 +29236,8 @@
       "unread": [
         "account_type",
         "amount"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Possibly my initial asset allocation was not correct and I really want an 80-20 split.",
@@ -28662,7 +29271,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "Savings Bank Account - No tax rebate/exemption, I put 15% of salary per month.",
@@ -28696,7 +29306,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "The portfolio I have in mind has a 73/23/4% allocation in stocks/bonds/other.",
@@ -28730,7 +29341,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "There is about $1800 in each account and we are automatically contributing $50 to each account each month.",
@@ -28760,7 +29372,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "To do this, I employed this methodology: Set a portfolio holding period of 21 days.",
@@ -28781,7 +29394,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 20% allocation tilted to small-cap value",
@@ -28809,7 +29423,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 60/40 portfolio",
@@ -28858,7 +29473,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a 60/40 split of $1,000 a month between VTI and BND",
@@ -28909,7 +29525,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a cash bucket covering three years, equities for the rest",
@@ -28945,7 +29562,8 @@
       ],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "a single $10,000 purchase of VTI",
@@ -28989,7 +29607,8 @@
         "day_rule",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add $2.5k quarterly",
@@ -29025,7 +29644,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add $250 every two weeks",
@@ -29061,7 +29681,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add to BND while TLT is under its 200-day",
@@ -29122,7 +29743,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "add when it trades beneath the 12-month moving average",
@@ -29161,7 +29783,8 @@
         "execution_timing",
         "observed_assets",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "allocate $1,000 monthly by inverse volatility across VTI and BND",
@@ -29204,7 +29827,8 @@
         "account_type",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "allocate by inverse volatility",
@@ -29224,7 +29848,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "an annual $40,000 withdrawal",
@@ -29266,7 +29891,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "an annual withdrawal of four percent",
@@ -29308,7 +29934,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annually convert $30,000 of traditional IRA to Roth",
@@ -29367,7 +29994,8 @@
           "source_span": "convert $30,000 of traditional IRA to Roth"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annually rebalance to a 60/40 target",
@@ -29401,7 +30029,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "annuitize a third of the portfolio at 70",
@@ -29437,7 +30066,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "as long as SPY is under trend",
@@ -29462,7 +30092,8 @@
         "moving_average_window",
         "objective",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "bring it back to target when drift exceeds five percentage points",
@@ -29485,7 +30116,8 @@
         "allocation_method",
         "assets",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of SPY every time it closes below its 200 day moving average, on the next trading day",
@@ -29557,7 +30189,8 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of SPY on any day it is trading below its 200 day moving average",
@@ -29617,7 +30250,8 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI when it crosses below its 200 DMA",
@@ -29666,7 +30300,8 @@
       "unread": [
         "execution_timing",
         "observed_assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI when it crosses below its 200-day moving average",
@@ -29715,7 +30350,8 @@
       "unread": [
         "execution_timing",
         "observed_assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $1,000 of VTI whenever it is below its 200-day moving average",
@@ -29781,7 +30417,8 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $10,000 of VTI, just once",
@@ -29826,7 +30463,8 @@
         "day_rule",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $100 of VTI every week",
@@ -29864,7 +30502,8 @@
         "dividend_policy",
         "execution_timing",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy $500 of VTI each month",
@@ -29907,7 +30546,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VOO when SPY crosses below its average",
@@ -29949,7 +30589,8 @@
       "unread": [
         "execution_timing",
         "moving_average_window"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VOO when SPY falls below its 200-day moving average",
@@ -30010,7 +30651,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VTI and BND",
@@ -30043,7 +30685,8 @@
         "day_rule",
         "dividend_policy",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy VTI below its 200-day moving average",
@@ -30098,7 +30741,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy a core index fund monthly",
@@ -30132,7 +30776,8 @@
         "execution_timing",
         "objective",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy any time SPY is below the 200-day average",
@@ -30185,7 +30830,8 @@
         "conditional_amount",
         "day_rule",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy at the next open",
@@ -30206,7 +30852,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy the index rather than through an ETF",
@@ -30249,7 +30896,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy through an ETF",
@@ -30286,7 +30934,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "buy when it falls below the 200-day moving average",
@@ -30329,7 +30978,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $1,000 a quarter",
@@ -30359,7 +31009,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $1,000 monthly",
@@ -30389,7 +31040,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 a month to VTI",
@@ -30432,7 +31084,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 monthly to my Roth IRA",
@@ -30468,7 +31121,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute $500 monthly, rebalanced annually",
@@ -30505,7 +31159,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute a fixed $500",
@@ -30526,7 +31181,8 @@
       "unread": [
         "cadence",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "contribute £1k a month",
@@ -30562,7 +31218,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the Roth to the traditional IRA",
@@ -30607,7 +31264,8 @@
           "source_span": "convert $30,000 from the Roth to the traditional IRA"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth",
@@ -30659,7 +31317,8 @@
           "source_span": "convert $30,000 from the traditional IRA to the Roth"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert $30,000 from the traditional IRA to the Roth each year",
@@ -30718,7 +31377,8 @@
           "source_span": "convert $30,000 from the traditional IRA to the Roth each year"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "convert up to the top of the 22% bracket each year",
@@ -30753,7 +31413,8 @@
       "unread": [
         "account_type",
         "amount"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "deposit $100 a week",
@@ -30783,7 +31444,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "do not reinvest",
@@ -30805,7 +31467,8 @@
         "account_type",
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "do not reinvest the dividends",
@@ -30823,7 +31486,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "double leverage on the stock sleeve",
@@ -30845,7 +31509,8 @@
         "allocation_method",
         "assets",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw $40,000 per year",
@@ -30874,7 +31539,8 @@
         "account_type",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw down 3% a year in retirement",
@@ -30902,7 +31568,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "draw down 4% annually",
@@ -30944,7 +31611,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "each month hold whichever of VTI and BND performed best",
@@ -30978,7 +31646,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "each year, bring the portfolio back to 60/40",
@@ -31019,7 +31688,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "equal weight across the four",
@@ -31039,7 +31709,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "evaluate over the past five years",
@@ -31066,7 +31737,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "execute at the close",
@@ -31084,7 +31756,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "fill on the signal bar",
@@ -31121,7 +31794,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "harvest losses whenever a position falls 10% below its cost basis",
@@ -31157,7 +31831,8 @@
         "account_type",
         "assets",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold 2x leverage on the equity sleeve",
@@ -31209,7 +31884,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold VTI for 200 days",
@@ -31236,7 +31912,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold my age in bonds",
@@ -31291,7 +31968,8 @@
         "selection_rule",
         "sell_action",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold the bonds in the IRA and the stocks in the taxable account",
@@ -31336,7 +32014,8 @@
           "source_span": "and the stocks in the taxable account"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold the bonus for 90 days",
@@ -31357,7 +32036,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "hold three years of spending in cash, invest the remainder",
@@ -31406,7 +32086,8 @@
         "amount",
         "cadence",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "i buy 1000 usd of SP500 etf every time SPY index trades under it's 200DMA - only ones on the next business day. what would be my total return and the final cash amount over the past 5 years",
@@ -31485,7 +32166,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "if VTI moves from above its 200-day MA to below it, buy $1,000",
@@ -31551,7 +32233,8 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 in VTI on any day it sits under the 200 DMA",
@@ -31607,7 +32290,8 @@
       "unread": [
         "cadence",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 in VTI the day it drops beneath the 200-day average",
@@ -31667,7 +32351,8 @@
         "dividend_policy",
         "evaluation_period",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly into VTI",
@@ -31709,7 +32394,8 @@
       "unread": [
         "account_type",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly split equally between BND and VTI",
@@ -31759,7 +32445,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly split equally between VTI and BND",
@@ -31816,7 +32503,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, 40% VTI and 60% BND",
@@ -31874,7 +32562,8 @@
         "day_rule",
         "dividend_policy",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, 60% VTI and 40% BND",
@@ -31935,7 +32624,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1,000 monthly, volatility-weighted across VTI and BND",
@@ -31980,7 +32670,8 @@
         "dividend_policy",
         "objective",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 equally into VTI and BND as a one-off purchase",
@@ -32031,7 +32722,8 @@
         "day_rule",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 in VTI once",
@@ -32086,7 +32778,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $10,000 into VTI as a lump sum",
@@ -32141,7 +32834,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $100 weekly into VTI",
@@ -32183,7 +32877,8 @@
       "unread": [
         "account_type",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $1k monthly into VTI",
@@ -32226,7 +32921,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $3,000 into QQQ every quarter",
@@ -32270,7 +32966,8 @@
         "day_rule",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month into VTI",
@@ -32314,7 +33011,8 @@
         "day_rule",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month into VTI and BND, 60/40",
@@ -32372,7 +33070,8 @@
         "day_rule",
         "dividend_policy",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month split equally between VTI and BND",
@@ -32422,7 +33121,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 a month, 60% in VTI and 40% in BND",
@@ -32481,7 +33181,8 @@
         "dividend_policy",
         "execution_timing",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly",
@@ -32517,7 +33218,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly into BND",
@@ -32560,7 +33262,8 @@
         "account_type",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 monthly into VTI",
@@ -32602,7 +33305,8 @@
       "unread": [
         "account_type",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $500 weekly into VTI",
@@ -32646,7 +33350,8 @@
         "day_rule",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest $750 into VTI on the first trading day of each month",
@@ -32696,7 +33401,8 @@
         "account_type",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest 10% of my salary monthly",
@@ -32732,7 +33438,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest in the S&P 500 tracker",
@@ -32775,7 +33482,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "invest whatever is left over each month",
@@ -32811,7 +33519,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep bonds in my IRA, equities in taxable",
@@ -32887,7 +33596,8 @@
       ],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep it for six months",
@@ -32908,7 +33618,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep six months of expenses in cash before investing anything",
@@ -32936,7 +33647,8 @@
           "source_span": "keep six months of expenses in cash before investing anything"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep the REITs in the Roth",
@@ -32964,7 +33676,8 @@
           "source_span": "keep the REITs in the Roth"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "keep three years of expenses in cash and the rest in stocks",
@@ -32998,7 +33711,8 @@
           "source_span": "keep three years of expenses in cash and the rest in stocks"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "live off the dividends and never touch the principal",
@@ -33035,7 +33749,8 @@
         "amount",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "maintain 60/40 by contributions and rebalance at year end",
@@ -33087,7 +33802,8 @@
         "assets",
         "day_rule",
         "dividend_policy"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "make a one-off $10,000 investment",
@@ -33122,7 +33838,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "market-cap weighted",
@@ -33143,7 +33860,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "measured across ten years",
@@ -33163,7 +33881,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "mid-month",
@@ -33193,7 +33912,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $1,000 divided equally between VTI and BND",
@@ -33237,7 +33957,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $1,000 weighted 60/40 across VTI and BND",
@@ -33285,7 +34006,8 @@
       "relations": [],
       "unread": [
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly $500 purchase of VTI",
@@ -33322,7 +34044,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "monthly, buy the better performer of VTI or BND",
@@ -33371,7 +34094,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "move $30,000 a year from my traditional IRA into a Roth",
@@ -33430,7 +34154,8 @@
           "source_span": "from my traditional IRA into a Roth"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "move one percent a year out of equities into fixed income",
@@ -33490,7 +34215,8 @@
         "execution_timing",
         "periodic_rebalancing",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "on the first trading day of the month",
@@ -33519,7 +34245,8 @@
         "amount",
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "one-off $10,000 investment in VTI",
@@ -33563,7 +34290,8 @@
         "day_rule",
         "dividend_policy",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "overweight small cap value by 20%",
@@ -33594,7 +34322,8 @@
         "amount",
         "cadence",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "pay off the mortgage instead of investing",
@@ -33612,7 +34341,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "purchase VTI whenever QQQ drops 10%",
@@ -33650,7 +34380,8 @@
         "evaluation_period",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $1,000 monthly into VTI and BND, evenly",
@@ -33694,7 +34425,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $10,000 into VTI as a lump sum",
@@ -33732,7 +34464,8 @@
         "dividend_policy",
         "execution_timing",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $100 a week into VTI",
@@ -33770,7 +34503,8 @@
         "dividend_policy",
         "execution_timing",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $100 into VOO every week",
@@ -33807,7 +34541,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $250 into the index fund every two weeks",
@@ -33831,7 +34566,8 @@
         "cadence",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put $500 into VTI every month",
@@ -33868,7 +34604,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put a grand into VTI on the day it falls through its 200-day average",
@@ -33935,7 +34672,8 @@
         "selection_rule",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put in $1,000 each quarter",
@@ -33965,7 +34703,8 @@
         "assets",
         "day_rule",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put in half of any bonus",
@@ -33994,7 +34733,8 @@
         "account_type",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put it into an SPX ETF",
@@ -34030,7 +34770,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put the fixed income in the IRA and the shares in the brokerage",
@@ -34075,7 +34816,8 @@
           "source_span": "shares in the brokerage"
         }
       ],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "put the money into the mortgage instead of the market",
@@ -34098,7 +34840,8 @@
         "amount",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance VTI and BND monthly",
@@ -34135,7 +34878,8 @@
         "allocation_method",
         "day_rule",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance back to 60/40 every year",
@@ -34169,7 +34913,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance if any holding moves 5% away from its target",
@@ -34192,7 +34937,8 @@
         "allocation_method",
         "assets",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance on the last session of each quarter",
@@ -34226,7 +34972,8 @@
       "relations": [],
       "unread": [
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance to 70/30",
@@ -34261,7 +35008,8 @@
       "unread": [
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rebalance whenever an allocation drifts more than 5 points",
@@ -34284,7 +35032,8 @@
         "allocation_method",
         "assets",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "reduce the equity share by 1% annually",
@@ -34315,7 +35064,8 @@
         "assets",
         "periodic_rebalancing",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "refill the cash bucket from stocks after a good year",
@@ -34363,7 +35113,8 @@
         "periodic_rebalancing",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "reinvest the dividends",
@@ -34385,7 +35136,8 @@
         "account_type",
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "rotate monthly into the stronger of VTI and BND",
@@ -34427,7 +35179,8 @@
       "unread": [
         "day_rule",
         "evaluation_period"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "run it at a 10% volatility target",
@@ -34455,7 +35208,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "run the equity portion at two times leverage",
@@ -34507,7 +35261,8 @@
         "sell_action",
         "stated_weights",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell VTI and buy BND",
@@ -34534,7 +35289,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell covered calls one strike out of the money each month",
@@ -34565,7 +35321,8 @@
         "assets",
         "day_rule",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell losers that are down 10% from what I paid",
@@ -34588,7 +35345,8 @@
         "assets",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell the loser and buy a similar fund to avoid a wash sale",
@@ -34610,7 +35368,8 @@
         "account_type",
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "sell when it drops under its 50-day average",
@@ -34645,7 +35404,8 @@
       "unread": [
         "assets",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "set aside $500 for VTI monthly",
@@ -34682,7 +35442,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "shift 1% from stocks to bonds every year as I get older",
@@ -34741,7 +35502,8 @@
         "day_rule",
         "periodic_rebalancing",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "should I overpay the mortgage rather than invest",
@@ -34759,7 +35521,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "since January 2020",
@@ -34779,7 +35542,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "size positions for 10% vol",
@@ -34807,7 +35571,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "spend 4% of the balance every year",
@@ -34849,7 +35614,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "spend the taxable account first, then the IRA, then the Roth",
@@ -34867,7 +35633,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "split it 70/30 between stocks and bonds",
@@ -34907,7 +35674,8 @@
         "dividend_policy",
         "objective",
         "periodic_rebalancing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take $40,000 a year out of the portfolio",
@@ -34950,7 +35718,8 @@
         "account_type",
         "assets",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take $40,000 out each year",
@@ -34992,7 +35761,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take from bonds in a down year and from stocks otherwise",
@@ -35032,7 +35802,8 @@
         "execution_timing",
         "objective",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take out 4% a year",
@@ -35062,7 +35833,8 @@
         "amount",
         "assets",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take the dividends as cash",
@@ -35080,7 +35852,8 @@
         }
       ],
       "relations": [],
-      "unread": []
+      "unread": [],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "take the required minimum distribution starting at 73",
@@ -35109,7 +35882,8 @@
         "account_type",
         "amount",
         "cadence"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "target 10% annualised volatility",
@@ -35137,7 +35911,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "tax-loss harvest positions 10% underwater",
@@ -35167,7 +35942,8 @@
         "assets",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "tilt 20% toward small cap value",
@@ -35189,7 +35965,8 @@
         "allocation_method",
         "assets",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "trade at the following day's open",
@@ -35209,7 +35986,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "weekly $100 contribution to VTI",
@@ -35246,7 +36024,8 @@
         "day_rule",
         "dividend_policy",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "weight by inverse volatility",
@@ -35267,7 +36046,8 @@
       "unread": [
         "assets",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "when SPY crosses below its 200-day average",
@@ -35306,7 +36086,8 @@
         "evaluation_period",
         "execution_timing",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "whenever SPY drops under the 200-day",
@@ -35344,7 +36125,8 @@
         "execution_timing",
         "objective",
         "selection_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "whenever VTI crosses under the 200 DMA, invest $1,000",
@@ -35389,7 +36171,8 @@
         "cadence",
         "execution_timing",
         "trigger_semantics"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "while SPY stays below its average",
@@ -35422,7 +36205,8 @@
         "execution_timing",
         "moving_average_window",
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "while VTI is beneath its 200-day average, put in $1,000",
@@ -35488,7 +36272,8 @@
         "periodic_rebalancing",
         "sell_action",
         "stated_weights"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw $1,000 monthly",
@@ -35531,7 +36316,8 @@
         "account_type",
         "assets",
         "day_rule"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw $40,000 a year from the portfolio",
@@ -35573,7 +36359,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw 4% of the portfolio each year",
@@ -35615,7 +36402,8 @@
       "unread": [
         "account_type",
         "assets"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "withdraw 4% of the portfolio each year, adjusted for inflation",
@@ -35659,7 +36447,8 @@
         "assets",
         "evaluation_period",
         "execution_timing"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     },
     {
       "text": "yearly rebalancing to 60% stocks and 40% bonds",
@@ -35700,7 +36489,8 @@
       "relations": [],
       "unread": [
         "objective"
-      ]
+      ],
+      "question_digest": "3302b5389e1e2018"
     }
   ]
 }

@@ -178,9 +178,47 @@ thirty-day month — takes that month's last session rather than rolling into th
 next one, because "monthly" means once a month and landing late within it keeps
 that true.
 
+## The fourth and fifth: `quantify-factor-tilt@1` and `quantify-age-based-allocation@1`
+
+These two are the same idea aimed at the opposite outcome. The first three
+derive a field so a supported strategy can run. These derive a field so an
+*unsupported* one is refused by name.
+
+The live lane found "tilt 20% toward small cap value" executing on two draws of
+five under gpt-5.4 and "hold my age in bonds" on three of three. Both are
+declared `REFUSED_BY_NAME` in `strategy_families.json` with cited definitions,
+and both had been refused under gpt-4.1 — for the wrong reason. gpt-4.1 also
+reported a `portfolio_sleeves` relation, which is unsupported, so nothing
+compiled. gpt-5.4 sometimes omits that relation, and what remains — a holding
+and a percentage — is an ordinary accumulation plan.
+
+    A refusal is only robust if it is caused by the semantic we intend to
+    refuse, not by some unrelated field that happens to fail first.
+
+`factor_tilt` fires on terms of art — "small cap value", "quality tilt" — or on
+a tilt word paired with a named factor. The pairing is what keeps it precise:
+`overweight` is ordinary English about a person, and Stanza tags it ADJ even in
+"I overweight value", so predicate position cannot separate the senses.
+`age_based_allocation` fires on "my age in bonds", "glide path", "as I get
+older" and their neighbours.
+
+Both dimensions are `asked=False`: the hosted reader is not told they exist.
+That was measured rather than designed. With `factor_tilt` in the prompt,
+gpt-5.4 proposed its own value for it, disagreed with the witness that had
+detected it, and the family became an open question — the page asked "what is
+your factor tilt?", inviting an answer for something this build does not model.
+Asking the model about a family reintroduces exactly the dependency the
+deterministic detection removes.
+
+They are two readers rather than one because no reader may claim two fields.
+Written first as a single `unsupported_family` returning a claim per family, it
+failed the structural bound in `tests/test_derived_readers.py` — which is that
+bound working: one reader that detects every unsupported family is how a
+compiler starts.
+
 ### It had never run
 
-All three of these readers are invoked by `pipeline.read`, and `pilot.read`
+The first three of these readers are invoked by `pipeline.read`, and `pilot.read`
 only calls that when a deterministic parser is present. No deployment this
 project serves declares one. So none of them had ever run for a single user —
 including `quantify-weight-binding@1`, which had been rewritten to read the

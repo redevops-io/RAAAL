@@ -48,11 +48,20 @@ def key(text: str, reader_id: str) -> str:
 
 
 def to_json(reading_set: ReadingSet, text: str, *, schema_version: str,
-            prompt_version: str = PROMPT_VERSION) -> dict:
+            prompt_version: str = PROMPT_VERSION,
+            question: str = "") -> dict:
+    """One recording.
+
+    `question` is the digest of what was actually asked, and it is what the
+    replay guard compares. `schema_version` is kept beside it as history —
+    which schema this was recorded under — and is no longer the thing that
+    decides whether the reply still applies.
+    """
     return {
         "text": text,
         "reader_id": reading_set.reader_id,
         "schema_version": schema_version,
+        "question_digest": question,
         "prompt_version": prompt_version,
         "failed": reading_set.failed,
         "readings": [{"dimension": r.dimension, "value": r.value,
@@ -114,15 +123,60 @@ class RecordedHostedReader:
                 f"no recorded model reading for {text!r}. Run "
                 "`python corpus/parser/record_hosted.py` — calling the provider "
                 "here would hide the gap behind a green run")
-        if entry["schema_version"] != schema.version:
+        if not answers_the_same_question(entry, schema):
             raise ValueError(
                 f"recorded under schema {entry['schema_version']}, asked under "
-                f"{schema.version}. A reply to a different question is not an "
-                "answer to this one")
+                f"{schema.version}, and the two ask different questions. A "
+                "reply to a different question is not an answer to this one")
         return from_json(entry)
 
     def entry_for(self, text: str) -> Optional[Mapping[str, Any]]:
         return self._by_key.get(key(text, self.id))
+
+
+def question_digest(schema: Schema) -> str:
+    """What this schema actually asks a reader, as a digest.
+
+    The schema is the input; the *question* is what reaches the model, and the
+    two are not the same thing. A dimension carried with `asked=False` changes
+    the schema and does not change a word of the prompt.
+
+    Computed from the reader's own prompt builders rather than restated, so a
+    change to how a dimension is rendered moves this without anybody
+    remembering to.
+    """
+    from hashlib import sha256
+
+    from .readers_quantify import OpenAIReader
+
+    builder = OpenAIReader.__new__(OpenAIReader)
+    asked = (builder._schema_prompt(schema) + "\n"
+             + builder._relations_prompt(schema))
+    return sha256(asked.encode()).hexdigest()[:16]
+
+
+def answers_the_same_question(entry: Mapping[str, Any], schema: Schema) -> bool:
+    """Whether a recorded reply answers the question this schema asks.
+
+    It used to compare `schema.version`, which is a proxy and was wrong in a
+    way that only showed up once a schema moved without the prompt moving:
+    `@7` added `factor_tilt` and `age_based_allocation`, both `asked=False`, so
+    every recorded reply became "an answer to a different question" while the
+    question was byte-identical. 1375 tests failed on a distinction that did
+    not exist.
+
+    The proxy was also *weaker* than it looked in the other direction. Two
+    schemas can share a version and ask different things — that is what the
+    fingerprint exists for — and this check would have accepted the recording.
+
+    So it compares the question. `question_digest` is recorded going forward;
+    an entry without one falls back to the version, which is the strict old
+    behaviour and never accepts more than it used to.
+    """
+    recorded = entry.get("question_digest")
+    if recorded:
+        return recorded == question_digest(schema)
+    return entry.get("schema_version") == schema.version
 
 
 def proposals(reading_set: ReadingSet, fields: Optional[Sequence[str]] = None):

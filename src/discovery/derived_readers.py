@@ -243,7 +243,11 @@ def day_of_month(candidates: Sequence, parse=None,
 
 #: Versioned like the others. The word lists are part of the rules, so adding
 #: a term is a new version and two runs stop looking comparable.
-FAMILY_READER_ID = "quantify-unsupported-family@1"
+FACTOR_TILT_READER_ID = "quantify-factor-tilt@1"
+AGE_BASED_READER_ID = "quantify-age-based-allocation@1"
+
+_FAMILY_READER_IDS = {"factor_tilt": FACTOR_TILT_READER_ID,
+                      "age_based_allocation": AGE_BASED_READER_ID}
 
 
 def _token_text(parse) -> str:
@@ -301,41 +305,68 @@ def _names_family(parse, family) -> bool:
             and any(present(v) for v in family.styles))
 
 
-def unsupported_family(candidates: Sequence, parse=None,
-                       text: str = "") -> Sequence:
-    """Every unsupported family this sentence names, as claims.
+def factor_tilt(candidates: Sequence, parse=None,
+                text: str = "") -> Optional[Proposal]:
+    """That this sentence names a tilt toward a factor or style.
 
-    The reader that closes the omission class. The hosted model is not asked
-    whether a sentence is a factor tilt — it is asked what the sentence says,
-    and on gpt-5.4 it sometimes says "assets: small cap value, weight: 20%",
-    which is an accumulation plan with a holding nobody can buy. Nothing
-    downstream could refuse it, because nothing downstream had been told the
-    sentence was a factor tilt.
+    One of the two readers that close the omission class. The hosted model is
+    not asked whether a sentence is a factor tilt — it is asked what the
+    sentence says, and on gpt-5.4 it sometimes says "assets: small cap value,
+    weight: 20%", which is an accumulation plan with a holding nobody can buy.
+    Nothing downstream could refuse it, because nothing downstream had been
+    told the sentence was a factor tilt.
 
     So the claim is made here, deterministically, from the words. It does not
     depend on the model reporting anything, which is the whole point: **model
     omission cannot make an unsupported family executable**, because the field
-    that strands it is authored by this reader and not by the model.
+    that refuses it is authored by this reader and not by the model.
 
     The value is the family name and carries no further reading. What a tilt
-    *is* stays unmodelled; this says only that the sentence names one, and
-    Mission refuses any dimension nothing consumes.
+    *is* stays unmodelled; this says only that the sentence names one.
+    """
+    if not _names("factor_tilt", parse):
+        return None
+    return Proposal(dimension="factor_tilt", value="factor_tilt",
+                    reader_id=FACTOR_TILT_READER_ID,
+                    source_span=str(text or "")[:120])
 
-    Returns several claims rather than one, because a sentence can name two —
-    "hold my age in bonds and tilt toward value" is both, and refusing it by
-    one name would tell somebody half of why it will not run.
+
+def age_based_allocation(candidates: Sequence, parse=None,
+                         text: str = "") -> Optional[Proposal]:
+    """That this sentence names an allocation that changes with age or time.
+
+    A separate reader from `factor_tilt`, not a second field on one reader.
+    The restriction this module is written under is that no single reader may
+    claim two fields — `quantify-compiler@2` began as a few narrow rules and
+    took months to delete — and one reader detecting every unsupported family
+    is exactly that shape. A sentence naming both still reports both, because
+    both readers run.
+    """
+    if not _names("age_based_allocation", parse):
+        return None
+    return Proposal(dimension="age_based_allocation",
+                    value="age_based_allocation",
+                    reader_id=AGE_BASED_READER_ID,
+                    source_span=str(text or "")[:120])
+
+
+def _names(dimension: str, parse) -> bool:
+    """Whether the sentence names this family. A predicate, never a claim.
+
+    The detection rules are one function because they are one rule — terms of
+    art, or a tilt word paired with a named factor — read from
+    `UNSUPPORTED_FAMILIES`. What it returns is a boolean, so each reader
+    constructs its own `Proposal` with its own field as a literal: an earlier
+    version had this helper build the Proposal from a variable dimension, and
+    `tests/test_derived_readers.py` reads every Proposal in the module off the
+    syntax tree and requires the field to be readable there. A shared
+    constructor is exactly the step that makes a module's claims unreadable.
     """
     from .vocabulary import UNSUPPORTED_FAMILIES
 
     if parse is None:
-        return ()
-
-    return tuple(
-        Proposal(dimension=family.dimension, value=name,
-                 reader_id=FAMILY_READER_ID,
-                 source_span=str(text or "")[:120])
-        for name, family in sorted(UNSUPPORTED_FAMILIES.items())
-        if _names_family(parse, family))
+        return False
+    return _names_family(parse, UNSUPPORTED_FAMILIES[dimension])
 
 
 #: Every derived reader, so the pipeline does not name them one at a time and
@@ -343,4 +374,5 @@ def unsupported_family(candidates: Sequence, parse=None,
 DERIVED_READERS = ((TRIGGER_READER_ID, trigger_semantics),
                    (WEIGHTS_READER_ID, weight_binding),
                    (DAY_READER_ID, day_of_month),
-                   (FAMILY_READER_ID, unsupported_family))
+                   (FACTOR_TILT_READER_ID, factor_tilt),
+                   (AGE_BASED_READER_ID, age_based_allocation))

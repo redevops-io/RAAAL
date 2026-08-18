@@ -83,9 +83,13 @@ def _parse(text):
 
 
 def _detected(text):
-    from src.discovery.derived_readers import unsupported_family
+    from src.discovery.derived_readers import (age_based_allocation,
+                                                factor_tilt)
 
-    return {p.value for p in unsupported_family((), _parse(text), text)}
+    parse = _parse(text)
+    return {claim.value for claim in (factor_tilt((), parse, text),
+                                      age_based_allocation((), parse, text))
+            if claim is not None}
 
 
 # --- the vocabulary is argued, not guessed -----------------------------------
@@ -332,6 +336,103 @@ def test_the_single_witness_profile_cannot_detect_a_family(declared):
     because a limitation nobody can see is a limitation somebody will assume
     away.
     """
-    from src.discovery.derived_readers import unsupported_family
+    from src.discovery.derived_readers import (age_based_allocation,
+                                                factor_tilt)
 
-    assert unsupported_family((), None, "tilt 20% toward small cap value") == ()
+    text = "tilt 20% toward small cap value"
+    assert factor_tilt((), None, text) is None
+    assert age_based_allocation((), None, "hold my age in bonds") is None
+
+
+# --- the replay guard compares the question, not a proxy for it --------------
+
+def test_a_recording_replays_when_the_question_is_unchanged():
+    """`@7` added two dimensions and not one word of the prompt.
+
+    Both are `asked=False`, so the question put to the model is byte-identical
+    to `@6`'s. The guard used to compare `schema.version`, and every one of the
+    788 recordings became "an answer to a different question" — 1375 tests
+    failed on a distinction that did not exist.
+
+    The proxy was also weaker than it looked in the other direction: two
+    schemas can share a version and ask different things, and a version check
+    would have replayed the recording anyway.
+    """
+    from src.discovery.hosted_recording import (answers_the_same_question,
+                                                question_digest)
+    from src.discovery.schema import QUANTIFY_SCHEMA
+
+    recorded_at_6 = {"schema_version": "quantify-discovery-schema@6",
+                     "question_digest": question_digest(QUANTIFY_SCHEMA)}
+    assert answers_the_same_question(recorded_at_6, QUANTIFY_SCHEMA)
+
+
+def test_a_recording_of_a_different_question_is_refused():
+    """The half that must not weaken. A recording whose digest differs is a
+    reply to something else, whatever version it claims."""
+    from src.discovery.hosted_recording import answers_the_same_question
+    from src.discovery.schema import QUANTIFY_SCHEMA
+
+    assert not answers_the_same_question(
+        {"schema_version": QUANTIFY_SCHEMA.version,
+         "question_digest": "0000000000000000"}, QUANTIFY_SCHEMA)
+
+
+def test_an_unstamped_recording_falls_back_to_the_strict_version_check():
+    """Older entries carry no digest and keep the old behaviour exactly.
+
+    Three `@2` recordings are deliberately unstamped: nothing proves what `@2`
+    asked, and asserting a digest without that proof is the relabelling this
+    migration exists not to do.
+    """
+    from src.discovery.hosted_recording import answers_the_same_question
+    from src.discovery.schema import QUANTIFY_SCHEMA
+
+    assert not answers_the_same_question(
+        {"schema_version": "quantify-discovery-schema@2"}, QUANTIFY_SCHEMA)
+    assert answers_the_same_question(
+        {"schema_version": QUANTIFY_SCHEMA.version}, QUANTIFY_SCHEMA)
+
+
+def test_an_unasked_dimension_changes_the_schema_and_not_the_question():
+    """The property the whole distinction rests on, asserted directly."""
+    import dataclasses
+
+    from src.discovery.hosted_recording import question_digest
+    from src.discovery.schema import QUANTIFY_SCHEMA
+
+    without = dataclasses.replace(QUANTIFY_SCHEMA, dimensions=tuple(
+        d for d in QUANTIFY_SCHEMA.dimensions if d.asked))
+    assert question_digest(without) == question_digest(QUANTIFY_SCHEMA), (
+        "removing the unasked dimensions changed the question, so they are "
+        "reaching the model after all")
+
+    # And an *asked* dimension does move it, or the digest measures nothing.
+    fewer = dataclasses.replace(QUANTIFY_SCHEMA, dimensions=tuple(
+        d for d in QUANTIFY_SCHEMA.dimensions if d.name != "cadence"))
+    assert question_digest(fewer) != question_digest(QUANTIFY_SCHEMA)
+
+
+def test_the_recording_file_stamps_only_what_was_proven():
+    """The migration, checked against the file it wrote.
+
+    Every `@6` entry carries the digest; the `@2` entries carry none.
+    """
+    import json
+    import pathlib
+
+    from src.discovery.hosted_recording import question_digest
+    from src.discovery.schema import QUANTIFY_SCHEMA
+
+    path = (pathlib.Path(__file__).resolve().parent.parent
+            / "corpus" / "parser" / "hosted.json")
+    document = json.loads(path.read_text())
+    current = question_digest(QUANTIFY_SCHEMA)
+
+    for entry in document["readings"]:
+        if entry["schema_version"] == "quantify-discovery-schema@6":
+            assert entry.get("question_digest") == current, entry["text"]
+        else:
+            assert "question_digest" not in entry, (
+                f"{entry['text']!r} was recorded under "
+                f"{entry['schema_version']} and carries a digest nothing proved")

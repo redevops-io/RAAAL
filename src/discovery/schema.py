@@ -53,7 +53,7 @@ from .reader import Dimension, RelationSpec, Schema
 # the same rule `READER_VERSION` and `quantify-compiler@2` already follow.
 # The shadow matrices were built under @2 and are stale; `corpus/shadow/STALE.md`
 # says so and `test_phase3_exit_gate` checks that the declaration is current.
-QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@6", dimensions=(
+QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@7", dimensions=(
 
     Dimension(
         name="objective",

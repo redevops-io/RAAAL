@@ -867,11 +867,29 @@ records what somebody believed is not a baseline.
     drawdown semantics      drawdown@2
     Formal Core             v1 — 89 theorems, 57 guards
 
-The schema is at **@6**, not @3. It moved three times: `@4` added
+The schema is at **@7**, not @3. It moved four times: `@4` added
 `reserve_policy`, `bucket_policy` and a `leverage_multiplier` qualifier; `@5`
-added `asset_location`; `@6` added `selection_rule` and `holding_period`. Each
-was a bump because the *content* changed, which is the rule that keeps two runs
-from looking comparable when they are not.
+added `asset_location`; `@6` added `selection_rule` and `holding_period`; `@7`
+added `factor_tilt` and `age_based_allocation`. Each was a bump because the
+*content* changed, which is the rule that keeps two runs from looking
+comparable when they are not.
+
+    current                 quantify-discovery-schema@7/d9d24d8578f67011
+
+The baseline block above is left as it was written. It records what was true at
+commit `89959bd`, which is the whole point of a frozen before/after marker, and
+editing its numbers to match today would destroy the thing it exists to be.
+
+**@7 is the one that was forced by a live failure rather than a sweep.** Under
+gpt-5.4 "tilt 20% toward small cap value" executed on two draws of five and
+"hold my age in bonds" on three of three, both declared `REFUSED_BY_NAME` with
+cited definitions. They had been refused under gpt-4.1 — not because anything
+recognised the family, but because gpt-4.1 also reported an unsupported
+`portfolio_sleeves` relation and nothing compiled. The two dimensions exist so
+the families can be refused *by name*, by a deterministic reader that does not
+depend on the hosted model reporting them. Neither is asked of the model: with
+`factor_tilt` in the prompt, gpt-5.4 proposed a competing value and the page
+asked "what is your factor tilt?".
 
 ## The serving reader changed provider after this baseline was frozen
 

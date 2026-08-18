@@ -265,10 +265,8 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         derived_by_field = {}
         for _reader_id, derive in DERIVED_READERS:
             found = derive((), None, text)
-            if found is None:
-                continue
-            for claim in (found if isinstance(found, (list, tuple)) else (found,)):
-                derived_by_field[claim.dimension] = claim
+            if found is not None:
+                derived_by_field[found.dimension] = found
 
         # One witness, through the same runtime. Not a special case: a profile
         # with nothing to argue is one where nothing argues, which an empty

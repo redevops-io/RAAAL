@@ -98,10 +98,22 @@ class TestItCannotGrowIntoACompiler:
     delete. The restriction is structural rather than remembered."""
 
     def test_each_reader_authors_one_field_and_names_it(self):
-        """Three readers now, one field each. The restriction was never "one
+        """Five readers now, one field each. The restriction was never "one
         field in the module" — it is that no single reader may grow into a
-        compiler by claiming a second."""
-        assert AUTHORS == {"trigger_semantics", "stated_weights", "day_rule"}
+        compiler by claiming a second.
+
+        It caught one. `unsupported_family` was written as a single reader
+        returning a claim per family it detected, which is two fields on one
+        reader and the exact shape this forbids. Split into `factor_tilt` and
+        `age_based_allocation`, each naming its own field as a literal.
+        """
+        assert AUTHORS == {"trigger_semantics", "stated_weights", "day_rule",
+                           "factor_tilt", "age_based_allocation"}
+
+        from src.discovery.derived_readers import DERIVED_READERS
+
+        assert len(DERIVED_READERS) == len(AUTHORS), (
+            "a reader authors one field, so the two counts move together")
 
     def test_every_proposal_it_makes_is_for_that_field(self):
         for case in CASES:

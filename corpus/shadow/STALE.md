@@ -1,9 +1,16 @@
 # The shadow matrices are stale
 
     built under   quantify-discovery-schema@2/103c025ac629946f
-    current       quantify-discovery-schema@6/eb01a824e4f43d02
+    current       quantify-discovery-schema@7/d9d24d8578f67011
 
 ## What changed
+
+@7 added the `factor_tilt` and `age_based_allocation` dimensions. The live drift
+lane found both families executing under gpt-5.4 where they had refused under
+gpt-4.1 — and the old refusal was an accident, an unrelated `portfolio_sleeves`
+relation failing first on a model that reported it consistently. Both are
+dimensions the schema could not represent, so nothing could refuse them by name.
+Neither is asked of the hosted reader; a deterministic reader authors them.
 
 @6 added the `selection_rule` and `holding_period` dimensions. The strategy
 evaluation benchmark found "hold whichever performed best" compiling to two
