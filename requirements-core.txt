@@ -69,10 +69,25 @@ runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.
 # against.py, which holds the two in step.
 
 # --- The Mission Runtime, for the cross-runtime replay gate ---
-# Tag-pinned for the same reason as the contracts above. Same licence family
-# (AGPL-3.0-or-later WITH Commons-Clause), which is what made the import legal:
-# see docs/Migration.md §6.6.
-agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.3
+#
+# **Not in the serving image.** `agentic-os@v0.2.3` pins
+# `runtime-contracts@v0.2.2` and Quantify pins `v0.2.4`, so a build that
+# installs both is unsatisfiable — `ResolutionImpossible`, and the reason this
+# image could not be produced at all. It is in `requirements.txt`, where the
+# cross-runtime replay gate that uses it runs.
+#
+# Removing it rather than loosening a pin, because the serving API does not
+# use it: an import-graph walk from `src/api.py` reaches no module under
+# `src/agentic/` and no `agentic_os` import at all. Only `src/agentic/` touches
+# it, and nothing on the request path touches `src/agentic/`.
+#
+# `tests/test_serving_image_closure.py` asserts that, so the day the API does
+# reach it the conflict has to be resolved rather than rediscovered by a
+# failed build.
+#
+# Tag-pinned there for the same reason as the contracts above. Same licence
+# family (AGPL-3.0-or-later WITH Commons-Clause), which is what made the
+# import legal: see docs/Migration.md §6.6.
 # OIDC token verification. The crypto extra brings the RSA
 # backend PyJWT needs for RS256 — the algorithm Zitadel signs
 # with. Verification is not hand-rolled here: parsing a JWT is
