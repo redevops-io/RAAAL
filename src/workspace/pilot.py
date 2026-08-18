@@ -229,10 +229,23 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         # nothing, exactly as it does when the parse is silent.
         from ..discovery.derived_readers import DERIVED_READERS
 
+        # One reading per SET dimension before anything indexes by name.
+        #
+        # `{p.dimension: p for p in proposals}` kept the last, so a reader that
+        # emitted 'bonds' and 'stocks' for `assets` — which is what it does for
+        # "take from bonds in a down year and from stocks otherwise" — produced
+        # a plan naming only stocks. Silent, and the sentence names both.
+        #
+        # They are members of a set, not competing readings, so they are
+        # unioned into the one reading the reader should have emitted. The
+        # conditional meaning stays with `sell_action`; nothing infers a rule
+        # from the multiplicity.
+        from ..discovery.adapter import one_reading_per_set_dimension
+
         proposals = [Proposal(dimension=r.dimension, value=r.value,
                               reader_id=reading.reader_id,
                               source_span=r.source_span)
-                     for r in reading.readings]
+                     for r in one_reading_per_set_dimension(reading.readings)]
         model_by_field = {p.dimension: p for p in proposals}
 
         derived_by_field = {}

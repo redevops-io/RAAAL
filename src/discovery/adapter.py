@@ -88,6 +88,72 @@ def compare_as(dimension: str) -> str:
     return getattr(found, "compare_as", "TEXT") if found is not None else "TEXT"
 
 
+def one_reading_per_set_dimension(readings):
+    """One reading per SET dimension, carrying the whole set.
+
+    A reader must emit one semantic value per SET dimension. Given
+    "take from bonds in a down year and from stocks otherwise" the recorded
+    reader emits *two* `assets` readings — 'bonds' and 'stocks' — and both
+    lanes then got it wrong in different ways: the internal path built
+    `{p.dimension: p for p in proposals}` and silently kept the last, so a
+    plan for a sentence naming both mentioned only stocks; the runtime read
+    two readings from one reader as a disagreement and asked which the person
+    meant, of a reader disagreeing with itself.
+
+    They are members, not witnesses. This unions them into the one reading the
+    reader should have emitted.
+
+    **Only the membership.** The conditional meaning in that sentence — take
+    from bonds *in a down year* — is `sell_action`'s and stays there. Nothing
+    here infers a rule from the multiplicity: two members mean two members,
+    and if the condition cannot be represented it is that dimension that must
+    clarify or refuse, not the asset set.
+
+    Non-SET dimensions are untouched. Two values for a scalar dimension are
+    genuinely competing and belong in fusion's hands.
+    """
+    modes = compare_modes()
+    members: Dict[str, list] = {}
+    order: list = []
+    out = []
+    for one in readings:
+        name = getattr(one, "dimension", "")
+        if modes.get(name) != "SET":
+            out.append(one)
+            continue
+        if name not in members:
+            members[name] = []
+            order.append(name)
+        for token in str(getattr(one, "value", "")).split(","):
+            token = token.strip()
+            if token and token not in members[name]:
+                members[name].append(token)
+    for name in order:
+        first = next(r for r in readings if getattr(r, "dimension", "") == name)
+        out.append(_replaced(first, ", ".join(members[name])))
+    return out
+
+
+def _replaced(reading, value):
+    """The reading with a new value, whatever concrete type it is."""
+    import dataclasses
+
+    if dataclasses.is_dataclass(reading):
+        try:
+            return dataclasses.replace(reading, value=value)
+        except Exception:                                      # noqa: BLE001
+            pass
+
+    class _Reading:
+        pass
+
+    copy = _Reading()
+    for attr in ("dimension", "value", "source_span"):
+        setattr(copy, attr, getattr(reading, attr, ""))
+    copy.value = value
+    return copy
+
+
 def ambiguity(dimension, evidence, proposed):
     """Competing readings the *words* carry, or nothing.
 
@@ -347,7 +413,7 @@ class ReaderAdapter:
             return Reading(payload={})
 
         payload, evidence = {}, {}
-        for one in reading_set.readings:
+        for one in one_reading_per_set_dimension(reading_set.readings):
             payload[one.dimension] = one.value
             evidence.setdefault(one.dimension, []).append(
                 DecisionEvidence(
