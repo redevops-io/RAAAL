@@ -200,6 +200,11 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         raise InterpreterUnavailable(
             f"{reading.reader_id} did not answer: {reading.failed}")
 
+    # `None` on the single-witness profile, where there is no parse to prove a
+    # predicate with. Bound before the branch so the refusal check below reads
+    # one variable rather than knowing which branch ran.
+    parse = None
+
     if syntax_reader is not None:
         # Both witnesses, through the official runtime.
         #
@@ -312,49 +317,39 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         for name, why in unreadable
         if not any(r.dimension == name for r in refusals))
 
-    # An unsupported family is refused by name here, before anything else and
-    # whether or not the intent sealed.
+    # A semantic this build cannot run is refused by name here, before
+    # anything else and whether or not the intent sealed.
     #
-    # Mission already refuses any dimension nothing consumes, and that was the
-    # first version of this. It is not enough, because it runs *after* sealing:
-    # "tilt 20% toward small cap value" left `assets` open, so the intent never
-    # sealed, the compiler never ran, and the person was asked which holdings
-    # they meant — for a strategy this build does not model. And "hold my age
-    # in bonds" refused by `stated_weights` on the draws where the model
-    # happened to read a weight, so the same sentence gave two different
-    # refusals depending on what the model noticed.
+    # Refusals otherwise come from `compile_intent`, which runs only once the
+    # intent seals — so any open dimension masks every refusal. "tilt 20%
+    # toward small cap value" left `assets` open and the person was asked which
+    # holdings they meant, for a strategy this build does not model. "annuitize
+    # a third of the portfolio at 70" left `stated_weights` open and asked
+    # about the split. In both cases the answer already existed and was waiting
+    # behind a question that could not change it.
     #
-    # That is the same defect this whole change exists to remove, one layer up:
-    # a refusal whose appearance depends on some other dimension's accident.
-    # The detection is deterministic, so the refusal is too — it does not wait
-    # for a seal, and it goes first, because "this build does not model factor
-    # tilts" is the answer and "which holdings did you mean" is not.
-    families = tuple(
-        Refusal(kind="UNSUPPORTED_FAMILY", dimension=name,
-                stated_value=str(getattr(claim, "value", name)),
-                detail=_family_detail(name))
-        for name, claim in sorted((derived_by_field or {}).items())
-        if name in UNSUPPORTED_FAMILIES)
-    if families:
-        # And it is the *only* refusal, because nothing else can be acted on.
-        #
-        # "we do not model factor tilts" alongside "which holdings did you
-        # mean?" reads as a pair of problems of which one might be fixable. It
-        # is not: no answer to the second makes the strategy runnable, and
-        # asking invites somebody to supply holdings for a plan that will be
-        # refused anyway. It also made the outcome vary — the accompanying
-        # refusals depended on what the model happened to read, so the same
-        # sentence produced `refused:factor_tilt,assets` on one draw and
-        # `refused:factor_tilt` on the next, which is the instability this
-        # change exists to remove wearing a smaller hat.
-        refusals = families
-
-    # An unsupported family asks nothing. `questions` is built from
-    # `open_fields` and the refusals that want input, so leaving the open
-    # dimensions in place would put the questions back on the page under
-    # another name.
-    if families:
-        open_fields = ()
+    # Two sources, because a semantic can be present in two ways:
+    #
+    #   settled     Discovery read a value for a dimension the manifest cannot
+    #               run — `factor_tilt`, `sell_action`, `asset_location`
+    #   proven      no reader gave a value, and a syntax guard proved the
+    #               predicate is in the sentence anyway. `annuitize` is in the
+    #               `sell_action` lemma set precisely for the draws where the
+    #               model drops it.
+    #
+    # Only dimensions the manifest cannot run *at all* — REFUSED or
+    # NOT_MODELLED — are treated this way. A dimension that runs for some
+    # values and not others has a question worth asking, and refusing it on
+    # presence would refuse the values that work.
+    blocked = _unrunnable(decisions, parse)
+    if blocked:
+        # And they are the *only* refusals, because nothing else can be acted
+        # on. "we do not model factor tilts" beside "which holdings did you
+        # mean?" reads as two problems of which one might be fixable; it is
+        # not, and asking invites somebody to answer for a plan that will be
+        # refused anyway. It also made the outcome vary with whatever the model
+        # happened to read, which is the instability this exists to remove.
+        refusals = blocked
 
     built = PilotReading(
         text=text, intent=intent, compiled=compiled, settled=settled,
@@ -365,6 +360,37 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
     # plan that one field was quietly defaulted *and* explicitly requested.
     return replace(built, absent_fields=tuple(
         f for f in built.absent_fields if f not in set(built.questions)))
+
+
+def _unrunnable(decisions, parse=None) -> tuple:
+    """Refusals for semantics this build cannot run, from what Discovery read.
+
+    `refusals_for` is the manifest's own answer and is not re-derived here —
+    a second opinion about what runs is how two layers come to disagree about
+    what the product does.
+
+    The guard half needs a parse and has one only on the two-witness profile.
+    That is now the profile production serves, and it is the reason it does:
+    the guards prove a predicate the model dropped, and every one of them ran
+    on a branch no deployment took until the parser was shipped.
+    """
+    from ..discovery.guards import presence
+    from ..mission.capability import MANIFEST, NOT_MODELLED, REFUSED, refusals_for
+
+    unrunnable = {name for name, d in MANIFEST.items()
+                  if d.support in (REFUSED, NOT_MODELLED)}
+
+    stated = {d.dimension: d.value for d in decisions if d.proceeds}
+    found = [r for r in refusals_for(stated) if r.dimension in unrunnable]
+
+    named = {r.dimension for r in found}
+    for dimension, guard in (presence(parse) if parse is not None else {}).items():
+        if dimension in unrunnable and dimension not in named:
+            found.append(Refusal(
+                kind="UNSUPPORTED_DIMENSION", dimension=dimension,
+                detail=("you described something this version does not model: "
+                        f"{guard.why}")))
+    return tuple(found)
 
 
 def _derived_fields(decisions) -> frozenset:

@@ -47,17 +47,35 @@ spec:
             # and unused, so the switch is a code path rather than a redeploy.
             - name: QUANTIFY_EVALUATE_URL
               value: http://quantify-evaluate
+            # The deterministic syntax witness, declared here as well as in
+            # the image so a manifest reader can see which profile this
+            # deployment serves without opening the Dockerfile.
+            #
+            # It is a declaration, not a detection: `_declared_profile` reads
+            # it rather than checking whether Stanza imported, because
+            # MODEL_ONLY and BOTH are claims a plan carries for its whole life.
+            # The preflight refuses to serve if this says `yes` and the parser
+            # cannot be loaded, so the claim and the capability cannot drift.
+            - name: QUANTIFY_SYNTAX_WITNESS
+              value: "yes"
             - name: QUANTIFY_BUILD_COMMIT
               value: COMMIT_PLACEHOLDER
             - name: QUANTIFY_IMAGE_DIGEST
               value: DIGEST_PLACEHOLDER
           resources:
-            requests: { cpu: 500m, memory: 1Gi }
-            limits: { memory: 2Gi }
+            # Raised for the syntax witness. The Stanza pipeline is loaded
+            # once per process and holds its model resident; the API alone ran
+            # in 1Gi and a parser on top of it did not.
+            requests: { cpu: 500m, memory: 2Gi }
+            limits: { memory: 4Gi }
           readinessProbe:
             httpGet: { path: /health/ready, port: 8000 }
-            initialDelaySeconds: 10
+            # The preflight loads the declared parser before reporting ready,
+            # so first start is seconds rather than milliseconds. A probe that
+            # gave up sooner would restart the pod for doing what it was told.
+            initialDelaySeconds: 30
             periodSeconds: 5
+            failureThreshold: 12
           livenessProbe:
             httpGet: { path: /health/live, port: 8000 }
             initialDelaySeconds: 30

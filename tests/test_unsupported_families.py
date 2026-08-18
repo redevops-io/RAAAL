@@ -288,8 +288,15 @@ def test_the_refusal_says_why_in_words_a_person_can_read(declared):
         _Reading("objective", "evaluate_investment_strategy")])
     detail = next(r.detail for r in reading.refusals
                   if r.dimension == "age_based_allocation")
-    assert "does not model" in detail
+
+    # The words come from the capability manifest, which is where "what this
+    # build does with this dimension" is already written down. An earlier
+    # version of this test pinned a phrase from a second copy of that sentence
+    # kept in `pilot.py`, which is how two descriptions of one refusal drift
+    # apart — so it asserts the properties a person needs instead.
     assert len(detail.split()) >= 12, detail
+    assert "age" in detail or "time" in detail, detail
+    assert "this build" in detail or "this version" in detail, detail
 
 
 # --- and the supported path still runs ---------------------------------------
@@ -326,31 +333,99 @@ def test_an_explicit_static_bond_allocation_still_executes(declared):
 
 # --- what this cannot do -----------------------------------------------------
 
-def test_the_readers_run_on_the_profile_production_serves(declared):
-    """The reachability check, and it caught a real hole.
+def test_the_readers_run_whether_or_not_a_parse_is_present(declared):
+    """Both branches, because production now takes the other one.
 
-    These were written to read the parse, and the closure lane — which runs
-    `MODEL_ONLY`, the profile the deployment actually serves — reported "tilt
-    20% toward small cap value" still silently reduced after the fix. The
-    reason: `QUANTIFY_SYNTAX_WITNESS` is set in the drift-lane workflow and in
-    no deployment configuration, so `pilot.read` takes the single-witness
-    branch and calls every derived reader with `parse=None`.
+    This file first asserted that the single-witness profile *could not*
+    detect a family, and called it a recorded limitation. That was wrong twice
+    over. It was a live correctness hole — `QUANTIFY_SYNTAX_WITNESS` was set in
+    the drift-lane workflow and no deployment, so every user was served
+    MODEL_ONLY and no family was ever detected for one — and writing it down as
+    a scope boundary made a test out of the defect.
 
-    A family reader that needed a parse would have refused factor tilts in the
-    corpus, in the suite and in the lane, and never once for a person. That is
-    the defect class this project keeps finding in its own deployment, and
-    `weight_binding` was rewritten to read the text for exactly this reason
-    before it.
-
-    Asserted on `parse=None` rather than on a profile object, because that is
-    the argument the production branch actually passes.
+    Production declares the two-witness profile now and the image carries the
+    parser, so the parse branch is the one that serves. The text branch is kept
+    and asserted anyway: a deployment that has not been migrated, a developer
+    without the model, and the closure lane all reach it, and a reader that
+    only worked with a parse is exactly what had to be fixed.
     """
     from src.discovery.derived_readers import (age_based_allocation,
                                                 factor_tilt)
 
+    parse = _parse("tilt 20% toward small cap value")
+    assert factor_tilt((), parse, "tilt 20% toward small cap value") is not None
     assert factor_tilt((), None, "tilt 20% toward small cap value") is not None
     assert age_based_allocation((), None, "hold my age in bonds") is not None
     assert factor_tilt((), None, "invest $500 monthly into VTI") is None
+
+
+def test_production_declares_the_two_witness_profile():
+    """The declaration, in the two places that carry it.
+
+    Read from the files rather than from a resolved context, because what is
+    being asserted is that the *deployment* says so — a context resolved in a
+    test says only what the test set.
+    """
+    import pathlib as _pathlib
+
+    root = _pathlib.Path(__file__).resolve().parent.parent
+    dockerfile = (root / "Dockerfile").read_text()
+    manifest = (root / "deploy" / "kubernetes" / "web.yaml").read_text()
+
+    assert "QUANTIFY_SYNTAX_WITNESS=yes" in dockerfile, (
+        "the serving image does not declare the syntax witness")
+    assert "QUANTIFY_SYNTAX_WITNESS" in manifest, (
+        "the deployment manifest does not declare the syntax witness")
+    assert "stanza" in (root / "requirements-core.txt").read_text(), (
+        "the image installs requirements-core.txt and Stanza is not in it, "
+        "which is how it was absent from every deployment for months")
+
+
+def test_a_declared_witness_that_cannot_parse_refuses_to_serve():
+    """The declaration and the capability cannot drift apart silently.
+
+    `_declared_profile` reads the declaration rather than detecting the
+    package, which is correct and leaves one gap: a deployment can say BOTH and
+    serve one. Every syntax guard and derived reader runs on the two-witness
+    branch, so a missing parse is silent — nothing logs, nothing fails, and
+    three families that must be refused by name compile into plans.
+    """
+    from src.deploy.preflight import Profile, _syntax_witness_problem
+
+    class _Model:
+        syntax_witness = True
+
+    class _Context:
+        model = _Model()
+
+    class _Broken:
+        model = _Model()
+
+    import src.deploy.preflight as preflight
+
+    # Declared and loadable: no problem.
+    assert _syntax_witness_problem(_Context(), Profile.PRODUCTION) == ""
+
+    # Declared and unloadable: production refuses.
+    import src.discovery.syntax_stanza as syntax_stanza
+
+    original = syntax_stanza.StanzaReader
+    class _Unloadable:
+        def __init__(self, *a, **k): pass
+        def parse(self, *a, **k):
+            raise RuntimeError("no model in this image")
+    try:
+        syntax_stanza.StanzaReader = _Unloadable
+        problem = _syntax_witness_problem(_Broken(), Profile.PRODUCTION)
+        assert "could not parse" in problem, problem
+        assert "WitnessProfile" in problem
+
+        # And a developer profile still runs, with the behaviour MODEL_ONLY
+        # implies rather than a refusal they cannot act on.
+        assert _syntax_witness_problem(_Broken(), Profile.LOCAL) == ""
+        assert _syntax_witness_problem(_Broken(), Profile.TEST) == ""
+    finally:
+        syntax_stanza.StanzaReader = original
 
 
 def test_a_reader_with_neither_a_parse_nor_text_is_silent():

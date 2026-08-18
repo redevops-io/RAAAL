@@ -175,6 +175,29 @@ def run(environ: Optional[Mapping[str, str]] = None,
             "defaulting to a local SQLite file would be a live path quietly "
             "reading a database nobody authorised")
 
+    # The declared witnesses are the witnesses this process has.
+    #
+    # `_declared_profile` reads the declaration rather than checking whether
+    # Stanza imported, which is right — a plan carries MODEL_ONLY or BOTH for
+    # its whole life and inferring it from an import is how an artifact comes
+    # to claim two witnesses because a package happened to be installed. The
+    # cost of that correctness is that a deployment can *say* BOTH and serve
+    # one, so the declaration is checked here instead.
+    #
+    # It is checked by loading the parser, not by importing the package. The
+    # model is a separate 500MB download that `StanzaReader` deliberately will
+    # not fetch at runtime, so `import stanza` succeeding proves nothing about
+    # whether a sentence can be parsed.
+    #
+    # Refusing matters because the missing witness is silent. Every syntax
+    # guard and every derived reader runs on the two-witness branch; without a
+    # parse they simply do not fire, and three strategy families that must be
+    # refused by name compiled into plans instead. Nothing logged, nothing
+    # failed — which is why this is a startup refusal rather than a warning.
+    problem = _syntax_witness_problem(context, profile)
+    if problem:
+        return refuse(Result.REFUSED_CONFIGURATION, problem)
+
     url = context.database.url
     if context.database.problem:
         return refuse(Result.REFUSED_CONFIGURATION, context.database.problem)
@@ -206,6 +229,36 @@ def run(environ: Optional[Mapping[str, str]] = None,
     # question is asked — a developer pointed at an unmigrated database wants
     # to know, and only production refuses to serve.
     return _check_database(url, profile, facts, checked_at)
+
+
+def _syntax_witness_problem(context, profile: Profile) -> str:
+    """Why the declared syntax witness cannot serve, if it cannot.
+
+    Empty when the deployment declared none — that is a profile, not a fault —
+    and empty outside production, where a developer without a 500MB model
+    should still get a running service and the MODEL_ONLY behaviour it implies.
+
+    Loading is the check. A pipeline that constructs has its model on disk; an
+    import does not, and the reader refuses to download one at request time.
+    """
+    if not getattr(getattr(context, "model", None), "syntax_witness", False):
+        return ""
+    if profile is not Profile.PRODUCTION:
+        return ""
+
+    try:
+        from ..discovery.syntax_stanza import StanzaReader
+
+        StanzaReader("en").parse("a smoke sentence")
+    except Exception as failure:                               # noqa: BLE001
+        return (f"{PROFILE_VAR}=production declares a syntax witness and it "
+                f"could not parse: {failure.__class__.__name__}. The parser's "
+                "model is not fetched at request time by design, so it has to "
+                "be in the image. Serving anyway would report WitnessProfile="
+                "BOTH on every plan while one witness silently never spoke — "
+                "and the guards that refuse unsupported families run only on "
+                "that witness.")
+    return ""
 
 
 def _check_database(url: str, profile: Profile, facts: Dict[str, Any],

@@ -502,3 +502,77 @@ lane ran only the hosted reader, and the serving lane could not run the
 derived ones without a parse, so the omission was invisible. Both lanes run
 both readers now and the intent hashes match: 36/36 EQUIVALENT on a fuller
 basis than the original.
+
+---
+
+## Item 8 closed: the serving architecture changed, and that is the result
+
+The final numbers are stronger than the original gate because they were not
+obtained by adjusting the measurement. The serving architecture changed in
+response to what the gate exposed.
+
+    MODEL_ONLY  ->  MODEL + deterministic syntax witness
+
+and the profile is now carried in the artifact rather than being an
+implementation detail nobody could read off a plan.
+
+### The causal chain, which is the finding
+
+"56 stable refusals" on its own means very little. What the chain shows is
+zero unsafe execution while *increasing* independent semantic detection, and
+without introducing a single false refusal on a supported case.
+
+1. **A provider swap exposed accidental refusals.** gpt-4.1 refused two
+   families for a reason nobody had stated — it also reported an unsupported
+   `portfolio_sleeves` relation, so nothing compiled. gpt-5.4 omits that
+   relation on some draws.
+2. **Factor tilt and glidepath showed unsupported semantics could disappear
+   with model recall.** The refusal depended on the hosted model reporting a
+   dimension; when it stopped, nothing downstream had anything to refuse.
+3. **Annuitisation showed the problem was general**, not confined to the two
+   families just added. A third, untouched family failed the same way.
+4. **Stanza made the already-existing guards reachable in production.**
+   `guards.py` proves a material predicate is present and its `sell_action`
+   lemma set already contained `annuitize`. It ran only on the two-witness
+   branch, and `QUANTIFY_SYNTAX_WITNESS` was set in the drift-lane workflow
+   and no deployment — so it had never run for a user.
+5. **The unchanged lanes then returned:**
+
+       UNSTABLE_EXECUTABLE            0
+       silently_reduced_any_draw      0
+       NOTHING_READ                   0
+       new false refusals, supported  0
+
+   with stable identities up from 62 to 67 and 53 of 55 unsupported families
+   refused by name.
+
+### Three measurements that must stay apart
+
+    serving path          what the product does now — MODEL + syntax
+    closure / drift       evidence about that serving behaviour
+    compiler comparator   a historical baseline reconstructing
+                          quantify-compiler@2, pinned as a defect report
+
+The comparator was briefly routed through the serving path and its frozen
+`SILENTLY_REDUCED = 17` became 1. That is not the compiler improving: it is a
+historical baseline being retroactively measured through an architecture that
+did not exist when its defects were found, which is the one thing a comparator
+must never do. Restored to 17, and the separation is now a structural test
+(`tests/test_comparator_isolation.py`) rather than a comment — with a mutation
+that plants the exact diff that caused it, and a second that proves the
+comparator may still call its own reader and share the relation helper.
+
+### What remains open, named rather than absorbed
+
+Two unsupported families are *asked about* rather than refused —
+`ASKED_NOT_REFUSED`. No plan is produced, so this is not a silent reduction
+and not the gate's condition, which is about executable plans. It is a real
+weakness one step removed: the dimensions that would refuse them,
+`periodic_rebalancing` and `allocation_method`, are EXECUTED in the manifest,
+so it is the *value* that cannot run and an empty reading gave no value to
+refuse. Somebody who answers the question gets a plan the engine can run and
+not the strategy they described.
+
+Widening the pre-seal refusal to value-dependent dimensions would close it and
+would also refuse ordinary rebalancing, which is supported. That trade is not
+taken here.

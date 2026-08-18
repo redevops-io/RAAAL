@@ -67,6 +67,37 @@ EXECUTABLE = "EXECUTABLE"
 SILENTLY_REDUCED = "SILENTLY_REDUCED"
 NOTHING_READ = "NOTHING_READ"
 
+#: Mission cannot build the plan because the sentence did not say something it
+#: needs — no holding, no amount — rather than because it named a semantic this
+#: build will not run. A question, not a refusal.
+#:
+#: Split out when the lane started asking the serving path instead of
+#: reconstructing its answer. The reconstruction called `refusals_for` on the
+#: model's declared dimensions, and a dimension nobody stated is not declared,
+#: so "contribute $1,000 a quarter" — which names no holding — scored
+#: EXECUTABLE. It is not: the serving path asks which holdings were meant, and
+#: it is right to. Counting that as REFUSED would report five false refusals of
+#: supported families; counting it as EXECUTABLE was the flattering error it
+#: replaced.
+NEEDS_INPUT = "NEEDS_INPUT"
+
+#: An unsupported family that produced no plan and no named refusal: the
+#: sentence became a question instead.
+#:
+#: Weaker than SILENTLY_REDUCED and not the same thing, which matters because
+#: the gate's condition is about plans. `SILENTLY_REDUCED` means "a plan is
+#: produced and it is the wrong one", and these produce none — calling them
+#: that would over-report by the same margin that calling them REFUSED would
+#: under-report.
+#:
+#: Still a finding. "rebalance whenever an allocation drifts more than 5
+#: points" is asked about rather than refused, and the dimension it would be
+#: refused on — `periodic_rebalancing` — is EXECUTED in the manifest, so it is
+#: the *value* that cannot run and an empty reading produced no value to
+#: refuse. Somebody answering the question gets a plan the engine can run and
+#: not the strategy they described, one step later than a silent reduction.
+ASKED_NOT_REFUSED = "ASKED_NOT_REFUSED"
+
 #: The schema has no dimension for this, so recognition cannot be the problem
 #: and cannot be the fix. Scored apart from the rest because counting it as a
 #: recognition defect would send the work to the wrong layer.
@@ -135,6 +166,43 @@ def _witness(name: str):
     return CompilerReader()
 
 
+def _serving(reader, schema, text: str):
+    """What the serving path read, and what it refused — asked of it directly.
+
+    This used to reconstruct the answer: read the model, fold in relations,
+    and call `refusals_for` on the result. That reconstruction drifted twice in
+    one sitting. It first omitted Quantify's derived readers, and then, once
+    those were included, it still omitted the syntax guards — so it reported a
+    silent reduction for `annuitize a third of the portfolio at 70` while the
+    serving path refused it by name, because the guard that proves the
+    predicate runs in `pilot.read` and not here.
+
+    A reconstruction of a path is a second implementation of it, and it goes
+    stale exactly the way a second implementation does. So the question is put
+    to the path itself: `pilot.read` with the profile the deployment declares.
+
+    `refusals_for` stays imported by `measure` for the compiler comparator,
+    which has no serving path to ask.
+    """
+    from src.deploy.context import current
+    from src.workspace.pilot import read
+
+    profile = current().model.witnesses
+    syntax = None
+    if getattr(current().model, "syntax_witness", False):
+        from src.workspace.pilot_routes import configured_syntax_reader
+
+        syntax = configured_syntax_reader()
+
+    reading = read(text, reader, schema=schema, profile=profile,
+                   syntax_reader=syntax)
+
+    declared = {f.field: f.value for f in reading.settled}
+    declared.update({r.dimension: getattr(r, "stated_value", "") or ""
+                     for r in reading.refusals})
+    return declared, tuple(reading.refusals)
+
+
 def measure(witness: str = SERVING) -> dict:
     sys.path.insert(0, str(HERE.parent.parent))
 
@@ -146,14 +214,44 @@ def measure(witness: str = SERVING) -> dict:
 
     results, by_state, by_family = [], {}, {}
     for case in document["cases"]:
-        got = _read(reader, QUANTIFY_SCHEMA, case["text"])
-        refusals = refusals_for(got)
+        # The serving witness is asked; the compiler comparator is
+        # reconstructed, because there is no serving path to ask it about.
+        #
+        # Nothing in `src/` constructs `CompilerReader` — `test_strategy_
+        # families` asserts that structurally — so `pilot.read` would be
+        # measuring a reader through a path that reader never takes. Its
+        # numbers are a frozen defect report whose whole worth is
+        # comparability, and this file's own history records the number moving
+        # twice for reasons that were not the compiler. Routing it through the
+        # new path moved it from 17 to 1 and would have been a third.
+        if witness == SERVING:
+            got, refusals = _serving(reader, QUANTIFY_SCHEMA, case["text"])
+        else:
+            got = _read(reader, QUANTIFY_SCHEMA, case["text"])
+            refusals = refusals_for(got)
+
+        # A refusal that names a semantic, as distinct from a request for
+        # something the sentence never said. `kind` is Mission's own
+        # distinction and is not re-derived here.
+        semantic = tuple(r for r in refusals
+                         if getattr(r, "kind", "") != "UNRESOLVED_INPUT")
+        wanted = tuple(r for r in refusals
+                       if getattr(r, "kind", "") == "UNRESOLVED_INPUT")
         supported = case["must_be"] == "RECOGNISED"
 
         if not case["carriers"] and not supported:
             state = SCHEMA_GAP
-        elif refusals:
+        elif semantic:
+            # A named refusal. Success for an unsupported family, and a real
+            # finding for a supported one.
             state = REFUSED
+        elif wanted:
+            # The sentence did not say something the plan needs. For a
+            # supported family that is the product working — "contribute
+            # $1,000 a quarter" names no holding and being asked is correct.
+            # For an unsupported one it is not enough: a question is not a
+            # refusal, and answering it would produce the wrong plan.
+            state = NEEDS_INPUT if supported else ASKED_NOT_REFUSED
         elif supported:
             state = EXECUTABLE
         elif got:
@@ -163,7 +261,8 @@ def measure(witness: str = SERVING) -> dict:
 
         results.append({**case, "state": state, "read": got,
                         "refused": [f"{r.dimension}={r.stated_value!r}"
-                                    for r in refusals]})
+                                    for r in semantic],
+                        "asked": [r.dimension for r in wanted]})
         by_state[state] = by_state.get(state, 0) + 1
         family = by_family.setdefault(case["family"], {})
         family[state] = family.get(state, 0) + 1
@@ -173,9 +272,11 @@ def measure(witness: str = SERVING) -> dict:
         "schema": "quantify-strategy-closure@1",
         "witness": reader.id,
         "witness_note": (
-            "One reader. Under MODEL_ONLY, the pilot profile, the model is "
-            "also the only witness, so nothing would catch it missing a "
-            "dimension either."),
+            "The serving path, asked directly rather than reconstructed: the "
+            "hosted reader and the deterministic syntax witness, in the "
+            "profile the deployment declares. Production serves BOTH — the "
+            "guards that prove a dropped predicate run only on that branch, "
+            "and until Stanza shipped they had never run for a user."),
         "count": len(results),
         "by_state": by_state,
         "by_family": by_family,

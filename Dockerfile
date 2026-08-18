@@ -35,6 +35,21 @@ RUN apt-get update \
     && apt-get purge -y --auto-remove git \
     && rm -rf /var/lib/apt/lists/*
 
+# The English model, baked in.
+#
+# `StanzaReader` loads its pipeline with `download_method=None`, which is
+# deliberate: a reader that fetches a 500MB model on first request turns a
+# parse into a network call and a cold start into a timeout. So the model has
+# to be in the image, and a build that cannot fetch it must fail here rather
+# than at the first sentence somebody types.
+#
+# Only the four processors the reader asks for — `tokenize,pos,lemma,depparse`.
+# `ner` and `constituency` are absent for the same reason they are absent from
+# `PROCESSORS`: they would cost size and time for evidence this layer does not
+# score.
+ENV STANZA_RESOURCES_DIR=/opt/stanza
+RUN python -c "import stanza; stanza.download('en', model_dir='/opt/stanza',         processors='tokenize,pos,lemma,depparse', verbose=False)"     && python -c "import stanza; stanza.Pipeline(lang='en', dir='/opt/stanza',         processors='tokenize,pos,lemma,depparse', download_method=None,         verbose=False)('a smoke sentence')"
+
 COPY . .
 
 RUN mkdir -p data
@@ -43,7 +58,17 @@ RUN mkdir -p data
 # preflight refuses rather than falling back to a local SQLite file, which
 # would be a live path reading a database nobody authorised. The build stamps
 # are supplied at deploy time and the preflight refuses without them.
+# The two-witness profile, declared and not inferred.
+#
+# `_declared_profile` reads this rather than checking whether a syntax reader
+# was constructed, because MODEL_ONLY and BOTH are claims a plan carries for
+# its whole life and inferring one from an import is how an artifact comes to
+# say it had two witnesses because a package happened to be installed.
+#
+# The preflight refuses to serve if this says `yes` and the parser cannot be
+# loaded, so a declaration and a capability cannot drift apart silently.
 ENV QUANTIFY_DEPLOYMENT_PROFILE=production \
+    QUANTIFY_SYNTAX_WITNESS=yes \
     PORT=8000
 
 EXPOSE 8000

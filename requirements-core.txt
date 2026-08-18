@@ -80,3 +80,19 @@ pyjwt[crypto]>=2.8
 # prints about itself. A convention library that did not reach production
 # would be the same mistake with a different name.
 QuantLib>=1.36
+
+# The deterministic syntax witness, moved here from requirements.txt.
+#
+# The note above about QuantLib was written about this exact absence and then
+# left standing: Stanza sat in the other file, the image installed core only,
+# and every deployment served MODEL_ONLY. `pilot.read` therefore called every
+# derived reader and every syntax guard on a branch that needs a parse and had
+# none, so `guards.py` — whose `sell_action` lemma set already contains
+# `annuitize`, `sell`, `withdraw` and `harvest` — has never once run for a
+# user.
+#
+# The closure lane is what finally showed the cost. Three strategy families
+# declared REFUSED_BY_NAME executed anyway under gpt-5.4 because the hosted
+# model omitted the dimension that would have been refused, and nothing else
+# could say the predicate was there.
+stanza>=1.14

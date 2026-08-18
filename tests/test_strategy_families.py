@@ -432,6 +432,18 @@ class TestTheReportSeparatesTheFailures:
 
     def test_the_report_names_its_witness(self, serving, compiler):
         """A report that did not name its reader would read as a fact about
-        Quantify rather than about one witness."""
+        Quantify rather than about one witness.
+
+        It used to assert the note said `MODEL_ONLY`, which was true and is
+        now the wrong thing to pin: production serves two witnesses, and the
+        note that mattered was the one explaining that nothing would catch the
+        model missing a dimension. The property is that the note names the
+        profile the numbers were measured under, whatever that profile is.
+        """
         assert serving["witness"] != compiler["witness"]
-        assert "MODEL_ONLY" in serving["witness_note"]
+
+        note = serving["witness_note"]
+        assert len(note.split()) >= 15, note
+        assert "witness" in note
+        assert "syntax" in note or "MODEL_ONLY" in note, (
+            "the note does not say which witnesses produced these numbers")
