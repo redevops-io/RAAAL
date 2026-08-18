@@ -71,10 +71,6 @@ def test_the_image_installs_the_exact_versions_it_was_tested_with(image):
 
 def test_the_mission_runtime_is_absent(image):
     """It pins an older contracts and the serving path never reaches it."""
-    out = _run(image, "import importlib.metadata as m;"
-                      "print('present' if m.distributions and _present() else '')"
-                      "\ndef _present():\n    pass")
-    # Simpler and without the tortured probe above:
     out = _run(image, "\n".join([
         "import importlib.metadata as m",
         "try:",
