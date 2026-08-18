@@ -30,6 +30,10 @@ from collections import Counter
 
 import pytest
 
+#: The current run. The pre-cutover copy sits beside it under its own name and
+#: is never overwritten: "the runtime is substitutable for what serves" and
+#: "what serves is the runtime" are different claims, and one artifact cannot
+#: carry both.
 ARTIFACT = (pathlib.Path(__file__).resolve().parent.parent
             / "corpus" / "parser" / "two_witness_differential.json")
 

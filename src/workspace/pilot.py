@@ -41,7 +41,10 @@ from runtime_contracts import (
 )
 
 from ..discovery.canonical import canonicalise
-from ..discovery.fusion import Fusion, Proposal, fuse
+# `Fusion` only, and from the runtime that owns it. `fuse` and
+# `Proposal` left with the cutover: this module no longer makes
+# fusion decisions, it reads them.
+from discovery_runtime.fusion import Fusion
 from ..discovery.reader import ReadingSet, Schema
 from ..discovery.schema import QUANTIFY_SCHEMA
 from ..discovery.witnesses import MODEL_ONLY, SettledField, WitnessProfile, record
@@ -197,11 +200,24 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
             f"{reading.reader_id} did not answer: {reading.failed}")
 
     if syntax_reader is not None:
+        # Both witnesses, through the official runtime.
+        #
+        # The asymmetry survives in how the evidence is handed over rather than
+        # in a fusion of our own: syntax agreeing becomes supporting evidence,
+        # syntax contradicting becomes a contradiction, and a dimension the
+        # model never read gets no proposal — which `fuse` answers with
+        # DISAGREE. Syntax argues; it never authors a field.
+        #
+        # No fallback. If the runtime cannot read this, that is a failure to
+        # see, not a reason to quietly run a second implementation.
+        from ..discovery.adapter import (decisions_via_runtime,
+                                         deterministic_witness)
         from ..discovery.guards import as_decisions
-        from ..discovery.pipeline import read as fuse_both
 
         parse = syntax_reader.parse(text)
-        decisions = list(fuse_both(text, parse, reading, schema).decisions)
+        syntax_evidence, derived_by_field = deterministic_witness(text, parse)
+        decisions = decisions_via_runtime(
+            reading, syntax_evidence=syntax_evidence, derived=derived_by_field)
 
         # A material action the sentence states and the reader dropped. Four
         # live draws of five read `sell the loser and buy a similar fund` and
@@ -236,29 +252,18 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         # "take from bonds in a down year and from stocks otherwise" — produced
         # a plan naming only stocks. Silent, and the sentence names both.
         #
-        # They are members of a set, not competing readings, so they are
-        # unioned into the one reading the reader should have emitted. The
-        # conditional meaning stays with `sell_action`; nothing infers a rule
-        # from the multiplicity.
-        from ..discovery.adapter import one_reading_per_set_dimension
-
-        proposals = [Proposal(dimension=r.dimension, value=r.value,
-                              reader_id=reading.reader_id,
-                              source_span=r.source_span)
-                     for r in one_reading_per_set_dimension(reading.readings)]
-        model_by_field = {p.dimension: p for p in proposals}
-
         derived_by_field = {}
         for _reader_id, derive in DERIVED_READERS:
             found = derive((), None, text)
             if found is not None:
                 derived_by_field[found.dimension] = found
 
-        fields = sorted(set(model_by_field) | set(derived_by_field))
-        decisions = [fuse(name, model=model_by_field.get(name),
-                          derived=derived_by_field.get(name),
-                          available=fields)
-                     for name in fields]
+        # One witness, through the same runtime. Not a special case: a profile
+        # with nothing to argue is one where nothing argues, which an empty
+        # syntax mapping already says.
+        from ..discovery.adapter import decisions_via_runtime
+
+        decisions = decisions_via_runtime(reading, derived=derived_by_field)
 
     settled = record(decisions, profile)
 

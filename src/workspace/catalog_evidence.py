@@ -53,7 +53,12 @@ STATES = {
     'risk-based-allocation': {'allocation_method': 'inverse_volatility'},
     'factor-tilt': {'objective': 'other', 'portfolio_sleeves': 'core=my portfolio, satellite=small cap value'},
     'glidepath': {'assets': 'bonds', 'cadence': 'annual', 'objective': 'plan_contributions', 'sell_action': 'shift 1% from stocks to bonds'},
-    'single-fund': {'account_type': 'OTHER', 'allocation_method': 'stated_weights', 'asset_location': 'holding=an S&P 500 index fund, account=401k', 'assets': 'an S&P 500 index fund'},
+    # `stated_weights` settles now. It was recorded as an UNRESOLVED_DISAGREEMENT —
+    # "the model read '100%'; syntax argues otherwise (Decimal('1'))" — which was
+    # never a disagreement: those are one share written two ways, and the
+    # comparison could not say so until WEIGHTS learned that a share above one
+    # is a percentage. The frozen row outlived the fusion that produced it.
+    'single-fund': {'account_type': 'OTHER', 'allocation_method': 'stated_weights', 'asset_location': 'holding=an S&P 500 index fund, account=401k', 'assets': 'an S&P 500 index fund', 'stated_weights': '100%'},
     'three-way-split': {'allocation_method': 'stated_weights', 'assets': 'stocks,bonds,other', 'stated_weights': '73/23/4'},
     'mean-variance': {'allocation_method': 'minimum_variance', 'assets': '30 holdings'},
     'volatility-target': {'allocation_method': 'volatility_target'},
@@ -248,7 +253,6 @@ OPEN = {
         ('periodic_rebalancing', 'NOT_ASKED', 'the reader was asked and did not answer', False),
         ('selection_rule', 'NOT_ASKED', 'the reader was asked and did not answer', False),
         ('sell_action', 'NOT_ASKED', 'the reader was asked and did not answer', False),
-        ('stated_weights', 'UNRESOLVED_DISAGREEMENT', "the model read '100%'; syntax argues otherwise (Decimal('1') scored +1). Not resolved by score: a parser can be confident and wrong", True),
         ('trigger_semantics', 'NOT_ASKED', 'the reader was asked and did not answer', False),
     ),
     'three-way-split': (
