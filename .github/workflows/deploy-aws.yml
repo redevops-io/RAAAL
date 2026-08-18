@@ -78,23 +78,28 @@ jobs:
 
       - name: Build and push the image, pinned by digest
         id: image
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
         run: |
           set -euo pipefail
-          REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"
-          aws ecr get-login-password --region "$AWS_REGION" \
-            | docker login --username AWS --password-stdin "$REGISTRY"
-
-          docker build -t "${REGISTRY}/${ECR_REPOSITORY}:${SHORT}" .
-          docker push "${REGISTRY}/${ECR_REPOSITORY}:${SHORT}"
-
-          # The digest, not the tag. A tag is a mutable pointer and Terraform
-          # refuses one — an image that can move under a fixed name is the
-          # same class of defect as a model alias under a fixed reader id.
-          DIGEST="$(aws ecr describe-images --region "$AWS_REGION" \
-            --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$SHORT" \
-            --query 'imageDetails[0].imageDigest' --output text)"
-          echo "image=${REGISTRY}/${ECR_REPOSITORY}@${DIGEST}" >> "$GITHUB_OUTPUT"
-          echo "pinned ${DIGEST}"
+          # One implementation, invoked rather than repeated.
+          #
+          # This was thirteen lines of inline shell, which is invisible to
+          # everything that is not this workflow — so the moment anything else
+          # needed to build the image it would have got a second procedure.
+          # That is how the two requirements files came to answer "which
+          # Discovery Runtime?" differently.
+          #
+          # The script also verifies things this step never did: that the
+          # submodule is at the gitlink this commit records, that the image
+          # holds that runtime rather than a cached one, and that the ten
+          # serving-image gates pass — including that a container without the
+          # Stanza model refuses to serve instead of quietly becoming a
+          # MODEL_ONLY server.
+          IMAGE="$(scripts/build_image.sh --push | tail -1)"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "pinned ${IMAGE}"
 
       - name: Terraform apply
         working-directory: infra/terraform

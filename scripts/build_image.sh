@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+#
+# The one way this project's serving image is built.
+#
+# Inline in a workflow, a build procedure is invisible to everything else —
+# and the moment a second consumer needs one, it gets a second implementation.
+# That is how `requirements-core.txt` and `requirements.txt` came to answer
+# "which Discovery Runtime?" differently for a month. The rule this exists to
+# hold:
+#
+#     A dependency is not pinned if different consumers can resolve it from
+#     different authorities.
+#
+# So the gitlink is the authority. The submodule is checked out at exactly the
+# commit this repository records, both requirements files install that tree,
+# and this script refuses to build if any of that is untrue.
+#
+#     scripts/build_image.sh                 build and verify, no registry
+#     scripts/build_image.sh --push          also push and resolve the digest
+#
+# Emits, on the last line of stdout, the digest-pinned reference a deployment
+# may consume. Never a tag: a tag is a mutable pointer, and Terraform refuses
+# one for the same reason a model alias under a fixed reader id is refused.
+set -euo pipefail
+
+PUSH=0
+[[ "${1:-}" == "--push" ]] && PUSH=1
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+say() { printf '\n=== %s\n' "$*" >&2; }
+die() { printf '\nFAILED: %s\n' "$*" >&2; exit 1; }
+
+# --- 1. the source is a commit, and it is clean --------------------------
+say "1. source identity"
+COMMIT="$(git rev-parse HEAD)"
+git diff --quiet && git diff --cached --quiet \
+  || die "the working tree is dirty. The commit is the deployment's identity,
+        so the image must be built from exactly what is committed."
+printf '   commit           %s\n' "$COMMIT" >&2
+
+# --- 2. the submodule is at the gitlink this commit records ---------------
+#
+# `git submodule status` prefixes the sha with `+` when the checked-out commit
+# differs from the recorded gitlink and `-` when it is not initialised. Either
+# means the tree about to be copied into the image is not the tree this
+# repository pins — which is the whole defect this script exists to prevent,
+# and it is invisible from inside the container afterwards.
+say "2. submodule identity"
+STATUS="$(git submodule status --recursive vendor/discovery-runtime)"
+case "$STATUS" in
+  \+*) die "the submodule is not at the recorded gitlink: $STATUS" ;;
+  -*)  die "the submodule is not initialised: $STATUS
+        run: git submodule update --init --recursive" ;;
+esac
+GITLINK="$(git rev-parse HEAD:vendor/discovery-runtime)"
+ACTUAL="$(git -C vendor/discovery-runtime rev-parse HEAD)"
+[[ "$GITLINK" == "$ACTUAL" ]] \
+  || die "gitlink $GITLINK != checkout $ACTUAL"
+DESCRIBED="$(git -C vendor/discovery-runtime describe --tags --exact-match 2>/dev/null || true)"
+[[ -n "$DESCRIBED" ]] \
+  || die "the submodule is at $ACTUAL, which is not a tagged release.
+        The serving path depends on releases, not on loose commits."
+printf '   gitlink          %s (%s)\n' "${GITLINK:0:12}" "$DESCRIBED" >&2
+
+# --- 3. build ------------------------------------------------------------
+say "3. docker build"
+TAG="quantify-web:${COMMIT:0:7}"
+docker build --no-cache -t "$TAG" . >&2
+IMAGE_ID="$(docker image inspect "$TAG" --format '{{.Id}}')"
+SIZE="$(docker image inspect "$TAG" --format '{{.Size}}')"
+printf '   image            %s\n   size             %s bytes\n' "$IMAGE_ID" "$SIZE" >&2
+
+# --- 4. the image holds the runtime this commit pins ----------------------
+#
+# Asked of the image, not of the build context. A `COPY` that silently missed
+# the directory, a cached layer, a stale wheel — none are visible in the source
+# and all are visible here.
+say "4. installed versions"
+EXPECTED_RUNTIME="${DESCRIBED#v}"
+INSTALLED="$(docker run --rm --network=none --entrypoint python "$TAG" -c \
+  "import importlib.metadata as m, json; print(json.dumps({p: m.version(p) for p in ('discovery-runtime','runtime-contracts','stanza')}))")"
+printf '   %s\n' "$INSTALLED" >&2
+python3 - "$INSTALLED" "$EXPECTED_RUNTIME" <<'PY' || die "the image does not hold the pinned runtime"
+import json, sys
+got, expected = json.loads(sys.argv[1]), sys.argv[2]
+assert got["discovery-runtime"] == expected, (
+    f"image has discovery-runtime {got['discovery-runtime']}, gitlink is {expected}")
+assert got["stanza"] == "1.14.0", f"image has stanza {got['stanza']}"
+assert got["runtime-contracts"].count(".") == 2, got["runtime-contracts"]
+PY
+
+# --- 5. the serving-image contract ---------------------------------------
+#
+# The ten gates: the model is present, the parser runs with no network, the
+# cases that earned the syntax witness parse, and a container without the
+# model refuses to serve rather than quietly becoming a MODEL_ONLY server.
+say "5. serving-image contract"
+PYTEST="${PYTEST:-python3 -m pytest}"
+QUANTIFY_IMAGE="$TAG" $PYTEST tests/test_serving_image_contract.py -q >&2 \
+  || die "the built image does not satisfy the serving contract"
+
+if [[ "$PUSH" -eq 0 ]]; then
+  say "built and verified; not pushed"
+  printf '%s\n' "$TAG"
+  exit 0
+fi
+
+# --- 6. push, and resolve the digest the registry assigned ---------------
+say "6. push"
+: "${AWS_REGION:?AWS_REGION is required to push}"
+: "${ECR_REPOSITORY:?ECR_REPOSITORY is required to push}"
+REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"
+aws ecr get-login-password --region "$AWS_REGION" \
+  | docker login --username AWS --password-stdin "$REGISTRY" >&2
+
+REMOTE="${REGISTRY}/${ECR_REPOSITORY}:${COMMIT:0:7}"
+docker tag "$TAG" "$REMOTE"
+docker push "$REMOTE" >&2
+
+# --- 7. emit the digest, never the tag -----------------------------------
+say "7. digest"
+DIGEST="$(aws ecr describe-images --region "$AWS_REGION" \
+  --repository-name "$ECR_REPOSITORY" --image-ids imageTag="${COMMIT:0:7}" \
+  --query 'imageDetails[0].imageDigest' --output text)"
+[[ "$DIGEST" == sha256:* ]] || die "could not resolve a digest for ${COMMIT:0:7}"
+printf '   %s\n' "$DIGEST" >&2
+printf '%s\n' "${REGISTRY}/${ECR_REPOSITORY}@${DIGEST}"
