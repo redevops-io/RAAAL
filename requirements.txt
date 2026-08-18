@@ -34,7 +34,7 @@ gymnasium>=0.29
 # ref can be rebased under a consumer, which is the fragility this project
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
-runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.2
+runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.4
 discovery-runtime @ git+https://github.com/redevops-io/discovery-runtime.git@v0.1.7
 
 # --- The Mission Runtime, for the cross-runtime replay gate ---
