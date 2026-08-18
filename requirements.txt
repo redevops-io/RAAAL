@@ -35,7 +35,17 @@ gymnasium>=0.29
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
 runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.4
-discovery-runtime @ git+https://github.com/redevops-io/discovery-runtime.git@v0.1.7
+# `discovery-runtime` comes from the submodule, not from a tag fetch.
+#
+# It was pinned here at v0.1.7 while the submodule — the copy every test
+# actually imports — was at v0.1.9, so CI would have installed one runtime and
+# the suite would have reported on another. The image had the same split and
+# the guard written for it only looked at requirements-core.txt.
+#
+# One source now. The submodule is a checked-out commit, which cannot move the
+# way a tag can, and `pip install ./vendor/discovery-runtime` installs exactly
+# what the tests import.
+./vendor/discovery-runtime
 
 # --- The Mission Runtime, for the cross-runtime replay gate ---
 # Tag-pinned for the same reason as the contracts above. Same licence family
