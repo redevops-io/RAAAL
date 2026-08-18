@@ -74,19 +74,38 @@ resource "aws_db_instance" "main" {
   performance_insights_enabled    = true
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
-  deletion_protection = true
+  # Deliberately off, for the decommission on 2026-08-18.
+  #
+  # It was `true`, together with the `prevent_destroy` below, and both were
+  # working as designed: `terraform destroy` refused with "Instance cannot be
+  # destroyed" and the plan stopped. The comment those guards carried named
+  # the intended override — "delete this block in a commit, or detach the
+  # instance from state. Both leave a record; a `-target` flag typed at 3am
+  # does not" — so this is that commit, and it is the record.
+  #
+  # **Turning this off requires an `apply` before the `destroy`.** AWS refuses
+  # to delete a protected instance, and `terraform destroy` deletes rather
+  # than updating attributes first, so leaving it `true` here would fail at
+  # the API instead of at the plan.
+  #
+  # Put both guards back when this environment is next created. They are not
+  # ceremony: this instance holds pilot users' financial descriptions.
+  deletion_protection = false
 
   # A test deployment still holds pilot users' financial descriptions. Taking
   # a final snapshot costs nothing and is the difference between a mistaken
   # destroy being recoverable and being final.
+  #
+  # Kept through the decommission on purpose. The instance goes; the data
+  # remains restorable from `quantify-test-final-<timestamp>` until somebody
+  # deletes that snapshot deliberately, which is a separate decision from
+  # tearing down the infrastructure around it.
   skip_final_snapshot       = false
   final_snapshot_identifier = "${local.name}-final-${formatdate("YYYYMMDDhhmmss", timestamp())}"
 
   lifecycle {
-    # `terraform destroy` will not remove this. Overriding is deliberate:
-    # delete this block in a commit, or detach the instance from state. Both
-    # leave a record; a `-target` flag typed at 3am does not.
-    prevent_destroy = true
+    # `prevent_destroy` removed for the decommission — see the note on
+    # `deletion_protection` above. Restore it with this environment.
 
     # The snapshot name embeds a timestamp, which would otherwise show as a
     # diff on every plan and train everyone to ignore diffs on this resource.
