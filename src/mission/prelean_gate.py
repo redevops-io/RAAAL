@@ -95,10 +95,32 @@ def _current_versions() -> dict:
     # Resolved from the declared provider rather than hardcoded, so switching
     # provider re-points the gate and immediately invalidates evidence gathered
     # under the old one — which is the correct and inconvenient behaviour.
+    # `fusion_version` for the same reason, one migration later. Fusion moved
+    # out of Quantify and into discovery-runtime, and every identity the gate
+    # pinned stayed identical across that move — so a drift artifact produced
+    # by the deleted implementation would have gone on being admissible
+    # evidence about a build that no longer contains it. The artifact itself
+    # had the field and named `quantify-fusion@1` from a string literal, so it
+    # could not even have been detected by comparing.
+    #
+    # Read from the installed distribution, so a runtime upgrade invalidates
+    # evidence gathered under the old one — correct and inconvenient, exactly
+    # as with the provider.
     return {"schema_fingerprint": schema_fingerprint(QUANTIFY_SCHEMA),
             "prompt_version": PROMPT_VERSION,
             "pipeline_version": PIPELINE_VERSION,
+            "fusion_version": _fusion_version(),
             "hosted_model_id": _configured_reader_id()}
+
+
+def _fusion_version() -> str:
+    """Which implementation of fusion this build would use, as it reports itself."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return f"discovery-runtime@{version('discovery-runtime')}"
+    except PackageNotFoundError:
+        return "discovery-runtime@unknown"
 
 
 def _provider_is_declared() -> bool:

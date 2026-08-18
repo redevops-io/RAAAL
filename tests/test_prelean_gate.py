@@ -162,20 +162,50 @@ class TestStaleEvidenceIsNotEvidence:
             closure_path=_closure(tmp_path))
         assert gate.open, gate.blockers
 
-    @pytest.mark.parametrize("field", ["schema_fingerprint", "prompt_version",
-                                       "pipeline_version"])
-    def test_a_version_that_moved_invalidates_it(self, tmp_path, versions,
-                                                 field):
-        """Measured against a different schema, prompt or pipeline, the numbers
-        describe a system that no longer exists."""
+    def test_a_version_that_moved_invalidates_it(self, tmp_path, versions):
+        """Measured against a different anything, the numbers describe a system
+        that no longer exists.
+
+        Every identity the gate pins, read from the gate rather than listed.
+        The list was three names long — schema, prompt, pipeline — while the
+        gate pinned five, so `hosted_model_id` and `fusion_version` had a
+        positive case and no negative one: an artifact from another reader or
+        another fusion implementation was never shown to be rejected. Reading
+        the field names from `_current_versions` means a sixth identity is
+        covered the day it is added, which is the only version of this that
+        stays true.
+        """
         from src.mission.prelean_gate import verdict
 
-        gate = verdict(
-            drift_path=_drift(tmp_path, versions,
-                              overrides={field: "something-else"}),
-            closure_path=_closure(tmp_path))
-        assert not gate.open
-        assert any(field in b for b in gate.blockers)
+        assert len(versions) >= 4, (
+            f"the gate pins only {sorted(versions)}; this test would be "
+            "asserting almost nothing")
+
+        for field in sorted(versions):
+            gate = verdict(
+                drift_path=_drift(tmp_path, versions,
+                                  overrides={field: "something-else"}),
+                closure_path=_closure(tmp_path))
+            assert not gate.open, (
+                f"an artifact produced against a different {field} was "
+                f"admitted as evidence about this build")
+            assert any(field in b for b in gate.blockers), (
+                f"{field} moved and no blocker names it: {gate.blockers}")
+
+    def test_the_gate_pins_the_implementation_that_decides(self, versions):
+        """Named explicitly, because this one was absent and invisible.
+
+        Fusion moved out of Quantify into discovery-runtime and every pinned
+        identity stayed identical across the move, so a drift artifact produced
+        by the deleted implementation remained admissible. The artifact carried
+        a `fusion_version` field the whole time — as a string literal reading
+        `quantify-fusion@1`, which cannot disagree with anything.
+        """
+        assert "fusion_version" in versions
+        assert versions["fusion_version"].startswith("discovery-runtime@")
+        assert not versions["fusion_version"].endswith("@unknown"), (
+            "the gate cannot see which runtime it would use, so it cannot "
+            "reject evidence gathered under a different one")
 
     def test_a_single_draw_cannot_prove_stability(self, tmp_path, versions):
         """The longitudinal lane runs one draw and writes its own file. Pointing

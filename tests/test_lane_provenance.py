@@ -134,3 +134,55 @@ def test_the_lane_names_the_runtime_it_actually_uses():
     assert not stamped.endswith("@unknown"), (
         "the lane cannot see the runtime it runs on, so its artifacts would "
         "record `unknown` for the thing they exist to attribute")
+
+
+# --- a local run must not overwrite CI evidence ------------------------------
+
+CI = {"provenance": {"producer": "github-actions"}}
+LOCAL = {"provenance": {"producer": "local"}}
+
+
+def _target(tmp_path, existing, producing, *, replace=False):
+    import json
+    import sys
+
+    sys.path.insert(0, str(LANE.parent))
+    from drift_lane import _where_to_write                        # noqa: E402
+
+    out = tmp_path / "drift.json"
+    if existing is not None:
+        out.write_text(json.dumps(existing))
+    return _where_to_write(out, producing, replace=replace).name
+
+
+def test_a_local_run_does_not_overwrite_a_ci_artifact(tmp_path):
+    """The rule `test_baseline_v1` enforces, enforced before the damage.
+
+    That test requires `producer == "github-actions"` on the committed
+    artifact — a local run is evidence for development, not a guarantee about
+    what serves people. It fails *after* the local run has already written over
+    the CI one. Recoverable from git, and the wrong order.
+    """
+    assert _target(tmp_path, CI, LOCAL) == "drift_local.json"
+
+
+def test_a_ci_run_writes_the_real_artifact(tmp_path):
+    """The other direction. A guard that never lets anything through is not a
+    guard, and CI replacing its own artifact is the whole point of the file."""
+    assert _target(tmp_path, CI, CI) == "drift.json"
+
+
+def test_replace_is_the_deliberate_override(tmp_path):
+    """There is a legitimate case for overwriting by hand; it has to say so."""
+    assert _target(tmp_path, CI, LOCAL, replace=True) == "drift.json"
+
+
+def test_a_local_artifact_is_freely_replaced(tmp_path):
+    """Only CI evidence is protected. Guarding a local file too would make the
+    lane un-runnable twice in a row for no gain."""
+    assert _target(tmp_path, LOCAL, LOCAL) == "drift.json"
+
+
+def test_a_first_run_writes_the_artifact(tmp_path):
+    """Nothing to protect when nothing is there."""
+    assert _target(tmp_path, None, LOCAL) == "drift.json"

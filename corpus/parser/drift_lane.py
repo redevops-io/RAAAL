@@ -338,6 +338,34 @@ CANARY = [
 ]
 
 
+def _where_to_write(out, report, *, replace: bool):
+    """Where this run's artifact goes, protecting CI evidence from a local run.
+
+    `drift.json` is what the pre-Lean gate reads and what the baseline cites,
+    and `test_baseline_v1` requires `producer == "github-actions"` for exactly
+    the right reason: a local run is evidence for development, not a guarantee
+    about what serves people. The lane wrote over it anyway, so the way to
+    discover that rule was to destroy the evidence and read the failing test
+    afterwards. Recoverable from git, and still the wrong order.
+
+    `--replace` is the deliberate version, because there is a legitimate case —
+    a CI run writing its own artifact — and it should have to say so.
+    """
+    if replace or report["provenance"].get("producer") == "github-actions":
+        return out
+    if not out.exists():
+        return out
+
+    existing = json.loads(out.read_text()).get("provenance", {})
+    if existing.get("producer") != "github-actions":
+        return out
+
+    local = out.with_name(out.stem + "_local.json")
+    print(f"\n{out.name} was produced by CI and is left alone; writing "
+          f"{local.name}. Pass --replace to overwrite it.")
+    return local
+
+
 def main(argv: list) -> int:
     draws = 1 if "--longitudinal" in argv else 3
     if "--draws" in argv:
@@ -355,6 +383,9 @@ def main(argv: list) -> int:
     report["provenance"]["scope"] = "canary" if texts else "full"
     out = OUT if (draws > 1 and not texts) else OUT.with_name(
         "drift_canary.json" if texts else "drift_longitudinal.json")
+
+    out = _where_to_write(out, report, replace="--replace" in argv)
+
     out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
 
     print(f"\n{out.name}")
