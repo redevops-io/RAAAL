@@ -18,25 +18,48 @@ from src.discovery import adapter
 ADAPTER = pathlib.Path(adapter.__file__)
 
 
-def test_every_dimension_has_a_mode_and_it_comes_from_the_schema():
-    modes = adapter.compare_modes()
+def test_the_mode_is_the_one_fusion_uses():
+    """`REQUIREMENTS` wins over the schema, because fusion reads the requirement.
+
+    The two disagree for exactly one dimension: `stated_weights` is WEIGHTS in
+    the requirement and SET in the schema. Reading the schema compared `60/40`
+    against `VTI=60,BND=40` as unordered tokens, called them different, and
+    refused a split the compiler had been handed — so the source that matters
+    is the one fusion consults.
+
+    Two sources for one fact is its own defect and is not the adapter's to
+    resolve. What the adapter must not do is pick the other one.
+    """
     from src.discovery.schema import QUANTIFY_SCHEMA
+    from src.discovery.vocabulary import REQUIREMENTS
 
-    assert len(modes) == len(QUANTIFY_SCHEMA.dimensions)
-    for dimension in QUANTIFY_SCHEMA.dimensions:
-        assert modes[dimension.name] == dimension.compare_as, (
-            f"{dimension.name}: the adapter reports {modes[dimension.name]} "
-            f"and the schema says {dimension.compare_as}")
+    modes = adapter.compare_modes()
+    assert len(modes) >= len(QUANTIFY_SCHEMA.dimensions)
+
+    for name, requirement in REQUIREMENTS.items():
+        declared = getattr(requirement, "compare_as", "")
+        if declared:
+            assert modes[name] == declared, (
+                f"{name}: the adapter reports {modes[name]} and fusion's "
+                f"requirement says {declared}")
+
+    assert modes["stated_weights"] == "WEIGHTS", (
+        "the known divergence regressed to the schema's SET")
 
 
-def test_only_the_domain_mode_is_supplied():
+def test_only_domain_modes_are_supplied():
     """`TEXT` and `SET` belong to the runtime.
 
     Supplying our own would replace a generic rule with a domain one that
     happens to agree today and can drift tomorrow — and the drift would be
     invisible, because both would still be called TEXT.
+
+    `NUMBER` and `WEIGHTS` are ours: what `£2.5k` is worth, and that `60/40`
+    and `VTI=60,BND=40` are the same split with one of them saying which
+    holding takes which share, are both facts about finance.
     """
-    assert set(adapter.NORMALIZERS) == {"NUMBER"}
+    assert set(adapter.NORMALIZERS) == {"NUMBER", "WEIGHTS"}
+    assert not {"TEXT", "SET"} & set(adapter.NORMALIZERS)
 
 
 def test_the_normaliser_is_the_readers_own():

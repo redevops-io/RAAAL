@@ -64,7 +64,30 @@ def number(raw: Any) -> Optional[Decimal]:
 #: Mode name -> what the mode means here. `TEXT` and `SET` are deliberately
 #: absent: the runtime implements both, and supplying our own would replace a
 #: generic rule with a domain one that happens to agree today.
-NORMALIZERS: Mapping[str, Callable[[Any], Any]] = {"NUMBER": number}
+def weights(raw: Any):
+    """A stated split, as an unordered set of shares.
+
+    `60/40` and `VTI=60,BND=40` are the same split — the second says which
+    holding takes which share and the first does not, which is a refinement
+    rather than a disagreement. Compared on the shares alone, so a derived
+    reading that carries the binding can be recognised as the same reading and
+    preferred for carrying it.
+    """
+    import re
+
+    shares = []
+    for token in re.split(r"[,;/\s]+", str(raw).strip()):
+        if not token:
+            continue
+        shares.append(token.split("=")[-1].rstrip("%"))
+    return frozenset(shares) if shares else None
+
+
+#: Mode name -> what the mode means here. `TEXT` and `SET` are deliberately
+#: absent: the runtime implements both, and supplying our own would replace a
+#: generic rule with a domain one that happens to agree today.
+NORMALIZERS: Mapping[str, Callable[[Any], Any]] = {"NUMBER": number,
+                                                   "WEIGHTS": weights}
 
 
 def compare_modes() -> Dict[str, str]:
@@ -74,8 +97,25 @@ def compare_modes() -> Dict[str, str]:
     since the first shadow run and a table here would be a second answer to a
     question the schema already answers.
     """
-    return {d.name: getattr(d, "compare_as", "TEXT")
-            for d in QUANTIFY_SCHEMA.dimensions}
+    # `REQUIREMENTS` first, the schema second, and they disagree for exactly
+    # one dimension: `stated_weights` is WEIGHTS in the requirement and SET in
+    # the schema. Fusion has always read the requirement, so reading the schema
+    # here silently compared `60/40` against `VTI=60,BND=40` as unordered
+    # tokens, called them different, and refused a split the compiler had been
+    # handed.
+    #
+    # Two sources for one fact, which is its own defect and is not this
+    # adapter's to resolve — but the one fusion uses is the one that must be
+    # passed, or the comparison changes meaning at the boundary.
+    from .vocabulary import REQUIREMENTS
+
+    modes = {d.name: getattr(d, "compare_as", "TEXT")
+             for d in QUANTIFY_SCHEMA.dimensions}
+    for name, requirement in REQUIREMENTS.items():
+        declared = getattr(requirement, "compare_as", "")
+        if declared:
+            modes[name] = declared
+    return modes
 
 
 def compare_as(dimension: str) -> str:
@@ -567,3 +607,190 @@ def same_value_for(dimension, one, other, modes=None):
     modes = modes or compare_modes()
     return same_value(one, other, modes.get(dimension, "TEXT"),
                       normalizers=NORMALIZERS)
+
+
+# --- decisions, produced by the official runtime -----------------------------
+
+class Witnessed:
+    """What spoke for a dimension: the value and who said it.
+
+    `witnesses.record` stores `decision.model.reader_id`, so the shim needs a
+    holder with that attribute. Deliberately not `fusion.Proposal` — that type
+    lives in the module being deleted, and depending on it here would put the
+    generic implementation back on the serving path through the back door.
+    """
+
+    __slots__ = ("value", "reader_id", "source_span")
+
+    def __init__(self, value, reader_id, source_span=""):
+        self.value = value
+        self.reader_id = reader_id
+        self.source_span = source_span
+
+
+class RuntimeDecision:
+    """An upstream `Decision`, in the shape Quantify's recorder reads.
+
+    `witnesses.record` needs `.model` and `.syntax` to say which readers spoke,
+    and the runtime's decision carries proposals rather than named witnesses —
+    correctly, since which witness is which is domain knowledge. This adds the
+    two attributes back from what the adapter already knows, and forwards the
+    rest.
+
+    A shim rather than a conversion so `.outcome` stays the runtime's enum: the
+    provenance strings Quantify stores are derived from the outcome's *name*,
+    and both enums use the same four names for the same four situations.
+    """
+
+    __slots__ = ("dimension", "outcome", "value", "detail", "material",
+                 "model", "syntax", "policy_version")
+
+    def __init__(self, decision, *, model=None, syntax=(), material=True):
+        self.dimension = decision.dimension
+        self.outcome = decision.outcome
+        self.value = decision.value
+        self.detail = decision.detail
+        self.material = material
+        self.model = model
+        self.syntax = tuple(syntax)
+        self.policy_version = "discovery-runtime"
+
+    @property
+    def proceeds(self) -> bool:
+        return self.outcome.proceeds
+
+
+def decisions_via_runtime(model_reading, *, syntax_evidence=None,
+                          derived=None):
+    """Every dimension's decision, made by discovery-runtime.
+
+    One function for both profiles. `syntax_evidence` empty is the
+    single-witness profile, and that is not a special case: a profile with no
+    second witness is one where nothing argues, which is what an empty mapping
+    already means.
+
+    Derived readers are ordinary proposals. Quantify's own fusion says so —
+    "a derived reader is a reader, weighed by the ordinary rules" — so they
+    join the model's proposals rather than getting a channel of their own.
+    """
+    from discovery_runtime import Proposal, fuse
+
+    reading, contradicted = two_witness_readings(
+        model_reading, syntax_evidence or {})
+    modes = compare_modes()
+    reader_id = getattr(model_reading, "reader_id", "model")
+
+    proposed = {r.dimension: r
+                for r in one_reading_per_set_dimension(model_reading.readings)}
+
+    dimensions = set(reading.payload) | set(reading.evidence)
+    dimensions |= set(derived or {})
+
+    out = []
+    for name in sorted(dimensions):
+        proposals = []
+        if name in reading.payload:
+            proposals.append(Proposal(value=reading.payload[name],
+                                      reader_id=reader_id))
+        supplied = (derived or {}).get(name)
+        if supplied is not None:
+            proposals.append(Proposal(value=supplied.value,
+                                      reader_id=getattr(supplied, "reader_id",
+                                                        "derived")))
+            # The derived reading first when the two agree, because `fuse`
+            # settles on the first proposal and the derived one is the richer
+            # reading: `60/40` and `VTI=60,BND=40` agree about the split and
+            # only the second says which holding takes which share. Keeping the
+            # model's value discards the binding and leaves the compiler
+            # refusing a split it was handed.
+            #
+            # Only when they agree. `same_value` establishing that the two are
+            # the same reading is what makes preferring the richer one safe: it
+            # cannot change what the plan means, only how much of it survives.
+            if (name in reading.payload
+                    and same_value_for(name, reading.payload[name],
+                                       supplied.value, modes)):
+                proposals.reverse()
+        decision = fuse(name, proposals, mode=modes.get(name, "TEXT"),
+                        normalizers=NORMALIZERS,
+                        contradicted_by=contradicted.get(name),
+                        ambiguous_between=tuple(
+                            ambiguity(name, reading.evidence.get(name, ()),
+                                      tuple(dimensions))))
+        spoke = proposed.get(name)
+        out.append(RuntimeDecision(
+            decision,
+            model=(Witnessed(spoke.value, reader_id,
+                             str(getattr(spoke, "source_span", "") or ""))
+                   if spoke is not None else
+                   (Witnessed(supplied.value,
+                              getattr(supplied, "reader_id", "derived"))
+                    if supplied is not None else None)),
+            syntax=tuple(syntax_evidence.get(name, ())
+                         if syntax_evidence else ()),
+            material=material(name)))
+    return out
+
+
+def deterministic_witness(text: str, parse, *, language: str = "en"):
+    """The deterministic reading: syntax evidence, and what it derives.
+
+    Both come from one pass because both come from the same candidates, and
+    computing them separately means normalising and binding the sentence twice
+    — which is not only wasted work but two chances to disagree.
+
+    Derived readers see the candidates and the parse here. In the
+    single-witness profile they see neither, and that difference is the
+    profile: a derived reader that needs structure has none to read when no
+    parse was produced.
+    """
+    from .binding import bind
+    from .derived_readers import DERIVED_READERS
+    from .pipeline import as_evidence
+    from .semantics import propose
+    from .syntax import normalize
+
+    values = normalize(text, language)
+    candidates = propose(bind(parse, values), values)
+
+    evidence: Dict[str, list] = {}
+    for candidate in candidates:
+        if getattr(candidate, "is_contract_field", False):
+            evidence.setdefault(candidate.field, []).append(
+                as_evidence(candidate))
+
+    derived = {}
+    for _reader_id, derive in DERIVED_READERS:
+        found = derive(candidates, parse, text)
+        if found is not None:
+            derived[found.dimension] = found
+    return evidence, derived
+
+
+def syntax_evidence_for(text: str, parse, schema=None, *, language: str = "en"):
+    """The deterministic witness's candidates, by dimension.
+
+    Lifted out of `pipeline.read` because the pipeline is generic lifecycle and
+    goes away, while *this* is Quantify's own deterministic reading: normalise
+    the written values, bind them to what the parse says they belong to, and
+    propose contract fields from the result. All three steps live in kept
+    modules; only the orchestration moved.
+
+    Only contract fields are returned. An intermediate — `amount_kind`,
+    `holding_period_days` — has no contract field for the other witness to
+    answer with, so offering it to fusion would report a disagreement against a
+    silence that could never have been anything else.
+    """
+    from .binding import bind
+    from .pipeline import as_evidence
+    from .semantics import propose
+    from .syntax import normalize
+
+    candidates = propose(bind(parse, normalize(text, language)),
+                         normalize(text, language))
+    found: Dict[str, list] = {}
+    for candidate in candidates:
+        if not getattr(candidate, "is_contract_field", False):
+            continue
+        found.setdefault(candidate.field, []).append(as_evidence(candidate))
+    return found
