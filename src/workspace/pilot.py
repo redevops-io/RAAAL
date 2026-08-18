@@ -367,6 +367,31 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         f for f in built.absent_fields if f not in set(built.questions)))
 
 
+def _derived_fields(decisions) -> frozenset:
+    """Dimensions a deterministic reader authored, not the hosted model.
+
+    `canonicalise` stamps `MODEL` on everything it passes through, because it
+    receives values and not the witnesses behind them. That was harmless while
+    every field it saw had come from the model — and wrong the moment a derived
+    reader authored one the model never mentioned: the artifact said a hosted
+    model had reported a factor tilt it had said nothing about.
+
+    Caught by the equivalence harness, which is what it is for. The runtime
+    lane runs the derived readers as their own reader and got `READER` right;
+    the serving lane folded them in beside the model and got it wrong.
+
+    Read from the decision's own witness id rather than from a list of names,
+    so a new derived reader is attributed correctly without anybody adding it
+    here.
+    """
+    from ..discovery.derived_readers import DERIVED_READERS
+
+    ids = {reader_id for reader_id, _ in DERIVED_READERS}
+    return frozenset(
+        d.dimension for d in decisions
+        if getattr(getattr(d, "model", None), "reader_id", "") in ids)
+
+
 def _family_detail(name: str) -> str:
     """Why this family cannot run, in the words its own definition uses."""
     family = UNSUPPORTED_FAMILIES[name]
@@ -458,7 +483,10 @@ def _intent(text: str, decisions, reading: ReadingSet, *, objective: str,
         objective=objective,
         produced_by=f"{reading.reader_id}+{INTERPRETER_VERSION}",
         utterance_ref=utterance_ref,
-        fields={name: IntentField(value=value, author=_AUTHORS[author])
+        fields={name: IntentField(
+                    value=value,
+                    author=(Author.READER if name in _derived_fields(decisions)
+                            else _AUTHORS[author]))
                 for name, (value, author) in canonical.fields.items()},
         relations=tuple(as_intent_relation(r)
                         for r in getattr(reading, "relations", ()) or ()),

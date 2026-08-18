@@ -1,75 +1,123 @@
 {
   "schema": "quantify-strategy-closure@1",
-  "witness": "gpt-4.1-2025-04-14@1",
+  "witness": "gpt-5.4-2026-03-05@1",
   "witness_note": "One reader. Under MODEL_ONLY, the pilot profile, the model is also the only witness, so nothing would catch it missing a dimension either.",
-  "count": 36,
+  "count": 79,
   "by_state": {
-    "EXECUTABLE": 5,
-    "REFUSED": 31
+    "EXECUTABLE": 15,
+    "REFUSED": 62,
+    "SILENTLY_REDUCED": 1,
+    "NOTHING_READ": 1
   },
   "by_family": {
     "scheduled_funding": {
-      "EXECUTABLE": 3
+      "EXECUTABLE": 7
     },
     "event_triggered_funding": {
-      "EXECUTABLE": 2
+      "EXECUTABLE": 3
     },
     "safe_withdrawal_rate": {
-      "REFUSED": 3
+      "REFUSED": 4
     },
     "withdrawal_ordering": {
-      "REFUSED": 2
-    },
-    "required_minimum_distribution": {
-      "REFUSED": 1
-    },
-    "tax_loss_harvesting": {
       "REFUSED": 3
     },
-    "roth_conversion": {
+    "required_minimum_distribution": {
       "REFUSED": 2
+    },
+    "tax_loss_harvesting": {
+      "REFUSED": 4
+    },
+    "roth_conversion": {
+      "REFUSED": 3
     },
     "asset_location": {
-      "REFUSED": 2
+      "REFUSED": 3
     },
     "rebalancing": {
-      "REFUSED": 2
+      "REFUSED": 4
     },
     "stated_weights": {
-      "REFUSED": 2
+      "REFUSED": 5
     },
     "glidepath": {
-      "REFUSED": 2
+      "REFUSED": 3
     },
     "bucket_strategy": {
-      "REFUSED": 2
+      "REFUSED": 3
     },
     "risk_based_allocation": {
-      "REFUSED": 2
+      "REFUSED": 3
     },
     "factor_tilt": {
-      "REFUSED": 1
+      "REFUSED": 2
     },
     "option_income": {
-      "REFUSED": 1
+      "REFUSED": 2
     },
     "annuitisation": {
+      "SILENTLY_REDUCED": 1,
       "REFUSED": 1
     },
     "dividend_income": {
-      "REFUSED": 2
+      "REFUSED": 3
     },
     "leverage": {
-      "REFUSED": 1
+      "REFUSED": 2,
+      "NOTHING_READ": 1
     },
     "cash_reserve": {
-      "REFUSED": 1
+      "REFUSED": 3
     },
     "non_market_alternative": {
+      "REFUSED": 3
+    },
+    "percentage_funding": {
+      "EXECUTABLE": 1,
+      "REFUSED": 1
+    },
+    "contribution_limit": {
+      "EXECUTABLE": 2
+    },
+    "employer_match": {
+      "EXECUTABLE": 1
+    },
+    "escalating_funding": {
+      "REFUSED": 1
+    },
+    "mean_variance": {
+      "REFUSED": 1
+    },
+    "volatility_target": {
+      "REFUSED": 1
+    },
+    "holding_period": {
+      "REFUSED": 1
+    },
+    "fixed_withdrawal": {
+      "REFUSED": 1
+    },
+    "debt_clearing_withdrawal": {
+      "REFUSED": 1
+    },
+    "deferral_choice": {
+      "EXECUTABLE": 1,
+      "REFUSED": 1
+    },
+    "lump_allocation": {
       "REFUSED": 1
     }
   },
-  "silently_reduced": [],
+  "silently_reduced": [
+    {
+      "id": "annuitisation-01",
+      "text": "annuitize a third of the portfolio at 70",
+      "should_carry": "sell_action",
+      "read_instead": {
+        "objective": "other"
+      }
+    }
+  ],
   "cases": [
     {
       "id": "scheduled_funding-01",
@@ -84,8 +132,8 @@
       "state": "EXECUTABLE",
       "read": {
         "objective": "evaluate_investment_strategy",
+        "amount": "500",
         "cadence": "monthly",
-        "amount": "$500",
         "assets": "VTI"
       },
       "refused": []
@@ -102,10 +150,7 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging",
       "state": "EXECUTABLE",
       "read": {
-        "amount": "$250",
-        "assets": "index fund",
-        "cadence": "biweekly",
-        "objective": "plan_contributions"
+        "amount": "250"
       },
       "refused": []
     },
@@ -121,9 +166,8 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging",
       "state": "EXECUTABLE",
       "read": {
-        "objective": "plan_contributions",
-        "amount": "$1,000",
-        "cadence": "quarterly"
+        "cadence": "quarterly",
+        "amount": "1000"
       },
       "refused": []
     },
@@ -182,8 +226,9 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_withdrawal",
+        "sell_action": "withdraw 4% of the portfolio each year, adjusted for inflation",
         "cadence": "annual",
-        "sell_action": "withdraw 4% of the portfolio each year, adjusted for inflation"
+        "amount": "4%"
       },
       "refused": [
         "objective='assess_withdrawal'",
@@ -203,8 +248,7 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_withdrawal",
-        "sell_action": "draw down 3% a year",
-        "cadence": "annual"
+        "sell_action": "draw down 3% a year"
       },
       "refused": [
         "objective='assess_withdrawal'",
@@ -224,9 +268,9 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_withdrawal",
+        "sell_action": "take $40,000 a year out of the portfolio",
         "amount": "40000",
-        "cadence": "annual",
-        "sell_action": "take $40,000 a year out of the portfolio"
+        "cadence": "annual"
       },
       "refused": [
         "objective='assess_withdrawal'",
@@ -245,12 +289,10 @@
       "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
       "state": "REFUSED",
       "read": {
-        "objective": "assess_withdrawal",
-        "account_transition": "from=taxable account, from=IRA, from=Roth"
+        "objective": "assess_withdrawal"
       },
       "refused": [
-        "objective='assess_withdrawal'",
-        "account_transition='from=taxable account, from=IRA, from=Roth'"
+        "objective='assess_withdrawal'"
       ]
     },
     {
@@ -265,7 +307,8 @@
       "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
       "state": "REFUSED",
       "read": {
-        "sell_action": "take from bonds in a down year and from stocks otherwise"
+        "sell_action": "take from bonds in a down year and from stocks otherwise",
+        "assets": "stocks"
       },
       "refused": [
         "sell_action='take from bonds in a down year and from stocks otherwise'"
@@ -303,13 +346,13 @@
       "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
       "state": "REFUSED",
       "read": {
-        "objective": "sell_action",
-        "trigger_semantics": "persistent_condition",
-        "conditional_amount": "yes"
+        "sell_action": "harvest losses",
+        "conditional_amount": "whenever a position falls 10% below its cost basis",
+        "trigger_semantics": "persistent_condition"
       },
       "refused": [
-        "objective='sell_action'",
-        "conditional_amount='yes'"
+        "conditional_amount='whenever a position falls 10% below its cost basis'",
+        "sell_action='harvest losses'"
       ]
     },
     {
@@ -324,12 +367,10 @@
       "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
       "state": "REFUSED",
       "read": {
-        "sell_action": "sell the loser",
-        "assets": "a similar fund",
-        "objective": "other"
+        "sell_action": "sell the loser and buy a similar fund to avoid a wash sale"
       },
       "refused": [
-        "sell_action='sell the loser'"
+        "sell_action='sell the loser and buy a similar fund to avoid a wash sale'"
       ]
     },
     {
@@ -344,8 +385,8 @@
       "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
       "state": "REFUSED",
       "read": {
-        "assets": "VTI, BND",
-        "sell_action": "sell VTI"
+        "sell_action": "sell VTI",
+        "assets": "BND"
       },
       "refused": [
         "sell_action='sell VTI'"
@@ -364,12 +405,14 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_conversion",
-        "amount": "$30,000",
+        "amount": "30000",
         "cadence": "annual",
+        "sell_action": "convert",
         "account_transition": "from=traditional IRA, to=Roth"
       },
       "refused": [
         "objective='assess_conversion'",
+        "sell_action='convert'",
         "account_transition='from=traditional IRA, to=Roth'"
       ]
     },
@@ -387,11 +430,11 @@
       "read": {
         "objective": "assess_conversion",
         "cadence": "annual",
-        "conditional_amount": "up to the top of the 22% bracket"
+        "sell_action": "convert up to the top of the 22% bracket each year"
       },
       "refused": [
         "objective='assess_conversion'",
-        "conditional_amount='up to the top of the 22% bracket'"
+        "sell_action='convert up to the top of the 22% bracket each year'"
       ]
     },
     {
@@ -406,10 +449,10 @@
       "source": "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/",
       "state": "REFUSED",
       "read": {
-        "asset_location": "holding=the stocks, account=the taxable account"
+        "asset_location": "holding=stocks, account=taxable account"
       },
       "refused": [
-        "asset_location='holding=the stocks, account=the taxable account'"
+        "asset_location='holding=stocks, account=taxable account'"
       ]
     },
     {
@@ -424,10 +467,10 @@
       "source": "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/",
       "state": "REFUSED",
       "read": {
-        "asset_location": "holding=REITs, account=Roth"
+        "asset_location": "holding=REITs, account=ROTH"
       },
       "refused": [
-        "asset_location='holding=REITs, account=Roth'"
+        "asset_location='holding=REITs, account=ROTH'"
       ]
     },
     {
@@ -442,12 +485,13 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing",
       "state": "REFUSED",
       "read": {
-        "periodic_rebalancing": "every year",
+        "periodic_rebalancing": "rebalance back to 60/40 every year",
+        "allocation_method": "stated_weights",
         "stated_weights": "60/40"
       },
       "refused": [
         "stated_weights='60/40'",
-        "periodic_rebalancing='every year'"
+        "periodic_rebalancing='rebalance back to 60/40 every year'"
       ]
     },
     {
@@ -462,10 +506,10 @@
       "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing",
       "state": "REFUSED",
       "read": {
-        "periodic_rebalancing": "when it drifts more than 5 points"
+        "periodic_rebalancing": "rebalance whenever an allocation drifts more than 5 points"
       },
       "refused": [
-        "periodic_rebalancing='when it drifts more than 5 points'"
+        "periodic_rebalancing='rebalance whenever an allocation drifts more than 5 points'"
       ]
     },
     {
@@ -481,6 +525,7 @@
       "state": "REFUSED",
       "read": {
         "assets": "portfolio",
+        "allocation_method": "stated_weights",
         "stated_weights": "60/40"
       },
       "refused": [
@@ -500,12 +545,11 @@
       "state": "REFUSED",
       "read": {
         "assets": "stocks, bonds, cash",
-        "stated_weights": "70% stocks, 20% bonds, 10% cash",
-        "allocation_method": "stated_weights"
+        "allocation_method": "stated_weights",
+        "stated_weights": "70/20/10"
       },
       "refused": [
-        "allocation_method='stated_weights'",
-        "stated_weights='70% stocks, 20% bonds, 10% cash'"
+        "stated_weights='70/20/10'"
       ]
     },
     {
@@ -520,12 +564,16 @@
       "source": "https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf",
       "state": "REFUSED",
       "read": {
-        "objective": "evaluate_investment_strategy",
+        "objective": "other",
         "cadence": "annual",
-        "portfolio_sleeves": "core=stocks, satellite=bonds"
+        "amount": "1%",
+        "sell_action": "shift 1% from stocks to bonds",
+        "assets": "bonds",
+        "age_based_allocation": "age_based_allocation"
       },
       "refused": [
-        "portfolio_sleeves='core=stocks, satellite=bonds'"
+        "age_based_allocation='age_based_allocation'",
+        "sell_action='shift 1% from stocks to bonds'"
       ]
     },
     {
@@ -540,11 +588,15 @@
       "source": "https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf",
       "state": "REFUSED",
       "read": {
+        "objective": "other",
         "assets": "bonds",
-        "allocation_method": "stated_weights"
+        "allocation_method": "stated_weights",
+        "stated_weights": "my age",
+        "age_based_allocation": "age_based_allocation"
       },
       "refused": [
-        "allocation_method='stated_weights'"
+        "stated_weights='my age'",
+        "age_based_allocation='age_based_allocation'"
       ]
     },
     {
@@ -559,10 +611,10 @@
       "source": "https://blincoe.uk/the-blincoe-blog/retirement-income-bucketing-strategy",
       "state": "REFUSED",
       "read": {
-        "bucket_policy": "bucket=, bucket="
+        "bucket_policy": "bucket=cash, bucket=stocks"
       },
       "refused": [
-        "bucket_policy='bucket=, bucket='"
+        "bucket_policy='bucket=cash, bucket=stocks'"
       ]
     },
     {
@@ -578,10 +630,10 @@
       "state": "REFUSED",
       "read": {
         "objective": "other",
-        "bucket_policy": "bucket=cash bucket, bucket=stocks"
+        "bucket_policy": "bucket=cash bucket"
       },
       "refused": [
-        "bucket_policy='bucket=cash bucket, bucket=stocks'"
+        "bucket_policy='bucket=cash bucket'"
       ]
     },
     {
@@ -615,10 +667,10 @@
       "state": "REFUSED",
       "read": {
         "allocation_method": "volatility_target",
-        "conditional_amount": ""
+        "conditional_amount": "10% volatility target"
       },
       "refused": [
-        "conditional_amount=''",
+        "conditional_amount='10% volatility target'",
         "allocation_method='volatility_target'"
       ]
     },
@@ -634,13 +686,11 @@
       "source": "https://www.investopedia.com/terms/s/smallcap.asp",
       "state": "REFUSED",
       "read": {
-        "assets": "small cap value",
-        "stated_weights": "20%",
-        "portfolio_sleeves": "satellite=small cap value"
+        "objective": "evaluate_investment_strategy",
+        "factor_tilt": "factor_tilt"
       },
       "refused": [
-        "stated_weights='20%'",
-        "portfolio_sleeves='satellite=small cap value'"
+        "factor_tilt='factor_tilt'"
       ]
     },
     {
@@ -672,14 +722,11 @@
       "must_be": "REFUSED_BY_NAME",
       "provenance": "authored_from_cited_definition",
       "source": "https://gainbridge.com/post/decumulation-strategy",
-      "state": "REFUSED",
+      "state": "SILENTLY_REDUCED",
       "read": {
-        "objective": "other",
-        "sell_action": "annuitize a third of the portfolio at 70"
+        "objective": "other"
       },
-      "refused": [
-        "sell_action='annuitize a third of the portfolio at 70'"
-      ]
+      "refused": []
     },
     {
       "id": "dividend_income-01",
@@ -733,11 +780,12 @@
       "source": "https://www.investopedia.com/terms/l/leverage.asp",
       "state": "REFUSED",
       "read": {
-        "assets": "equity sleeve",
-        "portfolio_sleeves": "core=equity sleeve"
+        "holding_period": "hold",
+        "portfolio_sleeves": "satellite=equity sleeve"
       },
       "refused": [
-        "portfolio_sleeves='core=equity sleeve'"
+        "holding_period='hold'",
+        "portfolio_sleeves='satellite=equity sleeve'"
       ]
     },
     {
@@ -771,6 +819,843 @@
       "state": "REFUSED",
       "read": {
         "objective": "assess_debt_repayment"
+      },
+      "refused": [
+        "objective='assess_debt_repayment'"
+      ]
+    },
+    {
+      "id": "scheduled_funding-offered",
+      "family": "scheduled_funding",
+      "text": "I invest $500 into VTI every month, on the same day each month.",
+      "carriers": [
+        "cadence"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging",
+      "state": "EXECUTABLE",
+      "read": {
+        "cadence": "monthly",
+        "amount": "500",
+        "assets": "VTI"
+      },
+      "refused": []
+    },
+    {
+      "id": "event_triggered_funding-offered",
+      "family": "event_triggered_funding",
+      "text": "I buy VOO when SPY falls below its 200-day moving average.",
+      "carriers": [
+        "trigger_semantics",
+        "moving_average_window"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/m/movingaverage.asp",
+      "state": "EXECUTABLE",
+      "read": {
+        "assets": "VOO",
+        "observed_assets": "SPY",
+        "moving_average_window": "200",
+        "trigger_semantics": "crossing_event"
+      },
+      "refused": []
+    },
+    {
+      "id": "stated_weights-offered",
+      "family": "stated_weights",
+      "text": "I hold a 60/40 portfolio: 60% stocks and 40% bonds.",
+      "carriers": [
+        "stated_weights"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation",
+      "state": "REFUSED",
+      "read": {
+        "assets": "stocks and bonds",
+        "allocation_method": "stated_weights",
+        "stated_weights": "60/40"
+      },
+      "refused": [
+        "stated_weights='60/40'"
+      ]
+    },
+    {
+      "id": "rebalancing-offered",
+      "family": "rebalancing",
+      "text": "I hold 60/40 and rebalance back to those weights once a year.",
+      "carriers": [
+        "periodic_rebalancing"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing",
+      "state": "REFUSED",
+      "read": {
+        "assets": "60/40",
+        "stated_weights": "60/40",
+        "allocation_method": "stated_weights",
+        "periodic_rebalancing": "rebalance back to those weights once a year",
+        "cadence": "annual"
+      },
+      "refused": [
+        "stated_weights='60/40'",
+        "periodic_rebalancing='rebalance back to those weights once a year'"
+      ]
+    },
+    {
+      "id": "risk_based_allocation-offered",
+      "family": "risk_based_allocation",
+      "text": "I allocate across my holdings by inverse volatility rather than by dollars.",
+      "carriers": [
+        "allocation_method"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/r/risk-parity.asp",
+      "state": "REFUSED",
+      "read": {
+        "allocation_method": "inverse_volatility"
+      },
+      "refused": [
+        "allocation_method='inverse_volatility'"
+      ]
+    },
+    {
+      "id": "factor_tilt-offered",
+      "family": "factor_tilt",
+      "text": "I tilt 20% of my portfolio toward small cap value.",
+      "carriers": [
+        "stated_weights"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/s/smallcap.asp",
+      "state": "REFUSED",
+      "read": {
+        "objective": "other",
+        "portfolio_sleeves": "core=my portfolio, satellite=small cap value",
+        "factor_tilt": "factor_tilt"
+      },
+      "refused": [
+        "factor_tilt='factor_tilt'",
+        "portfolio_sleeves='core=my portfolio, satellite=small cap value'"
+      ]
+    },
+    {
+      "id": "glidepath-offered",
+      "family": "glidepath",
+      "text": "I shift 1% from stocks to bonds every year as I get older.",
+      "carriers": [
+        "periodic_rebalancing"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf",
+      "state": "REFUSED",
+      "read": {
+        "objective": "plan_contributions",
+        "cadence": "annual",
+        "amount": "1%",
+        "assets": "bonds",
+        "sell_action": "shift 1% from stocks to bonds",
+        "age_based_allocation": "age_based_allocation"
+      },
+      "refused": [
+        "age_based_allocation='age_based_allocation'",
+        "sell_action='shift 1% from stocks to bonds'"
+      ]
+    },
+    {
+      "id": "safe_withdrawal_rate-offered",
+      "family": "safe_withdrawal_rate",
+      "text": "I withdraw 4% of the portfolio each year, adjusted for inflation.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw 4% of the portfolio each year, adjusted for inflation"
+      },
+      "refused": [
+        "objective='assess_withdrawal'",
+        "sell_action='withdraw 4% of the portfolio each year, adjusted for inflation'"
+      ]
+    },
+    {
+      "id": "withdrawal_ordering-offered",
+      "family": "withdrawal_ordering",
+      "text": "I spend the taxable account first, then the IRA, then the Roth.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.nysdcp.com/rsc-preauth/learn-about-retirement/close-to-or-living-in-retirement/articles/withdrawal-strategies-to-consider-for-retirement",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_withdrawal"
+      },
+      "refused": [
+        "objective='assess_withdrawal'"
+      ]
+    },
+    {
+      "id": "required_minimum_distribution-offered",
+      "family": "required_minimum_distribution",
+      "text": "I take the required minimum distribution starting at 73.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.irs.gov/retirement-plans/retirement-plan-and-ira-required-minimum-distributions-faqs",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_withdrawal",
+        "sell_action": "take the required minimum distribution"
+      },
+      "refused": [
+        "objective='assess_withdrawal'",
+        "sell_action='take the required minimum distribution'"
+      ]
+    },
+    {
+      "id": "annuitisation-offered",
+      "family": "annuitisation",
+      "text": "I annuitize a third of the portfolio at 70.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://gainbridge.com/post/decumulation-strategy",
+      "state": "REFUSED",
+      "read": {
+        "sell_action": "annuitize a third of the portfolio at 70"
+      },
+      "refused": [
+        "sell_action='annuitize a third of the portfolio at 70'"
+      ]
+    },
+    {
+      "id": "dividend_income-offered",
+      "family": "dividend_income",
+      "text": "I live off the dividends and never touch the principal.",
+      "carriers": [
+        "dividend_policy"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/d/dividend.asp",
+      "state": "REFUSED",
+      "read": {
+        "sell_action": "live off the dividends and never touch the principal",
+        "dividend_policy": "held_as_cash"
+      },
+      "refused": [
+        "sell_action='live off the dividends and never touch the principal'",
+        "dividend_policy='held_as_cash'"
+      ]
+    },
+    {
+      "id": "asset_location-offered",
+      "family": "asset_location",
+      "text": "I hold the bonds in the IRA and the stocks in the taxable account.",
+      "carriers": [
+        "asset_location"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.tencap.com/blog/6-asset-location-strategies-place-investments/",
+      "state": "REFUSED",
+      "read": {
+        "asset_location": "holding=stocks, account=taxable account"
+      },
+      "refused": [
+        "asset_location='holding=stocks, account=taxable account'"
+      ]
+    },
+    {
+      "id": "roth_conversion-offered",
+      "family": "roth_conversion",
+      "text": "I convert $30,000 from the traditional IRA to the Roth each year.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.themoneypocket.com/articles/roth-conversion-ladder-strategy-retirement-tax-planning",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_conversion",
+        "amount": "30000",
+        "cadence": "annual",
+        "sell_action": "convert",
+        "account_transition": "from=traditional IRA, to=Roth"
+      },
+      "refused": [
+        "objective='assess_conversion'",
+        "sell_action='convert'",
+        "account_transition='from=traditional IRA, to=Roth'"
+      ]
+    },
+    {
+      "id": "tax_loss_harvesting-offered",
+      "family": "tax_loss_harvesting",
+      "text": "I harvest losses whenever a position falls 10% below its cost basis.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.financialplanningassociation.org/learning/publications/journal/OCT22-direct-indexing-tax-loss-harvesting-OPEN",
+      "state": "REFUSED",
+      "read": {
+        "sell_action": "harvest losses",
+        "conditional_amount": "a position falls 10% below its cost basis",
+        "trigger_semantics": "persistent_condition"
+      },
+      "refused": [
+        "conditional_amount='a position falls 10% below its cost basis'",
+        "sell_action='harvest losses'"
+      ]
+    },
+    {
+      "id": "cash_reserve-offered",
+      "family": "cash_reserve",
+      "text": "I keep six months of expenses in cash before investing anything.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investor.gov/introduction-investing/getting-started/emergency-fund",
+      "state": "REFUSED",
+      "read": {
+        "reserve_policy": "reserve=cash"
+      },
+      "refused": [
+        "reserve_policy='reserve=cash'"
+      ]
+    },
+    {
+      "id": "bucket_strategy-offered",
+      "family": "bucket_strategy",
+      "text": "I keep three years of expenses in cash and the rest in stocks.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://blincoe.uk/the-blincoe-blog/retirement-income-bucketing-strategy",
+      "state": "REFUSED",
+      "read": {
+        "bucket_policy": "bucket=cash, bucket=stocks"
+      },
+      "refused": [
+        "bucket_policy='bucket=cash, bucket=stocks'"
+      ]
+    },
+    {
+      "id": "leverage-offered",
+      "family": "leverage",
+      "text": "I hold 2x leverage on the equity sleeve of my portfolio.",
+      "carriers": [
+        "allocation_method"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/l/leverage.asp",
+      "state": "NOTHING_READ",
+      "read": {},
+      "refused": []
+    },
+    {
+      "id": "option_income-offered",
+      "family": "option_income",
+      "text": "I sell covered calls one strike out of the money each month.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/terms/c/coveredcall.asp",
+      "state": "REFUSED",
+      "read": {
+        "objective": "evaluate_investment_strategy",
+        "sell_action": "sell covered calls",
+        "cadence": "monthly"
+      },
+      "refused": [
+        "sell_action='sell covered calls'"
+      ]
+    },
+    {
+      "id": "non_market_alternative-offered",
+      "family": "non_market_alternative",
+      "text": "I pay off the mortgage instead of investing.",
+      "carriers": [
+        "objective"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_cited_definition",
+      "source": "https://www.investopedia.com/articles/pf/07/mortgage_investment.asp",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_debt_repayment",
+        "sell_action": "pay off the mortgage"
+      },
+      "refused": [
+        "objective='assess_debt_repayment'",
+        "sell_action='pay off the mortgage'"
+      ]
+    },
+    {
+      "id": "percentage_funding-percentage-of-income",
+      "family": "percentage_funding",
+      "text": "I put 10% of my after-tax salary into a traditional IRA every year.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/20835/investments-other-than-cds",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "objective": "plan_contributions",
+        "amount": "10%",
+        "cadence": "annual",
+        "account_type": "TRADITIONAL_IRA"
+      },
+      "refused": []
+    },
+    {
+      "id": "percentage_funding-percentage-of-paycheck",
+      "family": "percentage_funding",
+      "text": "I put 8% of every paycheck into my 401k.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/55829/should-i-buy-2200-of-a-hot-stock-or-invest-elsewhere",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "plan_contributions",
+        "cadence": "payroll",
+        "amount": "8%",
+        "account_type": "OTHER"
+      },
+      "refused": [
+        "cadence='payroll'"
+      ]
+    },
+    {
+      "id": "scheduled_funding-weekly-funding",
+      "family": "scheduled_funding",
+      "text": "I invest $50 into VTI every week.",
+      "carriers": [
+        "cadence"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/136064/focus-on-mortgage-or-keep-investing",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "objective": "plan_contributions",
+        "amount": "50",
+        "assets": "VTI",
+        "cadence": "weekly"
+      },
+      "refused": []
+    },
+    {
+      "id": "scheduled_funding-annual-lump",
+      "family": "scheduled_funding",
+      "text": "I contribute $10,000 to the portfolio once a year.",
+      "carriers": [
+        "cadence"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/16057/what-else-besides-fees-should-i-consider-in-rebalancing-my-fund-portfolios-asse",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "cadence": "annual",
+        "amount": "10000"
+      },
+      "refused": []
+    },
+    {
+      "id": "contribution_limit-max-the-limit",
+      "family": "contribution_limit",
+      "text": "I contribute 22% of my salary to my 401k, up to the $18,000 annual limit.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/45275/am-i-investing-properly-for-my-future",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "objective": "plan_contributions",
+        "amount": "22% of my salary",
+        "account_type": "OTHER"
+      },
+      "refused": []
+    },
+    {
+      "id": "contribution_limit-max-several-accounts",
+      "family": "contribution_limit",
+      "text": "I fully fund my Roth IRA each year and max out my 403(b) as well.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/134835/excess-income-after-fully-funding-all-retirement-accounts-now-what",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "objective": "plan_contributions",
+        "account_type": "OTHER",
+        "cadence": "annual"
+      },
+      "refused": []
+    },
+    {
+      "id": "employer_match-employer-match",
+      "family": "employer_match",
+      "text": "My employer contributes $100 to my HSA and matches the next $400 I put in.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/115105/choosing-between-tradtional-ppo-and-hdhp-with-high-prescription-cost",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "objective": "plan_contributions",
+        "amount": "400",
+        "account_type": "HSA"
+      },
+      "refused": []
+    },
+    {
+      "id": "scheduled_funding-split-across-accounts",
+      "family": "scheduled_funding",
+      "text": "I contribute $50 into each of two accounts every month.",
+      "carriers": [
+        "cadence"
+      ],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/76425/should-i-switch-to-a-new-ira-custodian",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "objective": "plan_contributions",
+        "amount": "50",
+        "cadence": "monthly"
+      },
+      "refused": []
+    },
+    {
+      "id": "escalating_funding-escalating-contribution",
+      "family": "escalating_funding",
+      "text": "I invest 100 EUR a month now and raise it to 150 EUR a month next year.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/75058/how-aggressive-should-my-personal-portfolio-be",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "plan_contributions",
+        "amount": "150",
+        "cadence": "monthly",
+        "conditional_amount": "raise it to 150 EUR a month next year"
+      },
+      "refused": [
+        "conditional_amount='raise it to 150 EUR a month next year'"
+      ]
+    },
+    {
+      "id": "stated_weights-single-fund",
+      "family": "stated_weights",
+      "text": "I hold 100% of my 401k in an S&P 500 index fund.",
+      "carriers": [
+        "stated_weights"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/39679/how-or-is-it-necessary-to-rebalance-a-401k-with-only-one-index-fund",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "account_type": "OTHER",
+        "assets": "an S&P 500 index fund",
+        "allocation_method": "stated_weights",
+        "stated_weights": "100%",
+        "asset_location": "holding=an S&P 500 index fund, account=401k"
+      },
+      "refused": [
+        "stated_weights='100%'",
+        "asset_location='holding=an S&P 500 index fund, account=401k'"
+      ]
+    },
+    {
+      "id": "stated_weights-three-way-split",
+      "family": "stated_weights",
+      "text": "I hold 73% stocks, 23% bonds and 4% other.",
+      "carriers": [
+        "stated_weights"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/55630/first-401k-portfolio-with-high-expense-ratios-which-funds-to-pick-24yo",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "assets": "stocks, bonds and other",
+        "allocation_method": "stated_weights",
+        "stated_weights": "73/23/4"
+      },
+      "refused": [
+        "stated_weights='73/23/4'"
+      ]
+    },
+    {
+      "id": "mean_variance-mean-variance",
+      "family": "mean_variance",
+      "text": "I set my weights by mean-variance optimisation across 30 holdings.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/145454/is-there-a-quantitative-answer-to-how-frequently-i-should-optimize-my-portfolio",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "allocation_method": "minimum_variance",
+        "assets": "30 holdings"
+      },
+      "refused": [
+        "allocation_method='minimum_variance'"
+      ]
+    },
+    {
+      "id": "volatility_target-volatility-target",
+      "family": "volatility_target",
+      "text": "I size the portfolio to target 10% annualised volatility.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://quant.stackexchange.com/questions/71489/when-how-do-i-vol-scale-portfolio-weights-when-optimizing-the-portfolio",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "allocation_method": "volatility_target"
+      },
+      "refused": [
+        "allocation_method='volatility_target'"
+      ]
+    },
+    {
+      "id": "rebalancing-fund-and-rebalance",
+      "family": "rebalancing",
+      "text": "Every three months I add money to the portfolio and rebalance it back to 70/30.",
+      "carriers": [
+        "periodic_rebalancing"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/142270/do-bond-funds-have-an-inherent-advantage-over-individual-bonds-within-a-portfoli",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "cadence": "quarterly",
+        "objective": "evaluate_investment_strategy",
+        "periodic_rebalancing": "rebalance it back to 70/30",
+        "allocation_method": "stated_weights",
+        "stated_weights": "70/30"
+      },
+      "refused": [
+        "stated_weights='70/30'",
+        "periodic_rebalancing='rebalance it back to 70/30'"
+      ]
+    },
+    {
+      "id": "holding_period-holding-period",
+      "family": "holding_period",
+      "text": "I hold each position for 21 days and then close it.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://quant.stackexchange.com/questions/77807/intuition-behind-portfolio-weights-with-lower-rmse-but-higher-variance",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "holding_period": "21 days",
+        "sell_action": "close it"
+      },
+      "refused": [
+        "holding_period='21 days'",
+        "sell_action='close it'"
+      ]
+    },
+    {
+      "id": "fixed_withdrawal-fixed-dollar-withdrawal",
+      "family": "fixed_withdrawal",
+      "text": "I withdraw $20,000 from the portfolio each year.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/95821/how-to-place-value-on-small-business-that-has-0-earnings",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_withdrawal",
+        "sell_action": "withdraw $20,000 from the portfolio each year",
+        "amount": "20000",
+        "cadence": "annual"
+      },
+      "refused": [
+        "objective='assess_withdrawal'",
+        "sell_action='withdraw $20,000 from the portfolio each year'"
+      ]
+    },
+    {
+      "id": "debt_clearing_withdrawal-withdraw-to-clear-debt",
+      "family": "debt_clearing_withdrawal",
+      "text": "I withdraw $18,000 from the portfolio to pay off my debt.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/102957/withdraw-ira-funds-after-divorce",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_debt_repayment",
+        "sell_action": "withdraw $18,000 from the portfolio",
+        "amount": "18000"
+      },
+      "refused": [
+        "objective='assess_debt_repayment'",
+        "sell_action='withdraw $18,000 from the portfolio'"
+      ]
+    },
+    {
+      "id": "deferral_choice-roth-deferral",
+      "family": "deferral_choice",
+      "text": "I make 100% of my 401k contributions Roth rather than pre-tax.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/169554/rule-of-55-with-a-401k-plan-with-mixed-roth-and-401k-contributions",
+      "licence": "CC-BY-SA 4.0",
+      "state": "EXECUTABLE",
+      "read": {
+        "objective": "plan_contributions",
+        "account_type": "OTHER",
+        "amount": "100%"
+      },
+      "refused": []
+    },
+    {
+      "id": "deferral_choice-pretax-deferral",
+      "family": "deferral_choice",
+      "text": "I make 100% of my 401k contributions pre-tax rather than Roth.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/169554/rule-of-55-with-a-401k-plan-with-mixed-roth-and-401k-contributions",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "plan_contributions",
+        "account_type": "OTHER",
+        "stated_weights": "100/0"
+      },
+      "refused": [
+        "stated_weights='100/0'"
+      ]
+    },
+    {
+      "id": "cash_reserve-months-of-expenses",
+      "family": "cash_reserve",
+      "text": "I keep 12 months of expenses in cash before investing anything.",
+      "carriers": [
+        "sell_action"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/126216/home-mortgage-w-very-low-interest-rates-more-or-less-down",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "reserve_policy": "reserve=cash"
+      },
+      "refused": [
+        "reserve_policy='reserve=cash'"
+      ]
+    },
+    {
+      "id": "lump_allocation-split-a-lump-sum",
+      "family": "lump_allocation",
+      "text": "I put $10,000 into an emergency fund and invest the remaining $20,000.",
+      "carriers": [],
+      "must_be": "RECOGNISED",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/46415/building-financial-independence",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "plan_contributions",
+        "amount": "20000",
+        "reserve_policy": "reserve=emergency fund"
+      },
+      "refused": [
+        "reserve_policy='reserve=emergency fund'"
+      ]
+    },
+    {
+      "id": "non_market_alternative-payoff-versus-invest",
+      "family": "non_market_alternative",
+      "text": "I have $10,000 and I compare paying down a 5% mortgage with investing it.",
+      "carriers": [
+        "objective"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/7246/do-i-end-up-richer-paying-down-a-mortgage-or-contributing-to-an-ira",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_debt_repayment",
+        "amount": "10000"
+      },
+      "refused": [
+        "objective='assess_debt_repayment'"
+      ]
+    },
+    {
+      "id": "leverage-margin-repayment",
+      "family": "leverage",
+      "text": "I use $5,000 of cash to pay down the margin loan on my stock position.",
+      "carriers": [
+        "allocation_method"
+      ],
+      "must_be": "REFUSED_BY_NAME",
+      "provenance": "authored_from_reviewed_harvest",
+      "source": "https://money.stackexchange.com/questions/157737/calculating-foreign-exchange-capital-loss-on-margin-loan-repayment",
+      "licence": "CC-BY-SA 4.0",
+      "state": "REFUSED",
+      "read": {
+        "objective": "assess_debt_repayment",
+        "amount": "5000"
       },
       "refused": [
         "objective='assess_debt_repayment'"

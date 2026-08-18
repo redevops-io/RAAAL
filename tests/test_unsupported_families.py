@@ -326,22 +326,76 @@ def test_an_explicit_static_bond_allocation_still_executes(declared):
 
 # --- what this cannot do -----------------------------------------------------
 
-def test_the_single_witness_profile_cannot_detect_a_family(declared):
-    """Stated so the green is not read as more than it is.
+def test_the_readers_run_on_the_profile_production_serves(declared):
+    """The reachability check, and it caught a real hole.
 
-    `unsupported_family` reads the parse. MODEL_ONLY has no parse, so a
-    deployment serving one witness has nothing that can say "this is a factor
-    tilt" when the model does not — which is precisely the omission this
-    closes. The serving profile is BOTH. Asserted rather than commented,
-    because a limitation nobody can see is a limitation somebody will assume
-    away.
+    These were written to read the parse, and the closure lane — which runs
+    `MODEL_ONLY`, the profile the deployment actually serves — reported "tilt
+    20% toward small cap value" still silently reduced after the fix. The
+    reason: `QUANTIFY_SYNTAX_WITNESS` is set in the drift-lane workflow and in
+    no deployment configuration, so `pilot.read` takes the single-witness
+    branch and calls every derived reader with `parse=None`.
+
+    A family reader that needed a parse would have refused factor tilts in the
+    corpus, in the suite and in the lane, and never once for a person. That is
+    the defect class this project keeps finding in its own deployment, and
+    `weight_binding` was rewritten to read the text for exactly this reason
+    before it.
+
+    Asserted on `parse=None` rather than on a profile object, because that is
+    the argument the production branch actually passes.
     """
     from src.discovery.derived_readers import (age_based_allocation,
                                                 factor_tilt)
 
-    text = "tilt 20% toward small cap value"
-    assert factor_tilt((), None, text) is None
-    assert age_based_allocation((), None, "hold my age in bonds") is None
+    assert factor_tilt((), None, "tilt 20% toward small cap value") is not None
+    assert age_based_allocation((), None, "hold my age in bonds") is not None
+    assert factor_tilt((), None, "invest $500 monthly into VTI") is None
+
+
+def test_a_reader_with_neither_a_parse_nor_text_is_silent():
+    """It has nothing to read, and inventing a family from nothing is worse
+    than missing one."""
+    from src.discovery.derived_readers import (age_based_allocation,
+                                                factor_tilt)
+
+    assert factor_tilt((), None, "") is None
+    assert age_based_allocation((), None, "") is None
+
+
+def test_the_parse_and_the_text_agree_across_the_corpus():
+    """Two ways in, one answer.
+
+    The parse is preferred where present because it has already decided where
+    the words are. If the two disagreed, the suite would be measuring one thing
+    and production another — which is how a reader passes its tests and refuses
+    nothing for a user.
+    """
+    import json
+    import pathlib as _pathlib
+
+    from src.discovery.derived_readers import (age_based_allocation,
+                                                factor_tilt)
+
+    cases = json.loads(
+        (_pathlib.Path(__file__).resolve().parent.parent / "corpus" / "parser"
+         / "strategy_families.json").read_text())["cases"]
+
+    differences = []
+    for case in cases:
+        text = case["text"]
+        parse = _parse(text)
+        with_parse = {c.dimension for c in (factor_tilt((), parse, text),
+                                            age_based_allocation((), parse, text))
+                      if c is not None}
+        without = {c.dimension for c in (factor_tilt((), None, text),
+                                         age_based_allocation((), None, text))
+                   if c is not None}
+        if with_parse != without:
+            differences.append((text, sorted(with_parse), sorted(without)))
+
+    assert not differences, (
+        f"the two paths disagree on {len(differences)} sentences: {differences[:3]}")
 
 
 # --- the replay guard compares the question, not a proxy for it --------------

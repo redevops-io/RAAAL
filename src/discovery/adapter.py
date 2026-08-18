@@ -556,6 +556,45 @@ def relation_fields(relations) -> Dict[str, str]:
     return summary
 
 
+class DerivedReaders:
+    """Quantify's deterministic readers, presented as one Quantify reader.
+
+    They are readers — named, versioned, each claiming one field — so the
+    runtime should receive them the way it receives any other, rather than
+    through a side channel. `ReaderAdapter` then wraps this exactly as it wraps
+    the hosted one.
+
+    Written because the equivalence harness's runtime lane ran only the hosted
+    reader while the serving path also runs these, and the two lanes agreed
+    anyway — because every derived reader needed a parse and the serving path
+    passes none. A whole class of readers being inert is what made the two
+    lanes look alike, and making the family readers work without a parse turned
+    that latent asymmetry into three visible differences.
+
+    Called with no candidates and no parse, which is what `pilot.read` passes
+    on the profile the deployment serves.
+    """
+
+    id = "quantify-derived-readers@1"
+
+    def __init__(self, schema=None):
+        self._schema = schema or QUANTIFY_SCHEMA
+
+    def read(self, text: str, schema=None):
+        from .claims import Read  # noqa: F401  (kept for shape parity)
+        from .derived_readers import DERIVED_READERS
+        from .reader import Reading, ReadingSet
+
+        readings = []
+        for _reader_id, derive in DERIVED_READERS:
+            found = derive((), None, text)
+            if found is not None:
+                readings.append(Reading(dimension=found.dimension,
+                                        value=found.value,
+                                        source_span=getattr(found, "source_span", "")))
+        return ReadingSet(reader_id=self.id, readings=tuple(readings))
+
+
 class ReaderAdapter:
     """A Quantify reader, presented as a `discovery_runtime.Reader`.
 

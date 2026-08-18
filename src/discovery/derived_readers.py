@@ -250,16 +250,26 @@ _FAMILY_READER_IDS = {"factor_tilt": FACTOR_TILT_READER_ID,
                       "age_based_allocation": AGE_BASED_READER_ID}
 
 
-def _token_text(parse) -> str:
-    """The sentence as its parser saw it: lowercased tokens, single-spaced.
+def _token_text(parse, text: str = "") -> str:
+    """The sentence as words, from the parse where there is one and the text
+    where there is not.
 
-    Built from the parse rather than the raw string, which is the difference
-    between a domain-vocabulary witness and a phrase check. Whatever the person
-    typed — `Small-Cap Value`, `small  cap  value`, a line break — the parser
-    has already tokenised it, and matching that sequence means the reader and
-    the parser agree about where the words are.
+    **The text fallback is the whole point, not a convenience.** The deployment
+    that serves users declares no syntax witness — `QUANTIFY_SYNTAX_WITNESS` is
+    set in the drift-lane workflow and nowhere else — so `pilot.read` takes the
+    single-witness branch and calls every derived reader with `parse=None`. A
+    family reader that needed a parse would refuse factor tilts in the corpus,
+    in the suite and in the lane, and never once for a person. That is the
+    reachability defect this project keeps finding in its own deployment, and
+    `weight_binding` was rewritten for exactly this reason before it.
 
-    It is still a phrase match over terms of art, and that is the intended
+    The parse is still preferred where present: it has already decided where
+    the words are, so `Small-Cap  Value` across a line break is one sequence
+    without this function guessing. Without it, the raw text is lowercased and
+    its whitespace collapsed, which is the same normalisation applied less
+    well.
+
+    It is a phrase match over terms of art either way, and that is the intended
     scope: "small cap value" and "my age in bonds" name one thing each. What it
     must never become is a general reader of meaning, which is why the terms
     are a closed list with a citation apiece.
@@ -267,16 +277,18 @@ def _token_text(parse) -> str:
     words = []
     for sentence in getattr(parse, "sentences", ()):
         for token in getattr(sentence, "tokens", ()):
-            text = str(getattr(token, "text", "") or "").lower()
-            if text:
-                words.append(text)
+            word = str(getattr(token, "text", "") or "").lower()
+            if word:
+                words.append(word)
+    if not words:
+        words = str(text or "").lower().split()
     joined = " ".join(words)
     # Hyphens are their own tokens in some parses and part of the word in
     # others, so both renderings of `small-cap` reach the same string.
     return joined.replace(" - ", "-").replace(" ' ", "'")
 
 
-def _names_family(parse, family) -> bool:
+def _names_family(parse, family, text: str = "") -> bool:
     """Whether this sentence names the family, by term of art or by tilt.
 
     Two rules, and the second is a pair. A term of art stands alone. A tilt
@@ -290,7 +302,7 @@ def _names_family(parse, family) -> bool:
         "I am overweight and want to retire"  marker only  -> nothing
         "hold 40% in value stocks"            style only   -> nothing
     """
-    seen = _token_text(parse)
+    seen = _token_text(parse, text)
     flat = seen.replace("-", " ")
 
     def present(phrase: str) -> bool:
@@ -324,7 +336,7 @@ def factor_tilt(candidates: Sequence, parse=None,
     The value is the family name and carries no further reading. What a tilt
     *is* stays unmodelled; this says only that the sentence names one.
     """
-    if not _names("factor_tilt", parse):
+    if not _names("factor_tilt", parse, text):
         return None
     return Proposal(dimension="factor_tilt", value="factor_tilt",
                     reader_id=FACTOR_TILT_READER_ID,
@@ -342,7 +354,7 @@ def age_based_allocation(candidates: Sequence, parse=None,
     is exactly that shape. A sentence naming both still reports both, because
     both readers run.
     """
-    if not _names("age_based_allocation", parse):
+    if not _names("age_based_allocation", parse, text):
         return None
     return Proposal(dimension="age_based_allocation",
                     value="age_based_allocation",
@@ -350,7 +362,7 @@ def age_based_allocation(candidates: Sequence, parse=None,
                     source_span=str(text or "")[:120])
 
 
-def _names(dimension: str, parse) -> bool:
+def _names(dimension: str, parse, text: str = "") -> bool:
     """Whether the sentence names this family. A predicate, never a claim.
 
     The detection rules are one function because they are one rule — terms of
@@ -364,9 +376,9 @@ def _names(dimension: str, parse) -> bool:
     """
     from .vocabulary import UNSUPPORTED_FAMILIES
 
-    if parse is None:
+    if parse is None and not text:
         return False
-    return _names_family(parse, UNSUPPORTED_FAMILIES[dimension])
+    return _names_family(parse, UNSUPPORTED_FAMILIES[dimension], text)
 
 
 #: Every derived reader, so the pipeline does not name them one at a time and

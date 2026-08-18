@@ -272,6 +272,28 @@ MANIFEST: Mapping[str, Dimension] = {
              "rather than defaulted: rebalancing sells, and picking a "
              "frequency would invent a schedule of sales nobody described")),
 
+    # The two unsupported strategy families, so a reading that carries one is
+    # refused by name rather than compiled from whatever fragment survived.
+    #
+    # NOT_MODELLED rather than REFUSED, and the distinction is the one this
+    # module draws: REFUSED is a decision about something the engine
+    # represents, and neither of these has a representation at all. A tilt
+    # names a factor where the engine names instruments; an age-based
+    # allocation changes over time where the engine holds one allocation for
+    # the whole evaluation.
+    "factor_tilt": _d(
+        "factor_tilt", NOT_MODELLED,
+        why="a tilt names a factor or style rather than the holdings to buy, "
+            "and this build divides each purchase between named instruments; "
+            "executing it as a purchase of whatever the words happened to "
+            "name is a different strategy"),
+
+    "age_based_allocation": _d(
+        "age_based_allocation", NOT_MODELLED,
+        why="the allocation changes with age or elapsed time, and this build "
+            "holds one allocation for the whole evaluation; running it as a "
+            "fixed split silently drops the thing that made it a glide path"),
+
     "selection_rule": _d(
         "selection_rule", NOT_MODELLED,
         why="choosing holdings by ranking them is not modelled: this build "

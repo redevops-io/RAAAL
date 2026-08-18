@@ -109,6 +109,20 @@ class ComparisonState:
     settled_fields: Dict[str, str]
     unresolved_dimensions: Tuple[str, ...]
     refusals: Tuple[str, ...]
+    """Mission's, not Discovery's, and deliberately not compared.
+
+    It is `()` on the runtime lane and has been for this field's whole life, so
+    every comparison of it was a constant against a constant. That cost nothing
+    while no corpus case refused, and turned into three unexplained differences
+    the moment the serving lane began refusing unsupported families by name.
+
+    Kept in the view because a reader of a single state wants to see it, and
+    excluded from `classify` because it is downstream of the artifact these two
+    lanes are obliged to agree on. The serving path also applies presentation
+    rules to it — an unsupported family is shown alone, because no answer to
+    the other questions would make the strategy runnable — and a presentation
+    rule is not a Discovery semantic.
+    """
     clarification_needed: bool
     sealable: bool
     intent_hash: str
@@ -146,8 +160,21 @@ def _runtime_intent(text: str):
 
     original, deploy_context.current = deploy_context.current, lambda: _resolved()
     try:
-        reader = adapter.ReaderAdapter(pilot_routes.configured_reader())
-        intent = adapter.intent_from([reader], text)
+        # Both of Quantify's readers, because the serving path runs both.
+        #
+        # This lane ran only the hosted one and the two lanes agreed anyway,
+        # which looked like equivalence and was partly an artefact: every
+        # derived reader needed a parse, `pilot.read` passes none on the served
+        # profile, so the readers this lane omitted were inert in the lane it
+        # was compared against. Making the family readers work without a parse
+        # turned that into three differences — the measurement catching up with
+        # the code rather than the code regressing.
+        from runtime_contracts import ReaderKind
+
+        readers = [adapter.ReaderAdapter(pilot_routes.configured_reader()),
+                   adapter.ReaderAdapter(adapter.DerivedReaders(),
+                                         kind=ReaderKind.RULE)]
+        intent = adapter.intent_from(readers, text)
     finally:
         deploy_context.current = original
 

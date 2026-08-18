@@ -420,3 +420,85 @@ person typing "tilt 20% toward small cap value" would see Quantify name factor
 tilts as unsupported instead of asking about holdings. That is a decision about
 what the product says, not a migration step, so it is recorded here rather than
 made in passing.
+
+---
+
+## Item 8, after the fix: the numbers pass and two more defects came out
+
+Same lane, same 79 prompts, same frozen `RUNTIME + OpenAI + gpt-5.4`.
+
+| | before | after |
+|---|---|---|
+| `UNSTABLE_EXECUTABLE` | 1 | **0** |
+| `silently_reduced_any_draw` (drift) | 2 | **0** |
+| stable identities | 62 | **63** |
+
+Exactly two strategies stopped executing — `hold my age in bonds` and `tilt
+20% toward small cap value` — and they are the two that were executing
+wrongly. Nothing newly executes.
+
+Six prompts left the stable set and five entered it, none of them families
+touched here. Checked rather than assumed: the detector is silent on all six,
+every branch added is gated behind `if families:`, and the prompt is
+byte-identical, so the code is provably inert for them. Two-way movement on
+untouched prompts at three draws is model sampling.
+
+### The closure lane was measuring a surface that had stopped existing
+
+`strategy_closure.py` asks `refusals_for(reading)` of the model's readings
+alone, and its docstring said it measured what a deployment sees. That was
+true while every derived reader needed a parse and none could run in
+production. It stopped being true the moment the family readers were made to
+read the text, and the lane went on reporting a silent reduction for a
+sentence the serving path refuses by name.
+
+It now runs Quantify's derived readers the way `pilot.read` runs them — no
+candidates, no parse. The honest test of an instrument change is whether it
+still discriminates: `tilt 20% toward small cap value` became REFUSED, and
+`annuitize a third of the portfolio at 70`, which nothing here touched, is
+**still SILENTLY_REDUCED**. Had both vanished the instrument had been bent.
+
+### The remaining blocker is the same defect in a third family
+
+`annuitize a third of the portfolio at 70` is declared `REFUSED_BY_NAME` with
+a cited definition. The committed gpt-4.1 artifact records the model reading
+`sell_action` and Mission refusing it by name. Under gpt-5.4 the model reads
+only `objective: other` and omits it, so nothing downstream has anything to
+refuse. The refusal was hosted-model recall, not a detected semantic.
+
+The mechanism built for exactly this exists and cannot reach it. `guards.py`
+proves a material predicate is present and its `sell_action` lemma set
+already contains `annuitize` — but `as_decisions` is called only in the
+two-witness branch, and `QUANTIFY_SYNTAX_WITNESS` is set in the drift-lane
+workflow and in no deployment configuration. So in the served `MODEL_ONLY`
+profile the guards for `sell_action` and `periodic_rebalancing` are inert,
+and the case their own docstring describes — "the fifth read no sell at all
+and produced an executable plan" — is unprotected for real users.
+
+Closing it needs either a guard that works without a parse, losing the
+predicate-position rule that tells `sell` the verb from `a sell signal` the
+noun, or Stanza in the serving image. Both are product decisions, so this is
+recorded rather than decided.
+
+### Two defects the equivalence harness caught on the way
+
+**`merge_readings` carried only the first reader's payload.** Evidence was
+merged across every reader and the payload taken from `readings[0]`, so a
+dimension only a later reader proposed was fused, decided, and then dropped —
+absent from the payload *and* from `unresolved`. Fixed upstream and released
+as `discovery-runtime v0.1.9`. Quantify never hit it because the serving path
+builds one `Reading`; `intent_from` is the only multi-reader path and had
+always been passed exactly one reader.
+
+**The serving path recorded a deterministic reader's claim as `MODEL`.**
+`canonicalise` stamps `MODEL` on everything it passes through, because it
+receives values and not the witnesses behind them — so the artifact asserted
+that a hosted model had reported a factor tilt it had said nothing about. The
+runtime lane got `READER` right and the serving lane did not, which is what
+the harness is for.
+
+**The 36/36 equivalence result was partly earned by inert code.** The runtime
+lane ran only the hosted reader, and the serving lane could not run the
+derived ones without a parse, so the omission was invisible. Both lanes run
+both readers now and the intent hashes match: 36/36 EQUIVALENT on a fuller
+basis than the original.

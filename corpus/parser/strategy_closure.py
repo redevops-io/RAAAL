@@ -40,12 +40,17 @@ Mission about what was read produce a refusal. One state per case:
 that produces nothing sends somebody back to rephrase; a sentence that produces
 the wrong plan sends them away with a number.
 
-**What this measures and what it does not.** The witness here is the
-deterministic `CompilerReader`, because it needs no provider and no recordings,
-so this report runs anywhere. It says nothing about what the *model* reader
-sees — under `MODEL_ONLY`, which is the pilot profile, the model is the only
-witness and there is no second one to catch it missing the same thing. Closing
-that is a separate pass that needs hosted recordings for these sentences.
+**What this measures.** Everything Mission would be asked about on the serving
+path: the model's readings, the relation kinds folded in, and Quantify's own
+deterministic readers run the way `pilot.read` runs them — with no parse,
+because the deployment declares no syntax witness.
+
+The derived readers were absent from this for one release and the omission was
+invisible, because while every one of them needed a parse they could not run in
+production either, so measuring without them measured the truth. The moment the
+family readers were made to read the text, this lane went on reporting a silent
+reduction for a sentence the serving path refuses by name — an instrument
+describing a configuration that had stopped existing.
 """
 from __future__ import annotations
 
@@ -82,10 +87,28 @@ def _read(reader, schema, text: str) -> dict:
     if getattr(result, "failed", ""):
         return {}
 
+    from src.discovery.derived_readers import DERIVED_READERS
     from src.workspace.pilot import _relation_fields
 
+    # Quantify's own deterministic readers, on the same terms the serving path
+    # runs them: candidates and parse absent, because the deployment declares
+    # no syntax witness and `pilot.read` calls them exactly like this.
+    #
+    # Without them this measured a surface narrower than the one served, while
+    # its docstring said it measured "what Mission would be asked about". That
+    # was true while every derived reader needed a parse and none could run in
+    # production. It stopped being true when the family readers were made to
+    # read the text, and the lane went on reporting a silent reduction for a
+    # sentence the serving path refuses by name.
+    derived = {}
+    for _reader_id, derive in DERIVED_READERS:
+        found = derive((), None, text)
+        if found is not None:
+            derived[found.dimension] = found.value
+
     return {**{r.dimension: r.value for r in result.readings},
-            **_relation_fields(result)}
+            **_relation_fields(result),
+            **derived}
 
 
 #: The reader a deployment actually serves. `compiler` is retained only as a

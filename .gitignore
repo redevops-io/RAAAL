@@ -178,3 +178,9 @@ formal/.lake/
 
 # vendored shared runtime (see scripts/vendor_agentic_os.sh)
 /agentic_os/
+
+# A local drift run. `drift.json` is CI-produced and citable; this is what the
+# lane writes instead when run by hand, and it must not become repository
+# evidence — `test_baseline_v1` requires the artifact the gate reads to have
+# come from the scheduled lane.
+corpus/parser/drift_local.json
