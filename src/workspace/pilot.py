@@ -378,12 +378,24 @@ def _intent(text: str, decisions, reading: ReadingSet, *, objective: str,
                    detail=why, result_changing=True)
         for name, why in canonical.refusals)
 
+    # Relations, structurally, not only as the flat markers `_relation_fields`
+    # adds for Mission's compiler.
+    #
+    # `canonical_form` includes them and says why: "a relationship *is* part of
+    # what was asked for. Two intents naming the same instruments in different
+    # roles are different requests." Dropping them meant this path could not
+    # tell `from=traditional IRA, to=Roth` from the reverse — both hashed the
+    # same, because the marker records only that an account_transition exists.
+    from ..discovery.adapter import as_intent_relation
+
     draft = VerifiedIntent(
         objective=objective,
         produced_by=f"{reading.reader_id}+{INTERPRETER_VERSION}",
         utterance_ref=utterance_ref,
         fields={name: IntentField(value=value, author=_AUTHORS[author])
                 for name, (value, author) in canonical.fields.items()},
+        relations=tuple(as_intent_relation(r)
+                        for r in getattr(reading, "relations", ()) or ()),
         unresolved=unresolved)
     try:
         return draft.seal(), canonical.refusals

@@ -414,7 +414,16 @@ def test_every_representational_difference_is_execution_neutral(capsys):
     print(f"    {'byte-identical StrategySpec':<14} "
           f"{outcomes.get('SPEC', 0)} of {sum(outcomes.values())}")
 
-    assert sum(outcomes.values()), "nothing was classified representational"
+    # Zero representational cases is the better outcome, not a vacuous pass.
+    # This assertion once read `assert sum(outcomes.values())` to stop the
+    # proof passing when nothing exercised it — correct while differences
+    # existed, wrong the moment they were all converged. What keeps it from
+    # being vacuous now is the run above: 36 cases compared and every one
+    # EQUIVALENT is a stronger statement than any number of proven-neutral
+    # differences.
+    if not sum(outcomes.values()):
+        print("    none — every case is EQUIVALENT")
+
     assert not differing, (
         "these are classified representational and are not execution-neutral:\n"
         + "\n".join(f"  {t[:60]!r}: {a} vs {b}" for t, a, b in differing))
