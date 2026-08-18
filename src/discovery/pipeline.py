@@ -117,7 +117,16 @@ def read(text: str, parse: Parse, model_reading: ReadingSet, schema: Schema,
     # carried on the Read as computed semantics, not as decisions.
     from .semantics import INTERMEDIATE_FIELDS
 
-    model_by_field = {p.dimension: p for p in proposals(model_reading)}
+    # One claim per dimension before indexing by name. Indexing directly kept
+    # the last observation, so a reader that emitted `bonds` and `stocks` for
+    # `assets` — which is what it does for "take from bonds in a down year and
+    # from stocks otherwise" — produced a plan naming only stocks. Silent, and
+    # older than this migration; the single-witness path was fixed first and
+    # this one kept it.
+    from .adapter import one_claim_per_dimension
+
+    model_by_field = {p.dimension: p
+                      for p in one_claim_per_dimension(proposals(model_reading))}
     fields = sorted((set(model_by_field)
                      | {c.field for c in candidates if c.is_contract_field}))
 
