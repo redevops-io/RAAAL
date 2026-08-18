@@ -47,6 +47,7 @@ from ..discovery.canonical import canonicalise
 from discovery_runtime.fusion import Fusion
 from ..discovery.reader import ReadingSet, Schema
 from ..discovery.schema import QUANTIFY_SCHEMA
+from ..discovery.vocabulary import UNSUPPORTED_FAMILIES
 from ..discovery.witnesses import MODEL_ONLY, SettledField, WitnessProfile, record
 from ..mission.capability import Refusal
 from ..mission.from_intent import Compiled, NotExecutable, compile_intent
@@ -252,11 +253,22 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         # "take from bonds in a down year and from stocks otherwise" — produced
         # a plan naming only stocks. Silent, and the sentence names both.
         #
+        # **This profile cannot detect an unsupported family.**
+        #
+        # `unsupported_family` reads the parse, and there is no parse here.
+        # That is a real limitation of running one witness, stated rather than
+        # hidden: a deployment serving MODEL_ONLY has nothing that can say
+        # "this sentence is a factor tilt" when the model does not, which is
+        # exactly the omission the family detection closes. The serving profile
+        # is BOTH; `tests/test_unsupported_families.py` asserts this gap so it
+        # cannot be mistaken for coverage.
         derived_by_field = {}
         for _reader_id, derive in DERIVED_READERS:
             found = derive((), None, text)
-            if found is not None:
-                derived_by_field[found.dimension] = found
+            if found is None:
+                continue
+            for claim in (found if isinstance(found, (list, tuple)) else (found,)):
+                derived_by_field[claim.dimension] = claim
 
         # One witness, through the same runtime. Not a special case: a profile
         # with nothing to argue is one where nothing argues, which an empty
@@ -302,6 +314,50 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
         for name, why in unreadable
         if not any(r.dimension == name for r in refusals))
 
+    # An unsupported family is refused by name here, before anything else and
+    # whether or not the intent sealed.
+    #
+    # Mission already refuses any dimension nothing consumes, and that was the
+    # first version of this. It is not enough, because it runs *after* sealing:
+    # "tilt 20% toward small cap value" left `assets` open, so the intent never
+    # sealed, the compiler never ran, and the person was asked which holdings
+    # they meant — for a strategy this build does not model. And "hold my age
+    # in bonds" refused by `stated_weights` on the draws where the model
+    # happened to read a weight, so the same sentence gave two different
+    # refusals depending on what the model noticed.
+    #
+    # That is the same defect this whole change exists to remove, one layer up:
+    # a refusal whose appearance depends on some other dimension's accident.
+    # The detection is deterministic, so the refusal is too — it does not wait
+    # for a seal, and it goes first, because "this build does not model factor
+    # tilts" is the answer and "which holdings did you mean" is not.
+    families = tuple(
+        Refusal(kind="UNSUPPORTED_FAMILY", dimension=name,
+                stated_value=str(getattr(claim, "value", name)),
+                detail=_family_detail(name))
+        for name, claim in sorted((derived_by_field or {}).items())
+        if name in UNSUPPORTED_FAMILIES)
+    if families:
+        # And it is the *only* refusal, because nothing else can be acted on.
+        #
+        # "we do not model factor tilts" alongside "which holdings did you
+        # mean?" reads as a pair of problems of which one might be fixable. It
+        # is not: no answer to the second makes the strategy runnable, and
+        # asking invites somebody to supply holdings for a plan that will be
+        # refused anyway. It also made the outcome vary — the accompanying
+        # refusals depended on what the model happened to read, so the same
+        # sentence produced `refused:factor_tilt,assets` on one draw and
+        # `refused:factor_tilt` on the next, which is the instability this
+        # change exists to remove wearing a smaller hat.
+        refusals = families
+
+    # An unsupported family asks nothing. `questions` is built from
+    # `open_fields` and the refusals that want input, so leaving the open
+    # dimensions in place would put the questions back on the page under
+    # another name.
+    if families:
+        open_fields = ()
+
     built = PilotReading(
         text=text, intent=intent, compiled=compiled, settled=settled,
         open_fields=open_fields, absent_fields=absent_fields,
@@ -311,6 +367,13 @@ def read(text: str, reader, *, schema: Schema = QUANTIFY_SCHEMA,
     # plan that one field was quietly defaulted *and* explicitly requested.
     return replace(built, absent_fields=tuple(
         f for f in built.absent_fields if f not in set(built.questions)))
+
+
+def _family_detail(name: str) -> str:
+    """Why this family cannot run, in the words its own definition uses."""
+    family = UNSUPPORTED_FAMILIES[name]
+    return (f"you described a strategy this version does not model: "
+            f"{family.why}")
 
 
 def _relation_fields(reading: ReadingSet) -> dict:

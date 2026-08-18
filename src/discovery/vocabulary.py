@@ -99,3 +99,89 @@ PERIOD_DIMENSIONS = frozenset({
     "moving_average_window", "evaluation_period", "holding_period",
     "rebalancing_period", "lookback_window",
 })
+
+
+# --- strategy families this build does not model -----------------------------
+#
+# Two of these executed on the live lane under gpt-5.4 and were refused under
+# gpt-4.1, and the reason the old model refused was not that anything here
+# recognised the family. gpt-4.1 happened to also report a `portfolio_sleeves`
+# relation, which is unsupported, so the plan failed to compile for an
+# unrelated reason. gpt-5.4 sometimes omits that relation and the remaining
+# fragment — some holdings and a percentage — looks like an ordinary
+# accumulation plan and compiles.
+#
+# A refusal that depends on another dimension happening to fail first is not a
+# refusal. These make the semantic itself detectable, so the refusal is caused
+# by the thing being refused.
+#
+# **Vocabulary only.** What the words mean, with sources. Whether a sentence
+# contains one is `derived_readers.unsupported_family`, which reads the parse;
+# what to do about it is Mission's, which refuses any dimension nothing
+# consumes. Neither decision belongs in a word list.
+
+
+@dataclass(frozen=True)
+class Family:
+    """A strategy family, the words that name it, and where that is written."""
+
+    dimension: str
+    #: Noun phrases that name the family on their own. Terms of art — nobody
+    #: writes "small cap value" or "my age in bonds" about anything else.
+    terms: frozenset = frozenset()
+    #: Words that express a tilt, in any position. On their own they prove
+    #: nothing: `overweight` is ordinary English about a person, and Stanza
+    #: tags it ADJ even in "I overweight value", so a predicate-position rule
+    #: could never fire for it.
+    markers: frozenset = frozenset()
+    #: The factors and styles a tilt can be toward. A marker and one of these
+    #: together name the family; either alone does not. "I am overweight and
+    #: want to retire early" has the marker and no style; "hold 40% in value
+    #: stocks" has the style and no marker, and is an ordinary holding.
+    styles: frozenset = frozenset()
+    why: str = ""
+    source: str = ""
+
+
+#: The families, by the dimension a refusal will name.
+#:
+#: Deliberately narrow. Every entry is a family the corpus already declares
+#: `REFUSED_BY_NAME` with a cited definition, and the words are the ones those
+#: cited definitions use. A family added here without a source is a family
+#: somebody guessed at, and `tests/test_unsupported_families.py` asserts both.
+UNSUPPORTED_FAMILIES = {
+    "factor_tilt": Family(
+        dimension="factor_tilt",
+        terms=frozenset({
+            "small cap value", "small-cap value", "value tilt", "quality tilt",
+            "momentum tilt", "size tilt", "factor tilt", "small cap tilt",
+            "value factor", "quality factor", "momentum factor",
+            "size factor", "factor exposure", "smart beta",
+        }),
+        markers=frozenset({"tilt", "tilted", "tilts", "overweight",
+                           "underweight", "overweighted", "underweighted"}),
+        styles=frozenset({
+            "value", "growth", "quality", "momentum", "size", "small cap",
+            "small-cap", "large cap", "large-cap", "mid cap", "mid-cap",
+            "smallcap", "low volatility", "min vol", "profitability",
+            "factor", "factors", "style", "beta",
+        }),
+        why="a tilt names a factor rather than the holdings to buy, and this "
+            "build divides each purchase between named instruments",
+        source="https://www.investopedia.com/terms/s/smallcap.asp"),
+
+    "age_based_allocation": Family(
+        dimension="age_based_allocation",
+        terms=frozenset({
+            "my age in bonds", "your age in bonds", "age in bonds",
+            "glide path", "glidepath", "age-based", "age based",
+            "target date", "target-date", "as i get older", "as i age",
+            "as you age", "over time as", "declining equity",
+            "rising equity", "reduce equity exposure over time",
+            "increase bonds as", "decrease stocks as",
+        }),
+        why="the allocation changes with age or elapsed time, and this build "
+            "holds one allocation for the whole evaluation",
+        source="https://benchmarkfg.com/wp-content/uploads/2025/05/"
+               "Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf"),
+}

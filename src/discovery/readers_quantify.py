@@ -191,6 +191,11 @@ class HostedReader:
     def _schema_prompt(self, schema: Schema) -> str:
         lines = []
         for d in schema.dimensions:
+            # A dimension a deterministic reader authors is not the model's to
+            # report. Asking about it produces a competing value and turns a
+            # refusal into a question.
+            if not getattr(d, "asked", True):
+                continue
             line = f"- {d.name}: {d.describes}"
             if d.values:
                 line += f"\n    one of: {', '.join(d.values)}"

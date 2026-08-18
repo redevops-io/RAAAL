@@ -218,6 +218,39 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@6", dimensions=(
         name="moving_average_window",
         compare_as="NUMBER",
         describes="The length of any moving average named, in sessions."),
+
+    # --- families this build does not model ---------------------------------
+    #
+    # Recognised so they can be *refused by name*, which is the only reason
+    # they exist. Nothing in Mission consumes either, so a sealed intent
+    # carrying one strands and is refused as UNSUPPORTED_DIMENSION naming the
+    # family — the mechanism that already refuses `observed_assets` and
+    # `execution_timing`.
+    #
+    # They are dimensions rather than `allocation_method` values on purpose.
+    # An unsupported value of a supported dimension refuses by that dimension,
+    # so "we do not model factor tilts" and "we cannot compute risk parity"
+    # would arrive as the same refusal identity — and the drift lane, which
+    # identifies an outcome by the dimensions refused, could not tell them
+    # apart. `age_based_allocation` is also not an allocation *method*: it is
+    # an allocation that changes over time, and calling it one would describe
+    # it as static.
+
+    Dimension(
+        name="factor_tilt",
+        asked=False,
+        describes=("A tilt toward a factor or style — value, size, quality, "
+                   "momentum — rather than named holdings."),
+        examples=("tilt 20% toward small cap value", "overweight value",
+                  "add a quality tilt")),
+
+    Dimension(
+        name="age_based_allocation",
+        asked=False,
+        describes=("An allocation that changes with age or over time, rather "
+                   "than one held for the whole evaluation."),
+        examples=("hold my age in bonds", "increase bonds as I get older",
+                  "reduce equity exposure over time")),
 ), relations=(
 
     # Added in schema@2. Both of these were forced by the shadow run: two

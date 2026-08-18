@@ -50,7 +50,8 @@ TRIGGER_READER_ID = "quantify-trigger-semantics@1"
 
 #: The only fields this module may ever claim. One per reader, and named here
 #: so a reader cannot quietly claim a second and become a compiler.
-AUTHORS = frozenset({"trigger_semantics", "stated_weights", "day_rule"})
+AUTHORS = frozenset({"trigger_semantics", "stated_weights", "day_rule",
+                     "factor_tilt", "age_based_allocation"})
 
 
 #: Words that invert a condition. The reader has no rule for what a negated
@@ -240,8 +241,106 @@ def day_of_month(candidates: Sequence, parse=None,
                     reader_id=DAY_READER_ID)
 
 
+#: Versioned like the others. The word lists are part of the rules, so adding
+#: a term is a new version and two runs stop looking comparable.
+FAMILY_READER_ID = "quantify-unsupported-family@1"
+
+
+def _token_text(parse) -> str:
+    """The sentence as its parser saw it: lowercased tokens, single-spaced.
+
+    Built from the parse rather than the raw string, which is the difference
+    between a domain-vocabulary witness and a phrase check. Whatever the person
+    typed — `Small-Cap Value`, `small  cap  value`, a line break — the parser
+    has already tokenised it, and matching that sequence means the reader and
+    the parser agree about where the words are.
+
+    It is still a phrase match over terms of art, and that is the intended
+    scope: "small cap value" and "my age in bonds" name one thing each. What it
+    must never become is a general reader of meaning, which is why the terms
+    are a closed list with a citation apiece.
+    """
+    words = []
+    for sentence in getattr(parse, "sentences", ()):
+        for token in getattr(sentence, "tokens", ()):
+            text = str(getattr(token, "text", "") or "").lower()
+            if text:
+                words.append(text)
+    joined = " ".join(words)
+    # Hyphens are their own tokens in some parses and part of the word in
+    # others, so both renderings of `small-cap` reach the same string.
+    return joined.replace(" - ", "-").replace(" ' ", "'")
+
+
+def _names_family(parse, family) -> bool:
+    """Whether this sentence names the family, by term of art or by tilt.
+
+    Two rules, and the second is a pair. A term of art stands alone. A tilt
+    word does not: `overweight` is ordinary English about a person, and one of
+    the factors or styles has to be named with it before the sentence is about
+    portfolio construction.
+
+    The pairing is what makes this precise rather than eager:
+
+        "overweight value"                  marker + style -> factor tilt
+        "I am overweight and want to retire"  marker only  -> nothing
+        "hold 40% in value stocks"            style only   -> nothing
+    """
+    seen = _token_text(parse)
+    flat = seen.replace("-", " ")
+
+    def present(phrase: str) -> bool:
+        return phrase in seen or phrase.replace("-", " ") in flat
+
+    if any(present(term) for term in family.terms):
+        return True
+
+    if not family.markers:
+        return False
+    return (any(present(m) for m in family.markers)
+            and any(present(v) for v in family.styles))
+
+
+def unsupported_family(candidates: Sequence, parse=None,
+                       text: str = "") -> Sequence:
+    """Every unsupported family this sentence names, as claims.
+
+    The reader that closes the omission class. The hosted model is not asked
+    whether a sentence is a factor tilt — it is asked what the sentence says,
+    and on gpt-5.4 it sometimes says "assets: small cap value, weight: 20%",
+    which is an accumulation plan with a holding nobody can buy. Nothing
+    downstream could refuse it, because nothing downstream had been told the
+    sentence was a factor tilt.
+
+    So the claim is made here, deterministically, from the words. It does not
+    depend on the model reporting anything, which is the whole point: **model
+    omission cannot make an unsupported family executable**, because the field
+    that strands it is authored by this reader and not by the model.
+
+    The value is the family name and carries no further reading. What a tilt
+    *is* stays unmodelled; this says only that the sentence names one, and
+    Mission refuses any dimension nothing consumes.
+
+    Returns several claims rather than one, because a sentence can name two —
+    "hold my age in bonds and tilt toward value" is both, and refusing it by
+    one name would tell somebody half of why it will not run.
+    """
+    from .vocabulary import UNSUPPORTED_FAMILIES
+
+    if parse is None:
+        return ()
+
+    return tuple(
+        Proposal(dimension=family.dimension, value=name,
+                 reader_id=FAMILY_READER_ID,
+                 source_span=str(text or "")[:120])
+        for name, family in sorted(UNSUPPORTED_FAMILIES.items())
+        if _names_family(parse, family))
+
+
 #: Every derived reader, so the pipeline does not name them one at a time and
 #: a new one cannot be added without appearing in the structural test.
 DERIVED_READERS = ((TRIGGER_READER_ID, trigger_semantics),
                    (WEIGHTS_READER_ID, weight_binding),
-                   (DAY_READER_ID, day_of_month))
+                   (DAY_READER_ID, day_of_month),
+                   (FAMILY_READER_ID, unsupported_family))

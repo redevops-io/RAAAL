@@ -192,6 +192,24 @@ class Dimension:
 
     examples: Sequence[str] = ()
 
+    asked: bool = True
+    """Whether the hosted reader is told this dimension exists.
+
+    Almost always yes: the schema is what a reader may be asked about, and
+    hiding a dimension from it means nobody can say that thing.
+
+    The exception is a dimension whose whole purpose is that a *deterministic*
+    reader authors it — the unsupported strategy families. Asking the model
+    about `factor_tilt` reintroduces exactly the dependency the family
+    detection removes: the model proposes its own value, disagrees with the
+    witness that detected it, and the family becomes an open question instead
+    of a refusal. It happened on the first live run, and the question the
+    person was asked was "what is your factor tilt?" — an invitation to answer
+    for a thing this build does not model.
+
+    `asked=False` says the dimension is real, may be settled, and is not the
+    model's to report."""
+
 
 @dataclass(frozen=True)
 class RelationSpec:
