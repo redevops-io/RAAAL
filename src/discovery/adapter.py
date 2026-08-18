@@ -171,7 +171,7 @@ def ambiguity(dimension, evidence, proposed):
     an ambiguity. "rebalanced annually" carries the word and no ambiguity;
     "rebalance back to 60/40" carries both readings.
     """
-    from .fusion import AMBIGUOUS_TERMS
+    from .vocabulary import AMBIGUOUS_TERMS
 
     words = " ".join(str(getattr(e, "source_ref", "") or "")
                      for e in evidence).lower()
@@ -195,7 +195,7 @@ def material(dimension: str) -> bool:
     would be a second answer to a question Quantify already answers, and the
     two would drift.
     """
-    from .fusion import REQUIREMENTS, Requirement
+    from .vocabulary import REQUIREMENTS, Requirement
 
     return bool(REQUIREMENTS.get(dimension, Requirement()).material)
 

@@ -62,11 +62,11 @@ CLASSIFICATION = {
         "SET are the runtime's own and deliberately not overridden"),
     "ambiguity": (
         SUPPLIED,
-        "adapter.ambiguity, from discovery.fusion.AMBIGUOUS_TERMS, which stays "
+        "adapter.ambiguity, from discovery.vocabulary.AMBIGUOUS_TERMS, which stays "
         "local with its sources"),
     "material": (
         SUPPLIED,
-        "adapter.material, read from discovery.fusion.REQUIREMENTS"),
+        "adapter.material, read from discovery.vocabulary.REQUIREMENTS"),
     "readers": (
         SUPPLIED,
         "adapter.ReaderAdapter presents Quantify readers in the runtime's "

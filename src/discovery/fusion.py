@@ -90,31 +90,17 @@ class Fusion(str, Enum):
 #: may add a hunch to becomes a list of things nobody wants to implement, and
 #: the whole point of this outcome is that the ambiguity was *observed* in how
 #: people write rather than predicted from how the code is shaped.
-AMBIGUOUS_TERMS: Mapping[str, Mapping[str, Any]] = {
-    "rebalance": {
-        "readings": "rebalance back to target | change the target allocation",
-        "between": ("periodic_rebalancing", "stated_weights"),
-        "evidence": "Bogleheads thread 'Don't Know How To Rebalance/Reallocate'",
-        "source": "https://www.bogleheads.org/forum/viewtopic.php?t=459742"},
-    "reallocate": {
-        "readings": "rebalance back to target | change the target allocation",
-        "between": ("periodic_rebalancing", "stated_weights"),
-        "evidence": "same thread; the two verbs are used interchangeably",
-        "source": "https://www.bogleheads.org/forum/viewtopic.php?t=459742"},
-}
-"""Terms people demonstrably use for more than one thing.
-
-`between` names the contract fields the ambiguity is *between*, and it is what
-keeps this outcome from firing on its own vocabulary. "rebalanced annually"
-carries the word and no ambiguity at all: the reading is
-`periodic_rebalancing=annual`, and the competing reading — that the target is
-being changed — needs a target, which the sentence does not contain. "rebalance
-to 70/30" does contain one, and there the two readings are both available and
-neither is chosen by the words.
-
-So the rule is not "the word appeared". It is "both readings are on the table",
-which is what ambiguity means."""
-
+# Vocabulary lives in `vocabulary.py`. Which words carry two meanings,
+# and what a dimension needs before a value means anything, are facts
+# about finance rather than about fusion — and this module is being
+# removed now that discovery-runtime provides the machinery, so the
+# vocabulary had to leave first. Re-exported here so the move is not
+# also a rename for every caller in the same commit.
+from .vocabulary import (  # noqa: F401
+    AMBIGUOUS_TERMS,
+    REQUIREMENTS,
+    Requirement,
+)
 
 @dataclass(frozen=True)
 class Proposal:
@@ -159,43 +145,6 @@ class Decision:
                 "detail": self.detail, "policy_version": self.policy_version}
 
 
-@dataclass(frozen=True)
-class Requirement:
-    """What a dimension needs before a value means anything.
-
-    `binds` names the relation a value is meaningless without. `60/40` alone is
-    a fact; `50/50` in a sentence naming three accounts is not, until something
-    says which account it belongs to.
-    """
-
-    material: bool = True
-    binds: Optional[str] = None
-    compare_as: str = "TEXT"
-    """How two readers' values for this dimension are the same value. Mirrors
-    `Dimension.compare_as` in the schema, and is declared rather than guessed
-    for the same reason it is there."""
-
-
-#: Declared per dimension rather than inferred. A dimension absent here is
-#: material and unbound — the conservative reading, since treating an unknown
-#: dimension as immaterial would let anything new proceed unexamined.
-REQUIREMENTS: Mapping[str, Requirement] = {
-    "cadence": Requirement(material=True),
-    "amount": Requirement(material=True, compare_as="NUMBER"),
-    "assets": Requirement(material=True, compare_as="SET"),
-    "allocation_method": Requirement(material=True),
-    "moving_average_window": Requirement(material=True,
-                                        compare_as="NUMBER"),
-    "trigger_semantics": Requirement(material=True),
-    "execution_timing": Requirement(material=True),
-    "day_rule": Requirement(material=False),
-    "evaluation_period": Requirement(material=True),
-    "periodic_rebalancing": Requirement(material=False),
-    "objective": Requirement(material=True),
-    "stated_weights": Requirement(material=True, compare_as="WEIGHTS"),
-    "account_allocation": Requirement(material=True, binds="account"),
-    "dividend_policy": Requirement(material=False),
-}
 
 
 #: Dimensions where a trailing `m` counts periods rather than millions.
