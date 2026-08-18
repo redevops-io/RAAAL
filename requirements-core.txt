@@ -95,4 +95,10 @@ QuantLib>=1.36
 # declared REFUSED_BY_NAME executed anyway under gpt-5.4 because the hosted
 # model omitted the dimension that would have been refused, and nothing else
 # could say the predicate was there.
-stanza>=1.14
+# Pinned exactly, not floating. The deterministic witness's version is part
+# of the evidence: the drift artifact records `syntax_witness_version:
+# stanza@1.14.0:en` and the pre-Lean gate compares it, so a build that picked
+# up a different parser would invalidate every measurement silently — the
+# artifact would still say 1.14.0 because it records what ran, and the next run
+# would disagree with it for a reason nobody changed.
+stanza==1.14.0
