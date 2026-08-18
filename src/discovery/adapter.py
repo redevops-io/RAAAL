@@ -319,7 +319,22 @@ class ReaderAdapter:
         # The flattening is Quantify's, not the runtime's: it exists because
         # Mission reads flat fields, which is a fact about Mission.
         found = list(getattr(reading_set, "relations", ()) or ())
-        payload.update(relation_fields(found))
+        markers = relation_fields(found)
+        payload.update(markers)
+        # Evidence for the markers, naming the reader that established the
+        # relation. Without it `classify_authors` has nothing to classify and
+        # the marker keeps `draft_intent`'s generic READER, while the internal
+        # path says MODEL — a disagreement about who established the value, on
+        # a field that is inside canonical_form.
+        for name, value in markers.items():
+            evidence.setdefault(name, []).append(
+                DecisionEvidence(
+                    reader_id=getattr(reading_set, "reader_id", self.reader_id),
+                    kind=self.kind, value=value,
+                    source_ref=str(getattr(
+                        next((r for r in found
+                              if str(getattr(r, "kind", "")) == name), None),
+                        "source_span", "") or "")))
         return Reading(payload=payload, evidence=evidence,
                        relations=[as_intent_relation(r) for r in found])
 
