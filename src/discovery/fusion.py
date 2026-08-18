@@ -54,34 +54,20 @@ from .syntax import SyntaxEvidence
 POLICY_VERSION = "quantify-fusion@1"
 
 
-class Fusion(str, Enum):
-    """What fusion concluded about one dimension.
-
-    Four members, and the three that are not `AGREE` are deliberately distinct
-    rather than a single `UNRESOLVED`. They call for different repairs: a
-    disagreement needs adjudication, a missing relation needs a schema or a
-    reader that binds it, and a language ambiguity needs a question to the user.
-    Collapsing them would make the ledger say "unresolved" and stop there.
-    """
-
-    AGREE = "AGREE"
-    """The model proposed a value and syntax did not contradict it."""
-
-    DISAGREE = "DISAGREE"
-    """Syntax and the model point at different values, or syntax proposed one
-    the model never mentioned. Never resolved by score."""
-
-    INSUFFICIENT_RELATION = "INSUFFICIENT_RELATION"
-    """The value cannot mean anything without a binding nobody supplied — three
-    ratios and three accounts, with nothing saying which belongs to which."""
-
-    AMBIGUOUS_BY_LANGUAGE = "AMBIGUOUS_BY_LANGUAGE"
-    """The words themselves carry both readings, in attested usage. Not a
-    parser failure and not a model failure."""
-
-    @property
-    def proceeds(self) -> bool:
-        return self is Fusion.AGREE
+# The runtime's enum, imported rather than declared. There is one
+# authoritative `Fusion` on the serving path and this is not it.
+#
+# Quantify used to define its own with the same four member names and
+# the same four values, which is exactly the shape that hides: an
+# `is`/`is not` comparison against one enum is always true for a value
+# of the other, so `outcome is not Fusion.AGREE` held for every agreed
+# field and `is not AMBIGUOUS_BY_LANGUAGE` for every ambiguity. Both
+# were found only when decisions started arriving from the runtime.
+#
+# Comparing by `.name` would have patched those two call sites and left
+# the duplication for the next one to find somewhere less obvious. One
+# type means identity comparisons are correct again by construction.
+from discovery_runtime.fusion import Fusion  # noqa: F401
 
 
 #: Terms people demonstrably use for more than one thing.
