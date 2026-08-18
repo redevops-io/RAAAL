@@ -65,24 +65,88 @@ def number(raw: Any) -> Optional[Decimal]:
 #: absent: the runtime implements both, and supplying our own would replace a
 #: generic rule with a domain one that happens to agree today.
 def weights(raw: Any):
-    """A stated split, as an unordered set of shares.
+    """A stated split, as an unordered set of shares on one scale.
 
-    `60/40` and `VTI=60,BND=40` are the same split — the second says which
-    holding takes which share and the first does not, which is a refinement
-    rather than a disagreement. Compared on the shares alone, so a derived
-    reading that carries the binding can be recognised as the same reading and
-    preferred for carrying it.
+    `60/40`, `VTI=60,BND=40` and the pair `0.6` `0.4` are the same split. The
+    first says the shares, the second says which holding takes which, and the
+    third is how the deterministic reader emits them — one observation per
+    share. Compared on the shares alone, so a reading that carries the binding
+    is recognised as the same reading and can be preferred for carrying it.
+
+    Shares above one are read as percentages and divided down, because `60` and
+    `0.6` are the same share written two ways and a comparison that called them
+    different would report a disagreement between two readers that agree.
     """
     import re
+    from decimal import Decimal, InvalidOperation
 
     shares = []
     for token in re.split(r"[,;/\s]+", str(raw).strip()):
         if not token:
             continue
-        shares.append(token.split("=")[-1].rstrip("%"))
+        try:
+            share = Decimal(token.split("=")[-1].rstrip("%"))
+        except (InvalidOperation, ValueError):
+            return None
+        shares.append(share / 100 if share > 1 else share)
     return frozenset(shares) if shares else None
 
 
+#: Dimensions whose value is assembled from several observations rather than
+#: read whole, and how the parts join. A reader emitting one observation per
+#: share is not disagreeing with itself; it is describing one value in pieces.
+#:
+#: This is the seam the two-witness attempt was missing. Without it the
+#: deterministic reader's `0.6` and `0.4` reached fusion as two claims about
+#: `stated_weights` and were compared individually against the model's `60/40`,
+#: which reported a contradiction between readers that agreed.
+AGGREGATED = {"SET": ", ", "WEIGHTS": "/"}
+
+
+def one_claim_per_dimension(observations, *, value_of=None, dimension_of=None):
+    """Several observations of one dimension, joined into one claim.
+
+    The step that has to happen before generic fusion, and the reason it lives
+    here: whether several observations are one value in pieces or several
+    competing answers is a fact about the dimension, and fusion must not have
+    to know. It compares one claim per reader per dimension and stays free of
+    finance.
+
+    Dimensions not in `AGGREGATED` are untouched. Two observations of a scalar
+    genuinely compete, and joining them would invent a value nobody stated.
+    """
+    value_of = value_of or (lambda o: getattr(o, "value", o))
+    dimension_of = dimension_of or (lambda o: getattr(o, "dimension", ""))
+
+    modes = compare_modes()
+    parts: Dict[str, list] = {}
+    order: list = []
+    passthrough = []
+    for one in observations:
+        name = dimension_of(one)
+        joiner = AGGREGATED.get(modes.get(name, "TEXT"))
+        if joiner is None:
+            passthrough.append(one)
+            continue
+        if name not in parts:
+            parts[name] = []
+            order.append(name)
+        for token in str(value_of(one)).split(","):
+            token = token.strip()
+            if token and token not in parts[name]:
+                parts[name].append(token)
+
+    joined = []
+    for name in order:
+        first = next(o for o in observations if dimension_of(o) == name)
+        joiner = AGGREGATED[modes.get(name, "TEXT")]
+        joined.append(_replaced(first, joiner.join(parts[name])))
+    return passthrough + joined
+
+
+#: Mode name -> what the mode means here. `TEXT` and `SET` are deliberately
+#: absent: the runtime implements both, and supplying our own would replace a
+#: generic rule with a domain one that happens to agree today.
 #: Mode name -> what the mode means here. `TEXT` and `SET` are deliberately
 #: absent: the runtime implements both, and supplying our own would replace a
 #: generic rule with a domain one that happens to agree today.
@@ -129,68 +193,46 @@ def compare_as(dimension: str) -> str:
 
 
 def one_reading_per_set_dimension(readings):
-    """One reading per SET dimension, carrying the whole set.
+    """One reading per SET dimension. Kept as the name callers already use.
 
-    A reader must emit one semantic value per SET dimension. Given
-    "take from bonds in a down year and from stocks otherwise" the recorded
-    reader emits *two* `assets` readings — 'bonds' and 'stocks' — and both
-    lanes then got it wrong in different ways: the internal path built
-    `{p.dimension: p for p in proposals}` and silently kept the last, so a
-    plan for a sentence naming both mentioned only stocks; the runtime read
-    two readings from one reader as a disagreement and asked which the person
-    meant, of a reader disagreeing with itself.
-
-    They are members, not witnesses. This unions them into the one reading the
-    reader should have emitted.
-
-    **Only the membership.** The conditional meaning in that sentence — take
-    from bonds *in a down year* — is `sell_action`'s and stays there. Nothing
-    here infers a rule from the multiplicity: two members mean two members,
-    and if the condition cannot be represented it is that dimension that must
-    clarify or refuse, not the asset set.
-
-    Non-SET dimensions are untouched. Two values for a scalar dimension are
-    genuinely competing and belong in fusion's hands.
+    Delegates to `one_claim_per_dimension`, which answers the same question for
+    every aggregated dimension rather than only for sets: are these several
+    observations of one value, or several competing answers? Two functions
+    answering that is how they would come to disagree — which is the defect
+    this whole seam exists to remove, one level up.
     """
-    modes = compare_modes()
-    members: Dict[str, list] = {}
-    order: list = []
-    out = []
-    for one in readings:
-        name = getattr(one, "dimension", "")
-        if modes.get(name) != "SET":
-            out.append(one)
-            continue
-        if name not in members:
-            members[name] = []
-            order.append(name)
-        for token in str(getattr(one, "value", "")).split(","):
-            token = token.strip()
-            if token and token not in members[name]:
-                members[name].append(token)
-    for name in order:
-        first = next(r for r in readings if getattr(r, "dimension", "") == name)
-        out.append(_replaced(first, ", ".join(members[name])))
-    return out
+    return one_claim_per_dimension(readings)
 
 
 def _replaced(reading, value):
-    """The reading with a new value, whatever concrete type it is."""
+    """The observation with a new value, whatever concrete type it is.
+
+    Two attribute names, because two kinds of observation flow through here: a
+    reader's `Reading` carries `value` and a deterministic candidate carries
+    `proposed_value`. Replacing the wrong one silently leaves the original
+    value in place, which is an aggregation that reports success and changes
+    nothing.
+    """
     import dataclasses
+
+    attribute = "proposed_value" if hasattr(reading, "proposed_value") else "value"
 
     if dataclasses.is_dataclass(reading):
         try:
-            return dataclasses.replace(reading, value=value)
+            return dataclasses.replace(reading, **{attribute: value})
         except Exception:                                      # noqa: BLE001
             pass
 
-    class _Reading:
+    class _Observation:
         pass
 
-    copy = _Reading()
-    for attr in ("dimension", "value", "source_span"):
-        setattr(copy, attr, getattr(reading, attr, ""))
-    copy.value = value
+    copy = _Observation()
+    for attr in ("dimension", "value", "proposed_value", "source_span",
+                 "score", "features", "sentence_id", "parser", "model",
+                 "scoring_version"):
+        if hasattr(reading, attr):
+            setattr(copy, attr, getattr(reading, attr))
+    setattr(copy, attribute, value)
     return copy
 
 
@@ -576,6 +618,16 @@ def two_witness_readings(model_reading, syntax_evidence):
 
     modes = compare_modes()
     for name, candidates in (syntax_evidence or {}).items():
+        # One claim per reader per dimension, before any comparison. The
+        # deterministic reader emits one observation per share — `0.6`, `0.4`
+        # for a 60/40 split — and comparing each against the model's `60/40`
+        # individually reported a contradiction between two readers that agree.
+        # Whether several observations are one value in pieces or several
+        # competing answers is a fact about the dimension, not about fusion.
+        candidates = one_claim_per_dimension(
+            candidates,
+            value_of=lambda c: getattr(c, "proposed_value", None),
+            dimension_of=lambda c, _name=name: _name)
         for candidate in candidates:
             value = getattr(candidate, "proposed_value", None)
             span = str(getattr(candidate, "source_span", "") or "")
