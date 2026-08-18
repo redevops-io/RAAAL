@@ -16,6 +16,16 @@ WORKDIR /app
 # The API surface does not need the ML/RL stack.
 COPY requirements-core.txt ./
 
+# The runtime, from the submodule rather than from GitHub.
+#
+# `discovery-runtime` is a private repository, so `pip install
+# git+https://...` fails in a build with no credentials — which is how this
+# Dockerfile turned out not to be buildable at all despite being correct in
+# git. Copying the submodule needs no credential and installs exactly the
+# commit this repository is pinned to and tested against, which is a stronger
+# guarantee than fetching a tag.
+COPY vendor/discovery-runtime ./vendor/discovery-runtime
+
 # `git` is a *build* dependency, not a runtime one. Two requirements are
 # `git+https://` references — `runtime-contracts` and `agentic-os`, both pinned
 # by tag — and pip shells out to git to fetch them. `python:3.13-slim` has no
@@ -32,6 +42,7 @@ COPY requirements-core.txt ./
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && pip install --no-cache-dir -r requirements-core.txt \
+    && pip install --no-cache-dir ./vendor/discovery-runtime \
     && apt-get purge -y --auto-remove git \
     && rm -rf /var/lib/apt/lists/*
 

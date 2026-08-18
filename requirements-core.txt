@@ -51,7 +51,22 @@ psycopg[binary]>=3.1
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
 runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.4
-discovery-runtime @ git+https://github.com/redevops-io/discovery-runtime.git@v0.1.9
+# `discovery-runtime` is deliberately absent here and installed from
+# `vendor/discovery-runtime` by the Dockerfile instead.
+#
+# Two reasons, and the first is that the other way does not work: the
+# repository is private, `pip` shells out to `git clone` over https, and a
+# build with no credentials fails with "could not read Username for
+# 'https://github.com'". The Dockerfile in git was not buildable at all, which
+# is the second time this file has carried a git dependency nothing had ever
+# built from.
+#
+# The second reason is better. Installing the submodule installs exactly the
+# code this suite ran against, byte for byte, rather than re-fetching a tag
+# that could in principle be moved. `runtime-contracts` stays a tag fetch
+# because it is public and because the runtime declares which version it was
+# released against — see tests/test_image_pins_the_runtime_it_was_tested_
+# against.py, which holds the two in step.
 
 # --- The Mission Runtime, for the cross-runtime replay gate ---
 # Tag-pinned for the same reason as the contracts above. Same licence family
