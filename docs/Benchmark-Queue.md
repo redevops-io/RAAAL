@@ -351,3 +351,72 @@ doing because the next consumer will register a `SET` rule and get silence.
 **What it cost here:** two corpus cases, `the S&P 500 tracker` against `S&P 500
 tracker` and `an SPX ETF` against `SPX ETF`, each reported as a disagreement
 between readers that had read the same holding.
+
+---
+
+## Item 8: the live lane fails its gate on gpt-5.4, and not because of the migration
+
+Run on the frozen serving configuration — `RUNTIME + OpenAI + gpt-5.4`, both
+witnesses live, 79 prompts × 3 draws with escalation to 5 — on 2026-08-18.
+
+| | |
+|---|---|
+| `STABLE_REFUSAL` | 44 |
+| `UNSTABLE_SAFE` | 16 |
+| `STABLE_CLARIFICATION` | 10 |
+| `STABLE_EXECUTABLE` | 8 |
+| **`UNSTABLE_EXECUTABLE`** | **1** |
+| **`silently_reduced_any_draw`** | **2** |
+
+The gate requires zero of the last two. It fails.
+
+    factor_tilt-01   "tilt 20% toward small cap value"   executable on 2 of 5 draws
+    glidepath-02     "hold my age in bonds"              executable on 3 of 3 draws
+
+Both are declared `REFUSED_BY_NAME` in `strategy_families.json` with cited
+definitions. Fifty-three of the other fifty-three `REFUSED_BY_NAME` cases
+behave correctly, so this is a gap in two families rather than a broken
+mechanism.
+
+### It is not a migration regression, and that was measured rather than argued
+
+The pre-migration serving path still exists at `5c7b277`, one commit before
+`src/discovery/fusion.py` was deleted. Run from a worktree of that commit
+against the same model and the same sentence:
+
+    post-migration (gpt-5.4)   executable on 4 of 8 draws
+    pre-migration  (gpt-5.4)   executable on 1 of 8 draws
+    post-migration (gpt-4.1)   executable on 0 of 8 draws
+
+Non-zero on the implementation the migration replaced. The difference between
+the two rates is model sampling on eight draws and is not evidence of anything;
+what matters is that the old implementation fails the gate on this model too.
+
+### What actually changed is which model, and the protection was accidental
+
+On gpt-4.1 both prompts were `UNSTABLE_SAFE` with no silent reduction. The
+reason is not that anything refused the family:
+
+    gpt-4.1   settles assets='small cap value' on every draw, and refuses
+              `portfolio_sleeves` on every draw, so nothing compiles
+    gpt-5.4   sometimes omits `portfolio_sleeves` altogether, and then the
+              sentence reads as assets + a weight, and compiles
+
+So the sentence was never protected by a decision about factor tilts. It was
+protected by an *unrelated dimension happening to fail*, on a model that
+happened to fail it consistently. A refusal that depends on another dimension's
+accident is not a refusal, and a green gate resting on one was never evidence
+about factor tilts.
+
+That is the finding worth keeping: **the gate passed for a reason nobody had
+stated, and the reason stopped holding when the model changed.** The corpus
+already says what should happen — `REFUSED_BY_NAME` — and both families need a
+refusal that names them, rather than a compile that fails for its own reasons.
+
+### Consequence for the finish line
+
+Item 8 cannot pass without that change, and the change is product-visible: a
+person typing "tilt 20% toward small cap value" would see Quantify name factor
+tilts as unsupported instead of asking about holdings. That is a decision about
+what the product says, not a migration step, so it is recorded here rather than
+made in passing.
