@@ -88,6 +88,52 @@ def compare_as(dimension: str) -> str:
     return getattr(found, "compare_as", "TEXT") if found is not None else "TEXT"
 
 
+def ambiguity(dimension, evidence, proposed):
+    """Competing readings the *words* carry, or nothing.
+
+    Quantify's `AMBIGUOUS_TERMS` stays here — which terms people demonstrably
+    use for two things, and between which dimensions, is finance vocabulary
+    with sources attached. The runtime is handed the observation and provides
+    the outcome; it never learns the words.
+
+    Two conditions, mirroring `fusion._ambiguity`, and the second is what stops
+    this firing on its own ontology. The term must appear in the *person's
+    words* — the evidence's source span, never the dimension name, or
+    `periodic_rebalancing` matches "rebalance" on every reading it ever
+    produces. And a competing dimension must also have been proposed: an
+    ambiguity nobody could have resolved differently in this sentence is not
+    an ambiguity. "rebalanced annually" carries the word and no ambiguity;
+    "rebalance back to 60/40" carries both readings.
+    """
+    from .fusion import AMBIGUOUS_TERMS
+
+    words = " ".join(str(getattr(e, "source_ref", "") or "")
+                     for e in evidence).lower()
+    seen = set(proposed)
+    for term, record in AMBIGUOUS_TERMS.items():
+        if term not in words:
+            continue
+        between = set(record.get("between", ()))
+        if between and dimension not in between:
+            continue
+        if between and not (between - {dimension}) & seen:
+            continue
+        return tuple(sorted(between)) or (term,)
+    return ()
+
+
+def material(dimension: str) -> bool:
+    """Whether leaving this dimension open changes the result.
+
+    Read from `fusion.REQUIREMENTS`, which already carries it — a table here
+    would be a second answer to a question Quantify already answers, and the
+    two would drift.
+    """
+    from .fusion import REQUIREMENTS, Requirement
+
+    return bool(REQUIREMENTS.get(dimension, Requirement()).material)
+
+
 def fusion_policy():
     """`merge_readings`, already carrying the schema's rules.
 
@@ -103,7 +149,8 @@ def fusion_policy():
 
     def fuse_readings(readings):
         return merge_readings(readings, compare_as=modes,
-                              normalizers=NORMALIZERS)
+                              normalizers=NORMALIZERS, ambiguity=ambiguity,
+                              material=material)
 
     return fuse_readings
 
