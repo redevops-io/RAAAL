@@ -260,6 +260,15 @@ MANIFEST: Mapping[str, Dimension] = {
     # Named as `coverage` names it, so the two range over one vocabulary.
     "periodic_rebalancing": _d(
         "periodic_rebalancing", EXECUTED,
+        # The calendar cadences `rebalance.weighted` restores the split on. The
+        # dimension was EXECUTED but carried no values, so `executes()` refused
+        # every cadence while the executor was quietly able to run them — the
+        # stale half of a migration the executor already finished. `threshold_band`
+        # stays refused: drift-triggered rebalancing is a different rule on
+        # different days. An instruction that states no cadence is still refused
+        # rather than defaulted, upstream, because rebalancing sells and picking a
+        # frequency would invent a schedule of sales nobody described.
+        values=("annual", "quarterly", "monthly", "weekly", "biweekly"),
         refuses={
             "threshold_band":
                 "rebalancing when a weight drifts past a band is not "

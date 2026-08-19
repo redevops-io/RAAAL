@@ -517,18 +517,44 @@ def assess(scenario: Any, *, stated_text: str = "",
                 "executed": sorted(bound), "evidenced": sorted(split_filled)}))
 
     # --- a stated rebalancing frequency -------------------------------------
+    #
+    # Read from what happened, not assumed absent — the same correction the
+    # stated-weights block above needed. `rebalance.weighted` restores the split
+    # on the cadence `holdings_policy.rebalancing_cadence` carries, so an empty
+    # cadence is a plan that holds (still blocks, correctly). The evidence is a
+    # sell: this build only ever buys except when it rebalances, so a "stated
+    # split" fill with a negative notional is the run attesting it restored the
+    # split — from the fills, not from the policy that requested it.
     rebalancing = bool(stated_text and _PERIODIC_REBALANCING.search(stated_text))
+    rebalance_cadence = str(getattr(getattr(scenario, "holdings_policy", None),
+                                    "rebalancing_cadence", "") or "")
+    rebalance_executed = bool(rebalance_cadence)
+    rebalance_evidenced = rebalance_executed and any(
+        getattr(one, "reason", "") == "stated split"
+        and float(getattr(one, "notional", 0.0) or 0.0) < 0
+        for one in (fills or ()))
+
+    if not rebalancing:
+        rebalance_reason = ""
+    elif not rebalance_executed:
+        rebalance_reason = ("you described rebalancing on a schedule, and this "
+                            "version holds what each purchase bought without "
+                            "rebalancing it")
+    elif not rebalance_evidenced:
+        rebalance_reason = ("the rebalancing schedule was applied, but the run "
+                            "made no rebalancing trade to confirm it")
+    else:
+        rebalance_reason = ""
+
     elements.append(DeclaredElement(
         element_id="periodic_rebalancing",
         declared=rebalancing,
-        compiled=False,
-        executed=False,
-        evidenced=False,
+        compiled=rebalance_executed,
+        executed=rebalance_executed,
+        evidenced=rebalance_evidenced,
         exclusion_authorized="periodic_rebalancing" in excluded,
-        reason=("" if not rebalancing else
-                "you described rebalancing on a schedule, and this version "
-                "holds what each purchase bought without rebalancing it"),
-        detail={}))
+        reason=rebalance_reason,
+        detail={"cadence": rebalance_cadence}))
 
     # --- a sell leg ---------------------------------------------------------
     sell_leg = bool(stated_text and _SELL_LEG.search(stated_text))
