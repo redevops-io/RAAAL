@@ -201,7 +201,6 @@ OPEN = {
         ('objective', 'NOT_ASKED', 'the reader was asked and did not answer', False),
     ),
     'rebalancing': (
-        ('account_type', 'NOT_ASKED', 'the reader was asked and did not answer', False),
         ('day_rule', 'NOT_ASKED', 'the reader was asked and did not answer', False),
         ('dividend_policy', 'NOT_ASKED', 'the reader was asked and did not answer', False),
         ('objective', 'NOT_ASKED', 'the reader was asked and did not answer', False),
@@ -241,7 +240,6 @@ OPEN = {
         ('objective', 'NOT_ASKED', 'the reader was asked and did not answer', False),
     ),
     'fund-and-rebalance': (
-        ('account_type', 'NOT_ASKED', 'the reader was asked and did not answer', False),
         ('day_rule', 'NOT_ASKED', 'the reader was asked and did not answer', False),
         ('dividend_policy', 'NOT_ASKED', 'the reader was asked and did not answer', False),
     ),
