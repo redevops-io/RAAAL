@@ -131,13 +131,28 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", required=True, help="base URL of a port-forward to the identity Service")
     ap.add_argument("--identity-host", required=True, help="e.g. auth.quantify.club")
-    ap.add_argument("--pat", required=True, help="the deploy-bootstrap machine PAT")
+    ap.add_argument("--pat", help="the deploy-bootstrap machine PAT")
+    ap.add_argument("--pat-file",
+                    help="a file holding the PAT — preferred in-cluster, where "
+                         "FIRSTINSTANCE writes it to a mounted path and passing "
+                         "it as an argument would put a live credential in the "
+                         "process table for anything in the pod to read")
     ap.add_argument("--app-origin", required=True, help="e.g. https://quantify.club")
     ap.add_argument("--test-email", required=True)
     ap.add_argument("--test-password", required=True)
     args = ap.parse_args()
 
-    call = _client(args.url.rstrip("/"), args.identity_host, args.pat)
+    pat = args.pat
+    if args.pat_file:
+        with open(args.pat_file, encoding="utf-8") as handle:
+            pat = handle.read().strip()
+    if not pat:
+        raise SystemExit("no PAT: pass --pat or point --pat-file at the file "
+                         "FIRSTINSTANCE_PATPATH wrote. An empty PAT is a 401 on "
+                         "the first call, which reads as the instance being wrong "
+                         "rather than the credential being absent.")
+
+    call = _client(args.url.rstrip("/"), args.identity_host, pat)
 
     project_id = project(call)
     print(f"project: {project_id}", file=sys.stderr)

@@ -102,6 +102,73 @@ spec:
       labels: { app: quantify-identity }
     spec:
       serviceAccountName: quantify-identity
+      # The OIDC bootstrap, as a native sidecar rather than a separate Job.
+      #
+      # It has to run *inside this pod*: FIRSTINSTANCE writes the deploy-bootstrap
+      # PAT to the `machinekey` emptyDir, and an emptyDir is not reachable from
+      # another pod — so a Job cannot read it, and the image is distroless, so
+      # `kubectl exec`/`cp` cannot lift it out either. A native sidecar (an
+      # initContainer with `restartPolicy: Always`) starts alongside the main
+      # containers, mounts the same emptyDir, and reads the PAT locally — the
+      # credential never leaves the pod.
+      #
+      # No startup or readiness probe, deliberately: a native sidecar with one
+      # gates the main containers on it, and this one waits for the main Zitadel
+      # container, so a probe here would deadlock the pod. It polls `localhost`
+      # instead, and `localhost` is the point — every container in a pod shares
+      # the network namespace, so this reaches Zitadel directly and never touches
+      # the ALB's `X-Forwarded-Proto: http`.
+      #
+      # Idempotent by search (see bootstrap_identity.py), so it re-adopts the
+      # project, app and user on every restart rather than making a second of
+      # each; the client id it prints is the same one already in Secrets Manager.
+      # It emits only that client id — a public identifier, not a secret — and
+      # then idles, because a native sidecar is expected to stay up for the pod.
+      initContainers:
+        - name: bootstrap
+          image: public.ecr.aws/docker/library/python:3.12-slim
+          restartPolicy: Always
+          command:
+            - sh
+            - -c
+            - |
+              echo "bootstrap: waiting for zitadel on localhost:8080"
+              until python3 -c 'import urllib.request; urllib.request.urlopen("http://localhost:8080/debug/ready", timeout=3)' 2>/dev/null; do
+                sleep 5
+              done
+              echo "bootstrap: zitadel is ready, minting the OIDC application"
+              python3 /bootstrap/bootstrap_identity.py \
+                --url http://localhost:8080 \
+                --identity-host "$IDENTITY_HOST" \
+                --pat-file /machinekey/pat.txt \
+                --app-origin "$APP_ORIGIN" \
+                --test-email "$TEST_EMAIL" \
+                --test-password "$TEST_PASSWORD" >/tmp/cid 2>/tmp/err
+              rc=$?
+              cat /tmp/err >&2
+              if [ "$rc" = "0" ]; then
+                echo "OIDC_CLIENT_ID=$(cat /tmp/cid)"
+              else
+                echo "bootstrap: FAILED rc=$rc"
+              fi
+              # Stay up: a native sidecar that exits is a restart, and a restart
+              # loop would re-run the bootstrap every few seconds.
+              exec sleep infinity
+          env:
+            # This deployment's fixed identities. The issuer host the token
+            # carries, the origin the OIDC redirect returns to, and a
+            # pre-verified test user for the ui-agent runs — a test default, as
+            # asked, not a real account.
+            - { name: IDENTITY_HOST,  value: "auth.quantify.club" }
+            - { name: APP_ORIGIN,     value: "https://quantify.club" }
+            - { name: TEST_EMAIL,     value: "pilot@quantify.club" }
+            - { name: TEST_PASSWORD,  value: "Quantify-Pilot-2026!" }
+          volumeMounts:
+            - { name: machinekey,       mountPath: /machinekey, readOnly: true }
+            - { name: bootstrap-script, mountPath: /bootstrap,  readOnly: true }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 64Mi }
       containers:
         - name: identity
           image: ghcr.io/zitadel/zitadel:v2.65.1
@@ -134,13 +201,17 @@ spec:
             failureThreshold: 30
           livenessProbe:
             httpGet: { path: /debug/healthz, port: 8080 }
-            # Generous: Zitadel applies its own schema migrations at start, and
-            # a liveness probe that fires during them restarts the process
-            # mid-migration. `start` rather than `start-from-init` here, so the
-            # window is short — but "short" is not "instant" and a restart loop
-            # during a migration is how a working identity store stops being
-            # one.
-            initialDelaySeconds: 120
+            # Generous, and it has to be: on a fresh database `start-from-init`
+            # runs the *entire* migration set plus FIRSTINSTANCE before the port
+            # opens, and on db.t4g.micro that ran past 120s. The probe then began
+            # killing the pod mid-migration, and because a migration step records
+            # "started" before "done", each kill left a lock the next pod waited
+            # on forever ("migration already started"). Measured, not predicted —
+            # it deadlocked on step 01_tables and never recovered. 360s covers a
+            # cold first setup; a steady-state restart re-opens the port in
+            # seconds because setup skips completed steps, so the long delay costs
+            # nothing after the first bring-up.
+            initialDelaySeconds: 360
             periodSeconds: 30
         - name: proxy
           image: public.ecr.aws/docker/library/caddy:2.8-alpine
@@ -165,6 +236,10 @@ spec:
           configMap: { name: quantify-identity-proxy }
         - name: machinekey
           emptyDir: {}
+        # The bootstrap script, mounted from a ConfigMap the deploy renders from
+        # scripts/bootstrap_identity.py so the file has one source of truth.
+        - name: bootstrap-script
+          configMap: { name: quantify-identity-bootstrap }
 ---
 apiVersion: v1
 kind: Service

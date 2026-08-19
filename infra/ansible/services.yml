@@ -290,6 +290,24 @@
       no_log: true
       when: "'identity' in targets"
 
+    # The OIDC bootstrap script, mounted into the identity pod's bootstrap
+    # sidecar from a ConfigMap. Rendered here from the file so scripts/ stays the
+    # one source of truth — the sidecar reads FIRSTINSTANCE's PAT from a volume no
+    # other pod can reach, mints the OIDC application, and prints its client id,
+    # which then goes into Secrets Manager for the web deploy to consume.
+    - name: Render the identity bootstrap script into a ConfigMap
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: quantify-identity-bootstrap
+            namespace: "{{ k8s_namespace }}"
+          data:
+            bootstrap_identity.py: "{{ lookup('file', playbook_dir + '/../../scripts/bootstrap_identity.py') }}"
+        state: present
+      when: "'identity' in targets"
+
     # The model key, from the environment, under the name the declared provider
     # reads.
     #
