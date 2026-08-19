@@ -99,9 +99,9 @@ spec:
               valueFrom:
                 secretKeyRef: { name: quantify-data, key: database_url }
             - name: QUANTIFY_BUILD_COMMIT
-              value: COMMIT_PLACEHOLDER
+              value: "COMMIT_PLACEHOLDER"
             - name: QUANTIFY_IMAGE_DIGEST
-              value: DIGEST_PLACEHOLDER
+              value: "DIGEST_PLACEHOLDER"
           volumeMounts:
             - name: payloads
               mountPath: /var/lib/quantify/snapshots

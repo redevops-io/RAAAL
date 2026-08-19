@@ -59,9 +59,9 @@ spec:
             - name: QUANTIFY_SYNTAX_WITNESS
               value: "yes"
             - name: QUANTIFY_BUILD_COMMIT
-              value: COMMIT_PLACEHOLDER
+              value: "COMMIT_PLACEHOLDER"
             - name: QUANTIFY_IMAGE_DIGEST
-              value: DIGEST_PLACEHOLDER
+              value: "DIGEST_PLACEHOLDER"
           resources:
             # Raised for the syntax witness. The Stanza pipeline is loaded
             # once per process and holds its model resident; the API alone ran

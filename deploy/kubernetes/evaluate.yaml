@@ -62,9 +62,9 @@ spec:
             - name: QUANTIFY_DEPLOYMENT_PROFILE
               value: local
             - name: QUANTIFY_BUILD_COMMIT
-              value: COMMIT_PLACEHOLDER
+              value: "COMMIT_PLACEHOLDER"
             - name: QUANTIFY_IMAGE_DIGEST
-              value: DIGEST_PLACEHOLDER
+              value: "DIGEST_PLACEHOLDER"
           resources:
             requests: { cpu: 500m, memory: 1Gi }
             limits: { memory: 2Gi }
