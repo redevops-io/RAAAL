@@ -74,23 +74,14 @@ resource "aws_db_instance" "main" {
   performance_insights_enabled    = true
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
-  # Deliberately off, for the decommission on 2026-08-18.
+  # Restored for the 2026-08-18 recreation on EKS.
   #
-  # It was `true`, together with the `prevent_destroy` below, and both were
-  # working as designed: `terraform destroy` refused with "Instance cannot be
-  # destroyed" and the plan stopped. The comment those guards carried named
-  # the intended override — "delete this block in a commit, or detach the
-  # instance from state. Both leave a record; a `-target` flag typed at 3am
-  # does not" — so this is that commit, and it is the record.
-  #
-  # **Turning this off requires an `apply` before the `destroy`.** AWS refuses
-  # to delete a protected instance, and `terraform destroy` deletes rather
-  # than updating attributes first, so leaving it `true` here would fail at
-  # the API instead of at the plan.
-  #
-  # Put both guards back when this environment is next created. They are not
-  # ceremony: this instance holds pilot users' financial descriptions.
-  deletion_protection = false
+  # The decommission commit (fcdee25) turned this off so `terraform destroy`
+  # could remove the instance, and said in as many words to put both guards
+  # back when the environment is next created. This is that creation. The
+  # instance holds pilot users' financial descriptions, so a `terraform
+  # destroy` must refuse at the plan rather than proceed by default.
+  deletion_protection = true
 
   # A test deployment still holds pilot users' financial descriptions. Taking
   # a final snapshot costs nothing and is the difference between a mistaken
@@ -104,8 +95,11 @@ resource "aws_db_instance" "main" {
   final_snapshot_identifier = "${local.name}-final-${formatdate("YYYYMMDDhhmmss", timestamp())}"
 
   lifecycle {
-    # `prevent_destroy` removed for the decommission — see the note on
-    # `deletion_protection` above. Restore it with this environment.
+    # Restored with this environment (see `deletion_protection` above).
+    # `terraform destroy` will not remove this. Overriding is deliberate:
+    # delete this block in a commit, or detach the instance from state. Both
+    # leave a record; a `-target` flag typed at 3am does not.
+    prevent_destroy = true
 
     # The snapshot name embeds a timestamp, which would otherwise show as a
     # diff on every plan and train everyone to ignore diffs on this resource.
