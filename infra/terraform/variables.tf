@@ -308,3 +308,23 @@ variable "enable_kubernetes" {
   default = false
 }
 
+variable "cluster_albs_ready" {
+  description = <<-EOT
+    Whether the EKS ingresses have provisioned their ALBs yet.
+
+    The Cloudflare tunnel config in `cloudflare.tf` wires to the two ALBs the
+    web and identity Ingresses create, and those do not exist until
+    `services.yml` has deployed the workloads. On a from-scratch bring-up this
+    is a second phase: apply once with this false to create the cluster and
+    everything under it, deploy the workloads so the Ingresses provision their
+    ALBs, then apply again with `-var cluster_albs_ready=true` to wire the
+    tunnel to those ALBs and publish the DNS records.
+
+    Defaults to false so a first apply cannot fail on a load balancer that does
+    not exist yet. On a steady-state redeploy the ALBs already exist; set it
+    true in the environment's tfvars once the cluster is standing.
+  EOT
+  type    = bool
+  default = false
+}
+

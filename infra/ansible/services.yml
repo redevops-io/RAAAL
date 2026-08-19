@@ -163,7 +163,6 @@
       loop:
         - { name: db_password,  id: "quantify-test/database-password" }
         - { name: masterkey,    id: "quantify-test/identity-masterkey" }
-        - { name: model_key,    id: "quantify-test/model-api-key" }
         - { name: client_id,    id: "quantify-test/identity-client-id" }
         - { name: tunnel_token, id: "quantify-test/cloudflare-tunnel-token" }
       when: targets | intersect(['identity', 'web', 'tunnel']) | length > 0
@@ -183,8 +182,9 @@
           credential comes up, fails every request, and reports as running —
           and for the identity master key it would come up unable to decrypt
           anything already stored.
-      loop: [db_password, masterkey, model_key, client_id]
-      # `model_key` is checked as the application will read it, below.
+      loop: [db_password, masterkey, client_id]
+      # The model key is not here: it comes from the environment, not Secrets
+      # Manager, and is checked as the application will read it, below.
       no_log: true
       when: targets | intersect(['identity', 'web', 'tunnel']) | length > 0
 
@@ -258,23 +258,33 @@
       no_log: true
       when: "'identity' in targets"
 
-    # The model key, under the name the declared provider reads.
+    # The model key, from the environment, under the name the declared provider
+    # reads.
     #
-    # Merged in rather than written as a templated mapping key. Ansible does
-    # not resolve a Jinja expression used as a key inside `definition`, and the
+    # Sourced from the environment (`OPENAI_API_KEY` for an OPENAI deployment,
+    # `ANTHROPIC_API_KEY` for an ANTHROPIC one — `model_key_var` names it) rather
+    # than from Secrets Manager: the operator's shell already exports it, and
+    # routing it through a Secrets Manager value the deploy would have to place
+    # by hand first is a step that adds no safety here. The name still tracks the
+    # declared provider, because the fault it guards against — the key going into
+    # a variable the application never reads — is the same either way.
+    #
+    # Merged in rather than written as a templated mapping key. Ansible does not
+    # resolve a Jinja expression used as a key inside `definition`, and the
     # failure is a censored task with `no_log` on it — a dict built here and
     # combined is both readable and debuggable.
-    #
-    # Two faults hid each other before this. The name was always
-    # `ANTHROPIC_API_KEY` while terraform declared OPENAI, so the key went into
-    # a variable the application never reads; and the value was the whole
-    # Secrets Manager document, `{"api_key": "sk-..."}`, not the key. Under
-    # MODEL_ASSISTED nothing checked, so it looked fine for as long as the
-    # declared mode was also being ignored.
+    - name: Refuse an empty model key rather than a server that cannot parse
+      ansible.builtin.assert:
+        that: lookup('env', model_key_var) | length > 20
+        fail_msg: >-
+          {{ model_key_var }} is not set in the environment. The web service
+          reads the model key under that name and its preflight refuses to serve
+          without it, so this would deploy a server that comes up and cannot parse.
+      when: "'web' in targets"
+
     - name: Name the model key as its provider reads it
       ansible.builtin.set_fact:
-        model_key_env: >-
-          {{ {model_key_var: (secret.model_key | from_json).api_key} }}
+        model_key_env: "{{ {model_key_var: lookup('env', model_key_var)} }}"
       no_log: true
       when: "'web' in targets"
 

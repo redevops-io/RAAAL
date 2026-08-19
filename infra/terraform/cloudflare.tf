@@ -37,20 +37,29 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "pilot" {
 # Two ALBs, not one: EKS Auto Mode's controller does not implement
 # `alb.ingress.kubernetes.io/group.name`, so each Ingress gets its own.
 # Observed, not assumed — both reconciled and reported different hostnames.
+# Gated on `cluster_albs_ready` (see variables.tf). On a from-scratch bring-up
+# these ALBs do not exist until `services.yml` has deployed the Ingresses, and a
+# data source that resolves nothing fails the whole plan — so the first apply
+# runs with this false, and the second (after the workloads are up) with it true.
 data "aws_lb" "cluster_web" {
-  tags = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-web" }
+  count = var.cluster_albs_ready ? 1 : 0
+  tags  = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-web" }
 }
 
 data "aws_lb" "cluster_identity" {
-  tags = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-identity" }
+  count = var.cluster_albs_ready ? 1 : 0
+  tags  = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-identity" }
 }
 
 locals {
-  tunnel_web_origin      = "http://${data.aws_lb.cluster_web.dns_name}:80"
-  tunnel_identity_origin = "http://${data.aws_lb.cluster_identity.dns_name}:80"
+  tunnel_web_origin      = var.cluster_albs_ready ? "http://${data.aws_lb.cluster_web[0].dns_name}:80" : ""
+  tunnel_identity_origin = var.cluster_albs_ready ? "http://${data.aws_lb.cluster_identity[0].dns_name}:80" : ""
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
+  # The tunnel exists in phase one so its token can be stored; the routing it
+  # carries names the ALBs, so it waits for them — see `cluster_albs_ready`.
+  count      = var.cluster_albs_ready ? 1 : 0
   account_id = var.cloudflare_account_id
   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.pilot.id
 
@@ -115,6 +124,9 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
 }
 
 resource "cloudflare_record" "pilot" {
+  # Published in phase two, with the tunnel config — a record pointing at a
+  # tunnel that carries no ingress rule for the host resolves to nothing serving.
+  count   = var.cluster_albs_ready ? 1 : 0
   zone_id = var.cloudflare_zone_id
   name    = var.domain_name
   content = "${cloudflare_zero_trust_tunnel_cloudflared.pilot.id}.cfargotunnel.com"
@@ -142,7 +154,7 @@ resource "cloudflare_record" "pilot" {
 # token's issuer is part of its identity: moving the provider under a path on
 # the main hostname would make every issued token invalid the day it moved.
 resource "cloudflare_record" "identity" {
-  count = var.identity_domain_name == "" ? 0 : 1
+  count = (var.cluster_albs_ready && var.identity_domain_name != "") ? 1 : 0
 
   zone_id = var.cloudflare_zone_id
   name    = var.identity_domain_name
@@ -166,6 +178,7 @@ resource "cloudflare_record" "identity" {
 # hostname they are no longer on, and the failure would look like a login that
 # silently does not take. One canonical hostname removes the class.
 resource "cloudflare_record" "www" {
+  count   = var.cluster_albs_ready ? 1 : 0
   zone_id = var.cloudflare_zone_id
   name    = "www.${var.domain_name}"
   content = "${cloudflare_zero_trust_tunnel_cloudflared.pilot.id}.cfargotunnel.com"
