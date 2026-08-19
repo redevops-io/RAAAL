@@ -107,10 +107,10 @@
        who said it. `name=` precedes `value=` on the input because
        test_assumed_authorship reads them in that order. See workspace/
        parameters.py for how a value is not lost when it is not in the form. #}
-    {% macro answer_field(row, needs=False) -%}
+    {% macro answer_field(row, needs=False, suggest="") -%}
       <input class="pfield{% if needs %} needs{% endif %}{% if not row.value %} empty{% endif %}"
              name="answer_{{ row.name }}" type="text" value="{{ row.value }}"
-             autocomplete="off" spellcheck="false">
+             {% if suggest %}data-suggest="{{ suggest }}" {% endif %}autocomplete="off" spellcheck="false">
       <input type="hidden" name="original_{{ row.name }}" value="{{ row.value }}">
       <input type="hidden" name="author_{{ row.name }}" value="{{ row.author }}">
     {%- endmacro %}
@@ -149,20 +149,28 @@
               {% if row.describes %}<div class="pdesc">{{ row.describes }}</div>{% endif %}
             </div>
             <div class="pval">
+              {# Filling a blank should be a choice you take and adjust, not a
+                 sentence you compose from nothing — so the top suggestion is one
+                 keystroke away (Tab, while the empty field has focus) and one
+                 click away (the highlighted pill), and either drops it in as
+                 ordinary editable text. `data-suggest` carries the value Tab
+                 accepts; the pills carry every accepted value for the mouse. #}
+              {% set choices = row.executable or row.examples %}
               <div class="pvalline">
-                {{ answer_field(row, needs=True) }}
-                {% if not row.value %}<span class="ptag">EMPTY</span>{% endif %}
+                {{ answer_field(row, needs=True, suggest=(choices | first) if choices else "") }}
+                {% if not row.value %}
+                  {% if choices %}<kbd class="ptab">⇥ Tab to fill</kbd>{% else %}<span class="ptag">EMPTY</span>{% endif %}
+                {% endif %}
                 <span class="pchip need">needs you</span>
                 <span class="pchip yours pchip-done">yours</span>
               </div>
               {# Prefilled where the sentence was read but not usable ("200usd"),
                  so correcting it is an edit; the note says why it did not settle. #}
               {% if row.provenance %}<div class="quiet small">{{ row.provenance }}</div>{% endif %}
-              {% set choices = row.executable or row.examples %}
               {% if choices %}
                 <div class="pvocab">
-                  <span class="pvocab-lbl">{% if row.executable %}this build runs{% else %}e.g.{% endif %}</span>
-                  {% for c in choices %}<button type="button" class="pv" data-fill="{{ c }}">{{ c }}</button>{% endfor %}
+                  <span class="pvocab-lbl">{% if row.executable %}runs{% else %}e.g.{% endif %}</span>
+                  {% for c in choices %}<button type="button" class="pv{% if loop.first %} primary{% endif %}" data-fill="{{ c }}">{% if loop.first %}⇥ {% endif %}{{ c }}</button>{% endfor %}
                 </div>
               {% endif %}
               {% if row.executable and row.examples %}
@@ -417,7 +425,23 @@
           : 'Run it';
       }
     }
-    needs.forEach(function (f) { f.addEventListener('input', refresh); });
+    needs.forEach(function (f) {
+      f.addEventListener('input', refresh);
+      // Tab, while the field is empty and has a suggestion, accepts it in place
+      // and keeps focus so it can be edited — a second Tab then moves on as
+      // usual. Only when empty and only on a plain Tab, so it never traps the
+      // keyboard: type anything, or Shift-Tab, and Tab navigates normally.
+      f.addEventListener('keydown', function (e) {
+        if (e.key !== 'Tab' || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+        var suggest = f.getAttribute('data-suggest');
+        if (suggest && f.value.trim().length === 0) {
+          e.preventDefault();
+          f.value = suggest;
+          refresh();
+          f.setSelectionRange(f.value.length, f.value.length);
+        }
+      });
+    });
     form.querySelectorAll('.pv').forEach(function (b) {
       b.addEventListener('click', function () {
         var field = b.closest('.prow').querySelector('.pfield');
