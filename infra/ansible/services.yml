@@ -159,6 +159,14 @@
         chdir: "{{ terraform_dir }}"
       register: fetched
       changed_when: false
+      # A value-less secret is not a deploy failure. `client_id` exists as an
+      # empty shell before its OIDC application is bootstrapped — the identity
+      # deploy that mints it must be able to run while it is still empty — and
+      # `get-secret-value` returns ResourceNotFoundException for the value, not
+      # the secret. Treat that as an empty value and let the target-aware
+      # blank-check below decide whether this run actually needed it. Bad
+      # credentials empty every fetch, and that check catches them by name.
+      failed_when: false
       no_log: true
       loop:
         - { name: db_password,    id: "quantify-test/database-password" }
