@@ -75,7 +75,7 @@
     again — this is compiled from the intent you confirmed.</p>
   {% endif %}
 
-  {# One table, and only the parameters this sentence actually has.
+  {# One table's worth of parameters, and only the ones this sentence has.
 
      The page used to carry four lists — understood, needed, chosen, not
      mentioned — and left a person to assemble the plan from them. The
@@ -83,128 +83,159 @@
      contribution schedule has no withdrawal ordering, and asking about one
      would teach people to skim the rest.
 
-     Blanks are inputs in the table itself, so answering happens where the
-     question is asked rather than on another screen. #}
-  <section>
+     Grouped now by what the reader has to do rather than shown as one flat
+     table: the fields that block a run, the values already supplied, and the
+     ones that were read but will not run. `parameters` arrives sorted by
+     state; the three buckets are partitioned explicitly so each can carry its
+     own heading, count, and — for the two that are not work — a fold. Blanks
+     are inputs in the group itself, so answering happens where the question
+     is asked. #}
+  <section class="params">
     <h2>Parameters</h2>
-    <form method="post" action="/pilot/answer" class="parameters">
+
+    {% set needed_rows  = parameters | selectattr("state", "equalto", "NEEDED")  | list %}
+    {% set assumed_rows = parameters | selectattr("state", "equalto", "ASSUMED") | list %}
+    {% set settled_rows = parameters | selectattr("state", "equalto", "SETTLED") | list %}
+    {% set chosen_rows  = parameters | selectattr("state", "equalto", "CHOSEN")  | list %}
+    {% set refused_rows = parameters | selectattr("state", "equalto", "REFUSED") | list %}
+    {% set filled_rows  = assumed_rows + settled_rows + chosen_rows %}
+
+    {# The answer control, and the two hidden fields that state authorship so a
+       value can be shown and still stay ours. `original_` carries what the row
+       was offered as and `author_` whose it is; the handler compares the two,
+       so pressing the button without touching a field changes nothing about
+       who said it. `name=` precedes `value=` on the input because
+       test_assumed_authorship reads them in that order. See workspace/
+       parameters.py for how a value is not lost when it is not in the form. #}
+    {% macro answer_field(row, needs=False) -%}
+      <input class="pfield{% if needs %} needs{% endif %}{% if not row.value %} empty{% endif %}"
+             name="answer_{{ row.name }}" type="text" value="{{ row.value }}"
+             autocomplete="off" spellcheck="false">
+      <input type="hidden" name="original_{{ row.name }}" value="{{ row.value }}">
+      <input type="hidden" name="author_{{ row.name }}" value="{{ row.author }}">
+    {%- endmacro %}
+
+    {# The summary the flat table never had: how many need you, how many are
+       handled, how many will not run — so the finish line is a number rather
+       than something to infer from a column read last. The count is live once
+       the script below runs, and correct without it. #}
+    {% if needed_rows %}
+      <div class="psummary">
+        <span class="ptally need"><span class="sw"></span>{{ needed_rows | length }} need you</span>
+        {% if filled_rows %}<span class="ptally fill"><span class="sw"></span>{{ filled_rows | length }} filled in</span>{% endif %}
+        {% if refused_rows %}<span class="ptally skip"><span class="sw"></span>{{ refused_rows | length }} won't be used</span>{% endif %}
+        <span class="psp"></span>
+        <span class="pprogress"><b data-done>0</b> of {{ needed_rows | length }} answered</span>
+      </div>
+    {% elif filled_rows %}
+      <p class="quiet" style="margin:0 0 14px">Every parameter has a value — nothing is blocking a run. Check the {{ filled_rows | length }} below, then save.</p>
+    {% endif %}
+
+    <form method="post" action="/pilot/answer" class="parameters" id="answers">
       <input type="hidden" name="describe" value="{{ text }}">
       <input type="hidden" name="picked" value="{{ picked or "" }}">
-      {# Which state this submission is leaving, so the handler can tell a
-         step forward from a lap. Without it a submission that settles nothing
-         redirects to the page it came from and looks like the button is
-         broken. #}
+      {# Which state this submission is leaving, so the handler can tell a step
+         forward from a lap. Without it a submission that settles nothing
+         redirects to the page it came from and looks like a broken button. #}
       <input type="hidden" name="from_review" value="{{ review_id or "" }}">
-      <table>
-        <thead>
-          <tr><th>parameter</th><th>value</th><th>where it came from</th></tr>
-        </thead>
-        <tbody>
-        {% for row in parameters %}
-          <tr class="p-{{ row.state | lower }}">
-            <td>
-              <strong>{{ row.name }}</strong>
-              {% if row.describes %}
-                <div class="quiet small">{{ row.describes }}</div>
-              {% endif %}
-            </td>
-            <td>
-              {% if row.state == "NEEDED" %}
-                <input name="answer_{{ row.name }}" type="text"
-                       value="{{ row.value }}"
-                       placeholder="{{ row.examples | first if row.examples }}">
-                {# What this row was offered as, so the handler can tell an
-                   edit from a value that was simply carried back. Authorship
-                   is stated, never inferred from whether the box is empty. #}
-                <input type="hidden" name="original_{{ row.name }}"
-                       value="{{ row.value }}">
-                <input type="hidden" name="author_{{ row.name }}"
-                       value="{{ row.author }}">
-                {% if row.provenance %}
-                  <div class="quiet small">{{ row.provenance }}</div>
-                {% endif %}
-                {% if row.examples %}
-                  <div class="quiet small">
-                    for example {{ row.examples | join(", ") }}
-                  </div>
-                {% endif %}
-                {% if row.executable %}
-                  <div class="quiet small">
-                    this build runs {{ row.executable | join(", ") }}
-                  </div>
-                {% endif %}
-              {% elif row.state == "ASSUMED" %}
-                {# Pre-filled, and it stays ours until somebody changes it.
-                   The input used to be rendered EMPTY so that a click-through
-                   could not promote the guess to authored USER — which
-                   dominates every other author and is never overwritten by a
-                   re-read. That reasoning was right and the mechanism was a
-                   proxy: it inferred authorship from whether the box was
-                   blank, so the only way to keep a value ours was to make the
-                   person retype it. With dozens of assumed rows that is a
-                   form nobody fills in.
 
-                   The form states the authorship instead. `original_` carries
-                   what was offered and `author_` carries whose it is, so the
-                   handler compares the submitted value with the offered one:
-                   unchanged stays ASSUMED, different becomes USER. The value
-                   is visible and editable, and pressing the button without
-                   touching it changes nothing about who said it. #}
-                <input name="answer_{{ row.name }}" type="text"
-                       value="{{ row.value }}"
-                       placeholder="change it — now {{ row.value }}">
-                <input type="hidden" name="original_{{ row.name }}"
-                       value="{{ row.value }}">
-                <input type="hidden" name="author_{{ row.name }}"
-                       value="{{ row.author }}">
+      {% if needed_rows %}
+      <div class="pgroup">
+        <div class="pgh need"><span class="pdot need"></span>Needs you<span class="pgh-sub">before this can run</span></div>
+        {% for row in needed_rows %}
+          <div class="prow p-needed">
+            <div class="pmeta">
+              <strong>{{ row.name }}</strong>
+              {% if row.describes %}<div class="pdesc">{{ row.describes }}</div>{% endif %}
+            </div>
+            <div class="pval">
+              <div class="pvalline">
+                {{ answer_field(row, needs=True) }}
+                {% if not row.value %}<span class="ptag">EMPTY</span>{% endif %}
+                <span class="pchip need">needs you</span>
+                <span class="pchip yours pchip-done">yours</span>
+              </div>
+              {# Prefilled where the sentence was read but not usable ("200usd"),
+                 so correcting it is an edit; the note says why it did not settle. #}
+              {% if row.provenance %}<div class="quiet small">{{ row.provenance }}</div>{% endif %}
+              {% set choices = row.executable or row.examples %}
+              {% if choices %}
+                <div class="pvocab">
+                  <span class="pvocab-lbl">{% if row.executable %}this build runs{% else %}e.g.{% endif %}</span>
+                  {% for c in choices %}<button type="button" class="pv" data-fill="{{ c }}">{{ c }}</button>{% endfor %}
+                </div>
+              {% endif %}
+              {% if row.executable and row.examples %}
+                <div class="quiet small">in words: {{ row.examples | join(", ") }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# Handled values, folded. They carry inputs — an assumed value is filled
+         in and still a question — so the fields stay in the form and submit
+         whether the fold is open or shut; the fold only decides whether a
+         person reads past the work that is already done. Open by default the
+         first time, because a guess about this person's portfolio is the part
+         most worth a glance. #}
+      {% if filled_rows %}
+      <details class="pgroup" open>
+        <summary class="pgh fill"><span class="pcaret" aria-hidden="true">▾</span><span class="pdot fill"></span>We filled these in<span class="pgh-sub">{{ filled_rows | length }} — leave them, or edit to make them yours</span></summary>
+        {% for row in filled_rows %}
+          <div class="prow p-{{ row.state | lower }}">
+            <div class="pmeta">
+              <strong>{{ row.name }}</strong>
+              {% if row.describes %}<div class="pdesc">{{ row.describes }}</div>{% endif %}
+            </div>
+            <div class="pval">
+              {% if row.state == "ASSUMED" %}
+                <div class="pvalline">{{ answer_field(row) }}<span class="pchip fill">we filled in</span></div>
                 <div class="quiet small">assumed, not stated — edit to make it yours</div>
               {% elif row.author == "USER" %}
-                {# Their own value, rendered as an input and carried back.
-
-                   It used to render as plain text with no field at all, and
-                   the consequence was not cosmetic: the reading is rebuilt
-                   from the sentence on every submission, so a value that is
-                   not in the form is not in the reading. Somebody who set
-                   this and pressed the button again had it silently replaced
-                   by the catalogue's assumption — their own word, overwritten
-                   by a guess, with nothing on the page to say so.
-
-                   Editable rather than hidden, because a value the person
-                   stated is the one they are most entitled to change. #}
-                <input name="answer_{{ row.name }}" type="text"
-                       value="{{ row.value }}">
-                <input type="hidden" name="original_{{ row.name }}"
-                       value="{{ row.value }}">
-                <input type="hidden" name="author_{{ row.name }}" value="USER">
-                <div class="quiet small">yours</div>
-                {% if row.examples %}
-                  <div class="quiet small">
-                    for example {{ row.examples | join(", ") }}
-                  </div>
-                {% endif %}
+                <div class="pvalline">{{ answer_field(row) }}<span class="pchip yours">yours</span></div>
+                {% if row.examples %}<div class="quiet small">e.g. {{ row.examples | join(", ") }}</div>{% endif %}
               {% else %}
-                {{ row.value or "—" }}
+                {# Read from the sentence or an engine default: a value, not a
+                   field. It is rebuilt from the sentence on every submission,
+                   so it needs no input to survive. #}
+                <div class="pvalline"><span class="pvalue">{{ row.value or "—" }}</span><span class="pchip read">{% if row.state == "CHOSEN" %}engine default{% else %}read{% endif %}</span></div>
+                {% if row.provenance %}<div class="quiet small">{{ row.provenance }}</div>{% endif %}
               {% endif %}
-            </td>
-            <td class="quiet small">
-              {% if row.state == "NEEDED" %}
-                needed before this can run
-              {% elif row.state == "REFUSED" %}
-                {{ row.detail }}
-              {% else %}
-                {{ row.provenance }}
-              {% endif %}
-            </td>
-          </tr>
+            </div>
+          </div>
         {% endfor %}
-        </tbody>
-      </table>
+      </details>
+      {% endif %}
+
+      {# Read, understood, and not something this build runs — kept rather than
+         dropped, because a value that vanished silently is the difference
+         between what the plan said and what it did. Folded, and shut by
+         default: it is neither work nor a choice, only a thing to know. #}
+      {% if refused_rows %}
+      <details class="pgroup">
+        <summary class="pgh skip"><span class="pcaret" aria-hidden="true">▾</span><span class="pdot skip"></span>Won't be used<span class="pgh-sub">{{ refused_rows | length }} — read, but nothing here consumes it</span></summary>
+        {% for row in refused_rows %}
+          <div class="prow p-refused">
+            <div class="pmeta">
+              <strong>{{ row.name }}</strong>
+              {% if row.describes %}<div class="pdesc">{{ row.describes }}</div>{% endif %}
+            </div>
+            <div class="pval">
+              <div class="pvalline"><span class="pvalue struck">{{ row.value or "—" }}</span><span class="pchip skip">won't run</span></div>
+              {% if row.detail %}<div class="quiet small">{{ row.detail }}</div>{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </details>
+      {% endif %}
 
       {% if needed %}
         {# One round. `pilot.answer` re-fuses with the answers as USER-authored
            readings; there is no second pass that could ask again, which is the
            convergence property `test_clarification_converges` pins. #}
-        <button type="submit">Fill these in and run it</button>
+        <button type="submit" class="prun">Fill in the {{ needed_rows | length }} and run it</button>
       {% endif %}
     </form>
 
@@ -356,6 +387,49 @@
       {% endif %}
     </dl>
   </section>
+
+  {# Progressive enhancement only. The counts above are correct server-side;
+     this makes them move as fields fill, lets a suggested value fill its box
+     on click, and marks a needed row done. Nothing here is required to answer
+     or submit — a browser with no script sees a correct, static page. #}
+  <script>
+  (function () {
+    var form = document.getElementById('answers');
+    if (!form) return;
+    var needs = Array.prototype.slice.call(form.querySelectorAll('.pfield.needs'));
+    var total = needs.length;
+    var doneEl = document.querySelector('[data-done]');
+    var run = form.querySelector('.prun');
+    function refresh() {
+      var done = 0;
+      needs.forEach(function (f) {
+        var filled = f.value.trim().length > 0;
+        if (filled) done++;
+        f.classList.toggle('empty', !filled);
+        var row = f.closest('.prow');
+        if (row) row.classList.toggle('answered', filled);
+      });
+      if (doneEl) doneEl.textContent = done;
+      if (run) {
+        var left = total - done;
+        run.textContent = left > 0
+          ? 'Fill in the ' + left + ' and run it'
+          : 'Run it';
+      }
+    }
+    needs.forEach(function (f) { f.addEventListener('input', refresh); });
+    form.querySelectorAll('.pv').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var field = b.closest('.prow').querySelector('.pfield');
+        if (!field) return;
+        field.value = b.getAttribute('data-fill');
+        refresh();
+        field.focus();
+      });
+    });
+    refresh();
+  })();
+  </script>
 
 {% endif %}
 

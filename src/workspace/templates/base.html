@@ -80,6 +80,73 @@ tr.p-needed strong { color:var(--accent); }
 tr.p-refused strong { color:var(--block); }
 tr.p-chosen, tr.p-chosen td { color:var(--muted); }
 .small { font-size:12px; line-height:1.45; }
+
+/* The parameters section, grouped by what the reader must do. A blank required
+   field must never read as a filled one — the empty state carries a dashed
+   edge and an EMPTY tag, a real value shows solid — and state is a chip, not a
+   sentence in the column read last. */
+.params{margin-top:30px;}
+.psummary{display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:var(--chip);
+          border:1px solid var(--line);border-radius:10px;padding:11px 15px;margin:0 0 4px;}
+.ptally{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;font-weight:600;}
+.ptally .sw{width:10px;height:10px;border-radius:3px;display:inline-block;}
+.ptally.need{color:var(--accent);} .ptally.need .sw{background:var(--accent);}
+.ptally.fill{color:var(--muted);} .ptally.fill .sw{background:var(--muted);}
+.ptally.skip{color:var(--block);} .ptally.skip .sw{background:var(--block);}
+.psp{flex:1 1 40px;}
+.pprogress{font-family:var(--mono);font-size:12px;color:var(--muted);}
+.pprogress b{color:var(--ink);}
+
+.pgroup{margin:18px 0 0;}
+.pgh{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;
+     text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;
+     padding:10px 0 8px;border-bottom:1px solid var(--line);}
+.pgh-sub{text-transform:none;letter-spacing:0;font-weight:400;
+         color:color-mix(in srgb,var(--muted) 82%,transparent);}
+summary.pgh{cursor:pointer;list-style:none;}
+summary.pgh::-webkit-details-marker{display:none;}
+.pcaret{color:var(--muted);display:inline-block;transition:transform .18s;}
+details:not([open]) > summary .pcaret{transform:rotate(-90deg);}
+.pdot{width:9px;height:9px;border-radius:99px;display:inline-block;flex:none;}
+.pdot.need{background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent);}
+.pdot.fill{background:var(--muted);}
+.pdot.skip{background:var(--block);}
+
+.prow{display:grid;grid-template-columns:190px 1fr;gap:16px;padding:14px 0 14px 12px;
+      border-bottom:1px solid var(--line);border-left:2px solid transparent;}
+.prow.p-needed{border-left-color:color-mix(in srgb,var(--accent) 55%,transparent);
+               background:color-mix(in srgb,var(--accent) 4%,transparent);}
+.prow.answered{border-left-color:color-mix(in srgb,var(--ok) 55%,transparent);background:transparent;}
+.pmeta strong{font-size:14.5px;}
+.pdesc{color:var(--muted);font-size:12px;line-height:1.4;margin-top:3px;}
+.pval{min-width:0;}
+.pvalline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pfield{max-width:340px;}
+.pfield.empty{border-style:dashed;border-color:color-mix(in srgb,var(--accent) 45%,var(--line));}
+.ptag{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--accent);}
+.prow.answered .ptag{display:none;}
+
+.pchip{font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+       border-radius:99px;padding:2px 8px;border:1px solid transparent;white-space:nowrap;}
+.pchip.need{background:var(--accent);color:var(--panel);}
+.pchip.yours{background:transparent;color:var(--accent);border-color:var(--accent);}
+.pchip.fill,.pchip.read{background:transparent;color:var(--muted);border-color:var(--line);}
+.pchip.skip{background:transparent;color:var(--block);border-color:var(--block);}
+.pchip-done{display:none;}
+.prow.answered .pchip.need{display:none;}
+.prow.answered .pchip-done{display:inline-block;}
+
+.pvalue{font-size:15px;color:var(--ink);}
+.pvalue.struck{color:var(--muted);text-decoration:line-through;}
+.pvocab{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:9px;}
+.pvocab-lbl{font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:2px;}
+.pv{font-family:var(--mono);font-size:11.5px;color:var(--accent);margin:0;
+    background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid transparent;
+    border-radius:99px;padding:3px 10px;cursor:pointer;}
+.pv:hover{border-color:var(--accent);}
+.prun{margin-top:18px;}
+@media (max-width:640px){ .prow{grid-template-columns:1fr;gap:6px;} }
+
 @media (max-width:760px){ .split { grid-template-columns:1fr; } }
 </style>
 <header>
