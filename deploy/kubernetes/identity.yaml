@@ -151,6 +151,22 @@ spec:
               else
                 echo "bootstrap: FAILED rc=$rc"
               fi
+              # SMTP sender, so the hosted register flow can deliver its
+              # verification code. Optional: with no token the flow still exists
+              # but a self-registered user cannot finish (that screen sets the
+              # password too), which is the state this repairs. Idempotent by
+              # sender, so it re-adopts the provider on every restart.
+              if [ -n "$POSTMARK_TOKEN" ]; then
+                echo "bootstrap: configuring the SMTP sender ($SMTP_SENDER via $SMTP_HOST)"
+                python3 /bootstrap/configure_smtp.py \
+                  --pat-file /machinekey/pat.txt \
+                  --host "$SMTP_HOST" \
+                  --sender "$SMTP_SENDER" \
+                  --sender-name "$SMTP_SENDER_NAME" >/tmp/smtp 2>&1
+                echo "smtp: $(tail -1 /tmp/smtp)"
+              else
+                echo "bootstrap: POSTMARK_TOKEN empty — SMTP not configured; self-registration cannot deliver codes"
+              fi
               # Stay up: a native sidecar that exits is a restart, and a restart
               # loop would re-run the bootstrap every few seconds.
               exec sleep infinity
@@ -163,6 +179,18 @@ spec:
             - { name: APP_ORIGIN,     value: "https://quantify.club" }
             - { name: TEST_EMAIL,     value: "pilot@quantify.club" }
             - { name: TEST_PASSWORD,  value: "Quantify-Pilot-2026!" }
+            # The SMTP sender. Host and address are fixed for this deployment;
+            # the token comes from the identity Secret and is optional, so the
+            # sidecar starts even on a deploy that never set POSTMARK_API_TOKEN.
+            - { name: SMTP_HOST,        value: "smtp.postmarkapp.com:587" }
+            - { name: SMTP_SENDER,      value: "noreply@quantify.club" }
+            - { name: SMTP_SENDER_NAME, value: "Quantify" }
+            - name: POSTMARK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: quantify-identity
+                  key: POSTMARK_TOKEN
+                  optional: true
           volumeMounts:
             - { name: machinekey,       mountPath: /machinekey, readOnly: true }
             - { name: bootstrap-script, mountPath: /bootstrap,  readOnly: true }

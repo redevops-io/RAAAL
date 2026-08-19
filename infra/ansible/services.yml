@@ -286,6 +286,16 @@
             ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Deployment bootstrap
             ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
             ZITADEL_FIRSTINSTANCE_PATPATH: /machinekey/pat.txt
+            # The SMTP sender token, for the bootstrap sidecar to point Zitadel
+            # at Postmark so the hosted register flow can deliver its
+            # verification code — without a sender, a self-registered user is
+            # stranded on the screen that both verifies the address and sets the
+            # password. From the environment, like the model key: the operator's
+            # shell exports it, and it is the same token that already sends for
+            # this domain. Empty disables SMTP wiring rather than failing — a
+            # deployment with no sender is a valid one that simply cannot
+            # self-register users.
+            POSTMARK_TOKEN: "{{ lookup('env', 'POSTMARK_API_TOKEN') }}"
         state: present
       no_log: true
       when: "'identity' in targets"
@@ -305,6 +315,7 @@
             namespace: "{{ k8s_namespace }}"
           data:
             bootstrap_identity.py: "{{ lookup('file', playbook_dir + '/../../scripts/bootstrap_identity.py') }}"
+            configure_smtp.py: "{{ lookup('file', playbook_dir + '/../../scripts/configure_smtp.py') }}"
         state: present
       when: "'identity' in targets"
 
