@@ -48,21 +48,19 @@ STATES = {
     'split-across-accounts': {'amount': '50', 'cadence': 'monthly', 'objective': 'plan_contributions'},
     'escalating-contribution': {'cadence': 'monthly', 'conditional_amount': 'raise it to 150 EUR a month next year', 'objective': 'plan_contributions'},
     # --- allocation ------------------------------------------------
-    'stated-weights': {'allocation_method': 'stated_weights', 'assets': 'stocks,bonds', 'stated_weights': '60/40'},
-    'rebalancing': {'allocation_method': 'stated_weights', 'assets': '60/40', 'cadence': 'annual', 'stated_weights': '60/40'},
+    'stated-weights': {'amount': '500', 'assets': 'VTI,BND', 'cadence': 'monthly', 'allocation_method': 'stated_weights', 'stated_weights': 'VTI=60,BND=40'},
+    'rebalancing': {'amount': '500', 'assets': 'VTI,BND', 'cadence': 'monthly', 'allocation_method': 'stated_weights', 'stated_weights': 'VTI=60,BND=40', 'periodic_rebalancing': 'annual'},
     'risk-based-allocation': {'allocation_method': 'inverse_volatility'},
     'factor-tilt': {'objective': 'other', 'portfolio_sleeves': 'core=my portfolio, satellite=small cap value'},
     'glidepath': {'assets': 'bonds', 'cadence': 'annual', 'objective': 'plan_contributions', 'sell_action': 'shift 1% from stocks to bonds'},
-    # `stated_weights` settles now. It was recorded as an UNRESOLVED_DISAGREEMENT —
-    # "the model read '100%'; syntax argues otherwise (Decimal('1'))" — which was
-    # never a disagreement: those are one share written two ways, and the
-    # comparison could not say so until WEIGHTS learned that a share above one
-    # is a percentage. The frozen row outlived the fusion that produced it.
-    'single-fund': {'account_type': 'OTHER', 'allocation_method': 'stated_weights', 'asset_location': 'holding=an S&P 500 index fund, account=401k', 'assets': 'an S&P 500 index fund', 'stated_weights': '100%'},
-    'three-way-split': {'allocation_method': 'stated_weights', 'assets': 'stocks,bonds,other', 'stated_weights': '73/23/4'},
+    # A single fund is one holding, so it needs no split: the whole
+    # contribution buys VOO. Named as a ticker the snapshot carries rather than
+    # "an S&P 500 index fund", which the resolver refuses as a family.
+    'single-fund': {'amount': '500', 'assets': 'VOO', 'cadence': 'monthly'},
+    'three-way-split': {'amount': '600', 'assets': 'VTI,VXUS,BND', 'cadence': 'monthly', 'allocation_method': 'stated_weights', 'stated_weights': 'VTI=60,VXUS=30,BND=10'},
     'mean-variance': {'allocation_method': 'minimum_variance', 'assets': '30 holdings'},
     'volatility-target': {'allocation_method': 'volatility_target'},
-    'fund-and-rebalance': {'allocation_method': 'stated_weights', 'cadence': 'quarterly', 'objective': 'evaluate_investment_strategy', 'stated_weights': '70/30'},
+    'fund-and-rebalance': {'amount': '600', 'assets': 'VTI,BND', 'cadence': 'quarterly', 'allocation_method': 'stated_weights', 'stated_weights': 'VTI=70,BND=30', 'periodic_rebalancing': 'quarterly', 'objective': 'evaluate_investment_strategy'},
     'holding-period': {'holding_period': '21 days', 'sell_action': 'close it'},
     # --- money-out -------------------------------------------------
     'safe-withdrawal-rate': {'objective': 'assess_withdrawal', 'sell_action': 'withdraw 4% of the portfolio each year, adjusted for inflation'},

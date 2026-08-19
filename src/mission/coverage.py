@@ -322,15 +322,18 @@ _SCHEDULED_ALSO = re.compile(
 
 def assess(scenario: Any, *, stated_text: str = "",
            resolved_window: Any = None, frame_sessions: int = 0,
-           ledger: Any = None, excluded_items: Sequence[str] = ()) -> Coverage:
+           ledger: Any = None, fills: Sequence[Any] = (),
+           excluded_items: Sequence[str] = ()) -> Coverage:
     """Build the record for one run.
 
-    `resolved_window` and `ledger` are the *evidence* arguments and come from
-    somewhere other than the thing they attest to: the resolved window carries
-    the session bounds the frame was actually cut to, and the ledger carries
-    rows the engine filled. Passing the scenario alone would produce a record
-    asserting that everything declared was done, which is what the declaration
-    already said.
+    `resolved_window`, `ledger` and `fills` are the *evidence* arguments and
+    come from somewhere other than the thing they attest to: the resolved window
+    carries the session bounds the frame was actually cut to, the ledger carries
+    rows the engine filled, and the fills are the purchases the executor
+    produced — each split purchase tagged by `rebalance.weighted`, which is how
+    a stated split evidences itself without asking the scenario that requested
+    it. Passing the scenario alone would produce a record asserting that
+    everything declared was done, which is what the declaration already said.
     """
     excluded = set(excluded_items or ())
     elements: List[DeclaredElement] = []
@@ -463,20 +466,55 @@ def assess(scenario: Any, *, stated_text: str = "",
     # none of the second, and only the first is what equal weighting does.
     held = len(getattr(scenario.allocation_rule, "assets", ()) or ())
     unsupported_weights = bool(weights) and not weights_are_equal(weights, held)
+
+    # Whether the split was carried through and applied, read from the two
+    # places that would show it rather than assumed absent (which is what this
+    # block did while the engine could only divide equally — it now honours a
+    # bound split via `rebalance.weighted`).
+    #
+    # `executed`: the reader binds "60% in VTI and 40% in BND" to
+    # `allocation_rule.weights`, and `evaluation.core` hands exactly that mapping
+    # to the executor. An empty mapping is the legacy `compile_scenario` path,
+    # which drops the split before the scenario — that must still block, so the
+    # unequal-weights refusal `test_unequal_weights_block_by_name` pins survives.
+    #
+    # `evidenced`: the executor tags every purchase it divided `reason="stated
+    # split"`. That those fills exist for the holdings the split names is the run
+    # attesting the split was applied — sourced from the fills, not from the
+    # scenario that asked for them, which is what evidence means here.
+    bound = dict(getattr(scenario.allocation_rule, "weights", {}) or {})
+    split_filled = {getattr(one, "ticker", None) for one in (fills or ())
+                    if getattr(one, "reason", "") == "stated split"}
+    weights_executed = bool(bound)
+    weights_evidenced = bool(bound) and set(bound) <= split_filled
+
+    if not unsupported_weights:
+        weights_reason = ""
+    elif not weights_executed:
+        weights_reason = (
+            "you specified "
+            + " and ".join(f"{one:g}%" for one in weights)
+            + " for the holdings, and this version divides each purchase "
+              "equally between them, so it cannot honestly show a result "
+              "for the portfolio you described")
+    elif not weights_evidenced:
+        weights_reason = (
+            "the "
+            + " and ".join(f"{one:g}%" for one in weights)
+            + " split was applied, but the run filled no orders that confirm it")
+    else:
+        weights_reason = ""
+
     elements.append(DeclaredElement(
         element_id="stated_weights",
         declared=unsupported_weights,
-        compiled=False,
-        executed=False,
-        evidenced=False,
+        compiled=weights_executed,
+        executed=weights_executed,
+        evidenced=weights_evidenced,
         exclusion_authorized="stated_weights" in excluded,
-        reason=("" if not unsupported_weights else
-                "you specified "
-                + " and ".join(f"{one:g}%" for one in weights)
-                + " for the holdings, and this version divides each purchase "
-                  "equally between them, so it cannot honestly show a result "
-                  "for the portfolio you described"),
-        detail={"stated": list(weights)}))
+        reason=weights_reason,
+        detail={"stated": list(weights),
+                "executed": sorted(bound), "evidenced": sorted(split_filled)}))
 
     # --- a stated rebalancing frequency -------------------------------------
     rebalancing = bool(stated_text and _PERIODIC_REBALANCING.search(stated_text))

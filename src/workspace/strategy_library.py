@@ -155,10 +155,11 @@ LIBRARY: Tuple[Group, ...] = (
         note='What the money buys, in what proportions, and whether that is restored over time.',
         entries=(
             Entry('stated-weights', 'Hold a stated split, such as 60/40',
-                  'I hold a 60/40 portfolio: 60% stocks and 40% bonds.',
+                  'I invest $500 a month, 60% in VTI and 40% in BND.',
                   family='stated_weights', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/asset-allocation'),
             Entry('rebalancing', 'Rebalance back to the target weights',
-                  'I hold 60/40 and rebalance back to those weights once a year.',
+                  'I invest $500 a month, 60% in VTI and 40% in BND, and '
+                  'rebalance back to that split once a year.',
                   family='rebalancing', source='https://www.investor.gov/introduction-investing/investing-basics/glossary/rebalancing'),
             Entry('risk-based-allocation', 'Allocate by risk rather than by dollars',
                   'I allocate across my holdings by inverse volatility rather '
@@ -171,12 +172,12 @@ LIBRARY: Tuple[Group, ...] = (
                   'I shift 1% from stocks to bonds every year as I get older.',
                   family='glidepath', source='https://benchmarkfg.com/wp-content/uploads/2025/05/Reducing-Retirement-Risk-with-a-Rising-Equity-Glide-Path-2.pdf'),
             Entry('single-fund', 'Hold a single fund',
-                  'I hold 100% of my 401k in an S&P 500 index fund.',
+                  'I invest $500 a month, all of it into VOO.',
                   family='stated_weights',
                   source='https://money.stackexchange.com/questions/39679/how-or-is-it-necessary-to-rebalance-a-401k-with-only-one-index-fund',
                   licence='CC-BY-SA 4.0'),
             Entry('three-way-split', 'Hold a three-way split',
-                  'I hold 73% stocks, 23% bonds and 4% other.',
+                  'I invest $600 a month, 60% in VTI, 30% in VXUS and 10% in BND.',
                   family='stated_weights',
                   source='https://money.stackexchange.com/questions/55630/first-401k-portfolio-with-high-expense-ratios-which-funds-to-pick-24yo',
                   licence='CC-BY-SA 4.0'),
@@ -192,8 +193,8 @@ LIBRARY: Tuple[Group, ...] = (
                   source='https://quant.stackexchange.com/questions/71489/when-how-do-i-vol-scale-portfolio-weights-when-optimizing-the-portfolio',
                   licence='CC-BY-SA 4.0'),
             Entry('fund-and-rebalance', 'Add money and rebalance together',
-                  'Every three months I add money to the portfolio and rebalance '
-                  'it back to 70/30.',
+                  'Every three months I invest $600, 70% in VTI and 30% in BND, '
+                  'and rebalance back to that split.',
                   family='rebalancing',
                   source='https://money.stackexchange.com/questions/142270/do-bond-funds-have-an-inherent-advantage-over-individual-bonds-within-a-portfoli',
                   licence='CC-BY-SA 4.0'),

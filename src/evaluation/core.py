@@ -321,6 +321,7 @@ def evaluate_plan(scenario, prices, *, scope: Optional[Dict[str, Any]] = None,
     coverage = coverage_module.assess(
         scenario, stated_text=stated_text, resolved_window=resolved_window,
         frame_sessions=len(sessions), ledger=execution_ledger,
+        fills=getattr(result.path, "fills", ()),
         excluded_items=[one.item for one in
                         (scenario.provenance.excluded or ())])
     if not coverage.publishable:
