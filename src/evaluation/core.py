@@ -256,6 +256,12 @@ def evaluate_plan(scenario, prices, *, scope: Optional[Dict[str, Any]] = None,
     sessions = prices.index
     policy = CashPolicy.idle()
     assets = list(scenario.allocation_rule.assets)
+    # Custom indices (e.g. VT) carry no series of their own — the data service
+    # named their components and delivered them; the valuation engine computes
+    # the index level from those columns here, before pricing, so a plan that
+    # holds one trades a real column rather than reading as no price history.
+    from .index_calc import materialise
+    prices = materialise(prices, assets)
     tradeable = [one for one in assets if one in prices.columns]
 
     events, ledger_signals, unexecutable, funding_error = _funding_events(

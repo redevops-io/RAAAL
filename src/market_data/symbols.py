@@ -144,6 +144,14 @@ INSTRUMENTS: Tuple[Instrument, ...] = (
                "ProShares UltraShort 20+ Year Treasury ETF",
                ("ultrashort treasuries", "inverse long treasuries",
                 "short long-term treasuries")),
+    # A custom index: no series of its own in the snapshot, computed from its
+    # components (US total market + total international) at pricing time. See
+    # market_data/custom_indices.py for the composition and evaluation/
+    # index_calc.py for the calculation. Named here so a plan can hold it.
+    Instrument("VT", InstrumentKind.ETF,
+               "Vanguard Total World Stock (composed of VTI + VXUS)",
+               ("total world", "total world stock", "world stock market",
+                "global stock market")),
     Instrument("BRK-B", InstrumentKind.EQUITY, "Berkshire Hathaway Inc. Class B",
                ("berkshire", "berkshire hathaway", "berkshire b")),
     Instrument("BTC-USD", InstrumentKind.CRYPTO, "Bitcoin in US dollars",
