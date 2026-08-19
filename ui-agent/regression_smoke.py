@@ -134,6 +134,23 @@ async def sign_in(page, base: str, email: str, password: str) -> None:
     await page.keyboard.press("Enter")
     await page.wait_for_timeout(4000)
 
+    # After a first sign-in the provider prompts to set up a second factor. The
+    # pilot account is a test user with no authenticator, and the prompt offers
+    # to skip — a person registering with an email and password is not made to
+    # configure MFA before they can reach the workspace. Take the skip so the
+    # session completes; without it the flow stops on the setup page and every
+    # protected route bounces back to login.
+    for selector in ("button:has-text('Skip')", "a:has-text('Skip')",
+                     "button:has-text('skip')", "[id*='skip']"):
+        skip = page.locator(selector).first
+        if await skip.count():
+            try:
+                await skip.click()
+                await page.wait_for_timeout(3000)
+            except Exception:                                  # noqa: BLE001
+                pass
+            break
+
 
 async def run(base: str, email: str, password: str, report: Report) -> None:
     from playwright.async_api import async_playwright

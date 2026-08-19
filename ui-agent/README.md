@@ -91,6 +91,38 @@ The first is invisible to a rendered-template test, which checks the template
 rather than the page as served — the same gap that let a dead selector script
 ship past a passing suite.
 
+### `strategy_evaluate_sweep.py` — take the defaults, run it, report
+
+The catalogue sweep asks whether each page is *coherent*. This one asks whether
+each strategy *runs*: it does what a person does to get a first result — picks a
+strategy from the menu, accepts the suggested default for every blank the plan
+needs (by **Tab**, the one-keystroke fill the page now offers), presses run — and
+reports the outcome, strategy by strategy.
+
+| Outcome | Means | Attention? |
+|---|---|---|
+| `evaluated` | ran and produced a figure (captured, for the graph comparison next) | clean |
+| `refused` | the build declines this strategy by name, with a reason | clean — a named refusal is the honest answer, not a defect |
+| `blocked` | a required blank has no default to Tab into — the one-keystroke path cannot complete it | **yes** |
+| `unresolved` | everything was filled and the page still neither ran nor refused | **yes** — the outcome nobody can act on |
+| `error` | the page threw, or a control the flow depends on was missing | **yes** |
+
+`blocked`, `unresolved` and `error` set a non-zero exit; every strategy is listed
+either way, so the run is a map of what the default-fill path completes and what
+it does not.
+
+```bash
+python ui-agent/strategy_evaluate_sweep.py --url https://quantify.club \
+    --email pilot@quantify.club --password '...' [--limit 5] [--url-nav]
+```
+
+Each strategy is a live read, so this costs provider calls and runs on demand,
+not in CI. `--limit` keeps a first run cheap; `--url-nav` selects by URL rather
+than driving the dropdown control (the control's own behaviour is already pinned
+by `tests/test_selector_in_a_browser.py`). It signs in through the provider like
+the others — and now skips the post-login MFA-setup prompt, which a pilot account
+with no authenticator is offered rather than forced.
+
 ### `regression_smoke.py` — against the deployed site
 
 A template that is right can still be included on a page that is wrong, and a

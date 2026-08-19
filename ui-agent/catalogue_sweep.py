@@ -80,15 +80,20 @@ async def submit(page, base: str, sentence: str) -> dict:
     except Exception:                                        # noqa: BLE001
         pass
 
+    # The parameter rows moved from a `<table>` of `<tr class="p-*">` to a grid
+    # of `<div class="prow p-*">` — grouped, with the filled and refused rows in
+    # `<details>` folds. `.count()` still sees a folded row (it is in the DOM),
+    # which is what these checks need; only `inner_text()` below skips a shut
+    # fold, and every text check it feeds is on a row that is not folded.
     rows = await page.locator(
-        "table tr.p-needed, table tr.p-refused, table tr.p-settled, "
-        "table tr.p-chosen, table tr.p-assumed").count()
-    needed = await page.locator("tr.p-needed").count()
+        ".prow.p-needed, .prow.p-refused, .prow.p-settled, "
+        ".prow.p-chosen, .prow.p-assumed").count()
+    needed = await page.locator(".prow.p-needed").count()
     inputs = await page.locator("input[name^='answer_']").count()
-    refused = await page.locator("tr.p-refused").count()
-    assumed = await page.locator("tr.p-assumed").count()
+    refused = await page.locator(".prow.p-refused").count()
+    assumed = await page.locator(".prow.p-assumed").count()
     assumed_inputs = await page.locator(
-        "tr.p-assumed input[name^='answer_']").count()
+        ".prow.p-assumed input[name^='answer_']").count()
     # Whether any assumed row arrives with its input already carrying the
     # value. If it does, pressing "run it" posts our guess back and it returns
     # authored USER — the strongest author there is — for anybody who did not
@@ -97,7 +102,7 @@ async def submit(page, base: str, sentence: str) -> dict:
     # rather than the page as served.
     prefilled = await page.evaluate(
         "() => Array.from(document.querySelectorAll("
-        "'tr.p-assumed input[name^=answer_]')).filter(i => i.value).length")
+        "'.prow.p-assumed input[name^=answer_]')).filter(i => i.value).length")
     body = await page.locator("body").inner_text()
     return {
         "rows": rows, "needed": needed, "inputs": inputs, "refused": refused,
