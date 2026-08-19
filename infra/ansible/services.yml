@@ -161,10 +161,11 @@
       changed_when: false
       no_log: true
       loop:
-        - { name: db_password,  id: "quantify-test/database-password" }
-        - { name: masterkey,    id: "quantify-test/identity-masterkey" }
-        - { name: client_id,    id: "quantify-test/identity-client-id" }
-        - { name: tunnel_token, id: "quantify-test/cloudflare-tunnel-token" }
+        - { name: db_password,    id: "quantify-test/database-password" }
+        - { name: masterkey,      id: "quantify-test/identity-masterkey" }
+        - { name: admin_password, id: "quantify-test/identity-admin-password" }
+        - { name: client_id,      id: "quantify-test/identity-client-id" }
+        - { name: tunnel_token,   id: "quantify-test/cloudflare-tunnel-token" }
       when: targets | intersect(['identity', 'web', 'tunnel']) | length > 0
 
     - name: Name them without showing them
@@ -172,6 +173,16 @@
         secret: "{{ dict(fetched.results | map(attribute='item.name')
                     | zip(fetched.results | map(attribute='stdout'))) }}"
       no_log: true
+      when: targets | intersect(['identity', 'web', 'tunnel']) | length > 0
+
+    # Which credentials this run actually needs, by target. `client_id` is the
+    # subtle one: it does not exist until identity has been deployed and its OIDC
+    # application bootstrapped, so requiring it for the identity deploy would fail
+    # on the value that deploy exists to mint. web needs it; identity does not.
+    - name: Which secrets this run requires
+      ansible.builtin.set_fact:
+        required_secrets: "{{ ((['db_password', 'masterkey', 'admin_password'] if 'identity' in targets else [])
+                               + (['db_password', 'client_id'] if 'web' in targets else [])) | unique }}"
       when: targets | intersect(['identity', 'web', 'tunnel']) | length > 0
 
     - name: Refuse blanks rather than deploying them
@@ -182,11 +193,10 @@
           credential comes up, fails every request, and reports as running —
           and for the identity master key it would come up unable to decrypt
           anything already stored.
-      loop: [db_password, masterkey, client_id]
+      loop: "{{ required_secrets | default([]) }}"
       # The model key is not here: it comes from the environment, not Secrets
       # Manager, and is checked as the application will read it, below.
       no_log: true
-      when: targets | intersect(['identity', 'web', 'tunnel']) | length > 0
 
     # Checked as the connector will read it, not as it is stored. A length
     # test on the JSON wrapper says nothing about the credential inside, and
@@ -254,6 +264,20 @@
             ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: quantify
             ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: "{{ secret.db_password }}"
             ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: require
+            # First-instance bootstrap. Applied only when Zitadel initialises a
+            # fresh database (start-from-init with no instance yet); a no-op once
+            # an instance exists. Creates the org, the admin — with the
+            # terraform-generated password, so no credential is invented here —
+            # and the deploy-bootstrap machine user whose PAT is written to
+            # /machinekey/pat.txt for the OIDC application bootstrap to use.
+            ZITADEL_FIRSTINSTANCE_ORG_NAME: Quantify
+            ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: admin
+            ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: "{{ (secret.admin_password | from_json).password }}"
+            ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
+            ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: deploy-bootstrap
+            ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Deployment bootstrap
+            ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
+            ZITADEL_FIRSTINSTANCE_PATPATH: /machinekey/pat.txt
         state: present
       no_log: true
       when: "'identity' in targets"
@@ -339,6 +363,25 @@
         force: true
       no_log: true
       when: "'web' in targets"
+
+    # The migration Job runs under the quantify-data service account — the schema
+    # owner's identity. On a first bring-up that account does not exist yet:
+    # data.yaml creates it, and data.yaml is applied *after* the migration, so the
+    # Job's pod is forbidden ("serviceaccount quantify-data not found") and the
+    # wait hangs on a Job that can never start. Create the account here, before the
+    # Job borrows it; data.yaml re-applies the same object idempotently. The Pod
+    # Identity association in terraform binds by name, so it attaches the moment
+    # this exists.
+    - name: Ensure the quantify-data service account exists before the migration
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: quantify-data
+            namespace: "{{ k8s_namespace }}"
+        state: present
+      when: "'data' in targets"
 
     - name: Render the migration Job for this build
       ansible.builtin.set_fact:

@@ -105,11 +105,25 @@ spec:
       containers:
         - name: identity
           image: ghcr.io/zitadel/zitadel:v2.65.1
-          args: ["start", "--masterkeyFromEnv", "--tlsMode", "external"]
+          # `start-from-init`, not `start`: on a fresh database there is no
+          # instance to start, so the process must init and run setup first —
+          # which is also where the FIRSTINSTANCE config creates the org, the
+          # admin, and the machine user whose PAT the OIDC bootstrap uses.
+          # Idempotent on an already-initialised database (setup skips applied
+          # steps), so this is safe on a redeploy and on the move-a-restored-DB
+          # path the rest of this file was written for.
+          args: ["start-from-init", "--masterkeyFromEnv", "--tlsMode", "external"]
           ports:
             - containerPort: 8080
           envFrom:
             - secretRef: { name: quantify-identity }
+          volumeMounts:
+            # Zitadel writes the deploy-bootstrap machine user's PAT here at
+            # first setup (FIRSTINSTANCE_PATPATH). emptyDir, because it is needed
+            # once, in this pod's lifetime, to mint the OIDC application — after
+            # which the client id lives in Secrets Manager and nothing reads it.
+            - name: machinekey
+              mountPath: /machinekey
           resources:
             requests: { cpu: 250m, memory: 512Mi }
             limits: { memory: 1Gi }
@@ -149,6 +163,8 @@ spec:
       volumes:
         - name: proxy-config
           configMap: { name: quantify-identity-proxy }
+        - name: machinekey
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
