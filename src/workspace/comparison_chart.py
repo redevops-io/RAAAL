@@ -179,4 +179,10 @@ def _stable(script: str, div: str, series) -> Dict[str, str]:
         replacement = f"q{seed}{index:04d}"
         script = script.replace(token, replacement)
         div = div.replace(token, replacement)
-    return {"script": script, "div": div}
+    # The BokehJS the page must load is the one that generated this embed —
+    # exactly, not "at least". Bokeh refuses to render a document built by one
+    # version against a library of another ("version mismatch"), and a page that
+    # pins the CDN by hand drifts from the installed library the moment either
+    # moves. Carry the version so the template loads the matching bundle.
+    import bokeh
+    return {"script": script, "div": div, "version": bokeh.__version__}

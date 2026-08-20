@@ -275,7 +275,11 @@
            reopens of one plan rendered different markup and the journey test
            refused it, because reopening is supposed to show the same figure the
            confirmed intent produced. #}
-        <script src="https://cdn.bokeh.org/bokeh/release/bokeh-3.5.0.min.js"></script>
+        {# The BokehJS version must match the one that built the embed, or Bokeh
+           refuses to draw it — a hardcoded version drifts from the installed
+           library and leaves a blank chart with a version-mismatch console
+           error. `chart.version` is that library's own version. #}
+        <script src="https://cdn.bokeh.org/bokeh/release/bokeh-{{ chart.version }}.min.js"></script>
         {{ chart.div | safe }}
         {{ chart.script | safe }}
       {% endif %}
