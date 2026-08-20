@@ -261,6 +261,21 @@
       <h2>Result</h2>
       <p class="figure">{{ figure }}</p>
       {% if gain is not none %}<p class="quiet">gain {{ "%.2f"|format(gain) }}</p>{% endif %}
+      {# Risk-adjusted performance, on the time-weighted return so a plan that
+         put more money in later reads as a higher figure and not a better
+         Sharpe — these describe the second thing. #}
+      {% if performance %}
+      <div class="perf">
+        <span title="Annualised mean excess daily return over its standard deviation, risk-free 2%/yr, time-weighted">
+          Sharpe <strong>{{ "%+.2f"|format(performance.sharpe) }}</strong></span>
+        <span title="Annualised standard deviation of the time-weighted daily return">
+          Volatility <strong>{{ "%.1f"|format(performance.annual_volatility * 100) }}%</strong></span>
+        <span title="Deepest peak-to-trough fall of the flow-free growth curve">
+          Max drawdown <strong>{{ "%.1f"|format(performance.max_drawdown * 100) }}%</strong></span>
+        <span title="Annualised time-weighted return, contributions removed">
+          Return <strong>{{ "%+.1f"|format(performance.annual_return * 100) }}%/yr</strong></span>
+      </div>
+      {% endif %}
       <p class="quiet">
         This figure was produced from the plan you confirmed. Reopening it
         recompiles from that same plan and does not read your sentence again.

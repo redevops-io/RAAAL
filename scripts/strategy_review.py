@@ -32,6 +32,7 @@ from src.evaluation.core import evaluate_plan                     # noqa: E402
 from src.mission.accounting import CashPolicy                     # noqa: E402
 from src.mission.benchmark import compare                         # noqa: E402
 from src.mission.from_intent import compile_intent                # noqa: E402
+from src.mission.performance import from_path                      # noqa: E402
 from src.mission.strategy_methods import strategy_capability      # noqa: E402
 from src.strategies import CAPABILITY_BY_ID                       # noqa: E402
 from src.workspace.catalog_intent import intent_for              # noqa: E402
@@ -108,13 +109,19 @@ def main() -> int:
         gain_pct = 100.0 * gain / contributed if contributed else 0.0
         benches = [(s["name"], s["values"][-1]) for s in series[1:]]
         beat = sum(1 for _n, v in benches if plan_final >= v)
+        perf = from_path(evaluated.result.path)
 
         desc = _describe(capability)
         cadence = getattr(scenario.holdings_policy, "rebalancing_cadence", "")
         meta = (f"capability <code>{capability}</code> &middot; "
                 f"family {desc['family']} &middot; {desc['risk']} risk &middot; "
                 f"rebalanced {cadence} &middot; warm-up {desc['min_history']} "
-                f"sessions &middot; $500/month over the ten-fund universe")
+                f"sessions &middot; $500/month over the ten-fund universe"
+                f"<br>Sharpe {perf.sharpe:+.2f} &middot; "
+                f"volatility {perf.annual_volatility * 100:.1f}%/yr &middot; "
+                f"max drawdown {perf.max_drawdown * 100:.1f}% &middot; "
+                f"return {perf.annual_return * 100:+.1f}%/yr "
+                f"(time-weighted, risk-free 2%)")
 
         chart = build(run)
         graph_name = f"{entry.key}.html"
@@ -127,6 +134,8 @@ def main() -> int:
             "what": desc["what"], "family": desc["family"], "risk": desc["risk"],
             "final": plan_final, "gain": gain, "gain_pct": gain_pct,
             "beat": beat, "of": len(benches), "graph": f"graphs/{graph_name}",
+            "sharpe": perf.sharpe, "vol": perf.annual_volatility,
+            "maxdd": perf.max_drawdown, "cagr": perf.annual_return,
         })
         print(f"  {entry.title:26} ${plan_final:>10,.0f}  "
               f"beat {beat}/{len(benches)}  -> {graph_name}")
@@ -141,6 +150,9 @@ def _index_page(rows) -> str:
     def cell(r):
         risk_col = {"aggressive": "#b91c1c", "moderate": "#b45309",
                     "defensive": "#047857"}.get(r["risk"], "#5b6673")
+        dd_col = "#b91c1c" if r["maxdd"] <= -0.30 else "#5b6673"
+        sh_col = "#047857" if r["sharpe"] >= 0.5 else (
+            "#b91c1c" if r["sharpe"] < 0 else "#5b6673")
         return f"""<tr>
       <td><a href="{r['graph']}"><strong>{html.escape(r['title'])}</strong></a>
           <div class="cap">{html.escape(r['capability'])}</div></td>
@@ -149,6 +161,9 @@ def _index_page(rows) -> str:
           <span style="color:{risk_col}">{html.escape(r['risk'])}</span></td>
       <td class="num">${r['final']:,.0f}</td>
       <td class="num">{r['gain_pct']:+.1f}%</td>
+      <td class="num" style="color:{sh_col}">{r['sharpe']:+.2f}</td>
+      <td class="num">{r['vol'] * 100:.1f}%</td>
+      <td class="num" style="color:{dd_col}">{r['maxdd'] * 100:.1f}%</td>
       <td class="num">{r['beat']}/{r['of']}</td>
       <td><a href="{r['graph']}">View graph &rarr;</a></td>
     </tr>"""

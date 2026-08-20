@@ -319,7 +319,27 @@ def page(reading: PilotReading, *, text: str,
         # The comparison, drawn. Every run already computes the plan's path and
         # five benchmark paths; the page printed one number and discarded them.
         "chart": _chart(run),
+        # Risk-adjusted performance, from the time-weighted return so
+        # contributions neither flatter nor distort it. None when no figure ran.
+        "performance": _performance(run),
     }
+
+
+def _performance(run):
+    """Sharpe, volatility and drawdown for the run, or None if it did not run.
+
+    None rather than a raise, for the same reason `_chart` returns None: the
+    figure is the point, and a statistic that could not be computed is not worth
+    withholding it for."""
+    result = run.get("result")
+    if result is None:
+        return None
+    try:
+        from ..mission.performance import from_path
+
+        return from_path(result.path).as_dict()
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _chart(run):
