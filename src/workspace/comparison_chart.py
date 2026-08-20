@@ -130,15 +130,28 @@ def build(run: Dict[str, Any]) -> Optional[Dict[str, str]]:
     plot.yaxis.formatter = NumeralTickFormatter(format="$0,0")
     plot.yaxis.axis_label = "Portfolio value"
 
-    # Recessive frame; the page's surface shows through.
-    plot.background_fill_alpha = 0
-    plot.border_fill_alpha = 0
-    plot.outline_line_color = None
-    plot.xgrid.grid_line_alpha = 0.15
-    plot.ygrid.grid_line_alpha = 0.15
+    # A light card, so the figure reads the same whether the page around it is
+    # light or dark. It used to be transparent — the page's surface showed
+    # through — which was elegant on the light theme and left the axes and grid
+    # unreadable the moment a reader switched to dark. The lines and their end
+    # labels carry their own colours; on white they hold in either theme.
+    plot.background_fill_color = "#ffffff"
+    plot.background_fill_alpha = 1
+    plot.border_fill_color = "#ffffff"
+    plot.border_fill_alpha = 1
+    plot.outline_line_color = "#e6e9ee"
+    plot.title.text_color = "#16202b"
+    plot.xaxis.axis_label_text_color = "#5b6673"
+    plot.yaxis.axis_label_text_color = "#5b6673"
+    plot.xaxis.major_label_text_color = "#5b6673"
+    plot.yaxis.major_label_text_color = "#5b6673"
+    plot.xgrid.grid_line_color = "#e6e9ee"
+    plot.ygrid.grid_line_color = "#e6e9ee"
     plot.legend.location = "top_left"
-    plot.legend.background_fill_alpha = 0.0
+    plot.legend.background_fill_color = "#ffffff"
+    plot.legend.background_fill_alpha = 0.7
     plot.legend.border_line_alpha = 0.0
+    plot.legend.label_text_color = "#16202b"
     plot.legend.label_text_font_size = "11px"
 
     return _stable(*components(plot), series)

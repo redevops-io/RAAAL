@@ -43,13 +43,17 @@
   --radius: 10px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #14161a; --panel: #1b1e24; --line: #2b2f37; --chip: #252932;
-    --ink: #e7e9ec; --muted: #9aa0aa;
-    --ok: #5fbf8f; --warn: #d9a441; --block: #e08585; --accent: #78aede;
-    --private: #a892e8;
-  }
+/* Light is the default, everywhere and on every operating system. Dark is a
+   deliberate choice, not one the OS makes for the reader: the comparison charts
+   read best on a light ground, so the product picks light and lets a reader who
+   wants dark say so. The choice is stored and shared across every surface (the
+   workspace, the library, the research dashboard) under one key, so the whole
+   product stays in one theme. */
+:root[data-theme="dark"] {
+  --bg: #14161a; --panel: #1b1e24; --line: #2b2f37; --chip: #252932;
+  --ink: #e7e9ec; --muted: #9aa0aa;
+  --ok: #5fbf8f; --warn: #d9a441; --block: #e08585; --accent: #78aede;
+  --private: #a892e8;
 }
 
 /* --- primitives both surfaces render identically ---------------------- */
@@ -90,4 +94,26 @@ td { padding: 7px var(--space-3) 7px 0; border-bottom: 1px solid var(--line);
            background: color-mix(in srgb, var(--block) 7%, var(--panel));
            padding: 11px 14px; border-radius: 0 8px 8px 0;
            margin: var(--space-3) 0; font-size: var(--step--1); }
+
+/* The theme switch. One glyph, in the nav of every surface. */
+.theme-toggle { cursor: pointer; color: var(--muted); font-size: 15px;
+                text-decoration: none; line-height: 1; user-select: none; }
+.theme-toggle:hover { color: var(--ink); }
 </style>
+<script>
+  /* Apply the saved theme before the body paints, so there is no flash of the
+     wrong one. Light is the default; only an explicit dark choice is stored. */
+  (function () {
+    try {
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.dataset.theme = "dark";
+    } catch (e) {}
+  })();
+  function toggleTheme() {
+    var el = document.documentElement;
+    var dark = el.dataset.theme === "dark";
+    if (dark) { delete el.dataset.theme; }
+    else { el.dataset.theme = "dark"; }
+    try { localStorage.setItem("theme", dark ? "light" : "dark"); } catch (e) {}
+  }
+</script>

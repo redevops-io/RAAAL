@@ -2478,6 +2478,9 @@ def _write_landing(output_path: Path, sections) -> None:
         f'<a href="#{key}">{_html.escape(title)}</a>'
         for key, title, _child in sections)
     nav_links += '<a href="#try" class="try">Try your own &rarr;</a>'
+    nav_links += ('<a class="theme-toggle" href="#" '
+                  'onclick="toggleTheme();return false" '
+                  'title="Switch light / dark">&#9680;</a>')
 
     blocks = []
     for key, title, _child in sections:
@@ -2499,10 +2502,30 @@ _LANDING_SHELL = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RAAAL — Research Dashboard (DEMO, not investment advice)</title>
+<script>
+  /* Same theme choice as the rest of the product, same storage key, applied
+     before paint so there is no flash. Light is the default. */
+  (function () {{
+    try {{
+      if (localStorage.getItem("theme") === "dark")
+        document.documentElement.dataset.theme = "dark";
+    }} catch (e) {{}}
+  }})();
+  function toggleTheme() {{
+    var el = document.documentElement, dark = el.dataset.theme === "dark";
+    if (dark) {{ delete el.dataset.theme; }} else {{ el.dataset.theme = "dark"; }}
+    try {{ localStorage.setItem("theme", dark ? "light" : "dark"); }} catch (e) {{}}
+  }}
+</script>
 {js}
 <style>
   :root {{ --ink:#16202b; --muted:#5b6673; --line:#e6e9ee; --accent:#2563eb;
            --bg:#fbfcfd; }}
+  :root[data-theme="dark"] {{ --ink:#e7e9ec; --muted:#9aa0aa; --line:#2b2f37;
+           --accent:#78aede; --bg:#14161a; }}
+  .theme-toggle {{ cursor:pointer; color:var(--muted); text-decoration:none;
+           font-size:15px; }}
+  .theme-toggle:hover {{ color:var(--ink); }}
   * {{ box-sizing:border-box; }}
   body {{ font:15px/1.55 -apple-system,system-ui,sans-serif; color:var(--ink);
           background:var(--bg); margin:0; }}
