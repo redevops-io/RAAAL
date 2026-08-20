@@ -425,6 +425,13 @@ app.include_router(auth_router)
 #: third router mounted at the root would otherwise repeat this exactly.
 PRIVATE_PREFIXES = ("/workspace", "/pilot")
 
+# Evaluating a plan is public — anyone can try the evaluator without an account.
+# An account is the price of *keeping* a plan, not of seeing what one does, so
+# the describe→evaluate→answer flow is exempt from the login while saving a plan
+# and reading saved ones stay behind it. This is what lets the dashboard's "try
+# your own strategy" box run for a visitor who has not signed in.
+PUBLIC_WITHIN_PRIVATE = ("/workspace/new", "/pilot/answer")
+
 
 @app.middleware("http")
 async def require_a_signed_in_viewer(request, call_next):
@@ -446,7 +453,10 @@ async def require_a_signed_in_viewer(request, call_next):
     to rather than at the front door.
     """
     path = request.url.path
-    if any(path.startswith(prefix) for prefix in PRIVATE_PREFIXES):
+    private = any(path.startswith(prefix) for prefix in PRIVATE_PREFIXES)
+    public = any(path == p or path.startswith(p + "/")
+                 for p in PUBLIC_WITHIN_PRIVATE)
+    if private and not public:
         from .workspace.auth_routes import _target, signed_in
 
         target = _target()
