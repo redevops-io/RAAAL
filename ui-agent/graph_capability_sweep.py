@@ -62,34 +62,44 @@ def _num(text: str) -> Optional[float]:
 
 
 def _docs_json(html: str) -> str:
-    """Bokeh 3.x inlines the document as `const docs_json = {...}` in the render
-    script — no `<script type="application/json">`. Pull the balanced object."""
-    marker = "docs_json = "
-    start = html.find(marker)
-    if start < 0:
-        return ""
-    i = html.find("{", start)
-    if i < 0:
-        return ""
-    depth = 0
-    for j in range(i, len(html)):
-        ch = html[j]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return html[i:j + 1]
-    return ""
+    """Bokeh 3.x inlines the document as `const docs_json = '{...}';` in the
+    render script — a single-quoted JSON string, not a `<script
+    type="application/json">` tag. Return the JSON between the quotes."""
+    m = re.search(r"docs_json = '(.*?)';", html, re.S)
+    return m.group(1) if m else ""
+
+
+def _decode(arr) -> List[float]:
+    """A Bokeh column: a plain list, or a serialised ndarray carrying its bytes
+    base64-encoded. Both reduce to the numbers they hold."""
+    import base64
+    import struct
+    if isinstance(arr, list):
+        return [v for v in arr if isinstance(v, (int, float))]
+    if isinstance(arr, dict):
+        holder = arr.get("array") or arr.get("data")
+        raw = None
+        if isinstance(holder, dict) and "data" in holder:
+            raw = base64.b64decode(holder["data"])
+        elif isinstance(holder, str):
+            raw = base64.b64decode(holder)
+        if raw is None:
+            return []
+        fmt = {"float64": "d", "float32": "f",
+               "int64": "q", "int32": "i"}.get(arr.get("dtype", "float64"), "d")
+        size = struct.calcsize(fmt)
+        count = len(raw) // size
+        return list(struct.unpack("<%d%s" % (count, fmt), raw[:count * size]))
+    return []
 
 
 def _series_finals(html: str) -> List[float]:
     """The last value of every plotted line, from Bokeh's embedded document.
 
-    A line's data lives in a ColumnDataSource whose `data` holds equal-length
-    arrays; the portfolio path is the numeric array that is not the date axis
-    (dates arrive as millisecond integers, far larger than a dollar figure).
-    Read structurally, not by model name, which Bokeh does not keep stable."""
+    Bokeh 3.x tags a source `{"name": "ColumnDataSource"}` (type is "object")
+    and serialises its `data` as `{"type": "map", "entries": [[key, array], …]}`.
+    The portfolio path is the numeric column that is not the date axis (dates
+    arrive as millisecond integers, far larger than a dollar figure)."""
     blob = _docs_json(html)
     if not blob:
         return []
@@ -99,18 +109,18 @@ def _series_finals(html: str) -> List[float]:
         return []
     finals: List[float] = []
     for node in _walk(docs):
-        if not (isinstance(node, dict) and node.get("type") == "ColumnDataSource"):
+        if not (isinstance(node, dict) and node.get("name") == "ColumnDataSource"):
             continue
-        data = (node.get("attributes") or {}).get("data") or node.get("data") or {}
-        for key, arr in data.items():
-            if (key.lower() in ("x", "date", "dates", "index")
-                    or not isinstance(arr, list) or len(arr) < 2):
+        data = (node.get("attributes") or {}).get("data") or {}
+        entries = data.get("entries") if isinstance(data, dict) else None
+        pairs = entries if entries else (
+            list(data.items()) if isinstance(data, dict) else [])
+        for key, arr in pairs:
+            if str(key).lower() in ("x", "date", "dates", "index"):
                 continue
-            tail = [v for v in arr if isinstance(v, (int, float))]
-            # A portfolio path in dollars; the date axis is milliseconds (>1e11)
-            # and is excluded by both the key and this magnitude guard.
-            if tail and abs(tail[-1]) < 1e10:
-                finals.append(float(tail[-1]))
+            vals = _decode(arr)
+            if len(vals) > 2 and abs(vals[-1]) < 1e10:
+                finals.append(float(vals[-1]))
     return finals
 
 
