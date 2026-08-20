@@ -210,11 +210,21 @@ class TestTheWorkspaceRequiresASession:
     def test_the_page_they_asked_for_is_carried_through(self, client,
                                                         monkeypatch):
         """Landing at the front door after signing in loses the thing they
-        were trying to reach."""
+        were trying to reach. Checked on a saved plan, which is private —
+        `/workspace/new` is the public try-it flow and does not redirect."""
         configure(monkeypatch, issuer="https://auth.example.test",
                   audience="client-1", client_id="client-1")
-        response = client.get("/workspace/new")
-        assert "next=/workspace/new" in response.headers["location"]
+        response = client.get("/workspace/plans/demo")
+        assert "next=/workspace/plans/demo" in response.headers["location"]
+
+    def test_evaluating_a_plan_does_not_require_a_session(self, client,
+                                                          monkeypatch):
+        """Trying the evaluator is public; only keeping a plan needs an account.
+        `/workspace/new` and `/pilot/answer` run for a signed-out visitor so the
+        dashboard's prompt box works without a registration wall."""
+        configure(monkeypatch, issuer="https://auth.example.test",
+                  audience="client-1", client_id="client-1")
+        assert client.get("/workspace/new").status_code == 200
 
     def test_signing_in_is_not_itself_behind_the_gate(self, client,
                                                       monkeypatch):
