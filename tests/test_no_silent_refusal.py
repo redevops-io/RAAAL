@@ -52,7 +52,7 @@ class TestEveryRefusalSaysWhy:
     @pytest.mark.parametrize("name,value", [
         ("cadence", "payroll"),
         ("objective", "assess_withdrawal"),
-        ("allocation_method", "risk_parity"),
+        ("allocation_method", "hierarchical_risk_parity"),
     ])
     def test_a_written_reason_is_not_replaced(self, name, value):
         """The generated sentence is a floor, not a ceiling. Where somebody

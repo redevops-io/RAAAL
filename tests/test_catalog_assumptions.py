@@ -305,7 +305,11 @@ class TestThePageSaysWhatIsOurs:
         template = (Path(__file__).resolve().parent.parent / "src" /
                     "workspace" / "templates" / "pilot.html").read_text()
         block = template.split('row.state == "ASSUMED"')[1].split("{% elif")[0]
-        assert "row.value" in block, "the assumed value is not shown at all"
+        # Rendered through the `answer_field` macro now rather than a raw
+        # `row.value`; the macro is what carries the value into the input's
+        # `value=` (see `test_assumed_authorship`), so its presence is the
+        # template-level statement that the value is shown, not re-asked.
+        assert "answer_field(row)" in block, "the assumed value is not shown at all"
         assert 'value=""' not in block, (
             "the assumed row renders an empty input again, so the value is on "
             "the page as text and has to be retyped to be kept")

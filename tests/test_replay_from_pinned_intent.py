@@ -83,15 +83,17 @@ class TestReplayReachesTheSameOutcome:
     execution on replay would be the worse direction of the same defect."""
 
     def test_a_refusal_replays_as_a_refusal(self):
-        stored = pinned(allocation_method="inverse_volatility")
+        # `inverse_volatility` runs now; the pinned refusal is a method the
+        # engine still has no kernel for.
+        stored = pinned(allocation_method="hierarchical_risk_parity")
         for _ in range(2):
             out = compile_intent(intent_from_json(stored), benchmark_rule=RULE)
             assert not out.executable
             assert "allocation_method" in {r.dimension for r in out.refusals}
 
     def test_the_refusal_names_the_same_dimensions_each_time(self):
-        stored = pinned(allocation_method="risk_parity",
-                        periodic_rebalancing="quarterly")
+        stored = pinned(allocation_method="hierarchical_risk_parity",
+                        periodic_rebalancing="threshold_band")
         first = {r.dimension for r in
                  compile_intent(intent_from_json(stored)).refusals}
         second = {r.dimension for r in

@@ -122,22 +122,38 @@ class TestEveryRefusedClaimIsActuallyRefused:
                        for f in ScenarioSpecification.__dataclass_fields__)
 
     def test_every_claimed_allocation_method_is_one_the_engine_runs(self):
-        """Two now. `stated_weights` joined when the compiler gained a way to
-        attach a split to its holdings — before that the engine could divide a
-        purchase by weights and nothing could tell it which weight went where.
+        """The two simple splits, plus every computed strategy. `stated_weights`
+        joined when the compiler could attach a split to its holdings; the
+        strategies joined when `rebalance.strategy_driven` gained a way to
+        restore to weights `run_capability` computes each period.
 
-        Claimed *and* exercised: the manifest says the engine does this, so the
-        test makes it do it rather than reading the claim back."""
+        Claimed *and* exercised: the manifest says the engine does these, so the
+        test makes it do them rather than reading the claim back."""
+        import numpy as np
+        import pandas as pd
+
         from src.mission.rebalance import normalised
+        from src.mission.strategy_methods import STRATEGY_ALLOCATION_METHODS
+        from src.strategies import CAPABILITY_BY_ID, run_capability
 
-        assert tuple(cap.MANIFEST["allocation_method"].values) == (
-            "equal_weight_at_purchase", "stated_weights")
+        claimed = tuple(cap.MANIFEST["allocation_method"].values)
+        assert claimed[:2] == ("equal_weight_at_purchase", "stated_weights")
+        assert set(claimed[2:]) == set(STRATEGY_ALLOCATION_METHODS)
 
         # equal_weight_at_purchase
         assert normalised(["A", "B"]) == {"A": 0.5, "B": 0.5}
         # stated_weights
         assert normalised(["A", "B"], {"A": 60, "B": 40}) == {"A": 0.6,
                                                               "B": 0.4}
+        # every strategy value routes to a capability the engine dispatches …
+        for value, capability in STRATEGY_ALLOCATION_METHODS.items():
+            assert capability in CAPABILITY_BY_ID, value
+        # … and one is run end to end, so "claimed" is also "exercised".
+        prices = pd.read_parquet(
+            "tests/fixtures/prices_synthetic.parquet").tail(300)
+        returns = np.log(prices / prices.shift(1)).dropna(how="all")
+        weights = run_capability("risk_parity", prices, returns, None, {})
+        assert abs(sum(weights.values()) - 1.0) < 0.05
 
     def test_execution_timing_refuses_what_the_engine_refuses(self):
         """`same_session_close` is refused because acting on the close that
@@ -165,8 +181,12 @@ class TestNothingIsOfferedThatCannotBeRun:
             "build does not execute")
 
     def test_offerable_values_are_empty_for_a_refused_dimension(self):
+        # `stated_weights` executes but is not offerable — its split is open
+        # text, not a closed menu — and `sell_action` is refused outright.
+        # `periodic_rebalancing` used to sit here and no longer does: it became
+        # executable when `rebalance.weighted` gained a calendar to restore on.
         assert cap.offerable_values("stated_weights") == ()
-        assert cap.offerable_values("periodic_rebalancing") == ()
+        assert cap.offerable_values("sell_action") == ()
 
     def test_offerable_values_are_the_executable_ones(self):
         assert set(cap.offerable_values("cadence")) == \
@@ -217,11 +237,13 @@ class TestTheManifestIsComplete:
 
 class TestARefusalNamesWhatItRefused:
     def test_it_carries_the_dimension_and_the_value(self):
-        r = cap.decide("allocation_method", "inverse_volatility")
+        # `inverse_volatility` executes now (it routes to risk parity), so the
+        # refused example is one the engine still has no kernel for.
+        r = cap.decide("allocation_method", "hierarchical_risk_parity")
         assert r is not None
         assert r.dimension == "allocation_method"
-        assert r.stated_value == "inverse_volatility"
-        assert "inverse_volatility" in r.message
+        assert r.stated_value == "hierarchical_risk_parity"
+        assert "hierarchical_risk_parity" in r.message
         assert "equal_weight_at_purchase" in r.message
 
     def test_it_does_not_apply_the_alternative_it_names(self):
@@ -243,8 +265,8 @@ class TestARefusalNamesWhatItRefused:
         times, not one deploy apart."""
         refusals = cap.refusals_for({
             "cadence": "payroll",
-            "allocation_method": "risk_parity",
-            "periodic_rebalancing": "quarterly",
+            "allocation_method": "hierarchical_risk_parity",
+            "periodic_rebalancing": "threshold_band",
         })
         assert {r.dimension for r in refusals} == {
             "cadence", "allocation_method", "periodic_rebalancing"}

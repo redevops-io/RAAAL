@@ -545,7 +545,7 @@ def test_an_unasked_dimension_changes_the_schema_and_not_the_question():
 def test_the_recording_file_stamps_only_what_was_proven():
     """The migration, checked against the file it wrote.
 
-    Every `@6` entry carries the digest; the `@2` entries carry none.
+    Every `@8` entry carries the digest; the `@2` entries carry none.
     """
     import json
     import pathlib
@@ -559,7 +559,7 @@ def test_the_recording_file_stamps_only_what_was_proven():
     current = question_digest(QUANTIFY_SCHEMA)
 
     for entry in document["readings"]:
-        if entry["schema_version"] == "quantify-discovery-schema@6":
+        if entry["schema_version"] == "quantify-discovery-schema@8":
             assert entry.get("question_digest") == current, entry["text"]
         else:
             assert "question_digest" not in entry, (

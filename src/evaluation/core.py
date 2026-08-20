@@ -299,10 +299,34 @@ def evaluate_plan(scenario, prices, *, scope: Optional[Dict[str, Any]] = None,
             "that rebalancing is not allowed; the two cannot both be honoured",
             resolved_window=resolved_window)
 
-    program = weighted(tradeable,
-                       weights=getattr(scenario.allocation_rule, "weights", None),
-                       rebalance=cadence,
-                       sessions=prices.index if cadence else None)
+    # A computed allocation (risk parity, momentum, …) restores to weights a
+    # research strategy produces each period, rather than to a stated split. It
+    # needs a calendar to rebalance on: a strategy that never rebalances is not
+    # the strategy, so an unscheduled one is refused rather than run as a plain
+    # buy-and-hold wearing the strategy's name.
+    from ..mission.strategy_methods import strategy_capability
+    capability_id = strategy_capability(
+        getattr(scenario.allocation_rule, "weighting", ""))
+    if capability_id is not None:
+        if not cadence:
+            return _refused(
+                "this plan allocates by a computed strategy, which restores its "
+                "weights on a calendar. Naming a monthly, quarterly or annual "
+                "rebalancing cadence would give it a schedule to run on.",
+                resolved_window=resolved_window)
+        from ..strategies import CAPABILITY_BY_ID
+        from ..mission.rebalance import strategy_driven
+        min_history = int(getattr(
+            CAPABILITY_BY_ID.get(capability_id, None), "min_history", 1) or 1)
+        program = strategy_driven(
+            tradeable, capability_id=capability_id, cadence=cadence,
+            sessions=prices.index, min_history=min_history)
+    else:
+        program = weighted(
+            tradeable,
+            weights=getattr(scenario.allocation_rule, "weights", None),
+            rebalance=cadence,
+            sessions=prices.index if cadence else None)
     result = simulate(prices, flows=flows, program=program,
                       cash_policy=policy, modelling_scope=scope)
 

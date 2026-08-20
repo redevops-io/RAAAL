@@ -129,16 +129,22 @@ class TestAGuardOnlyCoversWhatVanishingWouldChange:
         """
         from src.discovery.guards import GUARDS
         from src.mission.capability import MANIFEST
+        from src.mission.from_intent import DEFAULTS
 
         manifest = dict(MANIFEST)
         for guard in GUARDS:
             entry = manifest.get(guard.dimension)
             assert entry is not None, guard.dimension
-            assert not entry.values or entry.support != "EXECUTED", (
-                f"{guard.dimension} executes and has a closed value set, so a "
-                "silent reading would fall to a default rather than vanish; "
-                "guarding it manufactures a question instead of catching a "
-                "reduction")
+            # A lost reading changes what runs unless a default catches it. That
+            # is the whole justification, and it is `DEFAULTS` membership rather
+            # than the support level: `periodic_rebalancing` executes now and is
+            # still worth guarding, because it has no default — a silent reading
+            # buys and holds instead of rebalancing, a different plan with no
+            # question asked.
+            assert guard.dimension not in DEFAULTS, (
+                f"{guard.dimension} has a default, so a silent reading falls to "
+                "it rather than vanishing; guarding it manufactures a question "
+                "instead of catching a reduction")
 
     def test_every_guarded_dimension_is_in_the_schema(self):
         from src.discovery.guards import GUARDS

@@ -1,9 +1,18 @@
 # The shadow matrices are stale
 
     built under   quantify-discovery-schema@2/103c025ac629946f
-    current       quantify-discovery-schema@7/d9d24d8578f67011
+    current       quantify-discovery-schema@8/bb28984534416245
 
 ## What changed
+
+@8 gave `allocation_method` the computed research strategies as named values —
+risk parity, minimum variance, the momentum and factor families, and the rest of
+the twenty-one the research engine already ran. The engine gained an executor for
+them (`mission.rebalance.strategy_driven`), so a sentence describing one now
+reads to the method that runs it rather than to silence, and the reader's prompt
+changed with the vocabulary. The hosted recordings were refreshed under the new
+question (`record_hosted.py --refresh`, all three readers); the shadow matrices
+were not.
 
 @7 added the `factor_tilt` and `age_based_allocation` dimensions. The live drift
 lane found both families executing under gpt-5.4 where they had refused under

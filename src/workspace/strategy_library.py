@@ -206,6 +206,123 @@ LIBRARY: Tuple[Group, ...] = (
         ),
     ),
     Group(
+        key='computed-strategies',
+        title='Computed strategies',
+        note=('Allocations the engine computes from the price history each '
+              'period — momentum, risk-based and factor rules the original '
+              'research built and evaluated. Picking one holds the ten-fund '
+              'research universe and rebalances to the weights the strategy '
+              'produces; you set only how much and how often you add.'),
+        entries=(
+            Entry('risk-parity-strategy', 'Risk parity',
+                  'I invest $500 every month using a risk parity strategy, '
+                  'rebalanced every quarter.',
+                  family='risk_parity',
+                  source='https://www.investopedia.com/terms/r/risk-parity.asp'),
+            Entry('minimum-variance-strategy', 'Minimum variance',
+                  'I invest $500 every month using a minimum variance '
+                  'strategy, rebalanced every quarter.',
+                  family='minimum_variance',
+                  source='https://www.investopedia.com/terms/m/minimum-variance-portfolio.asp'),
+            Entry('maximum-diversification', 'Maximum diversification',
+                  'I invest $500 every month using a maximum diversification '
+                  'strategy, rebalanced every quarter.',
+                  family='max_diversification',
+                  source='https://www.investopedia.com/terms/d/diversification.asp'),
+            Entry('equal-risk-contribution', 'Equal risk contribution',
+                  'I invest $500 every month using an equal risk contribution '
+                  'strategy, rebalanced every quarter.',
+                  family='equal_risk_contribution',
+                  source='https://www.investopedia.com/terms/r/risk-parity.asp'),
+            Entry('volatility-targeting', 'Volatility targeting',
+                  'I invest $500 every month using a strategy that targets a '
+                  'steady level of portfolio volatility, rebalanced every '
+                  'quarter.',
+                  family='volatility_targeting',
+                  source='https://www.investopedia.com/terms/v/volatility.asp'),
+            Entry('time-series-momentum', 'Time-series momentum',
+                  'I invest $500 every month using a time-series momentum '
+                  'strategy, rebalanced every quarter.',
+                  family='time_series_momentum',
+                  source='https://www.investopedia.com/terms/m/momentum.asp'),
+            Entry('cross-sectional-momentum', 'Cross-sectional momentum',
+                  'I invest $500 every month using a cross-sectional momentum '
+                  'strategy, rebalanced every quarter.',
+                  family='cross_sectional_momentum',
+                  source='https://www.investopedia.com/terms/m/momentum.asp'),
+            Entry('dual-momentum', 'Dual momentum',
+                  'I invest $500 every month using a dual momentum strategy, '
+                  'rebalanced every quarter.',
+                  family='dual_momentum',
+                  source='https://www.investopedia.com/terms/m/momentum.asp'),
+            Entry('regime-momentum', 'Regime-switching momentum',
+                  'I invest $500 every month using a regime-switching momentum '
+                  'strategy, rebalanced every quarter.',
+                  family='regime_momentum',
+                  source='https://www.investopedia.com/terms/m/momentum.asp'),
+            Entry('relative-value', 'Relative value',
+                  'I invest $500 every month using a relative value strategy, '
+                  'rebalanced every quarter.',
+                  family='relative_value',
+                  source='https://www.investopedia.com/terms/r/relativevalue.asp'),
+            Entry('pairs-trading', 'Pairs trading',
+                  'I invest $500 every month using a pairs trading strategy, '
+                  'rebalanced every quarter.',
+                  family='pairs_trading',
+                  source='https://www.investopedia.com/terms/p/pairstrade.asp'),
+            Entry('stat-arb-credit', 'Credit statistical arbitrage',
+                  'I invest $500 every month using a credit statistical '
+                  'arbitrage strategy, rebalanced every quarter.',
+                  family='stat_arb_credit',
+                  source='https://www.investopedia.com/terms/s/statisticalarbitrage.asp'),
+            Entry('reversal', 'Short-term reversal',
+                  'I invest $500 every month using a short-term reversal '
+                  'strategy, rebalanced every quarter.',
+                  family='reversal',
+                  source='https://www.investopedia.com/terms/r/reversal.asp'),
+            Entry('ibs-hybrid-switch', 'Internal bar strength switch',
+                  'I invest $500 every month using an internal bar strength '
+                  'switching strategy, rebalanced every quarter.',
+                  family='ibs_hybrid_switch',
+                  source='https://redevops.io/benchmarks'),
+            Entry('equity-factors', 'Equity factors',
+                  'I invest $500 every month using an equity factor strategy, '
+                  'rebalanced every quarter.',
+                  family='equity_factors',
+                  source='https://www.investopedia.com/terms/f/factor-investing.asp'),
+            Entry('macro-factors', 'Macro factors',
+                  'I invest $500 every month using a macro factor strategy, '
+                  'rebalanced every quarter.',
+                  family='macro_factors',
+                  source='https://www.investopedia.com/terms/f/factor-investing.asp'),
+            Entry('multi-factor-blend', 'Multi-factor blend',
+                  'I invest $500 every month using a multi-factor blend '
+                  'strategy, rebalanced every quarter.',
+                  family='multi_factor_blend',
+                  source='https://www.investopedia.com/terms/f/factor-investing.asp'),
+            Entry('sentiment-overlay', 'Sentiment overlay',
+                  'I invest $500 every month using a FOMO/FOBI sentiment '
+                  'overlay strategy, rebalanced every quarter.',
+                  family='fomo_fobi_overlay',
+                  source='https://redevops.io/benchmarks'),
+            Entry('sharpe-optimiser', 'Sharpe-ratio optimiser',
+                  'I invest $500 every month using a Sharpe-ratio maximising '
+                  'strategy, rebalanced every quarter.',
+                  family='sharpe_optimizer',
+                  source='https://www.investopedia.com/terms/s/sharperatio.asp'),
+            Entry('adaptive-rotation', 'Adaptive rotation',
+                  'I invest $500 every month using an adaptive rotation '
+                  'strategy, rebalanced every quarter.',
+                  family='adaptive_rotation',
+                  source='https://redevops.io/benchmarks'),
+            Entry('raaal-composite', 'RAAAL composite',
+                  "I invest $500 every month using RAAAL's composite strategy, "
+                  'rebalanced every quarter.',
+                  family='raaal_composite',
+                  source='https://redevops.io/benchmarks'),
+        ),
+    ),
+    Group(
         key='money-out',
         title='Taking money out',
         note='Withdrawals, income and the order accounts are drawn down in.',

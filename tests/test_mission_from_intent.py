@@ -86,15 +86,19 @@ class TestIdenticalIntentGivesIdenticalPlan:
 
 class TestItRefusesRatherThanAdjusting:
     def test_an_unexecutable_value_is_refused_by_name(self):
-        out = compile_intent(intent(allocation_method="inverse_volatility"),
-                             benchmark_rule=RULE)
+        # `inverse_volatility` executes now (it routes to risk parity), so the
+        # refused example is a method the engine still has no kernel for.
+        out = compile_intent(
+            intent(allocation_method="hierarchical_risk_parity"),
+            benchmark_rule=RULE)
         assert not out.executable and out.scenario is None
         assert "allocation_method" in {r.dimension for r in out.refusals}
 
     def test_no_partial_plan_accompanies_a_refusal(self):
         """A plan beside a refusal is a plan a caller renders anyway, and then
         a figure exists for a request that was refused."""
-        out = compile_intent(intent(periodic_rebalancing="quarterly"),
+        # A calendar cadence executes; a drift band does not.
+        out = compile_intent(intent(periodic_rebalancing="threshold_band"),
                              benchmark_rule=RULE)
         assert out.refusals and out.scenario is None
 

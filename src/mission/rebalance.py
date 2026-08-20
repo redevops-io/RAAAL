@@ -112,6 +112,69 @@ def weighted(tickers: Sequence[str], *,
     return program
 
 
+def strategy_driven(tickers: Sequence[str], *,
+                    capability_id: str,
+                    cadence: str,
+                    sessions: pd.DatetimeIndex,
+                    min_history: int = 1,
+                    reason: str = "strategy allocation"):
+    """Restore, on a calendar, to weights a research strategy computes.
+
+    This is `weighted` with the split recomputed each period instead of stated
+    once. On every rebalancing boundary the strategy is handed the price history
+    *visible through that session* — never further — and the weights it returns
+    become the new target the portfolio is restored to. Between boundaries,
+    arriving cash is invested at the last computed split, exactly as a stated
+    one would be, so a contribution is never left idle.
+
+    The look-ahead safety is `_restore`'s: a boundary decides on that session's
+    close and the orders fill on the next open, so the strategy sees only what a
+    person deciding that morning could have seen. `run_capability` is imported
+    lazily, here and nowhere else, so the heavy research stack loads only when a
+    strategy plan actually runs — not on every compile that merely asks whether
+    a weighting *is* one.
+
+    Until `min_history` sessions have accrued the strategy has too little to
+    compute on; those early boundaries invest equally rather than refusing, and
+    the first boundary with enough history rebalances to the real split. That
+    warm-up is equal weight by declaration, not the strategy wearing its name.
+    """
+    dates = (_boundaries(sessions, cadence)
+             if cadence and sessions is not None else set())
+    state: Dict[str, Dict[str, float]] = {"share": {}}
+
+    def _compute(visible: pd.DataFrame) -> Dict[str, float]:
+        from src.strategies import run_capability     # lazy: heavy research stack
+        window = visible.dropna(how="all")
+        if len(window) < max(2, int(min_history)):
+            return {}
+        returns = (np.log(window / window.shift(1))
+                   .replace([np.inf, -np.inf], np.nan).dropna(how="all"))
+        raw = run_capability(capability_id, window, returns, None, {}) or {}
+        picked = {t: float(raw.get(t, 0.0)) for t in tickers}
+        total = sum(w for w in picked.values() if w > 0)
+        if total <= 0:
+            return {}
+        return {t: (w / total if w > 0 else 0.0) for t, w in picked.items()}
+
+    def program(session, visible, holdings, cash):
+        if session in dates:
+            computed = _compute(visible)
+            if computed:
+                state["share"] = computed
+                return _restore(session, visible, holdings, cash,
+                                computed, reason)
+            # Too little history yet: fall through and invest the contribution
+            # at the warm-up split rather than leaving it in cash.
+        share = state["share"] or normalised(tickers)
+        if cash <= 0:
+            return ()
+        return [Order(date=session, ticker=t, notional=cash * s, reason=reason)
+                for t, s in share.items() if s > 0]
+
+    return program
+
+
 def _restore(session, visible, holdings, cash, share, reason):
     """Orders that move the whole portfolio back to `share`.
 

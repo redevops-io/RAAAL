@@ -39,6 +39,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from .strategy_methods import strategy_capability
+
 
 class ElementState(str, Enum):
     EXECUTED_AND_EVIDENCED = "EXECUTED_AND_EVIDENCED"
@@ -437,20 +439,47 @@ def assess(scenario: Any, *, stated_text: str = "",
                 "occurs, and this version contributes a fixed amount"),
         detail={}))
 
-    # --- an allocation method this build cannot compute ---------------------
+    # --- a computed allocation method ---------------------------------------
+    #
+    # Read from what happened, like stated weights below it. The engine computes
+    # risk parity, momentum, the factor families and the rest through
+    # `rebalance.strategy_driven`, which tags every order it places
+    # `"strategy allocation"`. So the plan's `weighting` says whether a strategy
+    # was compiled, and a fill with that reason is the run attesting it executed
+    # — not the policy that requested it. A method the engine still cannot
+    # compute (hierarchical risk parity) stays declared-but-not-executed, which
+    # is the honest half-state, and reads as the equal-weight fallback.
+    weighting = str(getattr(getattr(scenario, "allocation_rule", None),
+                            "weighting", "") or "")
+    runs_strategy = strategy_capability(weighting) is not None
     unsupported_weighting = bool(
         stated_text and _UNSUPPORTED_WEIGHTING.search(stated_text))
+    declared_strategy = unsupported_weighting or runs_strategy
+    strategy_evidenced = runs_strategy and any(
+        getattr(one, "reason", "") == "strategy allocation"
+        for one in (fills or ()))
+
+    if not declared_strategy:
+        weighting_reason = ""
+    elif not runs_strategy:
+        weighting_reason = ("you described an allocation computed from the "
+                            "data, and this version divides each purchase "
+                            "equally between the holdings")
+    elif not strategy_evidenced:
+        weighting_reason = ("the computed allocation was applied, but the run "
+                            "placed no strategy trade to confirm it")
+    else:
+        weighting_reason = ""
+
     elements.append(DeclaredElement(
         element_id="allocation_method",
-        declared=unsupported_weighting,
-        compiled=False,
-        executed=False,
-        evidenced=False,
+        declared=declared_strategy,
+        compiled=runs_strategy,
+        executed=runs_strategy,
+        evidenced=strategy_evidenced,
         exclusion_authorized="allocation_method" in excluded,
-        reason=("" if not unsupported_weighting else
-                "you described an allocation computed from the data, and this "
-                "version divides each purchase equally between the holdings"),
-        detail={}))
+        reason=weighting_reason,
+        detail={"method": weighting} if runs_strategy else {}))
 
     # --- per-asset weights the user wrote -----------------------------------
     #
@@ -530,7 +559,7 @@ def assess(scenario: Any, *, stated_text: str = "",
                                     "rebalancing_cadence", "") or "")
     rebalance_executed = bool(rebalance_cadence)
     rebalance_evidenced = rebalance_executed and any(
-        getattr(one, "reason", "") == "stated split"
+        getattr(one, "reason", "") in ("stated split", "strategy allocation")
         and float(getattr(one, "notional", 0.0) or 0.0) < 0
         for one in (fills or ()))
 

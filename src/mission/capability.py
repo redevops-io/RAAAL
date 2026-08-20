@@ -46,6 +46,7 @@ from .schedule import (
     EXECUTABLE_DAY_RULES,
     REFUSED_CADENCES,
 )
+from .strategy_methods import STRATEGY_ALLOCATION_METHODS
 
 #: Bumped when the *shape* of the manifest changes, not when a build's
 #: capabilities do. A consumer pins this; the content hash tracks the rest.
@@ -232,14 +233,21 @@ MANIFEST: Mapping[str, Dimension] = {
         # purchase by a split whenever the sentence attaches one to its
         # holdings. It was refused while nothing could bind `60/40` to VTI and
         # BND, and that was a fact about the compiler rather than the executor.
-        values=("equal_weight_at_purchase", "stated_weights"),
+        #
+        # The computed allocations (risk parity, minimum variance, the momentum
+        # and factor families, …) join it too: the research engine already had
+        # every one, and `rebalance.strategy_driven` now restores to the weights
+        # they compute each period. The refusals here described a compiler that
+        # could not route to them, not an executor that could not run them. They
+        # carry a rebalancing cadence, so a plan naming one but no calendar is
+        # refused at evaluation with the cadence it is missing.
+        values=("equal_weight_at_purchase", "stated_weights",
+                *sorted(STRATEGY_ALLOCATION_METHODS)),
         refuses={
-            "inverse_volatility": "this build allocates equally at purchase",
-            "risk_parity": "this build allocates equally at purchase",
-            "minimum_variance": "this build allocates equally at purchase",
-            "maximum_diversification": "this build allocates equally at purchase",
-            "volatility_target": "this build allocates equally at purchase",
-            "hierarchical_risk_parity": "this build allocates equally at purchase",
+            "hierarchical_risk_parity":
+                "this build has no hierarchical-risk-parity kernel; risk "
+                "parity, minimum variance and equal risk contribution are "
+                "available and compute a related split",
         }),
 
     "stated_weights": _d(

@@ -25,9 +25,13 @@ class TestTheSchemaIsWiderThanTheManifest:
 
         sayable = set(QUANTIFY_SCHEMA.dimension("allocation_method").values)
         runnable = set(MANIFEST["allocation_method"].values)
-        assert runnable < sayable, (
-            "the schema must be a strict superset; a reader that cannot say "
-            "inverse_volatility will say something else instead")
+        # These converged deliberately: the computed strategies joined the
+        # executable set, so every allocation method the reader can say, Mission
+        # now runs. The schema is no wider than the manifest here — the width
+        # that mattered (`inverse_volatility` said and substituted) closed when
+        # the engine gained a way to run it. `inverse_volatility` is sayable and
+        # runnable both, and nothing sayable is left that the engine refuses.
+        assert runnable == sayable, sorted(sayable ^ runnable)
         assert "inverse_volatility" in sayable
 
     def test_it_offers_dimensions_the_engine_refuses_entirely(self):

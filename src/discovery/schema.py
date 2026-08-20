@@ -53,7 +53,14 @@ from .reader import Dimension, RelationSpec, Schema
 # the same rule `READER_VERSION` and `quantify-compiler@2` already follow.
 # The shadow matrices were built under @2 and are stale; `corpus/shadow/STALE.md`
 # says so and `test_phase3_exit_gate` checks that the declaration is current.
-QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@7", dimensions=(
+#
+# @8: `allocation_method` gained the computed research strategies (risk parity,
+# minimum variance, the momentum and factor families, …) as named values. The
+# engine gained an executor for them (`mission.rebalance.strategy_driven`), so a
+# sentence describing one now reads to the method that runs it rather than to
+# silence. The rendered prompt changed, so the question fingerprint moved and
+# the hosted recordings were refreshed under it (`record_hosted.py --refresh`).
+QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@8", dimensions=(
 
     Dimension(
         name="objective",
@@ -138,13 +145,31 @@ QUANTIFY_SCHEMA = Schema(version="quantify-discovery-schema@7", dimensions=(
     Dimension(
         name="allocation_method",
         describes="How money is divided between the holdings.",
-        # Six of these seven are refused by the current engine. They are here
-        # because people say them, and Mission's refusal is more useful than
-        # Discovery's silence.
+        # The computed allocations are the research engine's own capability ids,
+        # so a sentence read as one canonicalises straight to the method that
+        # runs it. Mission opens the gate for every one of these
+        # (`mission.strategy_methods`); an unlisted method is still refused by
+        # name. Listed inline rather than imported because Discovery must not
+        # depend on Mission — `test_strategy_methods_match_registry` keeps the
+        # two in step with the engine.
         values=("equal_weight_at_purchase", "stated_weights",
-                "inverse_volatility", "risk_parity", "minimum_variance",
-                "maximum_diversification", "volatility_target"),
-        examples=("by inverse volatility", "risk parity", "equally")),
+                "risk_parity", "minimum_variance", "max_diversification",
+                "equal_risk_contribution", "volatility_targeting",
+                "time_series_momentum", "cross_sectional_momentum",
+                "dual_momentum", "regime_momentum", "relative_value",
+                "pairs_trading", "stat_arb_credit", "reversal",
+                "ibs_hybrid_switch", "equity_factors", "macro_factors",
+                "multi_factor_blend", "fomo_fobi_overlay", "sharpe_optimizer",
+                "adaptive_rotation", "raaal_composite",
+                # One synonym kept: `inverse_volatility` has a distinct natural
+                # phrasing ("by inverse volatility") that one entry seals on.
+                # `maximum_diversification` and `volatility_target` are
+                # deliberately absent — each would collide with a canonical id
+                # (`max_diversification`, `volatility_targeting`) and let a
+                # reading drift between two names for one capability.
+                "inverse_volatility"),
+        examples=("risk parity", "by inverse volatility",
+                  "time-series momentum", "equally")),
 
     Dimension(
         name="stated_weights",

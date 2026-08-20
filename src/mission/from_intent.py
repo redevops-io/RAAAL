@@ -47,10 +47,21 @@ from .scenario import (
     ScenarioSpecification,
 )
 from .signals import Estimator, SignalKind
+from .strategy_methods import strategy_capability
+from ..config import UNIVERSE
 
 #: Stamped on every plan this module compiles. Bumped when the *mapping*
 #: changes in a way that could turn one intent into a different plan.
 COMPILER_VERSION = "quantify-mission@1"
+
+#: The universe a computed strategy runs over. The research strategies were
+#: designed and evaluated on exactly these instruments, so a plan that selects
+#: one holds them all: naming a subset would silently run the strategy over
+#: fewer assets than it was built for and report the result under its name. A
+#: strategy plan that names no holdings is completed with this rather than
+#: refused, and `assets` is declared in `applied_defaults` so the substitution
+#: is visible on the page like any other default.
+UNIVERSE_TICKERS = tuple(asset.ticker for asset in UNIVERSE)
 
 #: Dimensions that legitimately do not shape the executable plan.
 #:
@@ -76,6 +87,18 @@ READ_DIRECTLY = frozenset({"assets", "trigger_semantics", "observed_assets",
 
 def _read_directly(intent: Any) -> set:
     return {name for name in READ_DIRECTLY if name in intent.fields}
+
+
+def _selects_strategy(intent: Any) -> bool:
+    """Whether the intent's allocation method names a computed strategy.
+
+    Read straight off the field rather than through the `value` closure, because
+    it is asked before that closure exists — `_assets` needs it to decide
+    whether an intent that names no holdings is refused or completed with the
+    strategy's universe.
+    """
+    stated = intent.fields.get("allocation_method")
+    return stated is not None and strategy_capability(stated.value) is not None
 
 #: What the engine applies when the intent is silent. Declared here, in one
 #: place, so "the intent did not say" and "the engine chose" are the same
@@ -443,6 +466,12 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
             return DEFAULTS[dimension]
         return None
 
+    # A strategy plan that named no holdings has its universe supplied by
+    # `_assets`; declared here so the page shows `assets` as a value the engine
+    # chose, not one the person did.
+    if "assets" not in intent.fields and _selects_strategy(intent):
+        applied.append("assets")
+
     funding, allocation = _funding(intent, value)
 
     # Read before it is used, never inside the `and`.
@@ -532,6 +561,12 @@ def _assets(intent: VerifiedIntent) -> Sequence[str]:
     """
     stated = intent.fields.get("assets")
     if stated is None:
+        # A computed strategy carries its own universe; a plan that selects one
+        # but names no holdings is completed with it rather than refused. The
+        # declaration of this substitution is added to `applied_defaults` by the
+        # caller, so it reads on the page as a default like any other.
+        if _selects_strategy(intent):
+            return UNIVERSE_TICKERS
         return ()
     return tuple(part.strip() for part in str(stated.value).split(",")
                  if part.strip())

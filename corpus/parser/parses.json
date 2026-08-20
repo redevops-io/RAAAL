@@ -6,7 +6,7 @@
       "model": "en/tokenize,pos,lemma,depparse"
     }
   },
-  "count": 468,
+  "count": 494,
   "parses": [
     {
       "text": "$1,000 a month weighted by inverse volatility",
@@ -2696,6 +2696,269 @@
               "relation": "punct",
               "start_char": 78,
               "end_char": 79
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Every three months I invest $600, 70% in VTI and 30% in BND, and rebalance back to that split.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "Every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 3,
+              "relation": "det",
+              "start_char": 0,
+              "end_char": 5
+            },
+            {
+              "index": 2,
+              "text": "three",
+              "lemma": "three",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 6,
+              "end_char": 11
+            },
+            {
+              "index": 3,
+              "text": "months",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 5,
+              "relation": "obl:unmarked",
+              "start_char": 12,
+              "end_char": 18
+            },
+            {
+              "index": 4,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 5,
+              "relation": "nsubj",
+              "start_char": 19,
+              "end_char": 20
+            },
+            {
+              "index": 5,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 21,
+              "end_char": 27
+            },
+            {
+              "index": 6,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 5,
+              "relation": "obj",
+              "start_char": 28,
+              "end_char": 29
+            },
+            {
+              "index": 7,
+              "text": "600",
+              "lemma": "600",
+              "upos": "NUM",
+              "head": 6,
+              "relation": "nummod",
+              "start_char": 29,
+              "end_char": 32
+            },
+            {
+              "index": 8,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 10,
+              "relation": "punct",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "70",
+              "lemma": "70",
+              "upos": "NUM",
+              "head": 10,
+              "relation": "nummod",
+              "start_char": 34,
+              "end_char": 36
+            },
+            {
+              "index": 10,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 6,
+              "relation": "appos",
+              "start_char": 36,
+              "end_char": 37
+            },
+            {
+              "index": 11,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 12,
+              "relation": "case",
+              "start_char": 38,
+              "end_char": 40
+            },
+            {
+              "index": 12,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 10,
+              "relation": "nmod",
+              "start_char": 41,
+              "end_char": 44
+            },
+            {
+              "index": 13,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 15,
+              "relation": "cc",
+              "start_char": 45,
+              "end_char": 48
+            },
+            {
+              "index": 14,
+              "text": "30",
+              "lemma": "30",
+              "upos": "NUM",
+              "head": 15,
+              "relation": "nummod",
+              "start_char": 49,
+              "end_char": 51
+            },
+            {
+              "index": 15,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 6,
+              "relation": "conj",
+              "start_char": 51,
+              "end_char": 52
+            },
+            {
+              "index": 16,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 17,
+              "relation": "case",
+              "start_char": 53,
+              "end_char": 55
+            },
+            {
+              "index": 17,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 15,
+              "relation": "nmod",
+              "start_char": 56,
+              "end_char": 59
+            },
+            {
+              "index": 18,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 20,
+              "relation": "punct",
+              "start_char": 59,
+              "end_char": 60
+            },
+            {
+              "index": 19,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 20,
+              "relation": "cc",
+              "start_char": 61,
+              "end_char": 64
+            },
+            {
+              "index": 20,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 5,
+              "relation": "conj",
+              "start_char": 65,
+              "end_char": 74
+            },
+            {
+              "index": 21,
+              "text": "back",
+              "lemma": "back",
+              "upos": "ADV",
+              "head": 20,
+              "relation": "advmod",
+              "start_char": 75,
+              "end_char": 79
+            },
+            {
+              "index": 22,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 24,
+              "relation": "case",
+              "start_char": 80,
+              "end_char": 82
+            },
+            {
+              "index": 23,
+              "text": "that",
+              "lemma": "that",
+              "upos": "DET",
+              "head": 24,
+              "relation": "det",
+              "start_char": 83,
+              "end_char": 87
+            },
+            {
+              "index": 24,
+              "text": "split",
+              "lemma": "split",
+              "upos": "NOUN",
+              "head": 20,
+              "relation": "obl",
+              "start_char": 88,
+              "end_char": 93
+            },
+            {
+              "index": 25,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 5,
+              "relation": "punct",
+              "start_char": 93,
+              "end_char": 94
             }
           ]
         }
@@ -7698,6 +7961,4478 @@
       ]
     },
     {
+      "text": "I invest $500 a month, 60% in VTI and 40% in BND, and rebalance back to that split once a year.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 15
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "nmod:unmarked",
+              "start_char": 16,
+              "end_char": 21
+            },
+            {
+              "index": 7,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 21,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "60",
+              "lemma": "60",
+              "upos": "NUM",
+              "head": 9,
+              "relation": "nummod",
+              "start_char": 23,
+              "end_char": 25
+            },
+            {
+              "index": 9,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 25,
+              "end_char": 26
+            },
+            {
+              "index": 10,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 11,
+              "relation": "case",
+              "start_char": 27,
+              "end_char": 29
+            },
+            {
+              "index": 11,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 9,
+              "relation": "nmod",
+              "start_char": 30,
+              "end_char": 33
+            },
+            {
+              "index": 12,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 14,
+              "relation": "cc",
+              "start_char": 34,
+              "end_char": 37
+            },
+            {
+              "index": 13,
+              "text": "40",
+              "lemma": "40",
+              "upos": "NUM",
+              "head": 14,
+              "relation": "nummod",
+              "start_char": 38,
+              "end_char": 40
+            },
+            {
+              "index": 14,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 40,
+              "end_char": 41
+            },
+            {
+              "index": 15,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 16,
+              "relation": "case",
+              "start_char": 42,
+              "end_char": 44
+            },
+            {
+              "index": 16,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 14,
+              "relation": "nmod",
+              "start_char": 45,
+              "end_char": 48
+            },
+            {
+              "index": 17,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 19,
+              "relation": "punct",
+              "start_char": 48,
+              "end_char": 49
+            },
+            {
+              "index": 18,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 19,
+              "relation": "cc",
+              "start_char": 50,
+              "end_char": 53
+            },
+            {
+              "index": 19,
+              "text": "rebalance",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "conj",
+              "start_char": 54,
+              "end_char": 63
+            },
+            {
+              "index": 20,
+              "text": "back",
+              "lemma": "back",
+              "upos": "ADV",
+              "head": 19,
+              "relation": "advmod",
+              "start_char": 64,
+              "end_char": 68
+            },
+            {
+              "index": 21,
+              "text": "to",
+              "lemma": "to",
+              "upos": "ADP",
+              "head": 23,
+              "relation": "case",
+              "start_char": 69,
+              "end_char": 71
+            },
+            {
+              "index": 22,
+              "text": "that",
+              "lemma": "that",
+              "upos": "DET",
+              "head": 23,
+              "relation": "det",
+              "start_char": 72,
+              "end_char": 76
+            },
+            {
+              "index": 23,
+              "text": "split",
+              "lemma": "split",
+              "upos": "NOUN",
+              "head": 19,
+              "relation": "obl",
+              "start_char": 77,
+              "end_char": 82
+            },
+            {
+              "index": 24,
+              "text": "once",
+              "lemma": "once",
+              "upos": "ADV",
+              "head": 19,
+              "relation": "advmod",
+              "start_char": 83,
+              "end_char": 87
+            },
+            {
+              "index": 25,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 26,
+              "relation": "det",
+              "start_char": 88,
+              "end_char": 89
+            },
+            {
+              "index": 26,
+              "text": "year",
+              "lemma": "year",
+              "upos": "NOUN",
+              "head": 24,
+              "relation": "obl:unmarked",
+              "start_char": 90,
+              "end_char": 94
+            },
+            {
+              "index": 27,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 94,
+              "end_char": 95
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 a month, 60% in VTI and 40% in BND.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 15
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "nmod:unmarked",
+              "start_char": 16,
+              "end_char": 21
+            },
+            {
+              "index": 7,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 21,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "60",
+              "lemma": "60",
+              "upos": "NUM",
+              "head": 9,
+              "relation": "nummod",
+              "start_char": 23,
+              "end_char": 25
+            },
+            {
+              "index": 9,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 3,
+              "relation": "appos",
+              "start_char": 25,
+              "end_char": 26
+            },
+            {
+              "index": 10,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 11,
+              "relation": "case",
+              "start_char": 27,
+              "end_char": 29
+            },
+            {
+              "index": 11,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 9,
+              "relation": "nmod",
+              "start_char": 30,
+              "end_char": 33
+            },
+            {
+              "index": 12,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 14,
+              "relation": "cc",
+              "start_char": 34,
+              "end_char": 37
+            },
+            {
+              "index": 13,
+              "text": "40",
+              "lemma": "40",
+              "upos": "NUM",
+              "head": 14,
+              "relation": "nummod",
+              "start_char": 38,
+              "end_char": 40
+            },
+            {
+              "index": 14,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 9,
+              "relation": "conj",
+              "start_char": 40,
+              "end_char": 41
+            },
+            {
+              "index": 15,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 16,
+              "relation": "case",
+              "start_char": 42,
+              "end_char": 44
+            },
+            {
+              "index": 16,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 14,
+              "relation": "nmod",
+              "start_char": 45,
+              "end_char": 48
+            },
+            {
+              "index": 17,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 48,
+              "end_char": 49
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 a month, all of it into VOO.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 15
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "nmod:unmarked",
+              "start_char": 16,
+              "end_char": 21
+            },
+            {
+              "index": 7,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 8,
+              "relation": "punct",
+              "start_char": 21,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "all",
+              "lemma": "all",
+              "upos": "DET",
+              "head": 3,
+              "relation": "appos",
+              "start_char": 23,
+              "end_char": 26
+            },
+            {
+              "index": 9,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 10,
+              "relation": "case",
+              "start_char": 27,
+              "end_char": 29
+            },
+            {
+              "index": 10,
+              "text": "it",
+              "lemma": "it",
+              "upos": "PRON",
+              "head": 8,
+              "relation": "nmod",
+              "start_char": 30,
+              "end_char": 32
+            },
+            {
+              "index": 11,
+              "text": "into",
+              "lemma": "into",
+              "upos": "ADP",
+              "head": 12,
+              "relation": "case",
+              "start_char": 33,
+              "end_char": 37
+            },
+            {
+              "index": 12,
+              "text": "VOO",
+              "lemma": "voo",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl",
+              "start_char": 38,
+              "end_char": 41
+            },
+            {
+              "index": 13,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 41,
+              "end_char": 42
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using RAAAL's composite strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "RAAAL",
+              "lemma": "raaal",
+              "upos": "PROPN",
+              "head": 11,
+              "relation": "nmod:poss",
+              "start_char": 32,
+              "end_char": 37
+            },
+            {
+              "index": 9,
+              "text": "'s",
+              "lemma": "'s",
+              "upos": "PART",
+              "head": 8,
+              "relation": "case",
+              "start_char": 37,
+              "end_char": 39
+            },
+            {
+              "index": 10,
+              "text": "composite",
+              "lemma": "composite",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 40,
+              "end_char": 49
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 50,
+              "end_char": 58
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 58,
+              "end_char": 59
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 60,
+              "end_char": 70
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 71,
+              "end_char": 76
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 77,
+              "end_char": 84
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 84,
+              "end_char": 85
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a FOMO/FOBI sentiment overlay strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 14,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "FOMO",
+              "lemma": "fomo",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "/",
+              "lemma": "/",
+              "upos": "SYM",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 38,
+              "end_char": 39
+            },
+            {
+              "index": 11,
+              "text": "FOBI",
+              "lemma": "fobi",
+              "upos": "NOUN",
+              "head": 14,
+              "relation": "compound",
+              "start_char": 39,
+              "end_char": 43
+            },
+            {
+              "index": 12,
+              "text": "sentiment",
+              "lemma": "sentiment",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 44,
+              "end_char": 53
+            },
+            {
+              "index": 13,
+              "text": "overlay",
+              "lemma": "overlay",
+              "upos": "NOUN",
+              "head": 14,
+              "relation": "compound",
+              "start_char": 54,
+              "end_char": 61
+            },
+            {
+              "index": 14,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 62,
+              "end_char": 70
+            },
+            {
+              "index": 15,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 16,
+              "relation": "punct",
+              "start_char": 70,
+              "end_char": 71
+            },
+            {
+              "index": 16,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 14,
+              "relation": "acl",
+              "start_char": 72,
+              "end_char": 82
+            },
+            {
+              "index": 17,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 18,
+              "relation": "det",
+              "start_char": 83,
+              "end_char": 88
+            },
+            {
+              "index": 18,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 16,
+              "relation": "obl:unmarked",
+              "start_char": 89,
+              "end_char": 96
+            },
+            {
+              "index": 19,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 96,
+              "end_char": 97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a Sharpe-ratio maximising strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "Sharpe",
+              "lemma": "sharpe",
+              "upos": "PROPN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 40
+            },
+            {
+              "index": 10,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 40,
+              "end_char": 41
+            },
+            {
+              "index": 11,
+              "text": "ratio",
+              "lemma": "ratio",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 41,
+              "end_char": 46
+            },
+            {
+              "index": 12,
+              "text": "maximising",
+              "lemma": "maximise",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "amod",
+              "start_char": 47,
+              "end_char": 57
+            },
+            {
+              "index": 13,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 58,
+              "end_char": 66
+            },
+            {
+              "index": 14,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 66,
+              "end_char": 67
+            },
+            {
+              "index": 15,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "acl",
+              "start_char": 68,
+              "end_char": 78
+            },
+            {
+              "index": 16,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 17,
+              "relation": "det",
+              "start_char": 79,
+              "end_char": 84
+            },
+            {
+              "index": 17,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "obl:unmarked",
+              "start_char": 85,
+              "end_char": 92
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 92,
+              "end_char": 93
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a credit statistical arbitrage strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 12,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "credit",
+              "lemma": "credit",
+              "upos": "NOUN",
+              "head": 12,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 40
+            },
+            {
+              "index": 10,
+              "text": "statistical",
+              "lemma": "statistical",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 41,
+              "end_char": 52
+            },
+            {
+              "index": 11,
+              "text": "arbitrage",
+              "lemma": "arbitrage",
+              "upos": "NOUN",
+              "head": 12,
+              "relation": "compound",
+              "start_char": 53,
+              "end_char": 62
+            },
+            {
+              "index": 12,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 63,
+              "end_char": 71
+            },
+            {
+              "index": 13,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 14,
+              "relation": "punct",
+              "start_char": 71,
+              "end_char": 72
+            },
+            {
+              "index": 14,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 12,
+              "relation": "acl",
+              "start_char": 73,
+              "end_char": 83
+            },
+            {
+              "index": 15,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 16,
+              "relation": "det",
+              "start_char": 84,
+              "end_char": 89
+            },
+            {
+              "index": 16,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 14,
+              "relation": "obl:unmarked",
+              "start_char": 90,
+              "end_char": 97
+            },
+            {
+              "index": 17,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 97,
+              "end_char": 98
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a cross-sectional momentum strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "cross-sectional",
+              "lemma": "cross-sectional",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 34,
+              "end_char": 49
+            },
+            {
+              "index": 10,
+              "text": "momentum",
+              "lemma": "momentum",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 50,
+              "end_char": 58
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 59,
+              "end_char": 67
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 67,
+              "end_char": 68
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 69,
+              "end_char": 79
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 80,
+              "end_char": 85
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 86,
+              "end_char": 93
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 93,
+              "end_char": 94
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a dual momentum strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "dual",
+              "lemma": "dual",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 34,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "momentum",
+              "lemma": "momentum",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 39,
+              "end_char": 47
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 48,
+              "end_char": 56
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 56,
+              "end_char": 57
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 58,
+              "end_char": 68
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 69,
+              "end_char": 74
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 75,
+              "end_char": 82
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 82,
+              "end_char": 83
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a macro factor strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "macro",
+              "lemma": "macro",
+              "upos": "NOUN",
+              "head": 10,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 39
+            },
+            {
+              "index": 10,
+              "text": "factor",
+              "lemma": "factor",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 40,
+              "end_char": 46
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 47,
+              "end_char": 55
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 55,
+              "end_char": 56
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 57,
+              "end_char": 67
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 68,
+              "end_char": 73
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 74,
+              "end_char": 81
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 81,
+              "end_char": 82
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a maximum diversification strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "maximum",
+              "lemma": "maximum",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 34,
+              "end_char": 41
+            },
+            {
+              "index": 10,
+              "text": "diversification",
+              "lemma": "diversification",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 42,
+              "end_char": 57
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 58,
+              "end_char": 66
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 66,
+              "end_char": 67
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 68,
+              "end_char": 78
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 79,
+              "end_char": 84
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 85,
+              "end_char": 92
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 92,
+              "end_char": 93
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a minimum variance strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "minimum",
+              "lemma": "minimum",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 34,
+              "end_char": 41
+            },
+            {
+              "index": 10,
+              "text": "variance",
+              "lemma": "variance",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 42,
+              "end_char": 50
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 51,
+              "end_char": 59
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 59,
+              "end_char": 60
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 61,
+              "end_char": 71
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 72,
+              "end_char": 77
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 78,
+              "end_char": 85
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 85,
+              "end_char": 86
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a multi-factor blend strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "multi",
+              "lemma": "multi",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 34,
+              "end_char": 39
+            },
+            {
+              "index": 10,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 39,
+              "end_char": 40
+            },
+            {
+              "index": 11,
+              "text": "factor",
+              "lemma": "factor",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 40,
+              "end_char": 46
+            },
+            {
+              "index": 12,
+              "text": "blend",
+              "lemma": "blend",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 47,
+              "end_char": 52
+            },
+            {
+              "index": 13,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 53,
+              "end_char": 61
+            },
+            {
+              "index": 14,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 61,
+              "end_char": 62
+            },
+            {
+              "index": 15,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "acl",
+              "start_char": 63,
+              "end_char": 73
+            },
+            {
+              "index": 16,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 17,
+              "relation": "det",
+              "start_char": 74,
+              "end_char": 79
+            },
+            {
+              "index": 17,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "obl:unmarked",
+              "start_char": 80,
+              "end_char": 87
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 87,
+              "end_char": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a pairs trading strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "pairs",
+              "lemma": "pair",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 39
+            },
+            {
+              "index": 10,
+              "text": "trading",
+              "lemma": "trading",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 40,
+              "end_char": 47
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 48,
+              "end_char": 56
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 56,
+              "end_char": 57
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 58,
+              "end_char": 68
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 69,
+              "end_char": 74
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 75,
+              "end_char": 82
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 82,
+              "end_char": 83
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a regime-switching momentum strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "regime",
+              "lemma": "regime",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 40
+            },
+            {
+              "index": 10,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 40,
+              "end_char": 41
+            },
+            {
+              "index": 11,
+              "text": "switching",
+              "lemma": "switch",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "amod",
+              "start_char": 41,
+              "end_char": 50
+            },
+            {
+              "index": 12,
+              "text": "momentum",
+              "lemma": "momentum",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 51,
+              "end_char": 59
+            },
+            {
+              "index": 13,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 60,
+              "end_char": 68
+            },
+            {
+              "index": 14,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 68,
+              "end_char": 69
+            },
+            {
+              "index": 15,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "acl",
+              "start_char": 70,
+              "end_char": 80
+            },
+            {
+              "index": 16,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 17,
+              "relation": "det",
+              "start_char": 81,
+              "end_char": 86
+            },
+            {
+              "index": 17,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "obl:unmarked",
+              "start_char": 87,
+              "end_char": 94
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 94,
+              "end_char": 95
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a relative value strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "relative",
+              "lemma": "relative",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 34,
+              "end_char": 42
+            },
+            {
+              "index": 10,
+              "text": "value",
+              "lemma": "value",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 43,
+              "end_char": 48
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 49,
+              "end_char": 57
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 57,
+              "end_char": 58
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 59,
+              "end_char": 69
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 70,
+              "end_char": 75
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 76,
+              "end_char": 83
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 83,
+              "end_char": 84
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a risk parity strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "risk",
+              "lemma": "risk",
+              "upos": "NOUN",
+              "head": 10,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "parity",
+              "lemma": "parity",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 39,
+              "end_char": 45
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 46,
+              "end_char": 54
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 54,
+              "end_char": 55
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 56,
+              "end_char": 66
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 67,
+              "end_char": 72
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 73,
+              "end_char": 80
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 80,
+              "end_char": 81
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a short-term reversal strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "short",
+              "lemma": "short",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 34,
+              "end_char": 39
+            },
+            {
+              "index": 10,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 39,
+              "end_char": 40
+            },
+            {
+              "index": 11,
+              "text": "term",
+              "lemma": "term",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 40,
+              "end_char": 44
+            },
+            {
+              "index": 12,
+              "text": "reversal",
+              "lemma": "reversal",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 45,
+              "end_char": 53
+            },
+            {
+              "index": 13,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 54,
+              "end_char": 62
+            },
+            {
+              "index": 14,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 62,
+              "end_char": 63
+            },
+            {
+              "index": 15,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "acl",
+              "start_char": 64,
+              "end_char": 74
+            },
+            {
+              "index": 16,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 17,
+              "relation": "det",
+              "start_char": 75,
+              "end_char": 80
+            },
+            {
+              "index": 17,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "obl:unmarked",
+              "start_char": 81,
+              "end_char": 88
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 88,
+              "end_char": 89
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a strategy that targets a steady level of portfolio volatility, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 9,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 34,
+              "end_char": 42
+            },
+            {
+              "index": 10,
+              "text": "that",
+              "lemma": "that",
+              "upos": "PRON",
+              "head": 11,
+              "relation": "nsubj",
+              "start_char": 43,
+              "end_char": 47
+            },
+            {
+              "index": 11,
+              "text": "targets",
+              "lemma": "target",
+              "upos": "VERB",
+              "head": 9,
+              "relation": "acl:relcl",
+              "start_char": 48,
+              "end_char": 55
+            },
+            {
+              "index": 12,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 14,
+              "relation": "det",
+              "start_char": 56,
+              "end_char": 57
+            },
+            {
+              "index": 13,
+              "text": "steady",
+              "lemma": "steady",
+              "upos": "ADJ",
+              "head": 14,
+              "relation": "amod",
+              "start_char": 58,
+              "end_char": 64
+            },
+            {
+              "index": 14,
+              "text": "level",
+              "lemma": "level",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "obj",
+              "start_char": 65,
+              "end_char": 70
+            },
+            {
+              "index": 15,
+              "text": "of",
+              "lemma": "of",
+              "upos": "ADP",
+              "head": 17,
+              "relation": "case",
+              "start_char": 71,
+              "end_char": 73
+            },
+            {
+              "index": 16,
+              "text": "portfolio",
+              "lemma": "portfolio",
+              "upos": "NOUN",
+              "head": 17,
+              "relation": "compound",
+              "start_char": 74,
+              "end_char": 83
+            },
+            {
+              "index": 17,
+              "text": "volatility",
+              "lemma": "volatility",
+              "upos": "NOUN",
+              "head": 14,
+              "relation": "nmod",
+              "start_char": 84,
+              "end_char": 94
+            },
+            {
+              "index": 18,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 19,
+              "relation": "punct",
+              "start_char": 94,
+              "end_char": 95
+            },
+            {
+              "index": 19,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 17,
+              "relation": "acl",
+              "start_char": 96,
+              "end_char": 106
+            },
+            {
+              "index": 20,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 21,
+              "relation": "det",
+              "start_char": 107,
+              "end_char": 112
+            },
+            {
+              "index": 21,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 19,
+              "relation": "obl:unmarked",
+              "start_char": 113,
+              "end_char": 120
+            },
+            {
+              "index": 22,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 120,
+              "end_char": 121
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using a time-series momentum strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 33
+            },
+            {
+              "index": 9,
+              "text": "time",
+              "lemma": "time",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 34,
+              "end_char": 38
+            },
+            {
+              "index": 10,
+              "text": "-",
+              "lemma": "-",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 38,
+              "end_char": 39
+            },
+            {
+              "index": 11,
+              "text": "series",
+              "lemma": "series",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 39,
+              "end_char": 45
+            },
+            {
+              "index": 12,
+              "text": "momentum",
+              "lemma": "momentum",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 46,
+              "end_char": 54
+            },
+            {
+              "index": 13,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 55,
+              "end_char": 63
+            },
+            {
+              "index": 14,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 63,
+              "end_char": 64
+            },
+            {
+              "index": 15,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "acl",
+              "start_char": 65,
+              "end_char": 75
+            },
+            {
+              "index": 16,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 17,
+              "relation": "det",
+              "start_char": 76,
+              "end_char": 81
+            },
+            {
+              "index": 17,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "obl:unmarked",
+              "start_char": 82,
+              "end_char": 89
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 89,
+              "end_char": 90
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using an adaptive rotation strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "an",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "adaptive",
+              "lemma": "adaptive",
+              "upos": "ADJ",
+              "head": 11,
+              "relation": "amod",
+              "start_char": 35,
+              "end_char": 43
+            },
+            {
+              "index": 10,
+              "text": "rotation",
+              "lemma": "rotation",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 44,
+              "end_char": 52
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 53,
+              "end_char": 61
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 61,
+              "end_char": 62
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 63,
+              "end_char": 73
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 74,
+              "end_char": 79
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 80,
+              "end_char": 87
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 87,
+              "end_char": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using an equal risk contribution strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "an",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 12,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "equal",
+              "lemma": "equal",
+              "upos": "ADJ",
+              "head": 12,
+              "relation": "amod",
+              "start_char": 35,
+              "end_char": 40
+            },
+            {
+              "index": 10,
+              "text": "risk",
+              "lemma": "risk",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 41,
+              "end_char": 45
+            },
+            {
+              "index": 11,
+              "text": "contribution",
+              "lemma": "contribution",
+              "upos": "NOUN",
+              "head": 12,
+              "relation": "compound",
+              "start_char": 46,
+              "end_char": 58
+            },
+            {
+              "index": 12,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 59,
+              "end_char": 67
+            },
+            {
+              "index": 13,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 14,
+              "relation": "punct",
+              "start_char": 67,
+              "end_char": 68
+            },
+            {
+              "index": 14,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 12,
+              "relation": "acl",
+              "start_char": 69,
+              "end_char": 79
+            },
+            {
+              "index": 15,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 16,
+              "relation": "det",
+              "start_char": 80,
+              "end_char": 85
+            },
+            {
+              "index": 16,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 14,
+              "relation": "obl:unmarked",
+              "start_char": 86,
+              "end_char": 93
+            },
+            {
+              "index": 17,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 93,
+              "end_char": 94
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using an equity factor strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "an",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 11,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "equity",
+              "lemma": "equity",
+              "upos": "NOUN",
+              "head": 10,
+              "relation": "compound",
+              "start_char": 35,
+              "end_char": 41
+            },
+            {
+              "index": 10,
+              "text": "factor",
+              "lemma": "factor",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 42,
+              "end_char": 48
+            },
+            {
+              "index": 11,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 49,
+              "end_char": 57
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 13,
+              "relation": "punct",
+              "start_char": 57,
+              "end_char": 58
+            },
+            {
+              "index": 13,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 11,
+              "relation": "acl",
+              "start_char": 59,
+              "end_char": 69
+            },
+            {
+              "index": 14,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 15,
+              "relation": "det",
+              "start_char": 70,
+              "end_char": 75
+            },
+            {
+              "index": 15,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "obl:unmarked",
+              "start_char": 76,
+              "end_char": 83
+            },
+            {
+              "index": 16,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 83,
+              "end_char": 84
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $500 every month using an internal bar strength switching strategy, rebalanced every quarter.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "500",
+              "lemma": "500",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 19
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 2,
+              "relation": "obl:unmarked",
+              "start_char": 20,
+              "end_char": 25
+            },
+            {
+              "index": 7,
+              "text": "using",
+              "lemma": "use",
+              "upos": "VERB",
+              "head": 2,
+              "relation": "advcl",
+              "start_char": 26,
+              "end_char": 31
+            },
+            {
+              "index": 8,
+              "text": "an",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 13,
+              "relation": "det",
+              "start_char": 32,
+              "end_char": 34
+            },
+            {
+              "index": 9,
+              "text": "internal",
+              "lemma": "internal",
+              "upos": "ADJ",
+              "head": 13,
+              "relation": "amod",
+              "start_char": 35,
+              "end_char": 43
+            },
+            {
+              "index": 10,
+              "text": "bar",
+              "lemma": "bar",
+              "upos": "NOUN",
+              "head": 11,
+              "relation": "compound",
+              "start_char": 44,
+              "end_char": 47
+            },
+            {
+              "index": 11,
+              "text": "strength",
+              "lemma": "strength",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 48,
+              "end_char": 56
+            },
+            {
+              "index": 12,
+              "text": "switching",
+              "lemma": "switch",
+              "upos": "NOUN",
+              "head": 13,
+              "relation": "compound",
+              "start_char": 57,
+              "end_char": 66
+            },
+            {
+              "index": 13,
+              "text": "strategy",
+              "lemma": "strategy",
+              "upos": "NOUN",
+              "head": 7,
+              "relation": "obj",
+              "start_char": 67,
+              "end_char": 75
+            },
+            {
+              "index": 14,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 15,
+              "relation": "punct",
+              "start_char": 75,
+              "end_char": 76
+            },
+            {
+              "index": 15,
+              "text": "rebalanced",
+              "lemma": "rebalance",
+              "upos": "VERB",
+              "head": 13,
+              "relation": "acl",
+              "start_char": 77,
+              "end_char": 87
+            },
+            {
+              "index": 16,
+              "text": "every",
+              "lemma": "every",
+              "upos": "DET",
+              "head": 17,
+              "relation": "det",
+              "start_char": 88,
+              "end_char": 93
+            },
+            {
+              "index": 17,
+              "text": "quarter",
+              "lemma": "quarter",
+              "upos": "NOUN",
+              "head": 15,
+              "relation": "obl:unmarked",
+              "start_char": 94,
+              "end_char": 101
+            },
+            {
+              "index": 18,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 101,
+              "end_char": 102
+            }
+          ]
+        }
+      ]
+    },
+    {
       "text": "I invest $500 into VTI every month, on the same day each month.",
       "language": "en",
       "parser": "stanza@1.14.0",
@@ -7865,6 +12600,239 @@
               "relation": "punct",
               "start_char": 62,
               "end_char": 63
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "I invest $600 a month, 60% in VTI, 30% in VXUS and 10% in BND.",
+      "language": "en",
+      "parser": "stanza@1.14.0",
+      "model": "en/tokenize,pos,lemma,depparse",
+      "sentences": [
+        {
+          "sentence_id": 0,
+          "tokens": [
+            {
+              "index": 1,
+              "text": "I",
+              "lemma": "i",
+              "upos": "PRON",
+              "head": 2,
+              "relation": "nsubj",
+              "start_char": 0,
+              "end_char": 1
+            },
+            {
+              "index": 2,
+              "text": "invest",
+              "lemma": "invest",
+              "upos": "VERB",
+              "head": 0,
+              "relation": "root",
+              "start_char": 2,
+              "end_char": 8
+            },
+            {
+              "index": 3,
+              "text": "$",
+              "lemma": "$",
+              "upos": "SYM",
+              "head": 2,
+              "relation": "obj",
+              "start_char": 9,
+              "end_char": 10
+            },
+            {
+              "index": 4,
+              "text": "600",
+              "lemma": "600",
+              "upos": "NUM",
+              "head": 3,
+              "relation": "nummod",
+              "start_char": 10,
+              "end_char": 13
+            },
+            {
+              "index": 5,
+              "text": "a",
+              "lemma": "a",
+              "upos": "DET",
+              "head": 6,
+              "relation": "det",
+              "start_char": 14,
+              "end_char": 15
+            },
+            {
+              "index": 6,
+              "text": "month",
+              "lemma": "month",
+              "upos": "NOUN",
+              "head": 3,
+              "relation": "nmod:unmarked",
+              "start_char": 16,
+              "end_char": 21
+            },
+            {
+              "index": 7,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 9,
+              "relation": "punct",
+              "start_char": 21,
+              "end_char": 22
+            },
+            {
+              "index": 8,
+              "text": "60",
+              "lemma": "60",
+              "upos": "NUM",
+              "head": 9,
+              "relation": "nummod",
+              "start_char": 23,
+              "end_char": 25
+            },
+            {
+              "index": 9,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 25,
+              "end_char": 26
+            },
+            {
+              "index": 10,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 11,
+              "relation": "case",
+              "start_char": 27,
+              "end_char": 29
+            },
+            {
+              "index": 11,
+              "text": "VTI",
+              "lemma": "vti",
+              "upos": "PROPN",
+              "head": 9,
+              "relation": "nmod",
+              "start_char": 30,
+              "end_char": 33
+            },
+            {
+              "index": 12,
+              "text": ",",
+              "lemma": ",",
+              "upos": "PUNCT",
+              "head": 14,
+              "relation": "punct",
+              "start_char": 33,
+              "end_char": 34
+            },
+            {
+              "index": 13,
+              "text": "30",
+              "lemma": "30",
+              "upos": "NUM",
+              "head": 14,
+              "relation": "nummod",
+              "start_char": 35,
+              "end_char": 37
+            },
+            {
+              "index": 14,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 3,
+              "relation": "conj",
+              "start_char": 37,
+              "end_char": 38
+            },
+            {
+              "index": 15,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 16,
+              "relation": "case",
+              "start_char": 39,
+              "end_char": 41
+            },
+            {
+              "index": 16,
+              "text": "VXUS",
+              "lemma": "vxus",
+              "upos": "PROPN",
+              "head": 14,
+              "relation": "nmod",
+              "start_char": 42,
+              "end_char": 46
+            },
+            {
+              "index": 17,
+              "text": "and",
+              "lemma": "and",
+              "upos": "CCONJ",
+              "head": 19,
+              "relation": "cc",
+              "start_char": 47,
+              "end_char": 50
+            },
+            {
+              "index": 18,
+              "text": "10",
+              "lemma": "10",
+              "upos": "NUM",
+              "head": 19,
+              "relation": "nummod",
+              "start_char": 51,
+              "end_char": 53
+            },
+            {
+              "index": 19,
+              "text": "%",
+              "lemma": "%",
+              "upos": "SYM",
+              "head": 14,
+              "relation": "conj",
+              "start_char": 53,
+              "end_char": 54
+            },
+            {
+              "index": 20,
+              "text": "in",
+              "lemma": "in",
+              "upos": "ADP",
+              "head": 21,
+              "relation": "case",
+              "start_char": 55,
+              "end_char": 57
+            },
+            {
+              "index": 21,
+              "text": "BND",
+              "lemma": "bnd",
+              "upos": "PROPN",
+              "head": 19,
+              "relation": "nmod",
+              "start_char": 58,
+              "end_char": 61
+            },
+            {
+              "index": 22,
+              "text": ".",
+              "lemma": ".",
+              "upos": "PUNCT",
+              "head": 2,
+              "relation": "punct",
+              "start_char": 61,
+              "end_char": 62
             }
           ]
         }
