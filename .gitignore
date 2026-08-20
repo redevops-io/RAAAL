@@ -184,3 +184,4 @@ formal/.lake/
 # evidence — `test_baseline_v1` requires the artifact the gate reads to have
 # come from the scheduled lane.
 corpus/parser/drift_local.json
+strategy-review/
