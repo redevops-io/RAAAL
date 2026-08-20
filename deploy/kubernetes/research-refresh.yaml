@@ -1,0 +1,70 @@
+# Daily refresh of the research dashboard.
+#
+# The dashboard is not shipped in the image — quantify-web's init container
+# builds it from that day's market history on every pod start. So "refresh the
+# dashboard" is "restart the deployment", and this CronJob does exactly that,
+# once a day. The deployment cycles its pods through their ~5-minute rebuild
+# while the old ones keep serving, so the site stays up and the graphs advance a
+# day.
+#
+# The only privilege it needs is to annotate the deployment (what `rollout
+# restart` does), scoped to this one namespace and this one verb.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: research-refresh
+  namespace: quantify
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: research-refresh
+  namespace: quantify
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: research-refresh
+  namespace: quantify
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: research-refresh
+subjects:
+  - kind: ServiceAccount
+    name: research-refresh
+    namespace: quantify
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: research-refresh
+  namespace: quantify
+spec:
+  schedule: "0 6 * * *" # 06:00 UTC, after the US close is settled
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          serviceAccountName: research-refresh
+          restartPolicy: Never
+          containers:
+            - name: rollout
+              image: bitnami/kubectl:1.31
+              command:
+                - kubectl
+                - -n
+                - quantify
+                - rollout
+                - restart
+                - deployment/quantify-web

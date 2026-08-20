@@ -31,8 +31,52 @@ spec:
   template:
     metadata:
       labels: { app: quantify-web }
+      annotations:
+        # The init container spends ~5 minutes building the dashboard from the
+        # day's history. EKS Auto Mode's node consolidation was evicting the pod
+        # mid-build ("Underutilized"), so it restarted from scratch and never
+        # finished. This tells the autoscaler to leave a running pod in place.
+        karpenter.sh/do-not-disrupt: "true"
     spec:
       serviceAccountName: quantify-web
+      volumes:
+        # The research dashboard is data, rebuilt from the day's market history
+        # rather than shipped in the image. The init container writes it here and
+        # the web container serves it from the same empty dir, so no shared
+        # volume is needed and each pod carries a dashboard current as of its own
+        # start. `research-refresh` (a CronJob) rolls the deployment daily to
+        # rebuild it.
+        - name: research
+          emptyDir: {}
+      initContainers:
+        - name: build-dashboard
+          image: IMAGE_PLACEHOLDER
+          # Best-effort: `exit 0` whatever happens, so a transient data-vendor
+          # failure leaves the page showing its "not built yet" placeholder
+          # rather than holding the whole pod — which also serves the workspace
+          # and the API — out of the rotation.
+          command: ["sh", "-lc"]
+          args:
+            - |
+              END=$(date +%Y-%m-%d)
+              echo "building the research dashboard through $END"
+              python3 -m src.history --start 2016-01-01 --end "$END" --refresh \
+                && python3 -m src.visualization.bokeh_app \
+                     --output /srv/research/regime_dashboard.html \
+                && echo "dashboard built" \
+                || echo "dashboard build failed; /research keeps its placeholder"
+              exit 0
+          env:
+            - name: QUANTIFY_RESEARCH_DIR
+              value: /srv/research
+          resources:
+            # Bounded by the web container's own limit, so scheduling reserves
+            # max(init, web) = 4Gi and this adds nothing to the footprint.
+            requests: { cpu: 500m, memory: 2Gi }
+            limits: { memory: 4Gi }
+          volumeMounts:
+            - name: research
+              mountPath: /srv/research
       containers:
         - name: web
           image: IMAGE_PLACEHOLDER
@@ -62,6 +106,12 @@ spec:
               value: "COMMIT_PLACEHOLDER"
             - name: QUANTIFY_IMAGE_DIGEST
               value: "DIGEST_PLACEHOLDER"
+            # Serve the dashboard the init container built, from the shared dir.
+            - name: QUANTIFY_RESEARCH_DIR
+              value: /srv/research
+          volumeMounts:
+            - name: research
+              mountPath: /srv/research
           resources:
             # Raised for the syntax witness. The Stanza pipeline is loaded
             # once per process and holds its model resident; the API alone ran

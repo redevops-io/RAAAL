@@ -78,8 +78,15 @@ metadata:
     # the redirect came back as `http://quantify.club:80/workspace/`, sending
     # every arriving browser down a scheme downgrade on the way to the login
     # page. Observed after applying it, which is why it is written down here.
+    # Sends the bare root to the research dashboard — the graphs are the front
+    # door now. It used to land on /workspace/; the daily Bokeh dashboard is the
+    # first thing a visitor should see, and the "try your own strategy" prompt at
+    # the bottom of it is the way in to the workspace. The app itself also sends
+    # a browser from / to /research (content-negotiated, so an API client at the
+    # root still gets JSON); this is the belt at the edge so it holds even for a
+    # client the negotiation would not catch.
     alb.ingress.kubernetes.io/actions.redirect-workspace: >
-      {"type":"redirect","redirectConfig":{"Path":"/workspace/","Port":"443",
+      {"type":"redirect","redirectConfig":{"Path":"/research","Port":"443",
        "Protocol":"HTTPS","Query":"#{query}","StatusCode":"HTTP_302"}}
     # `www`, redirected rather than served — the job Caddy did on EC2, and it
     # has to be done by something. PUBLIC_BASE_URL and the registered OIDC
