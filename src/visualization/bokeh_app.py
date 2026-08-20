@@ -2478,6 +2478,9 @@ def _write_landing(output_path: Path, sections) -> None:
         f'<a href="#{key}">{_html.escape(title)}</a>'
         for key, title, _child in sections)
     nav_links += '<a href="#try" class="try">Try your own &rarr;</a>'
+    nav_links += ('<a href="https://github.com/redevops-io/RAAAL" '
+                  'title="Read the docs or run the code — on GitHub">'
+                  'Code &amp; docs &#8599;</a>')
     nav_links += ('<a class="theme-toggle" href="#" '
                   'onclick="toggleTheme();return false" '
                   'title="Switch light / dark">&#9680;</a>')
@@ -2589,7 +2592,8 @@ _LANDING_SHELL = """<!doctype html>
   <footer>RAAAL Agentic Investment OS — DEMO, not investment advice. Paper
     trading only. The governed operating console (discovery → three objective
     plans → human-approved paper trades) is the product; this is its research
-    surface.</footer>
+    surface. The code and its documentation are open source —
+    <a href="https://github.com/redevops-io/RAAAL">github.com/redevops-io/RAAAL</a>.</footer>
 </div>
 {script}
 </body></html>
