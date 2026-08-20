@@ -24,7 +24,7 @@ from contextlib import asynccontextmanager
 
 import logging
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from .evaluation import ProtocolRegistry
@@ -1036,7 +1036,16 @@ def current_strategies() -> Dict[str, Any]:
 
 
 @app.get("/")
-def root() -> JSONResponse:
+def root(request: Request):
+    # The graphs are the front door. A browser landing on the site is sent to
+    # the research dashboard; a client that asked for JSON — an API caller, a
+    # health probe — still gets the service descriptor, so nothing
+    # machine-readable moved. The descriptor also stays reachable at /info.
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept and "application/json" not in accept:
+        from fastapi.responses import RedirectResponse
+
+        return RedirectResponse("/research", status_code=307)
     return JSONResponse(
         {
             "service": "investment-agent (Quantify Investment OS)",
@@ -1044,5 +1053,6 @@ def root() -> JSONResponse:
             "notice": DEMO_NOTICE,
             "license": license_notice(),
             "docs": "/docs",
+            "dashboard": "/research",
         }
     )

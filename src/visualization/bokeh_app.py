@@ -2420,45 +2420,157 @@ def build_dashboard(
     if fomo_panel is not None:
         all_tabs.append(fomo_panel)
 
-    tabs = Tabs(tabs=all_tabs)
-
-    # --- DEMO framing + customer-facing legend (wraps the bare Tabs) -----------------------------
-    header = Div(text="""
-        <div style="font-family:system-ui;max-width:1100px">
-          <h1 style="margin:0 0 2px">RAAAL &mdash; Research Dashboard</h1>
-          <div style="color:#667">The analytics surface behind the Agentic Investment Operating System.
-          Regime detection, the research-backed strategy library, salience and behavioural signals.</div>
-        </div>""", sizing_mode="stretch_width")
-    disclaimer = Div(text="""
-        <div style="font-family:system-ui;max-width:1100px;margin:10px 0 6px;background:#fff8e1;
-             border-left:4px solid #ffc107;padding:12px 16px;border-radius:5px">
-          <b>DEMO &mdash; decision support only, not investment advice.</b> Paper trading; no real orders are
-          ever placed. Every allocation shown is produced by a registered, research-backed strategy, and any
-          rebalance in the live console requires explicit human approval. Past simulated performance does not
-          guarantee future results.
-        </div>""", sizing_mode="stretch_width")
-    legend = Div(text="""
-        <div style="font-family:system-ui;max-width:1100px;color:#445;font-size:13px;margin:0 0 8px">
-          <b>How to read these tabs:</b>
-          <b>The Strategy</b> &mdash; the detected market regime and the allocation it drives.
-          <b>vs Academia</b> &mdash; rule-based vs ML-ensemble regime detection and factor/network analysis.
-          <b>Salience</b> &mdash; a behavioural-finance (salience-theory) view of forward returns by beta.
-          <b>vs Buffett</b> &mdash; the strategy benchmarked against Berkshire Hathaway.
-          <b>Strategy Lab</b> &mdash; the ~20 registered strategies the planner selects among, with growth
-          curves and signals. <b>FOMO vs FOBI</b> &mdash; a composite sentiment indicator for risk-on/off.
-        </div>""", sizing_mode="stretch_width")
-    footer = Div(text="""
-        <div style="font-family:system-ui;max-width:1100px;color:#889;font-size:12px;margin-top:14px;
-             border-top:1px solid #e5e7eb;padding-top:8px">
-          RAAAL Agentic Investment OS &mdash; DEMO, not investment advice. Paper trading only.
-          The live operating console (discovery &rarr; three objective plans &rarr; governed paper approval)
-          runs at the site root; this page is its research/analytics surface.
-        </div>""", sizing_mode="stretch_width")
-
-    page = column(header, disclaimer, legend, tabs, footer, sizing_mode="stretch_width")
-    output_file(output_path, title="RAAAL — Research Dashboard (DEMO, not investment advice)")
-    save(page)
+    # Sections replace tabs: one anchored block per panel, stacked so the whole
+    # dashboard is a single scroll and the nav is a set of links rather than a
+    # tab strip. Each `TabPanel` still carries the figures a builder produced —
+    # we take its `.child` layout and embed it under an HTML heading and a short
+    # blurb, with the panel's own longer text left where the builder placed it,
+    # below the graphs.
+    sections = [(_slug(str(p.title)), str(p.title), p.child) for p in all_tabs]
+    _write_landing(output_path, sections)
     return output_path
+
+
+#: A one-line description per section, shown under its heading. Lifted from the
+#: old "how to read these tabs" legend so the copy stays in one voice; the long
+#: methodology text stays inside each panel, below its graphs.
+SECTION_BLURBS = {
+    "The Strategy": "The market regime we detect right now, and the allocation "
+                    "it drives.",
+    "vs Academia": "Our rule-based regime detection against an ML ensemble, "
+                   "with factor and network analysis.",
+    "Salience": "A behavioural-finance view — forward returns sorted by beta, "
+                "read through salience theory.",
+    "vs Buffett": "The strategy benchmarked against Berkshire Hathaway over the "
+                  "same period.",
+    "Strategy Lab": "The ~20 research strategies the planner chooses among — "
+                    "growth curves, signals and the composite.",
+    "FOMO vs FOBI": "A composite sentiment indicator for risk-on / risk-off "
+                    "positioning.",
+}
+
+
+def _slug(title: str) -> str:
+    import re
+
+    return re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "section"
+
+
+def _write_landing(output_path: Path, sections) -> None:
+    """Assemble the scrolling landing: hero, section links, graphs, prompt.
+
+    The graphs come from Bokeh's `components` (one script, one div per section),
+    embedded into a hand-authored shell so the page can carry an anchor nav and
+    an HTML form Bokeh could not. The full set of BokehJS bundles is loaded from
+    the CDN by version, because the panels use tables and sliders, not only
+    figures.
+    """
+    import html as _html
+
+    from bokeh.embed import components
+    from bokeh.resources import CDN
+
+    models = {key: child for key, _title, child in sections}
+    script, divs = components(models)
+    js = "\n".join(f'<script src="{u}"></script>' for u in CDN.js_files)
+
+    nav_links = "".join(
+        f'<a href="#{key}">{_html.escape(title)}</a>'
+        for key, title, _child in sections)
+    nav_links += '<a href="#try" class="try">Try your own &rarr;</a>'
+
+    blocks = []
+    for key, title, _child in sections:
+        blurb = SECTION_BLURBS.get(title, "")
+        blocks.append(f"""
+      <section id="{key}" class="sec">
+        <h2>{_html.escape(title)}</h2>
+        <p class="blurb">{_html.escape(blurb)}</p>
+        <div class="graph">{divs.get(key, "")}</div>
+      </section>""")
+
+    body = "\n".join(blocks)
+    page = _LANDING_SHELL.format(js=js, script=script, nav=nav_links, body=body)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(page)
+
+
+_LANDING_SHELL = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAAAL — Research Dashboard (DEMO, not investment advice)</title>
+{js}
+<style>
+  :root {{ --ink:#16202b; --muted:#5b6673; --line:#e6e9ee; --accent:#2563eb;
+           --bg:#fbfcfd; }}
+  * {{ box-sizing:border-box; }}
+  body {{ font:15px/1.55 -apple-system,system-ui,sans-serif; color:var(--ink);
+          background:var(--bg); margin:0; }}
+  .wrap {{ max-width:1120px; margin:0 auto; padding:0 20px; }}
+  header.hero {{ padding:34px 0 10px; }}
+  header.hero h1 {{ margin:0 0 6px; font-size:1.85rem; letter-spacing:-.01em; }}
+  header.hero p {{ margin:0; color:var(--muted); max-width:70ch; }}
+  .demo {{ background:#fff8e1; border-left:4px solid #ffc107; padding:11px 15px;
+           border-radius:6px; margin:16px 0 0; font-size:13.5px; color:#5b4b12; }}
+  nav.sections {{ position:sticky; top:0; z-index:5; background:rgba(251,252,253,.92);
+    backdrop-filter:blur(6px); border-bottom:1px solid var(--line);
+    display:flex; flex-wrap:wrap; gap:4px 18px; padding:12px 0; margin-top:16px; }}
+  nav.sections a {{ color:var(--muted); text-decoration:none; font-size:13.5px;
+    font-weight:500; }}
+  nav.sections a:hover {{ color:var(--ink); }}
+  nav.sections a.try {{ color:var(--accent); margin-left:auto; }}
+  .sec {{ padding:30px 0; border-bottom:1px solid var(--line); scroll-margin-top:64px; }}
+  .sec h2 {{ margin:0 0 4px; font-size:1.3rem; }}
+  .sec .blurb {{ margin:0 0 16px; color:var(--muted); max-width:75ch; }}
+  .graph {{ overflow-x:auto; }}
+  #try {{ padding:34px 0 60px; border-bottom:none; }}
+  #try form {{ display:flex; flex-direction:column; gap:12px; max-width:760px; }}
+  #try textarea {{ width:100%; min-height:92px; padding:12px 14px; font:inherit;
+    border:1px solid var(--line); border-radius:8px; background:#fff; resize:vertical; }}
+  #try button {{ align-self:flex-start; background:var(--accent); color:#fff;
+    border:0; border-radius:8px; padding:11px 20px; font:inherit; font-weight:600;
+    cursor:pointer; }}
+  #try button:hover {{ background:#1d4ed8; }}
+  #try .note {{ color:var(--muted); font-size:13px; margin:0; max-width:70ch; }}
+  footer {{ color:#8a94a1; font-size:12px; padding:22px 0 40px; }}
+</style></head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>RAAAL — Research Dashboard</h1>
+    <p>The analytics surface behind the Agentic Investment Operating System:
+       regime detection, the research-backed strategy library, and behavioural
+       signals. Each section below is refreshed from the day's market history.</p>
+    <div class="demo"><b>DEMO — decision support only, not investment advice.</b>
+      Paper trading; no real orders are placed. Every allocation is produced by a
+      registered, research-backed strategy, and any live rebalance requires human
+      approval. Past simulated performance does not guarantee future results.</div>
+  </header>
+</div>
+<nav class="sections"><div class="wrap" style="display:flex;flex-wrap:wrap;gap:4px 18px;width:100%">{nav}</div></nav>
+<div class="wrap">
+  {body}
+  <section id="try">
+    <h2>Try your own strategy</h2>
+    <p class="blurb">Describe how you invest, or a rule you are considering. We
+      compile it, run it over the market snapshot, and show the same comparison
+      — your plan against the same contributions bought and held elsewhere.</p>
+    <form action="/workspace/new" method="get">
+      <textarea name="describe" placeholder="I invest $500 a month using a risk parity strategy, rebalanced quarterly."></textarea>
+      <button type="submit">Evaluate my strategy</button>
+      <p class="note">You will be asked to sign in when you submit — your plan is
+        private to you. What you typed is carried through the sign-in and
+        evaluated on the other side.</p>
+    </form>
+  </section>
+  <footer>RAAAL Agentic Investment OS — DEMO, not investment advice. Paper
+    trading only. The governed operating console (discovery → three objective
+    plans → human-approved paper trades) is the product; this is its research
+    surface.</footer>
+</div>
+{script}
+</body></html>
+"""
 
 
 def main() -> None:
