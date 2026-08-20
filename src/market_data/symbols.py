@@ -152,6 +152,13 @@ INSTRUMENTS: Tuple[Instrument, ...] = (
                "Vanguard Total World Stock (composed of VTI + VXUS)",
                ("total world", "total world stock", "world stock market",
                 "global stock market")),
+    # Single-component composites — proxies made explicit in custom_indices.py.
+    Instrument("SCHB", InstrumentKind.ETF,
+               "Schwab U.S. Broad Market ETF (tracks the US total market, as VTI)",
+               ("schwab us broad market", "schwab total market")),
+    Instrument("SGOV", InstrumentKind.ETF,
+               "iShares 0-3 Month Treasury Bond ETF (as BIL)",
+               ("ishares 0-3 month treasury", "0-3 month treasury")),
     Instrument("BRK-B", InstrumentKind.EQUITY, "Berkshire Hathaway Inc. Class B",
                ("berkshire", "berkshire hathaway", "berkshire b")),
     Instrument("BTC-USD", InstrumentKind.CRYPTO, "Bitcoin in US dollars",

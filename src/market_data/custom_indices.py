@@ -30,9 +30,24 @@ from typing import Mapping, Optional, Tuple
 #: the synthetic snapshot carries (see market_data/symbols.py INSTRUMENTS and
 #: tests/fixtures/prices_synthetic.parquet), or the index cannot be materialised.
 COMPOSITIONS: Mapping[str, Mapping[str, float]] = {
-    # Vanguard Total World Stock: US total market and total international, at
-    # roughly the market-cap split the fund itself holds.
-    "VT": {"VTI": 0.60, "VXUS": 0.40},
+    # Vanguard Total World Stock: US total market and total international, at the
+    # market-cap split the fund holds — 62/38 per the issuer's June-2026 fact
+    # sheet (DeerFlow v2, docs/custom-index-vt-total-world.md), rebalanced to the
+    # global ratio quarterly.
+    "VT": {"VTI": 0.62, "VXUS": 0.38},
+    # Single-component composites: a proxy stated in the open rather than a
+    # silent resolver alias. Schwab US Broad Market and iShares 0-3-month
+    # Treasury track essentially the same exposure as VTI and BIL respectively
+    # (DeerFlow v2, docs/custom-index-us-total-market-proxies.md); computing them
+    # as 100% of that component makes the substitution visible and reversible.
+    "SCHB": {"VTI": 1.0},
+    "SGOV": {"BIL": 1.0},
+    # Deliberately absent, and refused rather than approximated:
+    #   BNDW — ~49% is international bonds (BNDX), which no snapshot instrument
+    #          proxies, so the index cannot be computed from what we hold.
+    #   MUB  — municipal bonds, no component in the snapshot.
+    #   AAPL/NVDA/… — single stocks, not indices; they need their own series.
+    # DeerFlow v2 supplies compositions as the snapshot's universe grows.
 }
 
 
