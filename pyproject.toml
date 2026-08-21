@@ -1,0 +1,32 @@
+# RAAAL / quantify.club — packaging.
+#
+# Until this existed, the only way to reach RAAAL's code from another repo was to
+# inject the repo root onto `sys.path` and import the bare `src` package — which
+# wealth-manager's `quantify_benchmark.py` did, fragile and unversioned. This
+# makes RAAAL an installable, versioned package (`pip install -e .`, or a pinned
+# git dependency), so a consumer imports it like any other dependency.
+#
+# The distribution is named `quantify`; the import package stays `src` (renaming
+# it across the whole codebase is a separate, larger change — tracked as a
+# follow-up in docs/RAAAL_INTEGRATION_AND_APP_PLAN.md). Dependencies are the
+# single source of truth in `requirements-core.txt`, read dynamically so the two
+# cannot drift.
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantify"
+version = "0.1.0"
+description = "RAAAL / quantify.club — the strategy discovery + evaluation runtime"
+readme = "README.md"
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements-core.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+# pytest config stays in pytest.ini (already present).

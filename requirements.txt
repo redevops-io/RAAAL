@@ -34,7 +34,7 @@ gymnasium>=0.29
 # ref can be rebased under a consumer, which is the fragility this project
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
-runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.2.4
+runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.3.0
 # `discovery-runtime` comes from the submodule, not from a tag fetch.
 #
 # It was pinned here at v0.1.7 while the submodule — the copy every test
@@ -51,7 +51,7 @@ runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.
 # Tag-pinned for the same reason as the contracts above. Same licence family
 # (AGPL-3.0-or-later WITH Commons-Clause), which is what made the import legal:
 # see docs/Migration.md §6.6.
-agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.3
+agentic-os @ git+https://github.com/redevops-io/agentic-os.git@v0.2.4
 
 # --- Discovery: deterministic syntax evidence ---
 # Only needed to *record* parses (`corpus/parser/record_parses.py`) and to run

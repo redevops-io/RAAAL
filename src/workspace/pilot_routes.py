@@ -673,3 +673,30 @@ def pilot_plan(request: Request, plan_id: str):
     response = TEMPLATES.TemplateResponse(request, "pilot.html", context)
     attach(response, participant)
     return response
+
+
+@router.get("/pilot/plans/{plan_id}/runtime-artifact")
+def pilot_plan_runtime_artifact(request: Request, plan_id: str):
+    """Export a saved plan as a canonical runtime artifact (dual identity).
+
+    This is the boundary crossing: a downstream runtime (wealth-manager) fetches
+    the plan's canonical runtime artifact — the native `intent_hash` carried as
+    `source_intent_hash`, plus the `rcv1` `runtime_artifact_hash`. Derived from the
+    stored intent on demand; nothing is recomputed or mutated on RAAAL's side.
+    """
+    from fastapi.responses import JSONResponse
+
+    from .pilot_store import load
+    from .runtime_export import runtime_artifact_for
+
+    refused = _refuse_unless_declared(request)
+    if refused is not None:
+        return refused
+    stored = load(plan_id)
+    if stored is None:
+        return JSONResponse({"error": "no such plan"}, status_code=404)
+    reading = reopen(stored)
+    if reading.intent is None:
+        return JSONResponse(
+            {"error": "plan has no sealed intent to export"}, status_code=409)
+    return JSONResponse(runtime_artifact_for(reading.intent, label=plan_id))
