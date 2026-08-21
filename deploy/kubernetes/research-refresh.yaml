@@ -60,7 +60,10 @@ spec:
           restartPolicy: Never
           containers:
             - name: rollout
-              image: bitnami/kubectl:1.31
+              # A plain kubectl image. `bitnami/kubectl` was the obvious choice
+              # and is no longer pullable (Bitnami withdrew free Docker Hub
+              # access in 2025); rancher/kubectl is public and maintained.
+              image: rancher/kubectl:v1.31.3
               command:
                 - kubectl
                 - -n
