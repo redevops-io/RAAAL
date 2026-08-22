@@ -156,6 +156,12 @@ class Snapshot:
     object_version_id: Optional[str] = None
     sha256: Optional[str] = None
     content_digest: Optional[str] = None
+    #: The dividend-reinvested twin's pinned S3 object, when the snapshot is
+    #: served from S3. Local snapshots find the twin as a sibling file
+    #: (`total_return_path`); an S3 twin cannot be a sibling lookup, so its
+    #: version is pinned here for the same immutability the price series has.
+    total_return_object_version_id: Optional[str] = None
+    total_return_sha256: Optional[str] = None
     license_class: str = "restricted"
     redistributable: bool = False
     license_review_status: str = "UNCONFIRMED"
@@ -294,6 +300,9 @@ def load_manifest(path: Path | str) -> Snapshot:
         object_version_id=_resolve(body.get("object_version_id")),
         sha256=_resolve(body.get("sha256")),
         content_digest=body.get("content_digest"),
+        total_return_object_version_id=_resolve(
+            body.get("total_return_object_version_id")),
+        total_return_sha256=_resolve(body.get("total_return_sha256")),
         license_class=body.get("license_class", "restricted"),
         redistributable=bool(body.get("redistributable", False)),
         license_review_status=str(body.get("license_review_status", "UNCONFIRMED")),
@@ -374,8 +383,14 @@ def load_prices(snapshot: Optional[Snapshot] = None, *,
                source=str(path))
         return frame
 
-    cached = cache_dir / snapshot.dataset_id.replace("/", "_") / \
-        f"{snapshot.snapshot_id}.parquet"
+    dataset_dir = cache_dir / snapshot.dataset_id.replace("/", "_")
+    if reinvested:
+        # The dividend-reinvested twin from S3. A local snapshot finds it as a
+        # sibling file; an S3 snapshot cannot, so it is a pinned object of its
+        # own. Same refusal as the local branch: no silent fall back to prices.
+        return _load_s3_twin(snapshot, dataset_dir, allow_network=allow_network)
+
+    cached = dataset_dir / f"{snapshot.snapshot_id}.parquet"
     if cached.exists():
         return _verified(cached, snapshot)
 
@@ -388,6 +403,47 @@ def load_prices(snapshot: Optional[Snapshot] = None, *,
 
     _fetch(snapshot, cached)
     return _verified(cached, snapshot)
+
+
+def _twin_s3_uri(snapshot: Snapshot) -> str:
+    """The twin's S3 URI: the price key with the total-return suffix, mirroring
+    the local sibling convention in `total_return_path`."""
+    return snapshot.uri[: -len(".parquet")] + ".total-return.parquet"
+
+
+def _load_s3_twin(snapshot: Snapshot, dataset_dir: Path, *,
+                  allow_network: bool) -> pd.DataFrame:
+    """The dividend-reinvested twin, fetched from its pinned S3 object.
+
+    Mirrors the local twin exactly: it carries its own integrity by being built
+    beside the price series, so it is checked by its own bytes (`total_return_
+    sha256`) but NOT against the price series' `content_digest`, which identifies
+    a different series and would fail by design. Its object version is pinned for
+    the same immutability the price series has — refusing an unpinned twin rather
+    than crediting dividends from whatever the key holds now.
+    """
+    if not snapshot.total_return_object_version_id:
+        raise SnapshotUnavailable(
+            f"{snapshot.snapshot_id}: reinvested returns were asked for, but the "
+            "manifest pins no total_return_object_version_id, so the dividend "
+            "twin cannot be fetched immutably. Refusing rather than crediting "
+            "dividends from an unpinned object.")
+    twin_cached = dataset_dir / f"{snapshot.snapshot_id}.total-return.parquet"
+    if not twin_cached.exists():
+        if not allow_network:
+            raise SnapshotUnavailable(
+                f"{snapshot.snapshot_id} total-return twin is not cached at "
+                f"{twin_cached} and network access was not requested.")
+        _fetch_object(_twin_s3_uri(snapshot),
+                      snapshot.total_return_object_version_id, twin_cached)
+    if snapshot.total_return_sha256:
+        actual = file_sha256(twin_cached)
+        if actual != snapshot.total_return_sha256:
+            raise IntegrityError(
+                f"{snapshot.snapshot_id} total-return twin at {twin_cached} has "
+                f"sha256 {actual}, pinned as {snapshot.total_return_sha256}. The "
+                "object was replaced, or the copy is incomplete.")
+    return pd.read_parquet(twin_cached)
 
 
 def _verified(path: Path, snapshot: Snapshot) -> pd.DataFrame:
@@ -422,7 +478,12 @@ def _fetch(snapshot: Snapshot, destination: Path) -> None:
             f"{snapshot.snapshot_id} names no object version id. An unversioned "
             "object can be overwritten, and then the same commit against the "
             "same URI produces a different result.")
+    _fetch_object(snapshot.uri, snapshot.object_version_id, destination)
 
+
+def _fetch_object(uri: str, object_version_id: str, destination: Path) -> None:
+    """Retrieve one pinned S3 object version into the cache. Shared by the price
+    series and its total-return twin so both are fetched the same immutable way."""
     try:
         import boto3                                            # noqa: PLC0415
     except ImportError as exc:                                  # pragma: no cover
@@ -430,14 +491,14 @@ def _fetch(snapshot: Snapshot, destination: Path) -> None:
             "boto3 is not installed; it is an extra, because the ordinary "
             "suite must not depend on object storage") from exc
 
-    bucket, _, key = snapshot.uri[len("s3://"):].partition("/")
+    bucket, _, key = uri[len("s3://"):].partition("/")
     destination.parent.mkdir(parents=True, exist_ok=True)
     partial = destination.with_suffix(".partial")
 
-    logger.info("fetching %s version %s", snapshot.uri, snapshot.object_version_id)
+    logger.info("fetching %s version %s", uri, object_version_id)
     boto3.client("s3").download_file(
         bucket, key, str(partial),
-        ExtraArgs={"VersionId": snapshot.object_version_id})
+        ExtraArgs={"VersionId": object_version_id})
     # Renamed only once complete, so an interrupted download cannot be picked up
     # later as a cache hit.
     partial.replace(destination)

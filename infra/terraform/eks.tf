@@ -244,6 +244,21 @@ resource "aws_iam_role_policy" "pod_data" {
         Action   = ["secretsmanager:GetSecretValue"]
         Resource = [aws_secretsmanager_secret.database_password.arn]
       },
+      {
+        # Read-only, and by object version. The market-data service fetches the
+        # licensed vendor snapshot from S3 under the approved-vendor policy,
+        # pinned to the object version the manifest records. GetObjectVersion is
+        # the one that matters — the whole design refuses an unversioned read, so
+        # a role that could only GetObject (latest) would defeat the pin. No
+        # PutObject: this service reads snapshots, it does not write them
+        # (provisioning is an operator action, not a pod capability).
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:GetObjectVersion"]
+        Resource = [
+          "arn:aws:s3:::${var.market_data_bucket}",
+          "arn:aws:s3:::${var.market_data_bucket}/*",
+        ]
+      },
     ]
   })
 }

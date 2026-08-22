@@ -504,10 +504,26 @@ def requires_the_vendor_snapshot():
     snapshot = approved_snapshot()
     if snapshot is None:
         return
-    uri = getattr(snapshot, "uri", "")
-    path = Path(__file__).resolve().parent.parent / uri
-    if not path.exists():
+
+    # A local snapshot is present iff its parquet is in the checkout.
+    if getattr(snapshot, "is_local", False):
+        path = Path(__file__).resolve().parent.parent / snapshot.uri
+        if not path.exists():
+            pytest.skip(
+                f"the licensed vendor snapshot is absent ({snapshot.uri}). It "
+                "is not redistributable, so this property is unverified in this "
+                "checkout — fetch the snapshot to run it")
+        return
+
+    # An S3 snapshot is reachable only where boto3, credentials, the network and
+    # the bucket URI env are all present — an offline runner or a clean clone has
+    # none of them. Probe by actually loading it; skip narrowly if unreachable,
+    # so the end-to-end guard still runs wherever the data can be fetched.
+    from src.market_data.loader import load_prices
+    try:
+        load_prices(snapshot, allow_network=True)
+    except Exception as why:                                    # noqa: BLE001
         pytest.skip(
-            f"the licensed vendor snapshot is absent ({uri}). It is not "
-            "redistributable, so this property is unverified in this "
-            "checkout — fetch the snapshot to run it")
+            f"the licensed vendor snapshot is not reachable here "
+            f"({snapshot.snapshot_id}): {why}. It is S3-backed and not "
+            "redistributable, so this property is unverified in this environment")

@@ -1,0 +1,67 @@
+# Vendor prices, labelled as vendor prices — served from S3.
+#
+# Rebuilt because the original prices-yahoo-20260807 snapshot's bytes were never
+# committed (the parquet is gitignored: redistributable: false) and are no longer
+# recoverable — not on disk, not in the bucket. The 44-name universe it declared
+# was never written down either. This snapshot is therefore a NEW build from
+# current Yahoo data over the resolver+catalog tradable universe (48 assets), the
+# set the pilot can actually resolve and price.
+#
+# Authorised by data/licensing/market-data-licensing@1.yaml — all six licensing
+# questions answered, reviewed and dated. Non-commercial testing only. The
+# licence is dataset-level (market-data/prices), so it governs this snapshot as
+# it did the previous one.
+#
+# The bucket name is env-provided (${QUANTIFY_VENDOR_PRICES_URI}) rather than
+# committed: the manifest carries snapshot identity, object versions and hashes —
+# the reviewable things — while the private bucket name stays out of an
+# AGPL-published repository, as data/manifests/prices-production.yaml does.
+
+dataset_id: market-data/prices
+snapshot_id: prices-yahoo-20260822
+kind: vendor
+
+uri: ${QUANTIFY_VENDOR_PRICES_URI}
+object_version_id: qGPnrGbsgD6S1femqWpRM73ge1Z9a2bk
+sha256: d59d325187c740f9f63d5759c3ae757e8763ca41b63b894de87f889610367ed7
+content_digest: "mdv1:c2fd1606e8d511b45973173cdbbf1d5b9aa0d7a920feedb8583d12711ef05378"
+content_digest_version: mdv1
+
+# The dividend-reinvested twin, pinned like the price series. Its S3 key is the
+# price key with the total-return suffix (the loader derives it); only its
+# version and byte hash need recording. Not digest-checked against the price
+# series' content_digest — it is a different series.
+total_return_object_version_id: e2oj52AfPr3kZm538aP8LvAMhe05EG8N
+total_return_sha256: 9213dd15d69309b4bd9d1a20a1ccc41b339be42b439a1b041fd832d83ee374bd
+
+schema_version: "1"
+calendar: calendar/nyse@1
+sessions: 2674
+assets: 48
+data_as_of: 2026-08-21
+uploaded_at: 2026-08-22
+coverage: {start: 2016-01-04, end: 2026-08-21}
+
+provider: yahoo-finance
+license_class: restricted
+redistributable: false
+# CONFIRMED / UNCONFIRMED — there is no third word. `review_complete` tests for
+# CONFIRMED; anything else reads as an open review and denies every run.
+license_review_status: CONFIRMED
+license_record: data/licensing/market-data-licensing@1.yaml
+
+# Attribution, as decided. Rendered wherever a figure is shown.
+attribution:
+  source: "Yahoo Finance"
+  acknowledgement: "non-commercial usage only"
+
+# One line per route out of the system, keyed by `Egress` and valued by
+# `Decision`. Restates the licensing record's answers in the vocabulary the code
+# reads. Raw prices never leave; derived figures may reach the closed pilot.
+egress_policy:
+  public_export: DENY
+  case_bundle: DENY
+  model_provider_upload: DENY
+  derived_aggregate: ALLOW
+  internal_benchmark: ALLOW
+  customer_result: ALLOW

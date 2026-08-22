@@ -91,8 +91,23 @@ spec:
           env:
             - name: QUANTIFY_SNAPSHOT_ROOT
               value: /var/lib/quantify/snapshots
+            # Left SYNTHETIC_ONLY here on purpose. Turning on vendor data is a
+            # deliberate, canary-first rollout step, not a side effect of shipping
+            # the code that makes it possible — so the switch to
+            # market-data-egress/pilot-vendor-approved@1 happens separately, after
+            # an isolated canary proves the S3 path serves and verifies.
             - name: PILOT_DATA_POLICY
               value: SYNTHETIC_ONLY
+            # Where the licensed vendor snapshot lives, and where its fetched
+            # objects are cached. Harmless under SYNTHETIC_ONLY (the adapter never
+            # reaches for them); wired now so the policy flip is the only change
+            # the rollout makes. The bucket name is already public in the repo
+            # (scripts/provision_market_data.py), so it is literal here rather
+            # than plumbed through a Secret.
+            - name: QUANTIFY_VENDOR_PRICES_URI
+              value: s3://quantify-club-market-data/market-data/prices/prices-yahoo-20260822/prices-yahoo-20260822.parquet
+            - name: QUANTIFY_MARKET_DATA_CACHE
+              value: /tmp/quantify-market-data
             - name: QUANTIFY_DEPLOYMENT_PROFILE
               value: local
             - name: QUANTIFY_DATABASE_URL
