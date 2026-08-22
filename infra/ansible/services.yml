@@ -355,6 +355,12 @@
           QUANTIFY_DATABASE_URL: "{{ database_url.stdout | trim }}"
           QUANTIFY_DEPLOYMENT_PROFILE: production
           PILOT_DATA_POLICY: market-data-egress/pilot-vendor-approved@1
+          # web resolves prices through the market-data service, not from S3
+          # itself: only quantify-data holds the vendor URI and the IAM role
+          # that reads it. With this set, `access.resolve()` fetches the frame
+          # over HTTP (see _frame_for); without it web would load locally and
+          # fail closed with "has no URI" under the vendor policy.
+          QUANTIFY_DATA_URL: http://quantify-data
           # Read from terraform, not written here. These were literals —
           # MODEL_ASSISTED and claude-sonnet-5 — while terraform declared
           # RUNTIME and gpt-5.4, so the deployment served one interpreter
