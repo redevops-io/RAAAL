@@ -51,6 +51,7 @@ class Result(str, Enum):
     MIGRATION_MISMATCH = "MIGRATION_MISMATCH"
     SCHEMA_MISMATCH = "SCHEMA_MISMATCH"
     BUILD_UNOBSERVABLE = "BUILD_UNOBSERVABLE"
+    RUNTIME_CONTRACT_MISMATCH = "RUNTIME_CONTRACT_MISMATCH"
 
 
 #: The major version the production lane has actually been proven against.
@@ -59,6 +60,16 @@ class Result(str, Enum):
 #: forever; it is unsupported until the same lane passes against it, which is a
 #: day's work and not a re-architecture.
 PROVEN_POSTGRES_MAJOR = 16
+
+#: The runtime-contracts this build was written against. The dual-identity export
+#: (`to_runtime_artifact`) needs the 0.3.x float-tolerant seal and the rcv1
+#: canonicalization; an image that came up on an older package stays operational
+#: but silently cannot provide the runtime-artifact semantics it advertises. This
+#: is read from the INSTALLED package at startup — never inferred from a sibling
+#: checkout — and a production image whose package does not satisfy it is refused,
+#: so a version-inconsistent image (the stale-digest incident) cannot serve.
+REQUIRED_RUNTIME_CONTRACTS_MIN = (0, 3, 0)
+REQUIRED_CANONICALIZATION_VERSION = "rcv1"
 
 #: How long to wait for a database that may not be there. Short and bounded:
 #: an unreachable database should make a deployment unready quickly, not hang
@@ -111,6 +122,41 @@ def _postgres_major(version: str) -> Optional[int]:
     return int(match.group(1)) if match else None
 
 
+def _version_tuple(raw: str) -> tuple:
+    parts = []
+    for piece in str(raw).split("."):
+        num = re.match(r"\d+", piece)
+        parts.append(int(num.group()) if num else 0)
+    return tuple(parts)
+
+
+def _installed_runtime_contracts() -> Dict[str, Any]:
+    """Read the ACTUALLY INSTALLED runtime-contracts — the serving package, not a
+    sibling checkout. Returns what it reports plus whether it satisfies this
+    build's requirement (0.3.x float-tolerant seal on the rcv1 canonicalization)."""
+    try:
+        import runtime_contracts as rc
+    except Exception as exc:  # not installed at all
+        return {"installed": False, "satisfies": False, "problem": f"import failed: {exc}"}
+    version = getattr(rc, "__version__", "0")
+    canon = getattr(rc, "CANONICALIZATION_VERSION", "")
+    has_seal = hasattr(rc, "seal_hash")
+    problems = []
+    if _version_tuple(version) < REQUIRED_RUNTIME_CONTRACTS_MIN:
+        problems.append(
+            f"version {version} < required "
+            f"{'.'.join(map(str, REQUIRED_RUNTIME_CONTRACTS_MIN))}")
+    if canon != REQUIRED_CANONICALIZATION_VERSION:
+        problems.append(
+            f"canonicalization {canon!r} != required "
+            f"{REQUIRED_CANONICALIZATION_VERSION!r}")
+    if not has_seal:
+        problems.append("no float-tolerant seal_hash (pre-0.3 seal layout)")
+    return {"installed": True, "runtime_contracts_version": version,
+            "canonicalization_version": canon, "seal_hash": has_seal,
+            "satisfies": not problems, "problem": "; ".join(problems)}
+
+
 def run(environ: Optional[Mapping[str, str]] = None,
         checked_at: str = "", context: Optional[Any] = None) -> Preflight:
     """The whole preflight, in order, stopping at the first refusal.
@@ -154,6 +200,22 @@ def run(environ: Optional[Mapping[str, str]] = None,
             f"{', '.join(manifest.missing)}. A deployment that cannot say "
             "which code it is running cannot be diagnosed when something else "
             "fails, and package self-report answers a different question")
+
+    # 1c. The runtime-contracts package this build actually loaded. Read from the
+    #     installed package, so a version-inconsistent image (product code
+    #     reconciled to 0.3.x, but the serving package downgraded — the
+    #     stale-digest / vendored-submodule incident) is caught here rather than
+    #     by a downstream consumer receiving an artifact it cannot trust.
+    rc_facts = _installed_runtime_contracts()
+    facts["build"]["runtime_contracts_version"] = rc_facts.get("runtime_contracts_version")
+    facts["build"]["runtime_contracts_satisfies"] = rc_facts.get("satisfies")
+    if profile is Profile.PRODUCTION and not rc_facts.get("satisfies"):
+        return refuse(
+            Result.RUNTIME_CONTRACT_MISMATCH,
+            "the installed runtime-contracts does not satisfy this build "
+            f"({rc_facts.get('problem')}); the runtime-artifact export would "
+            "advertise 0.3.x semantics it cannot provide. Refusing to serve a "
+            "version-inconsistent image rather than export unsound artifacts")
 
     # 1b. The parser this deployment claims to be running.
     #

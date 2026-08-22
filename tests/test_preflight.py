@@ -341,3 +341,46 @@ class TestTheServiceRefusesToServe:
         with TestClient(api.app) as client:
             assert client.get("/health").json()["status"] == "ok"
             assert "ready" in client.get("/ready").json()
+
+
+class TestTheRuntimeContractInvariant:
+    """The deployment version invariant (freeze-plan §4.1): a production image whose
+    installed runtime-contracts does not satisfy what the build was written against
+    must NOT become ready. Converts the stale-digest / vendored-submodule downgrade
+    incident into a permanent regression test."""
+
+    def test_a_stale_runtime_contracts_refuses_production(self, monkeypatch):
+        # product code reconciled to 0.3.x, but the serving package downgraded
+        monkeypatch.setattr(
+            "src.deploy.preflight._installed_runtime_contracts",
+            lambda: {"installed": True, "runtime_contracts_version": "0.2.4",
+                     "canonicalization_version": "rcv1", "seal_hash": False,
+                     "satisfies": False, "problem": "version 0.2.4 < required 0.3.0"})
+        outcome = run(production(QUANTIFY_DATABASE_URL="postgresql://h/db"))
+        assert outcome.result is Result.RUNTIME_CONTRACT_MISMATCH
+        assert not outcome.ready
+
+    def test_a_missing_runtime_contracts_refuses_production(self, monkeypatch):
+        monkeypatch.setattr(
+            "src.deploy.preflight._installed_runtime_contracts",
+            lambda: {"installed": False, "satisfies": False,
+                     "problem": "import failed"})
+        outcome = run(production(QUANTIFY_DATABASE_URL="postgresql://h/db"))
+        assert outcome.result is Result.RUNTIME_CONTRACT_MISMATCH
+
+    def test_local_profile_does_not_refuse_on_rc(self, tmp_path, monkeypatch):
+        # only production fails closed; a developer is told via facts, not refused
+        monkeypatch.setattr(
+            "src.deploy.preflight._installed_runtime_contracts",
+            lambda: {"installed": True, "runtime_contracts_version": "0.2.4",
+                     "satisfies": False, "problem": "stale"})
+        outcome = run({PROFILE_VAR: "local",
+                       "QUANTIFY_DATABASE_URL": f"sqlite:///{tmp_path}/w.db"})
+        assert outcome.result is Result.READY
+
+    def test_the_actually_installed_package_satisfies_this_build(self):
+        # guards that the serving code and its runtime-contracts package are in
+        # step — the whole point of the invariant
+        from src.deploy.preflight import _installed_runtime_contracts
+        facts = _installed_runtime_contracts()
+        assert facts["satisfies"], facts.get("problem")
