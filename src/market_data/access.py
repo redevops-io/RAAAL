@@ -200,7 +200,7 @@ def resolve_prices(*, context: str) -> Optional[Any]:
 
 #: The vendor snapshot this deployment may use, and the record that authorises
 #: it. Both named here so the pair is reviewable in one place.
-VENDOR_MANIFEST = "data/snapshots/prices-yahoo-20260807.yaml"
+VENDOR_MANIFEST = "data/snapshots/prices-yahoo-20260822.yaml"
 
 
 def approved_snapshot():

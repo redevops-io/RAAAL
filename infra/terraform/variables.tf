@@ -165,6 +165,20 @@ variable "db_multi_az" {
 
 # --- application configuration --------------------------------------------
 
+variable "market_data_bucket" {
+  description = <<-EOT
+    The private S3 bucket holding licensed vendor market-data snapshots.
+
+    Created out of band by scripts/provision_market_data.py (which owns its
+    versioning, encryption and TLS-only policy); named here only so the
+    quantify-data pod's IAM role can be granted read-only, version-pinned access
+    to it. Not the manifest's bucket reference — that stays env-provided so the
+    name is not committed to an AGPL repository; this is the access grant.
+  EOT
+  type        = string
+  default     = "quantify-club-market-data"
+}
+
 variable "pilot_data_policy" {
   description = <<-EOT
     The market-data boundary, enforced at runtime by the application.

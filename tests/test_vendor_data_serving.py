@@ -89,3 +89,71 @@ def test_vendor_policy_fails_closed_when_no_snapshot_is_approved(monkeypatch):
         LocalParquetAdapter().fetch(["VTI"])
     # it refuses rather than silently serving synthetic under a vendor policy
     assert "synthetic" in str(refusal.value).lower()
+
+
+# --- loader: the S3 dividend-reinvested twin (freeze the fetch semantics) ----
+
+import pandas as _pd
+from src.market_data.loader import SnapshotUnavailable, load_prices
+from src.market_data.integrity import IntegrityError, file_sha256
+
+
+def _s3_snapshot(**over):
+    from src.market_data.loader import Snapshot
+    base = dict(
+        dataset_id="market-data/prices", snapshot_id="prices-yahoo-test",
+        kind="vendor",
+        uri="s3://bucket/market-data/prices/prices-yahoo-test/prices-yahoo-test.parquet",
+        schema_version="1", object_version_id="v-price",
+        sha256="x", content_digest="mdv1:x")
+    base.update(over)
+    return Snapshot(**base)
+
+
+def _write_twin(cache_dir):
+    frame = _pd.DataFrame({"SPY": [1.0, 2.0], "VTI": [3.0, 4.0]})
+    d = cache_dir / "market-data_prices"
+    d.mkdir(parents=True, exist_ok=True)
+    p = d / "prices-yahoo-test.total-return.parquet"
+    frame.to_parquet(p)
+    return p
+
+
+def test_s3_reinvested_refuses_without_a_pinned_twin_version(tmp_path):
+    snap = _s3_snapshot(total_return_object_version_id=None)
+    with pytest.raises(SnapshotUnavailable) as exc:
+        load_prices(snap, reinvested=True, allow_network=True, cache_dir=tmp_path)
+    assert "total_return_object_version_id" in str(exc.value)
+
+
+def test_s3_reinvested_serves_the_cached_twin_and_checks_its_bytes(tmp_path):
+    p = _write_twin(tmp_path)
+    snap = _s3_snapshot(total_return_object_version_id="v-tr",
+                        total_return_sha256=file_sha256(p))
+    frame = load_prices(snap, reinvested=True, allow_network=False, cache_dir=tmp_path)
+    assert list(frame.columns) == ["SPY", "VTI"]           # served the twin, not prices
+
+
+def test_s3_reinvested_refuses_a_twin_whose_bytes_do_not_match(tmp_path):
+    _write_twin(tmp_path)
+    snap = _s3_snapshot(total_return_object_version_id="v-tr",
+                        total_return_sha256="deadbeef")     # wrong pin
+    with pytest.raises(IntegrityError):
+        load_prices(snap, reinvested=True, allow_network=False, cache_dir=tmp_path)
+
+
+def test_s3_reinvested_fetches_the_twin_when_absent(tmp_path, monkeypatch):
+    captured = {}
+
+    def fake_fetch_object(uri, version_id, destination):
+        captured["uri"] = uri
+        captured["version_id"] = version_id
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        _pd.DataFrame({"SPY": [9.0]}).to_parquet(destination)
+
+    monkeypatch.setattr("src.market_data.loader._fetch_object", fake_fetch_object)
+    snap = _s3_snapshot(total_return_object_version_id="v-tr")   # no sha → no byte check
+    frame = load_prices(snap, reinvested=True, allow_network=True, cache_dir=tmp_path)
+    assert captured["version_id"] == "v-tr"
+    assert captured["uri"].endswith(".total-return.parquet")    # twin key, not price key
+    assert list(frame.columns) == ["SPY"]

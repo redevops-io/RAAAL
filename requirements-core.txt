@@ -45,6 +45,13 @@ sqlalchemy>=2.0
 alembic>=1.13
 psycopg[binary]>=3.1
 
+# Object storage for licensed vendor market-data snapshots. The loader fetches a
+# pinned S3 object version when the approved-vendor data policy is in force
+# (src/market_data/loader.py::_fetch_object). It was previously treated as an
+# optional extra — fine while the pilot was synthetic-only, but the market-data
+# service now needs it in the serving image to reach the vendor snapshot.
+boto3>=1.34
+
 # --- The Discovery -> Mission boundary contract ---
 # Owned by neither runtime, so pinned to a tag rather than a branch: a mutable
 # ref can be rebased under a consumer, which is the fragility this project
