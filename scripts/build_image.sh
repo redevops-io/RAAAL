@@ -78,15 +78,26 @@ printf '   image            %s\n   size             %s bytes\n' "$IMAGE_ID" "$SI
 # the directory, a cached layer, a stale wheel — none are visible in the source
 # and all are visible here.
 say "4. installed versions"
-EXPECTED_RUNTIME="${DESCRIBED#v}"
+# The expected version is what the pinned submodule *declares*, not its tag name.
+# discovery-runtime's own convention (and its test_contract_compatibility) is that
+# the installed version equals its pyproject version; its tags can run ahead of
+# that string (v0.1.11 ships 0.1.10). Checking against the tag conflated two
+# things and refused a legitimate release for a versioning-string lag in a
+# dependency this repo does not own. Step 2 already required the submodule to be
+# at a *tagged* release; this checks the image installed the version that release
+# declares. The gitlink is still the authority for *which* code — this only
+# confirms the image built from it.
+EXPECTED_RUNTIME="$(sed -nE 's/^version = "([^"]+)".*/\1/p' vendor/discovery-runtime/pyproject.toml | head -1)"
+[[ -n "$EXPECTED_RUNTIME" ]] || die "could not read the version from vendor/discovery-runtime/pyproject.toml"
 INSTALLED="$(docker run --rm --network=none --entrypoint python "$TAG" -c \
   "import importlib.metadata as m, json; print(json.dumps({p: m.version(p) for p in ('discovery-runtime','runtime-contracts','stanza')}))")"
-printf '   %s\n' "$INSTALLED" >&2
+printf '   %s (submodule %s declares %s)\n' "$INSTALLED" "$DESCRIBED" "$EXPECTED_RUNTIME" >&2
 python3 - "$INSTALLED" "$EXPECTED_RUNTIME" <<'PY' || die "the image does not hold the pinned runtime"
 import json, sys
 got, expected = json.loads(sys.argv[1]), sys.argv[2]
 assert got["discovery-runtime"] == expected, (
-    f"image has discovery-runtime {got['discovery-runtime']}, gitlink is {expected}")
+    f"image has discovery-runtime {got['discovery-runtime']}, the pinned "
+    f"submodule declares {expected}")
 assert got["stanza"] == "1.14.0", f"image has stanza {got['stanza']}"
 # Freeze plan §7: the serving image must hold the FROZEN runtime-contracts floor,
 # and nothing in the build (a vendored submodule pinning an older rc, a cached

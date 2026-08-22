@@ -58,15 +58,39 @@ def _run(image, script: str, *, network="none"):
                    image, "-c", script)
 
 
+def _expected_pins() -> dict:
+    """The versions the image is expected to install, read from the sources that
+    actually pin them rather than hardcoded here.
+
+    Hardcoded literals went stale silently: this asserted discovery-runtime 0.1.9
+    and runtime-contracts 0.2.4 long after the submodule moved to 0.1.12 and the
+    line migrated to rc 0.3.0, so it would have failed every honest build — and
+    only did not because the live image was built by a path that skipped it. The
+    pins have single owners; read them there.
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    disco = re.search(r'^version\s*=\s*"([^"]+)"',
+                      (root / "vendor/discovery-runtime/pyproject.toml").read_text(),
+                      re.M).group(1)
+    rc = re.search(r'runtime-contracts @ git\+[^@]+@v([0-9][^\s"]*)',
+                   (root / "requirements-core.txt").read_text()).group(1)
+    return {"stanza": "1.14.0", "discovery-runtime": disco,
+            "runtime-contracts": rc}
+
+
 def test_the_image_installs_the_exact_versions_it_was_tested_with(image):
     out = _run(image, "import importlib.metadata as m, json;"
                       "print(json.dumps({p: m.version(p) for p in "
                       "('stanza','discovery-runtime','runtime-contracts')}))")
     assert out.returncode == 0, out.stderr[-400:]
     versions = json.loads(out.stdout.strip().splitlines()[-1])
-    assert versions["stanza"] == "1.14.0", versions
-    assert versions["discovery-runtime"] == "0.1.9", versions
-    assert versions["runtime-contracts"] == "0.2.4", versions
+    expected = _expected_pins()
+    assert versions["stanza"] == expected["stanza"], versions
+    assert versions["discovery-runtime"] == expected["discovery-runtime"], versions
+    assert versions["runtime-contracts"] == expected["runtime-contracts"], versions
 
 
 def test_the_mission_runtime_is_absent(image):
