@@ -270,3 +270,22 @@ class TestThePricesEndpoint:
         verify(frame,
                expected_content_digest=synthetic_snapshot().content_digest,
                source="the /prices endpoint")
+
+    def test_it_loads_with_network_allowed(self, monkeypatch, service):
+        """The regression that broke the first deploy: the endpoint must load
+        with `allow_network=True`. This service holds the S3 role; without the
+        flag a vendor snapshot is 'not cached … and network access was not
+        requested' and every consumer got a 409. Synthetic is local so the flag
+        is invisible in behaviour here — assert it is passed, not inferred."""
+        import src.market_data.loader as loader
+
+        seen = {}
+        real = loader.load_prices
+
+        def watched(snapshot, **kw):
+            seen.update(kw)
+            return real(snapshot, **kw)
+
+        monkeypatch.setattr(loader, "load_prices", watched)
+        assert service.get("/prices").status_code == 200
+        assert seen.get("allow_network") is True, seen

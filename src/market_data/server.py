@@ -199,7 +199,14 @@ def create_app(*, adapter, store, build=None):
 
         want_reinvested = bool(reinvested)
         try:
-            frame = load_prices(snapshot, reinvested=want_reinvested)
+            # `allow_network=True` because this is the pod that is *allowed* to
+            # reach object storage — it holds the S3 IAM role and the vendor URI,
+            # and serving `/prices` is the whole reason a consumer delegates here
+            # instead of loading locally. Without it a vendor snapshot is "not
+            # cached … and network access was not requested", which is the 409 a
+            # consumer saw before this line passed the flag.
+            frame = load_prices(snapshot, reinvested=want_reinvested,
+                                allow_network=True)
         except Exception as unavailable:                       # noqa: BLE001
             # The same direction `resolve()` fails in: no frame rather than a
             # substitute. A snapshot with no total-return twin cannot answer a
