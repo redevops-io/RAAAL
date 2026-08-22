@@ -88,7 +88,17 @@ got, expected = json.loads(sys.argv[1]), sys.argv[2]
 assert got["discovery-runtime"] == expected, (
     f"image has discovery-runtime {got['discovery-runtime']}, gitlink is {expected}")
 assert got["stanza"] == "1.14.0", f"image has stanza {got['stanza']}"
-assert got["runtime-contracts"].count(".") == 2, got["runtime-contracts"]
+# Freeze plan §7: the serving image must hold the FROZEN runtime-contracts floor,
+# and nothing in the build (a vendored submodule pinning an older rc, a cached
+# wheel) may downgrade below it. A bare `count(".")==2` accepted 0.2.4 — the exact
+# version the stale-digest incident shipped — so it is not a freeze guard.
+FLOOR = (0, 3, 0)
+def as_tuple(raw):
+    return tuple(int("".join(c for c in p if c.isdigit()) or 0) for p in raw.split("."))
+rc = got["runtime-contracts"]
+assert as_tuple(rc) >= FLOOR, (
+    f"image has runtime-contracts {rc}, below the frozen floor "
+    f"{'.'.join(map(str, FLOOR))} — a downgrade the freeze forbids")
 PY
 
 # --- 5. the serving-image contract ---------------------------------------
@@ -126,4 +136,22 @@ DIGEST="$(aws ecr describe-images --region "$AWS_REGION" \
   --query 'imageDetails[0].imageDigest' --output text)"
 [[ "$DIGEST" == sha256:* ]] || die "could not resolve a digest for ${COMMIT:0:7}"
 printf '   %s\n' "$DIGEST" >&2
+
+# --- 7b. the immutable release manifest (freeze plan §5) -----------------
+#
+# Bind the code, the image, and the exact dependency versions into one manifest,
+# so canary validation and production promotion reference the same release
+# identity rather than a mutable tag or a stale digest file (the incident).
+say "7b. release manifest"
+CANON="$(docker run --rm --network=none --entrypoint python "$TAG" -c \
+  'import runtime_contracts as rc; print(rc.CANONICALIZATION_VERSION)')"
+RC_VERSION="$(printf '%s' "$INSTALLED" | python3 -c 'import json,sys; print(json.load(sys.stdin)["runtime-contracts"])')"
+python3 -m deploy.release.manifest build \
+  --app-commit "$COMMIT" --image-digest "$DIGEST" \
+  --runtime-contracts "$RC_VERSION" --discovery-runtime "$EXPECTED_RUNTIME" \
+  --canonicalization "$CANON" --payload-schema "redevops/strategy-selection" \
+  --build-timestamp "${SOURCE_DATE_EPOCH:-}" --out release-manifest.json >&2
+printf '   wrote release-manifest.json (commit=%s rc=%s canon=%s)\n' \
+  "${COMMIT:0:7}" "$RC_VERSION" "$CANON" >&2
+
 printf '%s\n' "${REGISTRY}/${ECR_REPOSITORY}@${DIGEST}"
