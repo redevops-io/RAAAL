@@ -354,7 +354,7 @@
         web_config:
           QUANTIFY_DATABASE_URL: "{{ database_url.stdout | trim }}"
           QUANTIFY_DEPLOYMENT_PROFILE: production
-          PILOT_DATA_POLICY: SYNTHETIC_ONLY
+          PILOT_DATA_POLICY: market-data-egress/pilot-vendor-approved@1
           # Read from terraform, not written here. These were literals —
           # MODEL_ASSISTED and claude-sonnet-5 — while terraform declared
           # RUNTIME and gpt-5.4, so the deployment served one interpreter

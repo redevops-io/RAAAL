@@ -59,7 +59,7 @@ spec:
             - name: QUANTIFY_DATA_URL
               value: http://quantify-data
             - name: PILOT_DATA_POLICY
-              value: SYNTHETIC_ONLY
+              value: market-data-egress/pilot-vendor-approved@1
             - name: QUANTIFY_DEPLOYMENT_PROFILE
               value: local
             - name: QUANTIFY_BUILD_COMMIT
