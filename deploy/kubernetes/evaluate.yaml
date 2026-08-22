@@ -36,9 +36,10 @@ metadata:
   namespace: quantify
 spec:
   # Stateless, so more than one is fine — unlike quantify-data, which owns a
-  # filesystem. Two here for the ordinary reason: a node going away should not
-  # be an outage.
-  replicas: 2
+  # filesystem. `replicas` is deliberately absent: the HorizontalPodAutoscaler
+  # below owns the count (floor 2, so a node going away is not an outage; ceiling
+  # 5). Setting it here too would let each re-apply reset the live count to a
+  # fixed number and then fight the autoscaler back up on the next scrape.
   selector:
     matchLabels: { app: quantify-evaluate }
   template:
@@ -88,3 +89,46 @@ spec:
   ports:
     - port: 80
       targetPort: 8000
+---
+# Scale the valuation workers with demand.
+#
+# The evaluator is stateless (no database, no snapshot root, no IAM identity —
+# see the header), so horizontal scaling is the whole toolbox: there is nothing
+# to coordinate between replicas. This bounds it between 2 (the availability
+# floor) and 5. EKS Auto Mode provisions nodes to back whatever this asks for,
+# so the ceiling here — not node capacity — is the real limit; 5 is chosen so a
+# burst of evaluations fans out without the cluster growing without bound.
+#
+# Requires metrics-server (deploy/kubernetes/metrics-server.yaml); without the
+# metrics API the HPA reports <unknown> and never scales. `replicas` is absent
+# from the Deployment above precisely so this controller owns the count.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: quantify-evaluate
+  namespace: quantify
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: quantify-evaluate
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    # CPU is the right signal here: evaluation is compute-bound (the header
+    # calls the service "financial evaluation, and nothing else"), so utilization
+    # of the 500m request tracks real load. 70% leaves headroom to add a pod
+    # before the serving ones saturate.
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    # Scale up promptly on a burst; scale down slowly so brief lulls do not
+    # thrash pods that a node had to be provisioned for.
+    scaleUp:
+      stabilizationWindowSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
