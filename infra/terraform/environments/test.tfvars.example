@@ -41,7 +41,7 @@ db_allocated_storage_gb = 20
 db_multi_az             = false
 
 # --- application -----------------------------------------------------------
-pilot_data_policy = "SYNTHETIC_ONLY"
+pilot_data_policy = "market-data-egress/pilot-vendor-approved@1"
 parser_mode       = "MODEL_ASSISTED"
 parser_model      = "claude-sonnet-5"
 parser_fallback   = "REFUSE"
