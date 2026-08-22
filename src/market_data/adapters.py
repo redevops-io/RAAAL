@@ -75,7 +75,7 @@ class LocalParquetAdapter:
         first and resolved afterwards would be asking a provider what the words
         meant, which is the provider choosing the portfolio.
         """
-        from .loader import load_prices, synthetic_snapshot
+        from .loader import load_prices
 
         instruments, failed = resolve_all(queries)
         if failed:
@@ -92,8 +92,9 @@ class LocalParquetAdapter:
                 "— computed from constituents and not purchasable. A backtest "
                 "that bought one is a backtest of something nobody can hold")
 
-        snapshot = synthetic_snapshot()
-        frame = load_prices(snapshot, reinvested=reinvested)
+        snapshot, allow_network = self._serving_snapshot()
+        frame = load_prices(snapshot, reinvested=reinvested,
+                            allow_network=allow_network)
 
         wanted = [one.symbol for one in instruments]
         missing = [one for one in wanted if one not in frame.columns]
@@ -118,6 +119,41 @@ class LocalParquetAdapter:
             data_as_of=str(getattr(snapshot, "data_as_of", "")
                            or "NOT_DECLARED"),
             calendar=str(getattr(snapshot, "calendar", "") or "NOT_DECLARED"))
+
+    def _serving_snapshot(self) -> Tuple[Any, bool]:
+        """The snapshot this deployment's data policy permits, and whether
+        loading it may reach the network.
+
+        The adapter used to hardcode the synthetic fixture, so a deployment on
+        the approved vendor policy still served invented series while its banner
+        promised vendor data. The policy is read here — the one place that turns
+        a snapshot into observations — so the figures and the disclosure can
+        never disagree about where the numbers came from.
+
+        **Fails closed.** Under the vendor policy with no approved snapshot
+        (missing manifest, missing or incomplete licensing record) it refuses
+        rather than falling back to synthetic. A silent fallback is the exact
+        substitution this project forbids everywhere else: a run whose figures
+        come from data the policy did not name.
+        """
+        from ..deploy.context import current
+        from .access import approved_snapshot
+        from .loader import synthetic_snapshot
+        from .pilot_policy import PilotDataPolicy
+
+        policy = current().market_data.policy
+        if policy is PilotDataPolicy.PILOT_VENDOR_APPROVED:
+            snapshot = approved_snapshot()
+            if snapshot is None:
+                raise AdapterRefused(
+                    "the deployment's data policy is the approved vendor "
+                    "policy, but no approved snapshot resolved — a missing "
+                    "manifest, or a licensing record whose answers are not all "
+                    "recorded. Refusing rather than serving synthetic figures "
+                    "under a policy that promises vendor data.")
+            # A vendor snapshot is S3-backed; loading fetches and verifies it.
+            return snapshot, True
+        return synthetic_snapshot(), False
 
 
 def snapshot_from(fetched: Fetched, *, reinvested: bool):
