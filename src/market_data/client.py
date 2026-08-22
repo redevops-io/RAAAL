@@ -128,6 +128,39 @@ class HttpMarketData:
                         descriptor_hash=descriptor_hash,
                         observations=observations, descriptor=descriptor_body)
 
+    def prices(self, *, reinvested: bool = False) -> "pandas.DataFrame":
+        """The whole current snapshot's price frame, decoded on arrival.
+
+        The bytes cross as parquet for the same reason observations do: putting
+        them through a JSON decoder would place a transport's choices between the
+        data and its digest. This is the fetch a consumer pod makes in place of a
+        local `load_prices`, because it holds no S3 credentials to load with; the
+        service resolves the snapshot from its own policy and hands back exactly
+        the frame that policy names.
+
+        A body that does not decode is a corrupt payload, not a crash — a
+        truncated response arrives as a 200 with short bytes, and `from_bytes`
+        would raise whatever the parquet reader raised, which a caller can act on
+        no better here than in `get()`. The *content* check against the
+        snapshot's digest is the caller's, made once the frame is in hand; what
+        this guarantees is that what decoded is a frame at all.
+        """
+        from .object_store import from_bytes
+
+        status, body, _headers = self._call(
+            self.fetch, f"{self.base}/prices",
+            {"reinvested": 1 if reinvested else 0})
+        if status != 200:
+            raise self._refusal(status, _as_json(body))
+        try:
+            return from_bytes(body)
+        except Exception as undecodable:                       # noqa: BLE001
+            raise MarketDataRefused(
+                Failure.PAYLOAD_CORRUPT,
+                f"the price frame did not decode ({len(body)} bytes): "
+                f"{type(undecodable).__name__}. A truncated or altered body is "
+                "not the prices this snapshot names") from undecodable
+
     def _descriptor(self, descriptor_hash: str):
         from .snapshot_contract import from_json
 

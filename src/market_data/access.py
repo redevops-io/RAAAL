@@ -111,7 +111,7 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
         not_recorded,
         recorded,
     )
-    from .loader import load_prices, synthetic_snapshot
+    from .loader import synthetic_snapshot
     from ..deploy.context import current
     from .access_event import ResolutionRequest
     from .access_event import build as build_event
@@ -157,12 +157,19 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
             access_decision_reason=str(refusal)[:200], accessed_at=stamp))
 
     try:
-        frame = load_prices(snapshot, reinvested=reinvested)
+        frame = _frame_for(snapshot, reinvested=reinvested)
     except Exception as unavailable:
         # The reason, not a generic failure. A snapshot with no total-return
         # twin cannot answer a plan that reinvests dividends, and "could not be
         # loaded" would send whoever reads it looking for a missing file rather
         # than at the series the plan asked for.
+        #
+        # A delegated fetch fails into this same except: the data service being
+        # unreachable, refusing the request, or returning bytes that do not
+        # match the snapshot's digest all raise, and all produce the same "could
+        # not be loaded" provenance — because from the caller's point of view a
+        # frame that did not arrive is a frame that did not arrive, however far
+        # away the S3 credentials that would have produced it happen to live.
         return MarketDataAccess(None, not_recorded(
             f"snapshot {snapshot.snapshot_id} could not be loaded"
             f"{' with dividends reinvested' if reinvested else ''}: "
@@ -187,6 +194,95 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
         # that tried would compare against a frame nobody was given.
         resolution=ResolutionRequest(reinvested=bool(reinvested)))
     return MarketDataAccess(delivered, provenance, event)
+
+
+def _frame_for(snapshot, *, reinvested: bool):
+    """The price frame, from wherever this pod is allowed to get it.
+
+    Two deployments, one call site. On the data service itself
+    (`market_data_service_url` empty) the frame is loaded locally from the
+    pinned object — that pod holds the S3 credentials and the vendor URI, and
+    `load_prices` is the whole of the local gate. On every other pod
+    (`market_data_service_url` set) there are no credentials to load with, so the
+    frame is fetched from quantify-data over HTTP; a local `load_prices` there
+    fails closed with "has no URI", which is the defect this delegation exists to
+    remove.
+
+    Provenance is unchanged either way. `resolve()` reads it from the manifest —
+    `approved_snapshot()`/`synthetic_snapshot()` — not from whatever produced the
+    bytes, so which pod fetched the frame is not a fact any figure records.
+
+    The delegated price frame is re-verified against the snapshot's content
+    digest, exactly as `load_prices` verifies it locally. The client already
+    guards the transport (a truncated or altered body is a `PAYLOAD_CORRUPT`
+    refusal); this adds the same *data* check the local path has, so a frame that
+    crossed the wire is held to the identity the plan named rather than trusted
+    for having arrived. The reinvested twin is deliberately not digest-checked,
+    mirroring the local twin path in `load_prices`: that digest identifies the
+    price series and would fail on the twin by design.
+    """
+    from ..deploy.context import current
+    from .loader import load_prices
+
+    url = current().market_data_service_url
+    if not url:
+        return load_prices(snapshot, reinvested=reinvested)
+
+    frame = _market_data_client(url).prices(reinvested=reinvested)
+    if not reinvested:
+        from .integrity import verify
+
+        verify(frame,
+               expected_content_digest=getattr(snapshot, "content_digest", None),
+               source=f"the market-data service for {snapshot.snapshot_id}")
+    return frame
+
+
+def _market_data_client(base: str):
+    """A market-data client over real HTTP, built the way evaluate builds its own.
+
+    The transport is mirrored from `src/deploy/evaluate_asgi.py::_http` — the
+    composition root that already talks to quantify-data — rather than imported
+    from it. `access` is reached from every consumer of market data; importing a
+    deploy composition root here would point the data path at the wiring instead
+    of leaving the wiring pointed at the data path. `urllib` rather than a client
+    library for the same reason it gives there: this makes two request shapes,
+    one JSON and one binary, and a dependency whose only job is ergonomics is one
+    that lives in the image forever.
+    """
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    from .client import HttpMarketData
+
+    def post(url, body):
+        request = urllib.request.Request(
+            url, method="POST" if body is not None else "GET",
+            data=json.dumps(body).encode() if body is not None else None,
+            headers={"Content-Type": "application/json"} if body else {})
+        try:
+            with urllib.request.urlopen(request, timeout=60) as answer:
+                return answer.status, json.loads(answer.read())
+        except urllib.error.HTTPError as refused:
+            try:
+                return refused.code, json.loads(refused.read())
+            except Exception:                                  # noqa: BLE001
+                # A body that is not JSON carries no failure kind, and the client
+                # turns that into "unreachable" rather than guessing which
+                # refusal it was.
+                return refused.code, None
+
+    def fetch(url, params):
+        full = url + ("?" + urllib.parse.urlencode(params) if params else "")
+        try:
+            with urllib.request.urlopen(full, timeout=120) as answer:
+                return answer.status, answer.read(), dict(answer.headers)
+        except urllib.error.HTTPError as refused:
+            return refused.code, refused.read(), dict(refused.headers)
+
+    return HttpMarketData(post=post, fetch=fetch, base=base.rstrip("/"))
 
 
 def resolve_prices(*, context: str) -> Optional[Any]:

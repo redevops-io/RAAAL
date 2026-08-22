@@ -151,6 +151,80 @@ def create_app(*, adapter, store, build=None):
         return {"contract_version": MARKET_DATA_CONTRACT_VERSION,
                 "snapshot_hash": snapshot_hash, "descriptor_hash": found}
 
+    @app.get("/prices")
+    def prices(reinvested: int = 0):
+        """The whole current snapshot's price frame, as parquet bytes.
+
+        The one place the price frame crosses to a pod that has no S3
+        credentials of its own. `resolve()` runs on every consumer — web
+        included — but only this service holds the vendor URI and the IAM role
+        that reads it, so a consumer asks here rather than loading locally and
+        failing closed with `SnapshotUnavailable: ... has no URI`.
+
+        The snapshot is resolved from *this service's own* policy, exactly as
+        `resolve()` resolves it: SYNTHETIC_ONLY yields the committed fixture, the
+        approved vendor policy yields the reviewed vendor snapshot. That match is
+        the point — the frame that crosses must be the frame the consumer's
+        provenance already names, and choosing a snapshot here by any other route
+        would serve bytes under an identity nobody recorded.
+
+        Provenance does not travel with the bytes. The consumer reads it from the
+        manifest, and the digest headers below are how it checks that the bytes
+        it received are the ones that identity names.
+        """
+        from ..deploy.context import current
+        from .access import approved_snapshot
+        from .loader import load_prices, synthetic_snapshot
+        from .pilot_policy import PilotDataPolicy
+
+        # The policy the deployment resolved, read the same way `resolve()`
+        # reads it. An absent policy denies here for the same reason it denies
+        # there: a snapshot resolved without one is a snapshot nobody authorised.
+        policy = current().market_data.policy
+        if policy is None:
+            return _refuse(
+                Failure.NO_COVERAGE,
+                "no market-data policy is configured, so there is no snapshot "
+                "to serve prices from")
+
+        if policy is PilotDataPolicy.SYNTHETIC_ONLY:
+            snapshot = synthetic_snapshot()
+        else:
+            snapshot = approved_snapshot()
+        if snapshot is None:
+            return _refuse(
+                Failure.NO_COVERAGE,
+                "no snapshot was resolved for this policy, so there are no "
+                "prices to serve")
+
+        want_reinvested = bool(reinvested)
+        try:
+            frame = load_prices(snapshot, reinvested=want_reinvested)
+        except Exception as unavailable:                       # noqa: BLE001
+            # The same direction `resolve()` fails in: no frame rather than a
+            # substitute. A snapshot with no total-return twin cannot answer a
+            # reinvested request, and PAYLOAD_MISSING carries that across the
+            # wire as a refusal the consumer can classify — rather than a 500 it
+            # can only guess at, which is what an unhandled load failure becomes.
+            return _refuse(
+                Failure.PAYLOAD_MISSING,
+                f"snapshot {snapshot.snapshot_id} could not be loaded"
+                f"{' with dividends reinvested' if want_reinvested else ''}: "
+                f"{unavailable}")
+
+        headers = {"x-snapshot-id": str(snapshot.snapshot_id)}
+        # The content digest identifies the *price* series only. The reinvested
+        # twin is a different series with a different digest, so it travels
+        # without this header — exactly as the local twin path skips the digest
+        # check — and the consumer verifies the price frame while leaving the
+        # twin to the client's transport-level guard.
+        if not want_reinvested and snapshot.content_digest:
+            headers["x-content-digest"] = str(snapshot.content_digest)
+
+        return Response(content=to_bytes(frame),
+                        media_type="application/octet-stream",
+                        headers=headers)
+
     @app.get("/snapshots/{snapshot_hash}/observations")
     def observations(snapshot_hash: str, descriptor: str):
         """Bytes, verified before they leave.
