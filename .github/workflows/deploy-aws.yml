@@ -101,6 +101,20 @@ jobs:
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "pinned ${IMAGE}"
 
+      - name: Verify the release manifest binds this image (freeze §5 promotion gate)
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+        run: |
+          set -euo pipefail
+          # build_image.sh wrote release-manifest.json for the image it just
+          # pushed. The promotion gate refuses if the image about to be applied is
+          # not the one the manifest binds — so a stale digest can never select
+          # production code independently of the release identity (the incident).
+          DEPLOYED_DIGEST="${IMAGE##*@}"
+          python3 -m deploy.release.manifest verify \
+            --manifest release-manifest.json \
+            --actual "{\"image_digest\":\"${DEPLOYED_DIGEST}\",\"app_commit\":\"${COMMIT}\"}"
+
       - name: Terraform apply
         working-directory: infra/terraform
         env:

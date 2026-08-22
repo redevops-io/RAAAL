@@ -27,6 +27,7 @@ semantics; it only assembles the wire artifact.
 """
 from __future__ import annotations
 
+import os
 from typing import Any, Mapping
 
 import runtime_contracts as rc
@@ -34,6 +35,24 @@ import runtime_contracts as rc
 RUNTIME_ARTIFACT_SCHEMA = "redevops/runtime-artifact"
 RUNTIME_ARTIFACT_SCHEMA_VERSION = "0.1.0"
 SOURCE_RUNTIME = "raaal"
+
+
+def _runtime_contracts_version() -> str:
+    """The installed runtime-contracts *package* version — the thing that decides
+    whether a consumer can interpret this artifact. Recorded explicitly so a
+    consumer never has to infer it from the hash prefix (freeze plan §6.1)."""
+    try:
+        import importlib.metadata as _m
+        return _m.version("runtime-contracts")
+    except Exception:
+        return str(getattr(rc, "__version__", ""))
+
+
+def _producer_version() -> str:
+    """The app revision that produced this artifact, from the deployment's build
+    metadata. Empty outside a built image — the identity, not this label, is what
+    a consumer trusts."""
+    return os.environ.get("QUANTIFY_BUILD_COMMIT", "")
 
 
 class BoundaryError(ValueError):
@@ -70,8 +89,13 @@ def to_runtime_artifact(*, source_intent_hash: str, payload: Mapping[str, Any],
             "payload_schema": payload_schema,
             "payload_schema_version": payload_schema_version,
             "digest_prefix": runtime_artifact_hash.split(":", 1)[0],
+            "runtime_contracts_version": _runtime_contracts_version(),
         },
-        "provenance": {"source_runtime": SOURCE_RUNTIME, "produced_at": produced_at},
+        "provenance": {
+            "source_runtime": SOURCE_RUNTIME,
+            "producer_version": _producer_version(),
+            "produced_at": produced_at,
+        },
         "payload": dict(payload),
     }
 

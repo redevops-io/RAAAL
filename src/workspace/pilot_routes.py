@@ -684,6 +684,7 @@ def pilot_plan_runtime_artifact(request: Request, plan_id: str):
     `source_intent_hash`, plus the `rcv1` `runtime_artifact_hash`. Derived from the
     stored intent on demand; nothing is recomputed or mutated on RAAAL's side.
     """
+    from fastapi import Response
     from fastapi.responses import JSONResponse
 
     from .pilot_store import load
@@ -699,4 +700,14 @@ def pilot_plan_runtime_artifact(request: Request, plan_id: str):
     if reading.intent is None:
         return JSONResponse(
             {"error": "plan has no sealed intent to export"}, status_code=409)
-    return JSONResponse(runtime_artifact_for(reading.intent, label=plan_id))
+
+    artifact = runtime_artifact_for(reading.intent, label=plan_id)
+    # The ETag IS the canonical identity (freeze plan §6.2): a strong validator,
+    # so a consumer that already holds this exact runtime artifact can revalidate
+    # with `If-None-Match` and get 304 instead of re-reading a byte-identical body.
+    # The identity is content-addressed, so this can never serve a stale artifact
+    # under a matching tag.
+    etag = f'"{artifact["runtime_artifact_hash"]}"'
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag})
+    return JSONResponse(artifact, headers={"ETag": etag})

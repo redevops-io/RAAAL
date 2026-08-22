@@ -43,3 +43,20 @@ def test_from_intent_pulls_the_native_intent_hash():
         intent_hash = NATIVE
     art = to_runtime_artifact_from_intent(FakeIntent(), PAYLOAD)
     assert art["source_intent_hash"] == NATIVE
+
+
+def test_makes_the_runtime_contracts_version_explicit(monkeypatch):
+    # freeze §6.1: a consumer must read the producing runtime-contracts version
+    # directly, never infer it from the hash prefix
+    import importlib.metadata as m
+    art = to_runtime_artifact(source_intent_hash=NATIVE, payload=PAYLOAD)
+    assert art["protocol"]["runtime_contracts_version"] == m.version("runtime-contracts")
+
+
+def test_carries_the_producer_build_revision_when_present(monkeypatch):
+    monkeypatch.setenv("QUANTIFY_BUILD_COMMIT", "c8b5a8b")
+    art = to_runtime_artifact(source_intent_hash=NATIVE, payload=PAYLOAD)
+    assert art["provenance"]["producer_version"] == "c8b5a8b"
+    monkeypatch.delenv("QUANTIFY_BUILD_COMMIT")
+    art2 = to_runtime_artifact(source_intent_hash=NATIVE, payload=PAYLOAD)
+    assert art2["provenance"]["producer_version"] == ""   # empty, never fabricated
