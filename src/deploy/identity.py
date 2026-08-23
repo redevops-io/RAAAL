@@ -39,6 +39,14 @@ JWKS_TTL_SECONDS = 3600
 
 ALGORITHMS = ("RS256",)
 
+#: How far apart the application's clock and the issuer's may drift before a
+#: token that is genuinely valid reads as expired (or not-yet-valid). Sixty
+#: seconds is the usual allowance: it is far smaller than any token lifetime,
+#: so it cannot keep an actually-expired token alive in any meaningful way,
+#: and it stops a one-second skew between two machines from silently ending a
+#: session the issuer still considers current.
+LEEWAY_SECONDS = 60
+
 
 @dataclass(frozen=True)
 class Identity:
@@ -172,6 +180,14 @@ def verify(token: str, *, issuer: str, audience: str, internal: str = "",
     claims = jwt.decode(
         token, signing.key, algorithms=list(ALGORITHMS),
         audience=audience, issuer=issuer,
+        # A small tolerance on the time-based checks (exp, and iat/nbf if
+        # present). Two machines never agree on the second, and without this a
+        # clock a minute ahead of the issuer would reject a token the issuer
+        # only just minted — a valid session reading as an invalid one purely
+        # because of skew. The allowance is orders of magnitude below any token
+        # lifetime, so it does not weaken expiry; it only removes the false
+        # negative at the boundary.
+        leeway=LEEWAY_SECONDS,
         # Spelled out rather than left to defaults. A future default that
         # relaxes one of these would relax it here silently, and the whole
         # point of this module is that none of the four is optional.

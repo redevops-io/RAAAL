@@ -155,7 +155,7 @@ class TestTheCallback:
 
     def test_a_matching_callback_yields_a_verified_identity(self, _provider):
         _, flow = started()
-        who, token = self.completed(flow)
+        who, token, _refresh = self.completed(flow)
         assert who.subject == "user-9"
         assert who.email == "someone@example.test"
         assert token
@@ -205,9 +205,11 @@ class TestTheCallback:
             self.completed(flow)
 
     def test_an_expired_token_never_becomes_a_session(self, _provider):
+        # Expired by far more than the clock-skew leeway `verify` now tolerates,
+        # so this is a genuine expiry and not a token caught at the boundary.
         _, flow = started()
         _provider["state"]["response"] = lambda: {
-            "id_token": _provider["token_for"](exp=int(time.time()) - 5)}
+            "id_token": _provider["token_for"](exp=int(time.time()) - 3600)}
         with pytest.raises(jwt.ExpiredSignatureError):
             self.completed(flow)
 
@@ -245,7 +247,9 @@ class TestTheSessionCookie:
         assert viewer(forged, issuer=ISSUER, audience=CLIENT_ID) is None
 
     def test_an_expired_cookie_is_not_a_viewer(self, _provider):
-        assert viewer(_provider["token_for"](exp=int(time.time()) - 5),
+        # Beyond the clock-skew leeway, so this is a real expiry rather than a
+        # token sitting inside the tolerance window.
+        assert viewer(_provider["token_for"](exp=int(time.time()) - 3600),
                       issuer=ISSUER, audience=CLIENT_ID) is None
 
     def test_a_valid_one_is(self, _provider):

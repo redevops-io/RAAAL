@@ -509,6 +509,46 @@ async def _note_the_viewer(request, call_next):
 note_departures(app)
 
 
+@app.middleware("http")
+async def _apply_refreshed_session(request, call_next):
+    """Write the cookies a transparent refresh produced onto the response.
+
+    `signed_in` (in `auth_routes`) is what decides whether a session was
+    renewed, but it runs deep inside the request — in `_note_the_viewer` and in
+    the private-surface gate — and neither of those can set a response cookie
+    that survives to the browser, because a cookie belongs on the *outermost*
+    response, and the gate in particular short-circuits with a redirect before
+    any handler runs. So `signed_in` records its decision on `request.state` and
+    this middleware, registered last so it wraps every other one, applies it
+    after `call_next` returns.
+
+    Registration order is load-bearing. Starlette runs the most recently added
+    HTTP middleware outermost, so declaring this one last means it sees the
+    final response — including the gate's login redirect — and reads a
+    `request.state` that the inner middleware have already populated (state
+    rides on the shared request scope, so an inner writer is visible to an outer
+    reader after `call_next`). Placing it any deeper would miss the redirect,
+    which is exactly the response on which a stale session most needs clearing.
+
+    Renewed tokens are written; a failed or unrenewable session has both its
+    cookies deleted. The two are mutually exclusive — `signed_in` sets at most
+    one — so a request that just refreshed is never also cleared.
+    """
+    from .deploy.login import (REFRESH_COOKIE, SESSION_COOKIE, refresh_cookie,
+                               session_cookie)
+
+    response = await call_next(request)
+    new_session = getattr(request.state, "_new_session_token", None)
+    if new_session:
+        response.set_cookie(**session_cookie(new_session))
+        response.set_cookie(**refresh_cookie(
+            getattr(request.state, "_new_refresh_token", "")))
+    elif getattr(request.state, "_clear_session", False):
+        response.delete_cookie(SESSION_COOKIE, path="/")
+        response.delete_cookie(REFRESH_COOKIE, path="/")
+    return response
+
+
 @app.get("/health/live")
 def live() -> Dict[str, Any]:
     """Liveness. The process exists and is answering.
