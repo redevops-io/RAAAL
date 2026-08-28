@@ -46,6 +46,11 @@ DELIBERATELY_PUBLIC = {
                  "account, an account is the price of keeping a plan (§3 of the "
                  "public strategy-lab plan). It is PUBLIC_EVALUATION in the "
                  "boundary manifest and delegates to the pilot flow.",
+    "/for-advisors": "the public advisor narrative (§8 of the public strategy-"
+                     "lab plan). Informational only — no household, no account "
+                     "state, no parameters. PUBLIC_RESEARCH in the boundary "
+                     "manifest; impersonal by construction, so it needs no "
+                     "session.",
 }
 
 

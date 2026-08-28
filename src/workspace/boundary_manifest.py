@@ -211,6 +211,13 @@ MANIFEST: Sequence[EndpointBoundary] = (
                      "downstream runtime. Account-specific financial state; "
                      "reachable only by the owner."),
     # --- public research --------------------------------------------------
+    EndpointBoundary("/for-advisors", BoundaryClass.PUBLIC_RESEARCH,
+                     "The advisor narrative (§8). Informational only — it "
+                     "manages no household, reads no account state and takes no "
+                     "parameters. It explains that the same evaluated "
+                     "SavedStrategyPlan becomes the input to Wealth Manager, and "
+                     "labels each downstream stage by deployed status; "
+                     "impersonal by construction, so no login."),
     EndpointBoundary("/ui", BoundaryClass.PUBLIC_RESEARCH,
                      "The research library. Impersonal by construction."),
     EndpointBoundary("/methodologies", BoundaryClass.PUBLIC_RESEARCH, "Published rules."),

@@ -322,7 +322,153 @@ def page(reading: PilotReading, *, text: str,
         # Risk-adjusted performance, from the time-weighted return so
         # contributions neither flatter nor distort it. None when no figure ran.
         "performance": _performance(run),
+        # §6.D — the benchmarks as *labeled alternatives*, kept separate from the
+        # user's interpreted strategy. Read straight off the run the page already
+        # holds; nothing is recomputed and no model is consulted. The page had
+        # these paths (they feed `_chart`) and never named them as the distinct
+        # analytical alternatives they are.
+        "alternatives": _alternatives(run),
+        # The comparison's own words — that every benchmark received identical
+        # contributions, so the only difference is the rule — and no ranking.
+        "comparison_note": _comparison_note(run),
+        # §6.C — evidence/reproducibility, all surfaced from provenance that
+        # already travels with the result. Absent fields are None here and marked
+        # (not fabricated) in the template.
+        "market_snapshot": _market_snapshot(run),
+        "disclosures": _disclosures(run),
+        # Not classified on the public evaluation surface — the publication gate
+        # that assigns a performance class is not on this path. Stated as None so
+        # the panel can say "not classified here" rather than invent one.
+        "performance_class": None,
+        # Nor is a pilot evaluation bound to a single declared methodology/protocol
+        # version. None, and marked as such; the panel still links to the public
+        # methodology surface for the concept where one applies (§7).
+        "methodology_id": None,
+        "methodology_version": None,
+        "protocol": None,
+        # The revision this deployment is serving, from git state — a fact about
+        # the build, not a recomputation of the strategy.
+        "source_revision": _source_revision(),
     }
+
+
+def _alternatives(run):
+    """The benchmark comparisons as labeled alternatives — never merged into the
+    user's strategy (§6.D).
+
+    Each benchmark received the *same* contributions on the same days under the
+    same costs and calendar, so the only difference is what the money bought.
+    Read off `run["benchmarks"]`, which the run already carries and the chart
+    already draws; this only names them. An incomparable benchmark keeps its row
+    with `figure` None so a missing comparison never reads as a zero return.
+    """
+    out = []
+    for b in run.get("benchmarks") or ():
+        res = getattr(b, "result", None)
+        out.append({
+            "name": getattr(b, "name", ""),
+            "description": getattr(b, "description", ""),
+            "comparable": bool(getattr(b, "comparable", False)),
+            "figure": (None if res is None else f"{res.final_value:,.2f}"),
+            "gain": (None if res is None else getattr(res, "gain", None)),
+        })
+    return out
+
+
+def _comparison_note(run):
+    """The comparison's own disclaimer — identical flows, no ranking — if a
+    payload was built. None when no figure ran."""
+    payload = run.get("payload") or {}
+    return payload.get("note")
+
+
+def _market_snapshot(run):
+    """The market-data snapshot id these figures were produced under, from the
+    result's own recorded provenance. None when no figure ran or none was
+    recorded — never a fabricated id."""
+    result = run.get("result")
+    if result is None:
+        return None
+    try:
+        return result.market_data_json().get("snapshot_id")
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _disclosures(run):
+    """The declared-but-not-simulated limitations that already travel with the
+    figure, read from the result's modelling scope (§6.C). Empty when none —
+    an empty list, so the panel says "none recorded" rather than nothing."""
+    result = run.get("result")
+    scope = getattr(result, "modelling_scope", None) if result is not None else None
+    if not scope:
+        return []
+    out = []
+    for entry in scope.get("not_modelled") or ():
+        if isinstance(entry, dict):
+            out.append(entry.get("reason") or entry.get("field") or "")
+    return [d for d in out if d]
+
+
+_SOURCE_REVISION: Dict[str, Any] = {}
+
+
+def _source_revision():
+    """The short commit this deployment serves, best-effort and cached.
+
+    Read from git state — a property of the build, not the strategy engine and
+    not a model call — so an inspectable public result can name the revision that
+    produced it (§1 fact 3). None when git is unavailable, and marked as such
+    rather than guessed.
+    """
+    if "rev" not in _SOURCE_REVISION:
+        import subprocess
+
+        try:
+            out = subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                capture_output=True, text=True, timeout=5, check=False)
+            _SOURCE_REVISION["rev"] = (
+                out.stdout.strip() if out.returncode == 0 else None)
+        except (OSError, subprocess.SubprocessError):
+            _SOURCE_REVISION["rev"] = None
+    return _SOURCE_REVISION["rev"]
+
+
+#: The two published methodology concepts (`methodologies/*.yaml`) and the
+#: strategy families each one documents. Only a family a published methodology
+#: genuinely covers maps to a concept; everything else resolves to None and the
+#: evidence panel links to the methodology index instead of claiming a specific
+#: page. Honest by omission — a link is offered only where the page exists.
+FAMILY_METHODOLOGY = {
+    "cross_sectional_momentum": "xsmom",
+    "time_series_momentum": "xsmom",
+    "dual_momentum": "xsmom",
+    "regime_momentum": "xsmom",
+    "risk_parity": "hrp",
+    "equal_risk_contribution": "hrp",
+    "minimum_variance": "hrp",
+    "max_diversification": "hrp",
+}
+
+
+def methodology_concept_for(picked: str) -> Optional[str]:
+    """The public methodology concept a picked strategy belongs to, or None.
+
+    Used by the evidence panel's back-link (§7): the daily research graphs and
+    the evaluator are two faces of one engine, so a result points back at the
+    methodology page for its concept where a published one exists. Resolved from
+    the catalogue entry's declared family; typed prose and unmapped families get
+    None (the panel then links to the methodology index).
+    """
+    if not picked:
+        return None
+    from .strategy_library import entry
+
+    chosen = entry(picked)
+    if chosen is None:
+        return None
+    return FAMILY_METHODOLOGY.get(chosen.family)
 
 
 def _performance(run):
@@ -442,7 +588,8 @@ def draft(request: Request, describe: str = "", picked: str = ""):
     response = TEMPLATES.TemplateResponse(
         request, "pilot.html",
         dict(page(reading, text=describe, run=run), picked=picked,
-             review_id=review_id))
+             review_id=review_id,
+             methodology_concept=methodology_concept_for(picked)))
     attach(response, participant)
     return response
 
@@ -610,6 +757,36 @@ async def evaluate_answer(request: Request, describe: str = Form(...),
                               from_review=from_review)
 
 
+@router.get("/for-advisors", response_class=HTMLResponse)
+def for_advisors(request: Request):
+    """The public advisor narrative (§8 of the public strategy-lab plan, Gate 4).
+
+    Informational only. It manages no households, reads no account state and
+    takes no parameters — the same evaluated `SavedStrategyPlan` a person can
+    already produce on the public evaluator is the portable input to Wealth
+    Manager, and this page explains that lifecycle without becoming part of it.
+
+    It is `PUBLIC_RESEARCH`: reachable without an account, carrying nothing a
+    user wrote. Crucially it does not gate the evaluator — a demo/contact path
+    is offered, never required, and `/evaluate` stays free whether or not anyone
+    writes in.
+
+    The stage labels are grounded in *deployed* status, not aspiration (this is
+    Gate 4's honesty requirement). `Evaluate` and `Save strategy plan` are LIVE
+    — they are exactly the Gate 1–3 public evaluator and the exact-save
+    `SavedStrategyPlan` handoff. The four downstream stages — connect account,
+    apply constraints, governed execution, continuous supervision — are Wealth
+    Manager capabilities that run *simulation-first* and are not live: governed
+    execution is simulated and live brokerage execution is gated on external
+    broker/RIA authorization that does not yet exist. They are labelled roadmap
+    / in development, never as live money movement, so the page's claims match
+    the same declared-vs-realized rule the rest of the system enforces.
+    """
+    from .routes import TEMPLATES
+
+    return TEMPLATES.TemplateResponse(request, "for_advisors.html", {})
+
+
 @router.get("/pilot/reviews/{review_id}", response_class=HTMLResponse)
 def pilot_review(request: Request, review_id: str,
                  stalled: str = "", unchanged: str = ""):
@@ -644,6 +821,8 @@ def pilot_review(request: Request, review_id: str,
     run = execute(reading)
     context = page(reading, text=stored.get("text", ""), run=run)
     context["picked"] = stored.get("picked", "")
+    context["methodology_concept"] = methodology_concept_for(
+        stored.get("picked", ""))
     context["review_id"] = review_id
     # A property of the transition that reached this page, not of the state
     # itself — which is why it arrives in the query and is not stored. The GET
@@ -890,6 +1069,8 @@ def pilot_plan(request: Request, plan_id: str):
             run=run)
     context = page(reading, text=stored.get("text", ""), run=run)
     context["plan_id"] = plan_id
+    context["methodology_concept"] = methodology_concept_for(
+        stored.get("picked", ""))
     context["reopened"] = True
     response = TEMPLATES.TemplateResponse(request, "pilot.html", context)
     attach(response, participant)
