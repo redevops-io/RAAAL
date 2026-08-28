@@ -1,6 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+  /* The four decision-grouped result sections (§6). Presentation only — every
+     value they show is computed exactly as before. */
+  .result-section { margin: 26px 0; }
+  .result-section > h2 { display: flex; align-items: baseline; gap: 10px; }
+  .result-section > h2 .secmark { font-size: 12px; font-weight: 700;
+      color: var(--accent); border: 1px solid var(--accent); border-radius: 5px;
+      padding: 0 6px; line-height: 1.7; }
+  .restated q { color: var(--ink); }
+  .plabel { display: inline-block; font-size: 10px; text-transform: uppercase;
+      letter-spacing: .05em; border-radius: 99px; padding: 1px 8px; margin-left: 6px;
+      border: 1px solid var(--line); color: var(--muted); }
+  .plabel.supplied { border-color: var(--accent); color: var(--accent); }
+  .plabel.inferred { border-color: var(--warn); color: var(--warn); }
+  .plabel.defaulted { border-color: var(--muted); color: var(--muted); }
+  .plabel.unresolved { border-color: var(--private); color: var(--private); }
+  .decision { margin: 16px 0; }
+  .decision > .dlabel { font-size: 11px; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .alt { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
+      margin: 8px 0; display: flex; justify-content: space-between; gap: 12px; }
+  .alt.incomparable { opacity: .7; }
+  .alt-figure { font-family: var(--mono); }
+  .alt-note { font-size: 13px; color: var(--muted); }
+  .evidence dt { font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); margin-top: 8px; }
+  .evidence dd { margin: 2px 0 0; }
+  .evidence .absent { color: var(--muted); font-style: italic; }
+</style>
+
 <h1>Plan</h1>
 
 {# `/workspace/new`, not `/pilot`. A participant who enters at the workspace's
@@ -90,8 +120,50 @@
      own heading, count, and — for the two that are not work — a fold. Blanks
      are inputs in the group itself, so answering happens where the question
      is asked. #}
-  <section class="params">
-    <h2>Parameters</h2>
+  {# ═══════════════ §6.A — Interpreted strategy ═══════════════
+
+     Human-readable strategy plus the parameter table, each parameter marked in
+     §6's own terms: explicitly supplied · inferred by a rule/model witness ·
+     defaulted by the declared methodology · unresolved. The `state` values
+     already encode this (see workspace/parameters.py) — this section only
+     labels them. Result-changing unresolved dimensions block final evaluation,
+     and the block is now stated rather than merely implied by a missing figure. #}
+  <section class="result-section result-a" id="interpreted-strategy">
+    <h2><span class="secmark">A</span>Interpreted strategy</h2>
+    <p class="quiet">What Quantify understood you to mean. Each value is marked by
+      how it was settled — what you supplied, what a witness inferred, what the
+      methodology defaulted, and what is still unresolved.</p>
+    {% if text %}<p class="restated">You described: <q>{{ text }}</q></p>{% endif %}
+
+    {% if needed %}
+    {# §6.A — result-changing unresolved dimensions BLOCK final evaluation. The
+       gate itself already exists (`executable`/`needed`); this makes the block
+       explicit in the UI rather than leaving it to be inferred from an absent
+       figure. #}
+    <div class="blocked" role="status">
+      <strong>Final evaluation is blocked.</strong>
+      {{ needed | length }} result-changing dimension{{ "" if needed|length == 1 else "s" }}
+      {{ "is" if needed|length == 1 else "are" }} unresolved — settle
+      {{ "it" if needed|length == 1 else "them" }} below and this runs. No figure
+      is shown for a request that is not finished being made.
+    </div>
+    {% endif %}
+
+  <div class="params">
+    <h3>Parameters</h3>
+
+    {# §6.A labels. A row's §6 category is a reading of its state and authorship:
+       a value the person typed is *supplied*; one a witness read from the prose
+       is *inferred*; an engine or catalogue stand-in is *defaulted*; a blank the
+       run needs is *unresolved*. Kept as a macro so every group labels the same
+       way. #}
+    {% macro six_a_label(row) -%}
+      {% if row.state == "REFUSED" %}{# labelled separately as won't-run below #}
+      {% elif row.state == "NEEDED" %}<span class="plabel unresolved">unresolved</span>
+      {% elif row.author == "USER" %}<span class="plabel supplied">explicitly supplied</span>
+      {% elif row.state == "SETTLED" %}<span class="plabel inferred">inferred by witness</span>
+      {% else %}<span class="plabel defaulted">defaulted by methodology</span>{% endif %}
+    {%- endmacro %}
 
     {% set needed_rows  = parameters | selectattr("state", "equalto", "NEEDED")  | list %}
     {% set assumed_rows = parameters | selectattr("state", "equalto", "ASSUMED") | list %}
@@ -145,7 +217,7 @@
         {% for row in needed_rows %}
           <div class="prow p-needed">
             <div class="pmeta">
-              <strong>{{ row.name }}</strong>
+              <strong>{{ row.name }}</strong>{{ six_a_label(row) }}
               {% if row.describes %}<div class="pdesc">{{ row.describes }}</div>{% endif %}
             </div>
             <div class="pval">
@@ -194,7 +266,7 @@
         {% for row in filled_rows %}
           <div class="prow p-{{ row.state | lower }}">
             <div class="pmeta">
-              <strong>{{ row.name }}</strong>
+              <strong>{{ row.name }}</strong>{{ six_a_label(row) }}
               {% if row.describes %}<div class="pdesc">{{ row.describes }}</div>{% endif %}
             </div>
             <div class="pval">
@@ -227,7 +299,7 @@
         {% for row in refused_rows %}
           <div class="prow p-refused">
             <div class="pmeta">
-              <strong>{{ row.name }}</strong>
+              <strong>{{ row.name }}</strong>{{ six_a_label(row) }}
               {% if row.describes %}<div class="pdesc">{{ row.describes }}</div>{% endif %}
             </div>
             <div class="pval">
@@ -276,26 +348,44 @@
       </form>
       {% endif %}
     {% endif %}
-  </section>
+  </div>{# .params #}
+  </section>{# §6.A #}
+
+  {# ═══════════════ §6.B — Outcome ═══════════════
+
+     The existing figure, metrics, chart and ledger — regrouped around the
+     decisions they speak to rather than shown as one block. Nothing here is
+     recomputed: the same `figure`, `performance`, `chart` and `ledger` the page
+     already carried, captioned by which decision each answers. #}
+  {% if figure is not none or strategy_not_executed or ledger %}
+  <section class="result-section result-b" id="outcome">
+    <h2><span class="secmark">B</span>Outcome</h2>
+  {% endif %}
 
   {% if figure is not none %}
     <section class="result">
-      <h2>Result</h2>
+      <h3>Return / growth</h3>
       <p class="figure">{{ figure }}</p>
       {% if gain is not none %}<p class="quiet">gain {{ "%.2f"|format(gain) }}</p>{% endif %}
       {# Risk-adjusted performance, on the time-weighted return so a plan that
          put more money in later reads as a higher figure and not a better
          Sharpe — these describe the second thing. #}
       {% if performance %}
+      {# The same four numbers, captioned by the decision each answers, rather
+         than as one undifferentiated row (§6.B). #}
       <div class="perf">
-        <span title="Annualised mean excess daily return over its standard deviation, risk-free 2%/yr, time-weighted">
-          Sharpe <strong>{{ "%+.2f"|format(performance.sharpe) }}</strong></span>
-        <span title="Annualised standard deviation of the time-weighted daily return">
-          Volatility <strong>{{ "%.1f"|format(performance.annual_volatility * 100) }}%</strong></span>
-        <span title="Deepest peak-to-trough fall of the flow-free growth curve">
-          Max drawdown <strong>{{ "%.1f"|format(performance.max_drawdown * 100) }}%</strong></span>
-        <span title="Annualised time-weighted return, contributions removed">
-          Return <strong>{{ "%+.1f"|format(performance.annual_return * 100) }}%/yr</strong></span>
+        <span class="decision" title="Annualised time-weighted return, contributions removed">
+          <span class="dlabel">Return / growth</span>
+          <strong>{{ "%+.1f"|format(performance.annual_return * 100) }}%/yr</strong></span>
+        <span class="decision" title="Deepest peak-to-trough fall of the flow-free growth curve">
+          <span class="dlabel">Drawdown</span>
+          <strong>{{ "%.1f"|format(performance.max_drawdown * 100) }}%</strong></span>
+        <span class="decision" title="Annualised standard deviation of the time-weighted daily return">
+          <span class="dlabel">Volatility / risk</span>
+          <strong>{{ "%.1f"|format(performance.annual_volatility * 100) }}%</strong></span>
+        <span class="decision" title="Annualised mean excess daily return over its standard deviation, risk-free 2%/yr, time-weighted">
+          <span class="dlabel">Risk-adjusted (Sharpe)</span>
+          <strong>{{ "%+.2f"|format(performance.sharpe) }}</strong></span>
       </div>
       {% endif %}
       <p class="quiet">
@@ -303,6 +393,7 @@
         recompiles from that same plan and does not read your sentence again.
       </p>
       {% if chart %}
+        <div class="decision"><span class="dlabel">Comparison to the declared benchmark</span></div>
         {# The comparison the product exists for: this strategy against the
            same contributions made elsewhere. Every benchmark receives the same
            money on the same days, so the only difference left is the rule.
@@ -344,6 +435,11 @@
        later fill date, and the look-ahead check passed. #}
     <section>
       <h2>What actually happened</h2>
+      <div class="decision"><span class="dlabel">Turnover / cost · diversification / concentration</span>
+        <p class="quiet small" style="margin:2px 0 0">Each line is a fill: what was
+          bought, when, and at what price — the turnover and the concentration the
+          rule actually produced, at a modelled 10bps cost with a one-session
+          execution lag.</p></div>
       <table class="ledger">
         <thead>
           <tr>
@@ -390,6 +486,60 @@
     </section>
   {% endif %}
 
+  {% if figure is not none or strategy_not_executed or ledger %}
+    {# §6.B — tax / account assumptions, but only where the impersonal
+       methodology legitimately models them. This surface accepts no holdings,
+       tax profile or account state (§1 hard rule), so what is shown here is the
+       declared modelling scope's own statement of what it did and did not model
+       — never an inferred personal tax position. #}
+    <div class="decision"><span class="dlabel">Tax / account assumptions</span>
+      {% if disclosures %}
+        <p class="quiet small" style="margin:2px 0 0">This evaluation is impersonal:
+          it models no account or tax position of yours. What it does not model
+          travels with the figure, under Evidence below.</p>
+      {% else %}
+        <p class="quiet small" style="margin:2px 0 0">This evaluation is impersonal
+          and models no account- or tax-specific state — that remains the Wealth
+          Manager boundary.</p>
+      {% endif %}
+    </div>
+  </section>{# §6.B #}
+  {% endif %}
+
+  {# ═══════════════ §6.D — What Quantify thinks vs what you asked ═══════════════
+
+     The analytical benchmarks, rendered as clearly LABELED ALTERNATIVES and
+     never merged into the interpreted strategy (Section A) or the saved artifact.
+     Each received the same contributions on the same days under the same costs
+     and calendar; the only difference is the rule. Saving defaults to *your*
+     confirmed strategy — an alternative is never what gets saved. #}
+  {% if alternatives %}
+  <section class="result-section result-d" id="alternative">
+    <h2><span class="secmark">D</span>What Quantify thinks vs what you asked</h2>
+    <p class="quiet">These are analytical alternatives, not a recommendation and
+      not your strategy. Each is the same money, on the same days, under a
+      different rule — shown so you can judge yours against them.</p>
+    {% for alt in alternatives %}
+      <div class="alt{% if not alt.comparable %} incomparable{% endif %}">
+        <div>
+          <strong>{{ alt.name }}</strong>
+          <div class="alt-note">{{ alt.description }}</div>
+        </div>
+        <div class="alt-figure">
+          {% if alt.figure is not none %}{{ alt.figure }}{% else %}<span class="alt-note">not comparable over this period</span>{% endif %}
+        </div>
+      </div>
+    {% endfor %}
+    {% if comparison_note %}<p class="quiet small">{{ comparison_note }}</p>{% endif %}
+    <div class="disclosure">
+      <strong>Saving keeps your strategy.</strong> Save stores the strategy you
+      confirmed in Section A — never one of these alternatives. Choosing an
+      alternative to keep would be a new, separate plan, made deliberately; it is
+      never merged into yours and never saved by default.
+    </div>
+  </section>{# §6.D #}
+  {% endif %}
+
   {% if refusals %}
     <section class="refusal">
       <h2>What this will not do</h2>
@@ -417,24 +567,63 @@
     </section>
   {% endif %}
 
-  <section class="evidence">
-    <h2>Where this came from</h2>
-    <dl>
-      <dt>read by</dt><dd>{{ reader_id }}</dd>
-      <dt>interpreter</dt><dd>{{ interpreter }}</dd>
-      <dt>witnesses</dt>
-      <dd>
-        {{ witnesses.available | join(", ") }}
-        {% if witnesses.single_witness %}
-          — one reader only. {{ witnesses.reason }}
+  {# ═══════════════ §6.C — Evidence / reproducibility ═══════════════
+
+     The expandable panel that makes a public result inspectable (§1 fact 3).
+     Every field is surfaced from provenance that already travels with the
+     reading or the result — methodology/protocol/performance-class are not bound
+     to a pilot evaluation, so they are marked "not recorded on this surface"
+     rather than fabricated. It links back to the public methodology surface, so
+     the daily graphs and the evaluator read as two faces of one engine (§7). #}
+  <section class="result-section result-c evidence" id="evidence">
+    <h2><span class="secmark">C</span>Evidence &amp; reproducibility</h2>
+    <details>
+      <summary>Where this came from — methodology, data snapshot, run hash, disclosures</summary>
+      <dl>
+        <dt>read by</dt><dd>{{ reader_id }}</dd>
+        <dt>interpreter</dt><dd>{{ interpreter }}</dd>
+        <dt>witnesses</dt>
+        <dd>
+          {{ witnesses.available | join(", ") }}
+          {% if witnesses.single_witness %}
+            — one reader only. {{ witnesses.reason }}
+          {% endif %}
+        </dd>
+        <dt>run id / hash (intent)</dt>
+        <dd><code>{{ intent_hash }}</code>{% if sealed %} (sealed){% endif %}</dd>
+        {% if derivation.compiled_by %}
+          <dt>compiled by</dt><dd>{{ derivation.compiled_by }}</dd>
+          <dt>compiled from</dt><dd><code>{{ derivation.compiled_from }}</code></dd>
         {% endif %}
-      </dd>
-      <dt>intent</dt><dd><code>{{ intent_hash }}</code>{% if sealed %} (sealed){% endif %}</dd>
-      {% if derivation.compiled_by %}
-        <dt>compiled by</dt><dd>{{ derivation.compiled_by }}</dd>
-        <dt>compiled from</dt><dd><code>{{ derivation.compiled_from }}</code></dd>
-      {% endif %}
-    </dl>
+        <dt>methodology id / version</dt>
+        <dd>{% if methodology_id %}{{ methodology_id }}{% if methodology_version %} @{{ methodology_version }}{% endif %}{% else %}<span class="absent">not recorded on this surface</span>{% endif %}</dd>
+        <dt>protocol</dt>
+        <dd>{% if protocol %}{{ protocol }}{% else %}<span class="absent">not recorded on this surface</span>{% endif %}</dd>
+        <dt>market-data snapshot</dt>
+        <dd>{% if market_snapshot %}<code>{{ market_snapshot }}</code>{% else %}<span class="absent">no figure ran, or no snapshot recorded</span>{% endif %}</dd>
+        <dt>performance class</dt>
+        <dd>{% if performance_class %}{{ performance_class }}{% else %}<span class="absent">not classified here — the publication gate is not on this path</span>{% endif %}</dd>
+        <dt>disclosures</dt>
+        <dd>
+          {% if disclosures %}
+            <ul>{% for d in disclosures %}<li>{{ d }}</li>{% endfor %}</ul>
+          {% else %}<span class="absent">none recorded for this run</span>{% endif %}
+        </dd>
+        <dt>source revision</dt>
+        <dd>{% if source_revision %}<code>{{ source_revision }}</code>{% else %}<span class="absent">not available</span>{% endif %}</dd>
+      </dl>
+      <p class="quiet small">
+        {# §7 continuity — back to the public methodology surface. Links to the
+           concept's own page where a published methodology covers this strategy,
+           and to the methodology index otherwise. #}
+        How this is measured:
+        {% if methodology_concept %}
+          <a href="/methodologies/{{ methodology_concept }}">methodology &amp; protocol for {{ methodology_concept }} →</a>
+        {% else %}
+          <a href="/methodologies">published methodologies &amp; protocols →</a>
+        {% endif %}
+      </p>
+    </details>
   </section>
 
   {# Progressive enhancement only. The counts above are correct server-side;
