@@ -175,6 +175,14 @@ MANIFEST: Sequence[EndpointBoundary] = (
                      "questions is part of evaluation, not of keeping a plan. "
                      "Artifact lineage stays private (mounted under /pilot).",
                      exposure_override=Exposure.PRIVATE),
+    EndpointBoundary("/evaluate/save", BoundaryClass.PUBLIC_EVALUATION,
+                     "Begin saving an evaluated strategy — the public entry to "
+                     "the one authentication boundary. It names an already-"
+                     "evaluated, content-addressed review and either binds it "
+                     "(signed in) or redirects to sign in (anonymous); it reads "
+                     "no sentence and accepts no account state, so the click "
+                     "that starts a save is still public evaluation.",
+                     exposure_override=Exposure.PRIVATE),
     # --- authenticated persistence ----------------------------------------
     #
     # Saving and reading an owned plan. Declared explicitly so the finer class
@@ -182,6 +190,12 @@ MANIFEST: Sequence[EndpointBoundary] = (
     EndpointBoundary("/pilot/save", BoundaryClass.AUTHENTICATED_PERSISTENCE,
                      "Persist a plan to its owner. The first authentication "
                      "boundary: evaluation is public, keeping the result is not."),
+    EndpointBoundary("/pilot/save/resume", BoundaryClass.AUTHENTICATED_PERSISTENCE,
+                     "Finish a save after signing in — the `next` an anonymous "
+                     "Save redirects through login. Behind the session gate so "
+                     "it can only run for a now-authenticated visitor; it binds "
+                     "the exact evaluated review to that owner and re-reads "
+                     "nothing."),
     EndpointBoundary("/pilot/plans/{plan_id}", BoundaryClass.AUTHENTICATED_PERSISTENCE,
                      "Read a saved plan. Resolves to its owner, so it must be "
                      "behind the session gate."),
