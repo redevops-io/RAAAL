@@ -562,6 +562,43 @@ async def pilot_answer(request: Request, describe: str = Form(...),
     return response
 
 
+@router.get("/evaluate", response_class=HTMLResponse)
+def evaluate(request: Request, describe: str = "", picked: str = ""):
+    """The canonical public evaluator — a thin presentation/controller alias.
+
+    `/evaluate` is the one public URL for the describe → clarify → evaluate flow
+    (§3 of the public strategy-lab plan). It is presentation only: it holds no
+    parser, compiler, clarification or evaluation logic of its own and delegates
+    straight to `pilot_new`, the same entrypoint `/pilot` reaches. Two
+    implementations of one evaluator would drift, and the drift shows up as two
+    visitors getting different numbers from the same words — so there is exactly
+    one implementation and this is a second name for its door.
+
+    The older public URLs — `/workspace/new`, `/pilot`, `/pilot/answer` — keep
+    serving the same journey unchanged, so nothing that links to them breaks
+    while `/evaluate` becomes the name the site leads with.
+
+    It does not accept holdings, tax profile, income or account state (§1 hard
+    rule): the only inputs are a strategy description and an optional catalogue
+    pick, exactly as the pilot draft takes. Keeping evaluation impersonal is
+    what keeps the publisher position intact.
+    """
+    return pilot_new(request, describe, picked)
+
+
+@router.post("/evaluate")
+async def evaluate_answer(request: Request, describe: str = Form(...),
+                          picked: str = Form(""), from_review: str = Form("")):
+    """Clarify and evaluate under the canonical name. Delegates to `pilot_answer`.
+
+    The same handler `/pilot/answer` uses, so the evaluation an anonymous
+    visitor gets from `/evaluate` is the one the legacy path produces from the
+    same submission — there is no second strategy parser in the website layer.
+    """
+    return await pilot_answer(request, describe=describe, picked=picked,
+                              from_review=from_review)
+
+
 @router.get("/pilot/reviews/{review_id}", response_class=HTMLResponse)
 def pilot_review(request: Request, review_id: str,
                  stalled: str = "", unchanged: str = ""):

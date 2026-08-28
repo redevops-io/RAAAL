@@ -400,37 +400,44 @@ from .workspace.auth_routes import router as auth_router  # noqa: E402
 app.include_router(auth_router)
 
 
-#: Paths that require a verified session where this deployment has accounts.
+#: Paths that require a verified session where this deployment has accounts,
+#: **derived from the boundary manifest** rather than hand-written here.
 #:
-#: `/auth/*` is deliberately outside — a login that required a login could not
-#: be started — and so are `/ui`, `/research` and the health endpoints, which
-#: are published on purpose.
+#: This pair used to be two standalone string lists that the middleware trusted
+#: and the manifest knew nothing about — so a route could be public in one and
+#: private in the other, which is exactly the "path-list fragility" §5 of the
+#: public strategy-lab plan set out to remove. The login decision now lives in
+#: one place: `boundary_manifest`, where each route declares its `BoundaryClass`.
+#: `require_a_signed_in_viewer` reads that classification directly (via
+#: `login_required`), and these two tuples are computed *from the same manifest*,
+#: so they cannot diverge from it.
 #:
-#: **`/pilot` is here because it was not, and that was an exposure.** This list
-#: said `("/workspace",)` and called itself "the whole private surface", which
-#: was true of one of the two routers that serve the workspace.
-#: `workspace.routes` carries `prefix="/workspace"` so everything it declares
-#: is covered; `workspace.pilot_routes` carries no prefix at all, so `/pilot`,
-#: `/pilot/answer`, `/pilot/save` and `/pilot/plans/{plan_id}` sat at the root
-#: outside the gate. Found by the acceptance check failing after deployment,
-#: on a live site that already held plans.
+#: They are kept as module constants because the deploy acceptance check
+#: (`deploy/acceptance.py`) and `test_private_surface_is_derived` import
+#: `PRIVATE_PREFIXES` to probe each gated mount once. `gated_prefixes()` returns
+#: the minimal umbrellas — today `("/pilot", "/workspace")` — so those consumers
+#: see the same shape they always did, now provably in step with the manifest.
 #:
-#: `/pilot/plans/{plan_id}` is the one that mattered: it resolves a stored plan
-#: for `owner.current()`, which for a viewer with no session is the shared
-#: `pilot` workspace — so anybody with a plan id could read a plan saved there,
-#: while `/workspace/plans/{plan_id}` sent them to sign in.
+#: `/auth/*` is deliberately open — a login that required a login could not be
+#: started — and so are `/ui`, `/research`, the evaluator (`/evaluate`,
+#: `/workspace/new`, `/pilot/answer`) and the health endpoints.
 #:
-#: Not restated but *derived* by `test_private_surface_is_derived`, which reads
-#: both routers and requires every path they declare to be covered here. A
-#: third router mounted at the root would otherwise repeat this exactly.
-PRIVATE_PREFIXES = ("/workspace", "/pilot")
+#: `/pilot/plans/{plan_id}` is the one that historically mattered: it resolves a
+#: stored plan for `owner.current()`, which for a viewer with no session is the
+#: shared `pilot` workspace — so anybody with a plan id could read a plan saved
+#: there. It is AUTHENTICATED_PERSISTENCE in the manifest and gated by the
+#: `/pilot` umbrella, exactly as before.
+from .workspace.boundary_manifest import (  # noqa: E402
+    gated_prefixes, login_required, public_within_gated)
+
+PRIVATE_PREFIXES = gated_prefixes()
 
 # Evaluating a plan is public — anyone can try the evaluator without an account.
 # An account is the price of *keeping* a plan, not of seeing what one does, so
 # the describe→evaluate→answer flow is exempt from the login while saving a plan
-# and reading saved ones stay behind it. This is what lets the dashboard's "try
-# your own strategy" box run for a visitor who has not signed in.
-PUBLIC_WITHIN_PRIVATE = ("/workspace/new", "/pilot/answer")
+# and reading saved ones stay behind it. Derived from the manifest's
+# PUBLIC_EVALUATION carve-outs that sit under a gated mount.
+PUBLIC_WITHIN_PRIVATE = public_within_gated()
 
 
 @app.middleware("http")
@@ -451,12 +458,13 @@ async def require_a_signed_in_viewer(request, call_next):
     without a session has not done anything wrong; they are not signed in yet.
     The path they asked for is carried in `next` so they land where they meant
     to rather than at the front door.
+
+    **The public/private decision is the manifest's**, read through
+    `login_required`, not recomputed from a local string list. That is what
+    makes it impossible for a newly mounted route to be classified one way here
+    and the other way in `boundary_manifest`.
     """
-    path = request.url.path
-    private = any(path.startswith(prefix) for prefix in PRIVATE_PREFIXES)
-    public = any(path == p or path.startswith(p + "/")
-                 for p in PUBLIC_WITHIN_PRIVATE)
-    if private and not public:
+    if login_required(request.url.path):
         from .workspace.auth_routes import _target, signed_in
 
         target = _target()

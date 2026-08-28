@@ -42,6 +42,10 @@ WORKSPACE_ROUTERS = ("workspace/routes.py", "workspace/pilot_routes.py")
 #: named here only so the rule is legible without opening that file.
 DELIBERATELY_PUBLIC = {
     "/auth": "a login that required a login could not be started",
+    "/evaluate": "the canonical public evaluator; trying a strategy needs no "
+                 "account, an account is the price of keeping a plan (§3 of the "
+                 "public strategy-lab plan). It is PUBLIC_EVALUATION in the "
+                 "boundary manifest and delegates to the pilot flow.",
 }
 
 
