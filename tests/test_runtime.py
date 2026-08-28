@@ -23,6 +23,7 @@ from src.runtime import (
     LotMethod,
     MissingRuntime,
     RuntimeArtifact,
+    TaxPolicyRuntime,
     TaxRuntime,
 )
 
@@ -136,6 +137,46 @@ class TestDeclarationsMustBeRealized:
         [withholding] = [a for a in US_FEDERAL_WITHHOLDING.assumptions
                          if a.name == "supplemental-withholding"]
         assert "not a tax rate" in withholding.risk
+
+
+class TestTheDeclarationLayerIsNamedButStillDoesNotCompute:
+    """Plan §9 makes the two-layer split explicit: ``TaxPolicyRuntime`` is the
+    declaration-layer name for what RAAAL already had. It must be a non-breaking
+    alias — one type, so every existing caller keeps working — and it must still
+    only *declare* mechanics, never compute a liability (that is the wealth-manager
+    ``TaxRealizationEngine``'s job)."""
+
+    def test_tax_policy_runtime_is_the_declaration_layer_alias(self):
+        # A plain alias, not a fork: the two names are the identical type.
+        assert TaxPolicyRuntime is TaxRuntime
+
+    def test_existing_tax_runtime_callers_still_work_through_either_name(self):
+        # Constructing via the new name yields an ordinary TaxRuntime that the
+        # existing comparability machinery treats identically.
+        via_policy = TaxPolicyRuntime(name="t", version=1, jurisdiction="US-federal",
+                                      capital_gains_short_rate=0.37,
+                                      capital_gains_long_rate=0.20)
+        via_runtime = TaxRuntime(name="t", version=1, jurisdiction="US-federal",
+                                 capital_gains_short_rate=0.37,
+                                 capital_gains_long_rate=0.20)
+        assert isinstance(via_policy, TaxRuntime)
+        assert via_policy.kind == "tax"
+        # Same type + same meaning ⇒ they are equal and comparable (a subclass
+        # would have severed this via dataclass __eq__'s __class__ check).
+        assert via_policy == via_runtime
+        assert via_policy.is_comparable_with(via_runtime)
+
+    def test_the_declaration_layer_still_refuses_to_compute_liability(self):
+        """A declared capital-gains rate is an unrealized assumption here: the
+        mechanism that would realize it (``realize_gain``) is not implemented in
+        this layer. Declaring a rate is not computing a liability."""
+        declared = TaxPolicyRuntime(name="t", version=1, jurisdiction="US",
+                                    capital_gains_short_rate=0.37,
+                                    capital_gains_long_rate=0.20)
+        assert "capital-gains" in declared.unrealized(TAX_IMPLEMENTED)
+        # The realization mechanism is explicitly absent from what this layer does.
+        from src.runtime.tax import IMPLEMENTED
+        assert "realize_gain" not in IMPLEMENTED
 
 
 class TestAccountRulesAreNotTaxRules:

@@ -13,6 +13,27 @@ The same shape `calendar` had before it became an artifact.
 `models_capital_gains=False` is doing its job: it states, in a versioned and
 comparable way, exactly which mechanics apply, and every mechanic it does not
 perform is a named limitation rather than an absence someone has to notice.
+
+Two layers, one boundary
+------------------------
+The enhancement plan (§9) splits tax into two explicit layers::
+
+    TaxPolicyRuntime           declaration / jurisdiction / assumptions   (here)
+             ↓
+    TaxRealizationEngine       lots / realized gains / wash sales         (there)
+
+This module **is** the declaration layer. `TaxRuntime` — aliased below as
+`TaxPolicyRuntime`, the plan's declaration-layer name — states which mechanics
+apply for evaluation and comparability; it never realizes a single lot. The
+*realization* layer — execution-grade realized short/long gains, wash-sale
+disallowance and cross-account awareness computed over a real lot ledger for a
+specific household — lives in **wealth-manager's `TaxRealizationEngine`**
+(`wealth_manager/tax_engine.py`), not here. RAAAL declares tax mechanics so two
+strategies are genuinely comparable on tax; it does not compute a person's
+liability. That boundary is load-bearing: an assumption declared here whose
+`realized_by` mechanism is absent from `IMPLEMENTED` is reported by
+`unrealized(...)` precisely because this layer must not pretend to compute what
+only the realization engine can.
 """
 from __future__ import annotations
 
@@ -159,6 +180,17 @@ class TaxRuntime(RuntimeArtifact):
                 statement="Gains are taxed without tracking individual lots.",
             ))
         return tuple(out)
+
+
+#: The declaration-layer name from the plan (§9). ``TaxPolicyRuntime`` *is*
+#: ``TaxRuntime`` — a plain alias, so every existing ``TaxRuntime`` caller,
+#: instance, ``isinstance`` check and equality keeps working unchanged, and code
+#: that wants to name the two-layer split explicitly can say ``TaxPolicyRuntime``
+#: to mean "the declaration layer, which does not compute liability — that is the
+#: realization engine's job, in wealth-manager". A subclass would fork identity
+#: (dataclass ``__eq__`` compares ``__class__``); an alias keeps one type and one
+#: comparable form, which is the whole point of a declaration artifact.
+TaxPolicyRuntime = TaxRuntime
 
 
 #: Nothing modelled, and it says so. The honest default, and a real artifact
