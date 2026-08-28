@@ -27,7 +27,10 @@ from .market_data import (
     UniversePolicy,
 )
 from .market_data import IMPLEMENTED as MARKET_DATA_IMPLEMENTED
-from .tax import PRE_TAX, TAX_DEFERRED, US_FEDERAL_WITHHOLDING, LotMethod, TaxRuntime
+from .tax import (
+    PRE_TAX, TAX_DEFERRED, US_FEDERAL_WITHHOLDING, LotMethod, TaxRuntime,
+    TaxPolicyRuntime,
+)
 from .tax import IMPLEMENTED as TAX_IMPLEMENTED
 
 #: Runtime kind -> type. Lets the comparison registry derive causal
@@ -81,6 +84,7 @@ __all__ = [
     "FLOW_IMPLEMENTED", "FlowKind", "SALARY_AND_VESTS", "AccountKind", "AccountRuntime", "ExecutionEnvironment",
     "LotMethod", "MissingRuntime", "PRE_TAX", "RuntimeArtifact",
     "RuntimeAssumption", "RuntimeLimitation", "TAXABLE_BROKERAGE",
-    "TAX_DEFERRED", "TAX_IMPLEMENTED", "TaxRuntime", "US_FEDERAL_WITHHOLDING",
+    "TAX_DEFERRED", "TAX_IMPLEMENTED", "TaxRuntime", "TaxPolicyRuntime",
+    "US_FEDERAL_WITHHOLDING",
     "canonical_hash",
 ]
