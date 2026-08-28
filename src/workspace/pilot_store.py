@@ -255,12 +255,27 @@ def save_review(reading: PilotReading, picked: str = "") -> str:
 
 def load_review(review_id: str) -> Optional[Mapping[str, Any]]:
     """One participant's review, or None. Scoped by owner like every read here."""
+    return load_review_under(PILOT_OWNER(), review_id)
+
+
+def load_review_under(owner: str, review_id: str) -> Optional[Mapping[str, Any]]:
+    """The review under a *named* owner, rather than the request's current one.
+
+    The one read here that does not scope to `PILOT_OWNER()`, and it says so in
+    its name. The exact-save handoff needs it: an anonymous visitor's review is
+    written under the shared workspace, and after they sign in the current owner
+    is their subject — so completing their save has to read the review from the
+    scope it was actually persisted under, not from the one the now-authenticated
+    request would default to. The review is content-addressed, so naming the
+    owner here reads a specific evaluated artifact by its own identity; it is not
+    a way to browse another tenant's plans (those live in `pilot_plans`, still
+    scoped to the current owner on every read)."""
     connection = _connect()
     try:
         row = connection.execute(
             "SELECT artifact FROM pilot_reviews "
             "WHERE review_id = ? AND owner = ?",
-            (review_id, PILOT_OWNER())).fetchone()
+            (review_id, owner)).fetchone()
     finally:
         connection.close()
     return None if row is None else json.loads(row["artifact"])
