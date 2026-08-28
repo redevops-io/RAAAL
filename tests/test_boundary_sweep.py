@@ -18,9 +18,11 @@ import pytest
 from src.mission.boundary import PROHIBITED_KEYS
 from src.workspace.boundary_manifest import (
     MANIFEST,
+    BoundaryClass,
     Exposure,
     UndeclaredEndpoint,
     boundary_for,
+    login_required,
     undeclared,
 )
 
@@ -117,6 +119,104 @@ class TestEveryRouteIsDeclared:
     def test_every_declaration_says_why(self):
         for entry in MANIFEST:
             assert entry.why, f"{entry.path} declares a side without a reason"
+
+
+class TestEveryRouteHasOneOfTheFourClasses:
+    """The finer taxonomy (§5): every live route is exactly one of the four
+    plan-named classes or INFRASTRUCTURE, and its coarse `exposure` agrees with
+    the class it was given."""
+
+    FOUR_PLUS_INFRA = {
+        BoundaryClass.PUBLIC_RESEARCH,
+        BoundaryClass.PUBLIC_EVALUATION,
+        BoundaryClass.AUTHENTICATED_PERSISTENCE,
+        BoundaryClass.PRIVATE_FINANCIAL_STATE,
+        BoundaryClass.INFRASTRUCTURE,
+    }
+
+    def test_every_live_route_maps_to_exactly_one_class(self, app_paths):
+        for path in app_paths:
+            entry = boundary_for(path)
+            assert entry.boundary_class in self.FOUR_PLUS_INFRA, (
+                f"{path} has class {entry.boundary_class}, not one of the four "
+                "plan-named classes or INFRASTRUCTURE")
+
+    def test_the_coarse_exposure_agrees_with_the_class(self, app_paths):
+        """A public class may never resolve to PRIVATE exposure, nor the
+        reverse — except the evaluation surfaces mounted under a private store,
+        which keep PRIVATE artifact lineage on purpose while their access is
+        public. That single, declared exception is the only place the two axes
+        differ."""
+        for path in app_paths:
+            entry = boundary_for(path)
+            cls = entry.boundary_class
+            if cls.requires_login:
+                assert entry.exposure is Exposure.PRIVATE, path
+            elif cls is BoundaryClass.INFRASTRUCTURE:
+                assert entry.exposure is Exposure.INFRASTRUCTURE, path
+            elif cls is BoundaryClass.PUBLIC_RESEARCH:
+                assert entry.exposure is Exposure.PUBLIC, path
+            else:  # PUBLIC_EVALUATION
+                assert entry.exposure in (Exposure.PUBLIC, Exposure.PRIVATE), path
+
+    def test_everything_under_a_private_mount_has_private_lineage(self, app_paths):
+        """The invariant that lets the evaluation carve-outs be public-access
+        without leaking: whatever is served under `/workspace` or `/pilot` — the
+        try-it entries included — carries PRIVATE artifact lineage."""
+        for path in app_paths:
+            if path.startswith("/workspace") or path.startswith("/pilot"):
+                assert boundary_for(path).exposure is Exposure.PRIVATE, (
+                    f"{path} is under a private mount but its exposure is not "
+                    "PRIVATE")
+
+
+class TestTheMiddlewareDecisionIsTheManifests:
+    """The property §5 asks for: the login decision the auth middleware makes
+    cannot diverge from the manifest, because it is *computed from* the manifest.
+
+    Proven two ways: the derived decision reproduces the previous hand-written
+    string-list logic exactly for every live path (so nothing regressed), and
+    the constants the middleware and the deploy acceptance check still import are
+    themselves derived from the manifest.
+    """
+
+    #: The logic as it was before consolidation, frozen here as an independent
+    #: oracle. If the manifest-derived decision ever stops matching this for a
+    #: real route, the refactor changed behaviour and this fails.
+    OLD_PRIVATE_PREFIXES = ("/workspace", "/pilot")
+    OLD_PUBLIC_WITHIN_PRIVATE = ("/workspace/new", "/pilot/answer")
+
+    def _old_decision(self, path: str) -> bool:
+        private = any(path.startswith(p) for p in self.OLD_PRIVATE_PREFIXES)
+        public = any(path == p or path.startswith(p + "/")
+                     for p in self.OLD_PUBLIC_WITHIN_PRIVATE)
+        return private and not public
+
+    def test_the_derived_decision_matches_the_old_logic_for_every_path(
+            self, app_paths):
+        disagreements = [
+            (p, self._old_decision(p), login_required(p))
+            for p in app_paths
+            if self._old_decision(p) != login_required(p)
+        ]
+        assert disagreements == [], (
+            "the manifest-derived login decision no longer matches the "
+            f"pre-consolidation behaviour: {disagreements}")
+
+    def test_login_required_agrees_with_the_class_for_every_path(self, app_paths):
+        for path in app_paths:
+            assert login_required(path) is boundary_for(path).requires_login
+
+    def test_the_middleware_constants_are_derived_from_the_manifest(self):
+        import src.api as api
+        from src.workspace.boundary_manifest import (gated_prefixes,
+                                                     public_within_gated)
+
+        assert tuple(api.PRIVATE_PREFIXES) == tuple(gated_prefixes())
+        assert tuple(api.PUBLIC_WITHIN_PRIVATE) == tuple(public_within_gated())
+        # The gated mounts are still exactly the two workspace routers, so the
+        # deploy acceptance check probes each once as it always has.
+        assert set(api.PRIVATE_PREFIXES) == {"/pilot", "/workspace"}
 
 
 class TestPublicSurfacesCarryNothingPrivate:
