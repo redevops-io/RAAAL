@@ -259,6 +259,9 @@
       <form method="post" action="/evaluate/save">
         <input type="hidden" name="review_id" value="{{ review_id }}">
         <input type="hidden" name="picked" value="{{ picked or "" }}">
+        {# CSRF double-submit token (§11). Rendered from the same value set in the
+           quantify_csrf cookie; inert unless QUANTIFY_CSRF_ENFORCE is on. #}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit">Save this plan</button>
       </form>
       {% if identity_state().configured and not identity_state().viewer %}
@@ -272,6 +275,7 @@
       <form method="post" action="/pilot/save">
         <input type="hidden" name="describe" value="{{ text }}">
         <input type="hidden" name="picked" value="{{ picked or "" }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit">Save this plan</button>
       </form>
       {% endif %}

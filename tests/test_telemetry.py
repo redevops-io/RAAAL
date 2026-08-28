@@ -1,308 +1,214 @@
-"""Traces and decisions, and the rule that nothing financial may need them.
+"""§10 — website / API funnel telemetry.
 
-Spans say **when**. Decisions say **why**. The questions asked six months later
-are the second kind — "why wasn't this benchmark included?", "why did this
-become AFTER_RESULTS?" — and a duration cannot answer either.
+Two properties matter and are asserted here: the funnel events fire at their real
+routes, and no event ever carries raw strategy text. Plus the operational facts
+§10 names where they are cheaply true — that a telemetry failure never fails the
+request, and that the save-without-recompute rate is a structural 100%.
 
-The load-bearing test in this file is `TestTelemetryIsExpendable`. Operational
-telemetry expires; financial artifacts do not. The moment something in the
-workspace needs a span to answer a question about a figure, telemetry has become
-a second artifact store with a deletion policy attached to it.
+The client mirrors `test_exact_save`: the runtime and an identity provider are
+declared, sign-in is a header the patched `signed_in` reads, and the recorded
+reader answers from fixtures so nothing reaches a provider.
 """
 from __future__ import annotations
 
+import json
+import os
+import urllib.parse
+
 import pytest
 
-from src.telemetry import (
-    DecisionKind,
-    Recorder,
-    TraceStore,
-    new_conversation_id,
-    new_request_id,
-)
-from src.workspace.intent_history import IntentHistory
-from src.workspace.intent_service import plan_and_record
-from src.workspace.store import WorkspaceStore
-from src.workspace.worksheet import create
+pytest.importorskip("jwt", reason="pyjwt is required to verify OIDC tokens")
+pytest.importorskip("fastapi")
 
-OWNER = "pilot"
+from fastapi.testclient import TestClient
+
+SENTENCE = "invest $500 monthly"
+ANSWER = {"describe": SENTENCE, "answer_assets": "VTI"}
+SUBJECT_HEADER = "x-test-subject"
+
+
+@pytest.fixture(autouse=True)
+def _clean_state():
+    from src.workspace import evaluation_session, telemetry
+    from src.workspace.abuse import reset_rate_limits
+
+    evaluation_session.clear()
+    reset_rate_limits()
+    telemetry.reset()
+    yield
+    evaluation_session.clear()
+    reset_rate_limits()
+    telemetry.reset()
 
 
 @pytest.fixture
-def workspace(tmp_path):
-    path = tmp_path / "workspace.db"
-    WorkspaceStore(path).save_worksheet(
-        create(worksheet_id="ws-1", owner_id=OWNER, scenario_ref="plan-1",
-               primary_run_ref="run-0", created_at="t0"))
-    return path
+def client(monkeypatch, tmp_path):
+    from src.deploy import context as deploy_context
+
+    monkeypatch.setenv("QUANTIFY_PILOT_READER", "recorded")
+    monkeypatch.setenv("QUANTIFY_PARSER_MODE", "RUNTIME")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-used-by-recordings")
+    monkeypatch.setenv("QUANTIFY_PARSER_MODEL", "claude-sonnet-5")
+    monkeypatch.setenv("QUANTIFY_DATABASE_URL", f"sqlite:///{tmp_path}/pilot.db")
+
+    resolved = deploy_context.resolve(dict(os.environ))
+    monkeypatch.setattr(deploy_context, "current", lambda: resolved)
+
+    from src.deploy.context import IdentityTarget
+
+    target = IdentityTarget(issuer="https://auth.example.test",
+                            audience="client-1", client_id="client-1")
+    monkeypatch.setattr("src.workspace.auth_routes._target", lambda: target)
+
+    from src.deploy.identity import Identity
+    import src.workspace.auth_routes as auth_routes
+
+    def signed_in(request):
+        subject = request.headers.get(SUBJECT_HEADER)
+        return Identity(subject=subject, email=f"{subject}@x.test") \
+            if subject else None
+
+    monkeypatch.setattr(auth_routes, "signed_in", signed_in)
+
+    from src.api import app
+
+    return TestClient(app, base_url="https://testserver", follow_redirects=False)
 
 
-@pytest.fixture
-def traces(tmp_path):
-    return tmp_path / "trace.db"
+def _as(subject):
+    return {SUBJECT_HEADER: subject}
 
 
-def recorder(traces, conversation=None, worksheet_id="ws-1"):
-    return Recorder(TraceStore(traces), tenant=OWNER,
-                    conversation_id=conversation or new_conversation_id(),
-                    request_id=new_request_id(),
-                    worksheet_id=worksheet_id).start()
+def _no_prompt_text(event: dict) -> bool:
+    """No field of an event carries the strategy sentence."""
+    return SENTENCE not in json.dumps(event)
 
 
-def request(workspace, traces, instruction, index, conversation=None):
-    rec = recorder(traces, conversation)
-    planned = plan_and_record(
-        WorkspaceStore(workspace), worksheet_id="ws-1", owner=OWNER,
-        instruction=instruction, intent_id=f"i{index}",
-        proposal_id=f"p{index}", at=f"t{index}", recorder=rec)
-    rec.finish()
-    return planned, rec
+# --- the funnel events fire at their routes, text-free ---------------------
+
+class TestFunnelEventsFireAtTheirRoutes:
+    def test_evaluator_opened_on_evaluate_get(self, client):
+        from src.workspace import telemetry
+
+        client.get("/evaluate")
+        opened = telemetry.events(telemetry.EVALUATOR_OPENED)
+        assert opened, "no evaluator_opened event fired on /evaluate GET"
+        assert opened[-1]["route"] == "/evaluate"
+
+    def test_prompt_submitted_on_pilot_answer_carries_no_prompt_text(self, client):
+        from src.workspace import telemetry
+
+        client.post("/pilot/answer", data=ANSWER)
+        submitted = telemetry.events(telemetry.PROMPT_SUBMITTED)
+        assert submitted, "no prompt_submitted event fired on /pilot/answer"
+        event = submitted[-1]
+        # ids/counts/hashes only — a digest and a length, never the words.
+        assert event["prompt_len"] == len(SENTENCE)
+        assert event["prompt_sha"] and len(event["prompt_sha"]) == 16
+        assert _no_prompt_text(event), "the raw prompt reached the funnel"
+
+    def test_save_clicked_on_evaluate_save(self, client):
+        from src.workspace import telemetry
+
+        review_id = client.post("/evaluate", data=ANSWER
+                                ).headers["location"].rsplit("/", 1)[-1]
+        client.post("/evaluate/save", data={"review_id": review_id})
+        clicked = telemetry.events(telemetry.SAVE_CLICKED)
+        assert clicked, "no save_clicked event fired on /evaluate/save"
+        assert clicked[-1]["route"] == "/evaluate/save"
+        assert all(_no_prompt_text(e) for e in clicked)
+
+    def test_plan_saved_on_the_resume_bind(self, client):
+        from src.workspace import telemetry
+
+        review_id = client.post("/evaluate", data=ANSWER
+                                ).headers["location"].rsplit("/", 1)[-1]
+        started = client.post("/evaluate/save", data={"review_id": review_id})
+        nxt = urllib.parse.parse_qs(
+            urllib.parse.urlparse(started.headers["location"]).query)["next"][0]
+        client.get(nxt, headers=_as("user-a"))
+
+        saved = telemetry.events(telemetry.PLAN_SAVED)
+        assert saved, "no plan_saved event fired on the resume bind"
+        assert saved[-1]["recomputed"] is False
+        assert all(_no_prompt_text(e) for e in saved)
+
+    def test_advisor_viewed_is_recorded_by_path_not_by_a_route_here(self, client):
+        """The advisor-viewed event is emitted by a path-based middleware, not by
+        a `/for-advisors` route this branch owns — the real page lands on the
+        Gate-4 branch. So the route 404s here, yet a GET of the path still records
+        the view, which is what keeps §10's funnel working once the real page
+        ships without this branch defining (and colliding on) the route."""
+        from src.workspace import telemetry
+
+        assert client.get("/for-advisors").status_code == 404, (
+            "this branch must not define /for-advisors — the Gate-4 branch owns "
+            "the route, its template and its manifest entry")
+        viewed = telemetry.events(telemetry.ADVISOR_VIEWED)
+        assert viewed, "the middleware did not record advisor_viewed for the path"
+        assert viewed[-1]["route"] == "/for-advisors"
+
+    def test_no_funnel_event_anywhere_carries_the_prompt(self, client):
+        """A sweep across the whole journey: after evaluating, submitting,
+        saving and viewing, not one recorded event contains the sentence."""
+        from src.workspace import telemetry
+
+        client.get("/evaluate")
+        review_id = client.post("/pilot/answer", data=ANSWER
+                                ).headers["location"].rsplit("/", 1)[-1]
+        client.post("/evaluate/save", data={"review_id": review_id})
+        client.get("/for-advisors")
+
+        recorded = telemetry.events()
+        assert recorded, "the journey recorded nothing at all"
+        offenders = [e for e in recorded if not _no_prompt_text(e)]
+        assert offenders == [], f"events carried raw prompt text: {offenders}"
 
 
-class TestTheStoresAreSeparate:
+# --- best-effort: a raising emitter never fails the request ----------------
 
-    def test_telemetry_does_not_live_in_the_workspace(self, workspace, traces):
-        request(workspace, traces, "Add 63-day rolling volatility", 0)
-        import sqlite3
+class TestTelemetryIsBestEffort:
+    def test_emit_swallows_an_internal_failure(self, monkeypatch):
+        from src.workspace import telemetry
 
-        tables = {r[0] for r in sqlite3.connect(workspace).execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")}
-        assert "span" not in tables
-        assert "decision" not in tables
-        assert "trace" not in tables
+        def boom(_):
+            raise RuntimeError("sink is on fire")
 
-    def test_the_artifact_keeps_only_a_reference(self, workspace, traces):
-        planned, rec = request(workspace, traces,
-                               "Add 63-day rolling volatility", 0)
-        [row] = WorkspaceStore(workspace).worksheet_intents("ws-1", OWNER)
-        assert row["trace_id"] == rec.trace_id
-        assert planned.trace_id == rec.trace_id
+        monkeypatch.setattr(telemetry, "_scrub", boom)
+        # Must not raise, despite the internal failure.
+        telemetry.emit(telemetry.RESEARCH_VIEW, route="/research")
 
+    def test_a_raising_emitter_does_not_fail_the_request(self, client,
+                                                         monkeypatch):
+        from src.workspace import telemetry
 
-class TestTelemetryIsExpendable:
-    """The rule that keeps telemetry from becoming a second artifact store."""
+        def boom(_):
+            raise RuntimeError("sink is on fire")
 
-    def test_the_intent_chain_survives_deleting_every_trace(self, workspace,
-                                                            traces):
-        request(workspace, traces, "Add 21-day rolling volatility", 0)
-        request(workspace, traces, "Add 63-day rolling volatility", 1)
-        before = IntentHistory.from_store(WorkspaceStore(workspace), "ws-1",
-                                          OWNER)
-
-        traces.unlink()
-
-        after = IntentHistory.from_store(WorkspaceStore(workspace), "ws-1",
-                                         OWNER)
-        assert after.trial_total == before.trial_total
-        assert after.verdict.trustworthy
-        assert len(after.intents) == 2
-
-    def test_planning_still_works_with_the_trace_store_destroyed(
-            self, workspace, traces):
-        request(workspace, traces, "Add 21-day rolling volatility", 0)
-        traces.unlink()
-
-        planned = plan_and_record(
-            WorkspaceStore(workspace), worksheet_id="ws-1", owner=OWNER,
-            instruction="Add 63-day rolling volatility", intent_id="i9",
-            proposal_id="p9", at="t9")
-        assert planned.intent.selection_basis.value == "VARIANT_EXPLORATION"
-
-    def test_a_failing_trace_store_costs_a_trace_and_not_an_edit(
-            self, workspace, traces):
-        """A locked database, a full disk, a deleted file. Any of them must lose
-        a trace rather than a worksheet edit."""
-        class Broken:
-            def start_trace(self, **kw): raise OSError("disk full")
-            def end_trace(self, *a, **kw): raise OSError("disk full")
-            def record_span(self, span): raise OSError("disk full")
-            def record_decision(self, decision): raise OSError("disk full")
-
-        rec = Recorder(Broken(), tenant=OWNER).start()
-        planned = plan_and_record(
-            WorkspaceStore(workspace), worksheet_id="ws-1", owner=OWNER,
-            instruction="Add 63-day rolling volatility", intent_id="i0",
-            proposal_id="p0", at="t0", recorder=rec)
-
-        assert planned.proposal.applicable
-        assert rec.failures > 0, (
-            "telemetry failures must be counted, not silently swallowed")
-
-    def test_behaviour_is_identical_with_and_without_a_recorder(
-            self, tmp_path, workspace, traces):
-        """The system must not behave differently when it is being watched."""
-        observed, _ = request(workspace, traces,
-                              "Try SPY, VTI and VT and keep the best", 0)
-
-        other = tmp_path / "other.db"
-        WorkspaceStore(other).save_worksheet(
-            create(worksheet_id="ws-1", owner_id=OWNER, scenario_ref="plan-1",
-                   primary_run_ref="run-0", created_at="t0"))
-        unobserved = plan_and_record(
-            WorkspaceStore(other), worksheet_id="ws-1", owner=OWNER,
-            instruction="Try SPY, VTI and VT and keep the best",
-            intent_id="i0", proposal_id="p0", at="t0")
-
-        assert observed.intent.to_json() == unobserved.intent.to_json()
-        assert observed.proposal.to_json() == unobserved.proposal.to_json()
+        monkeypatch.setattr(telemetry, "_scrub", boom)
+        # The route calls emit; emit swallows the failure and the page is served.
+        assert client.get("/evaluate",
+                          params={"describe": SENTENCE}).status_code == 200
 
 
-class TestDecisionsAnswerWhy:
+# --- operational metric: save-without-recompute is a structural 100% -------
 
-    def test_the_classification_records_why_it_landed_there(self, workspace,
-                                                            traces):
-        _, rec = request(workspace, traces, "Add 63-day rolling volatility", 0)
-        recorded = TraceStore(traces).trace(rec.trace_id, OWNER)
-        [classification] = [d for d in recorded["decisions"]
-                            if d["kind"] == "INTENT_CLASSIFICATION"]
+class TestSaveWithoutRecomputeRate:
+    def test_it_is_one_hundred_percent(self, client):
+        from src.workspace import telemetry
 
-        assert "DERIVED_ANALYSIS" in classification["outcome"]
-        assert classification["reason"]
-        assert any(e.startswith("planner:")
-                   for e in classification["evidence_refs"])
+        review_id = client.post("/evaluate", data=ANSWER
+                                ).headers["location"].rsplit("/", 1)[-1]
+        started = client.post("/evaluate/save", data={"review_id": review_id})
+        nxt = urllib.parse.parse_qs(
+            urllib.parse.urlparse(started.headers["location"]).query)["next"][0]
+        client.get(nxt, headers=_as("user-a"))
 
-    def test_it_names_what_it_did_not_choose(self, workspace, traces):
-        """"It became DERIVED_ANALYSIS" is far less useful beside nothing than
-        beside the states it was not."""
-        _, rec = request(workspace, traces, "Add 63-day rolling volatility", 0)
-        [classification] = [
-            d for d in TraceStore(traces).trace(rec.trace_id, OWNER)["decisions"]
-            if d["kind"] == "INTENT_CLASSIFICATION"]
-        assert "SCENARIO_CHANGE" in classification["alternatives"]
-        assert "DERIVED_ANALYSIS" not in classification["alternatives"]
+        assert telemetry.save_without_recompute_rate() == 1.0, (
+            "a save recomputed the strategy — the exact-save invariant carries "
+            "recomputed=False on every plan_saved, so the rate must be 100%")
 
-    def test_a_prior_intent_is_cited_as_evidence(self, workspace, traces):
-        request(workspace, traces, "Add 21-day rolling volatility", 0)
-        _, rec = request(workspace, traces, "Add 63-day rolling volatility", 1)
-        [classification] = [
-            d for d in TraceStore(traces).trace(rec.trace_id, OWNER)["decisions"]
-            if d["kind"] == "INTENT_CLASSIFICATION"]
-        assert "intent:i0" in classification["evidence_refs"]
+    def test_it_is_undefined_before_any_save(self):
+        from src.workspace import telemetry
 
-    def test_a_refusal_records_its_reason(self, workspace, traces):
-        from src.workspace.worksheet import from_json, revise
-
-        store = WorkspaceStore(workspace)
-        current = from_json(store.get_worksheet("ws-1", OWNER)["payload"])
-        store.save_worksheet(revise(current, reason="advanced", created_at="t1"))
-
-        rec = recorder(traces)
-        with pytest.raises(Exception):
-            plan_and_record(store, worksheet_id="ws-1", owner=OWNER,
-                            instruction="Add 63-day rolling volatility",
-                            intent_id="i0", proposal_id="p0", at="t0",
-                            source_revision=1, recorder=rec)
-
-        [refusal] = TraceStore(traces).trace(rec.trace_id, OWNER)["decisions"]
-        assert refusal["outcome"] == "REFUSED_STALE"
-
-    def test_a_deterministic_decision_claims_no_confidence(self, workspace,
-                                                           traces):
-        """A rule match has no confidence; it has a rule. A column of 1.0s
-        teaches a reader that the number means something."""
-        _, rec = request(workspace, traces, "Add 63-day rolling volatility", 0)
-        for decision in TraceStore(traces).trace(rec.trace_id, OWNER)["decisions"]:
-            assert decision["confidence"] is None
-
-
-class TestTheCorrelationSpine:
-
-    def test_one_conversation_gathers_its_requests(self, workspace, traces):
-        conversation = new_conversation_id()
-        request(workspace, traces, "Add 21-day rolling volatility", 0,
-                conversation)
-        request(workspace, traces, "Add 63-day rolling volatility", 1,
-                conversation)
-
-        assert len(TraceStore(traces).traces_for_conversation(
-            conversation, OWNER)) == 2
-
-    def test_a_trace_can_be_found_from_what_it_produced(self, workspace,
-                                                        traces):
-        """"Show me every model interaction that eventually produced this."""
-        planned, rec = request(workspace, traces,
-                               "Add 63-day rolling volatility", 0)
-        found = TraceStore(traces).traces_producing(
-            f"proposal:{planned.proposal_id}", OWNER)
-        assert [t["trace_id"] for t in found] == [rec.trace_id]
-
-    def test_another_tenant_sees_none_of_it(self, workspace, traces):
-        _, rec = request(workspace, traces, "Add 63-day rolling volatility", 0)
-        store = TraceStore(traces)
-        assert store.trace(rec.trace_id, "someone-else") is None
-        assert store.traces_for_conversation(rec.conversation_id,
-                                             "someone-else") == []
-
-    def test_spans_nest(self, workspace, traces):
-        _, rec = request(workspace, traces, "Add 63-day rolling volatility", 0)
-        spans = TraceStore(traces).trace(rec.trace_id, OWNER)["spans"]
-        assert {s["name"] for s in spans} >= {
-            "worksheet_load", "history_load", "intent_planning",
-            "proposal_generation"}
-        assert all(s["duration_ms"] is not None for s in spans)
-
-
-class TestThePrivacyBoundary:
-
-    def test_no_raw_instruction_reaches_the_trace_store(self, workspace,
-                                                        traces):
-        secret = "Add 63-day rolling volatility for my Tesla RSUs at Acme Corp"
-        _, rec = request(workspace, traces, secret, 0)
-
-        body = traces.read_bytes().decode("utf-8", errors="ignore")
-        assert "Tesla" not in body
-        assert "Acme" not in body
-
-    def test_an_error_records_its_class_not_its_message(self, traces):
-        """A message can quote the input that caused it."""
-        rec = recorder(traces)
-        with pytest.raises(ValueError):
-            with rec.span("thing"):
-                raise ValueError("holdings: 4000 shares of TSLA")
-
-        [span] = TraceStore(traces).trace(rec.trace_id, OWNER)["spans"]
-        assert span["error"] == "ValueError"
-        assert "TSLA" not in str(span)
-
-
-class TestRetention:
-
-    def test_old_traces_are_purged_with_their_spans_and_decisions(
-            self, workspace, traces):
-        request(workspace, traces, "Add 63-day rolling volatility", 0)
-        store = TraceStore(traces)
-
-        purged = store.purge_before("2999-01-01T00:00:00+00:00")
-        assert purged["traces"] == 1
-        assert purged["spans"] > 0
-        assert purged["decisions"] > 0
-
-    def test_purging_traces_leaves_the_artifacts_untouched(self, workspace,
-                                                           traces):
-        request(workspace, traces, "Add 21-day rolling volatility", 0)
-        request(workspace, traces, "Add 63-day rolling volatility", 1)
-        TraceStore(traces).purge_before("2999-01-01T00:00:00+00:00")
-
-        history = IntentHistory.from_store(WorkspaceStore(workspace), "ws-1",
-                                           OWNER)
-        assert history.trial_total == 2
-        assert history.verdict.trustworthy
-
-    def test_a_tenant_deletion_is_not_a_retention_policy(self, workspace,
-                                                         traces):
-        """A deletion request must not wait for expiry to come round."""
-        request(workspace, traces, "Add 63-day rolling volatility", 0)
-        store = TraceStore(traces)
-
-        assert store.purge_tenant(OWNER)["traces"] == 1
-        assert store.traces_for_conversation("anything", OWNER) == []
-
-    def test_purging_one_tenant_leaves_another(self, workspace, traces):
-        _, mine = request(workspace, traces, "Add 63-day rolling volatility", 0)
-        store = TraceStore(traces)
-        store.start_trace(trace_id="other", conversation_id="c",
-                          request_id="r", tenant="someone-else",
-                          started_at="t0")
-
-        store.purge_tenant("someone-else")
-        assert store.trace(mine.trace_id, OWNER) is not None
+        assert telemetry.save_without_recompute_rate() is None

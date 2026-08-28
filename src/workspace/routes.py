@@ -123,6 +123,13 @@ TEMPLATES.env.globals["strategy_library"] = lambda: __import__(
     "src.workspace.strategy_library",
     fromlist=["LIBRARY"]).LIBRARY
 
+#: The CSRF token for the request being rendered (§11), for the save forms'
+#: hidden field. Registered here so it is defined on the templates regardless of
+#: whether `src.api` has been imported; the value is filled per request by the
+#: `_csrf_context` middleware and is `""` when none was issued.
+TEMPLATES.env.globals["csrf_token"] = lambda: __import__(
+    "src.workspace.abuse", fromlist=["current_csrf_token"]).current_csrf_token()
+
 PRICES = Path("data/history/prices.parquet")
 BENCHMARK_RULE = "benchmark-policy/public-default@1"
 

@@ -29,6 +29,7 @@ from fastapi.responses import HTMLResponse
 
 from ..deploy.context import ParserMode
 from ..discovery.schema import QUANTIFY_SCHEMA
+from . import abuse, telemetry
 from .catalog_assumptions import assume
 from .catalog_intent import reading_for
 from .pilot import InterpreterUnavailable, PilotReading, answer, read, reopen
@@ -175,6 +176,44 @@ def _answers_in(form) -> Dict[str, str]:
         if original is None or submitted != str(original).strip():
             answers[name] = submitted
     return answers
+
+
+def _emit_evaluation_funnel(reading: PilotReading,
+                            run: Optional[Dict[str, Any]] = None, *,
+                            route: str = "", participant: str = "",
+                            latency_ms: Optional[float] = None) -> None:
+    """Emit the §10 clarification + evaluation funnel events for one reading.
+
+    Best-effort and text-free: it reads the *shape* of the reading and the run —
+    is it still asking questions, did it refuse, did it produce a figure — and
+    emits ids/counts/latency only. Never the prompt: the sentence is reduced to a
+    length via `question_count`/nothing here carries it.
+    """
+    run = run or {}
+    # Clarification: still asking, or sealed and settled.
+    if reading.questions:
+        telemetry.emit(telemetry.CLARIFICATION_REQUESTED, route=route,
+                       participant=participant,
+                       question_count=len(reading.questions))
+    elif reading.intent is not None:
+        telemetry.emit(telemetry.CLARIFICATION_COMPLETED, route=route,
+                       participant=participant,
+                       settled_count=len(reading.settled))
+
+    # Evaluation outcome, from the run's shape.
+    if reading.refusals:
+        telemetry.emit(telemetry.EVALUATION_ABSTAINED, route=route,
+                       participant=participant, outcome="refused",
+                       refusal_count=len(reading.refusals),
+                       latency_ms=latency_ms)
+    elif run.get("result") is not None:
+        telemetry.emit(telemetry.EVALUATION_COMPLETED, route=route,
+                       participant=participant, outcome="figure",
+                       latency_ms=latency_ms)
+    elif run.get("unavailable") or run.get("strategy_not_executed"):
+        telemetry.emit(telemetry.EVALUATION_FAILED, route=route,
+                       participant=participant, outcome="no_figure",
+                       latency_ms=latency_ms)
 
 
 def _observe_attempt(request, describe: str, reading: PilotReading,
@@ -386,6 +425,12 @@ def draft(request: Request, describe: str = "", picked: str = ""):
     """
     from .routes import TEMPLATES
 
+    # Normalize before anything reads the sentence (§11): trim, collapse runs of
+    # whitespace, cap the length. An ordinary sentence is unchanged, so a normal
+    # evaluation keeps its exact content-addressed identity; what this removes is
+    # the padded-out or whitespace-bomb input an abuser sends.
+    describe = abuse.normalize_prompt(describe)
+
     if not describe.strip():
         # A token on the empty page, before anything is typed.
         #
@@ -429,6 +474,8 @@ def draft(request: Request, describe: str = "", picked: str = ""):
     run = execute(reading)
     participant = _observe_attempt(request, describe, reading, run=run,
                                    picked=picked)
+    _emit_evaluation_funnel(reading, run, route="/evaluate",
+                            participant=participant)
     # When the evaluation is complete — sealed and asking nothing — persist the
     # content-addressed review so the Save button can carry its *id* rather than
     # the sentence. Saving then binds this stored artifact and re-reads nothing.
@@ -487,6 +534,15 @@ async def pilot_answer(request: Request, describe: str = Form(...),
     refused = _refuse_unless_declared(request)
     if refused is not None:
         return refused
+
+    # Normalize before reading (§11), the same normalization the draft applies,
+    # so the two entry points cannot disagree about what was submitted.
+    describe = abuse.normalize_prompt(describe)
+
+    # A prompt was submitted (§10). The event carries a *digest and length*, never
+    # the words: `prompt_digest` is what keeps raw strategy text out of analytics.
+    telemetry.emit(telemetry.PROMPT_SUBMITTED, route="/pilot/answer",
+                   **telemetry.prompt_digest(describe))
 
     form = await request.form()
     answers = _answers_in(form)
@@ -563,6 +619,8 @@ async def pilot_answer(request: Request, describe: str = Form(...),
 
     participant = _observe_attempt(request, describe, answered, answers,
                                    run=None, picked=picked)
+    _emit_evaluation_funnel(answered, route="/pilot/answer",
+                            participant=participant)
     target = f"/pilot/reviews/{review_id}"
     if stalled:
         target += "?stalled=1"
@@ -594,6 +652,9 @@ def evaluate(request: Request, describe: str = "", picked: str = ""):
     pick, exactly as the pilot draft takes. Keeping evaluation impersonal is
     what keeps the publisher position intact.
     """
+    # The evaluator was opened (§10). Emitted here rather than in `draft` so it
+    # counts a visit to the canonical public URL, not every internal render.
+    telemetry.emit(telemetry.EVALUATOR_OPENED, route="/evaluate")
     return pilot_new(request, describe, picked)
 
 
@@ -664,6 +725,28 @@ def _unavailable(request: Request, message: str, *, status: int = 404):
         status_code=status)
 
 
+async def _csrf_refusal(request: Request):
+    """A 403 when CSRF is enforced and this state-changing POST lacks a valid
+    token, or `None` to proceed (§11).
+
+    Off unless `QUANTIFY_CSRF_ENFORCE` is set, so every existing caller keeps
+    working; when on, a cross-site POST that cannot echo the cookie's token is
+    refused. The token rides in the `csrf_token` form field, read from the same
+    parsed form the handler already used — Starlette caches it, so this does not
+    re-read the body.
+    """
+    if not abuse.csrf_enforced():
+        return None
+    form = await request.form()
+    if abuse.verify_csrf(request, str(form.get(abuse.CSRF_FIELD, "") or "")):
+        return None
+    abuse.log_event("csrf_rejected", request, outcome="403")
+    return _unavailable(
+        request, "This save could not be verified as coming from the Quantify "
+        "page you were on. Reload the evaluation and try Save again.",
+        status=403)
+
+
 def _bind_the_exact_artifact(request: Request, session):
     """Bind an already-evaluated review to the authenticated owner. No reader.
 
@@ -709,6 +792,11 @@ def _bind_the_exact_artifact(request: Request, session):
     # After the write, never before. A handler recording SAVED first would
     # report a save that failed.
     observe_save(reading, plan_id, participant)
+    # Plan saved (§10). `recomputed=False` is the structural fact this path
+    # guarantees: it bound a content-addressed review and ran no parser or
+    # evaluator, which is what makes the save-without-recompute rate 100%.
+    telemetry.emit(telemetry.PLAN_SAVED, route="/pilot/save/resume",
+                   participant=participant, plan_id=plan_id, recomputed=False)
     response = RedirectResponse(f"/pilot/plans/{plan_id}", status_code=303)
     attach(response, participant)
     return response
@@ -801,9 +889,15 @@ async def pilot_save(request: Request, describe: str = Form(""),
     if refused is not None:
         return refused
 
+    blocked = await _csrf_refusal(request)
+    if blocked is not None:
+        return blocked
+
     if session and save_token:
         return _complete_from_session(request, session, save_token)
     if review_id:
+        telemetry.emit(telemetry.SAVE_CLICKED, route="/pilot/save",
+                       review_id=review_id)
         return _begin_save(request, review_id, picked)
 
     from .pilot_store import save
@@ -840,6 +934,12 @@ async def evaluate_save(request: Request, review_id: str = Form(...),
     refused = _refuse_unless_declared(request)
     if refused is not None:
         return refused
+    blocked = await _csrf_refusal(request)
+    if blocked is not None:
+        return blocked
+    # Save was clicked (§10). The auth-boundary entry; no prompt text travels.
+    telemetry.emit(telemetry.SAVE_CLICKED, route="/evaluate/save",
+                   review_id=review_id)
     return _begin_save(request, review_id, picked)
 
 
@@ -888,6 +988,9 @@ def pilot_plan(request: Request, plan_id: str):
     run = execute(reading, plan_id=plan_id)
     observe(reading, plan_id=plan_id, participant=participant, reopened=True,
             run=run)
+    # Reopening a saved plan re-executes it from the stored artifact (§10 rerun).
+    telemetry.emit(telemetry.EVALUATION_RERUN, route="/pilot/plans",
+                   participant=participant, plan_id=plan_id)
     context = page(reading, text=stored.get("text", ""), run=run)
     context["plan_id"] = plan_id
     context["reopened"] = True
