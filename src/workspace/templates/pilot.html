@@ -248,21 +248,32 @@
     </form>
 
     {% if not questions %}
-      {# Trying is free; keeping needs an account. A signed-in reader saves
-         directly; a guest is sent to sign in and returned to this same plan —
-         re-evaluated from the words they typed, which is deterministic — where
-         the save button is then theirs. #}
-      {% if not identity_state().configured or identity_state().viewer %}
+      {# Trying is free; keeping needs an account. #}
+      {% if review_id %}
+      {# Exact-save (§2/§4). The button carries the *content address* of the
+         evaluated review, not the sentence. Whoever clicks it — signed in or
+         not — binds this same stored artifact: a signed-in visitor saves it
+         now, a guest is sent to sign in and returned to `/pilot/save/resume`,
+         which binds the identical review to the owner they just proved. Nothing
+         re-reads the words, so no model call is spent merely to save. #}
+      <form method="post" action="/evaluate/save">
+        <input type="hidden" name="review_id" value="{{ review_id }}">
+        <input type="hidden" name="picked" value="{{ picked or "" }}">
+        <button type="submit">Save this plan</button>
+      </form>
+      {% if identity_state().configured and not identity_state().viewer %}
+      <p class="small muted" style="margin:8px 0 0">You are trying this without
+        an account — nothing is saved yet. Saving signs you in and returns you to
+        this exact result, unchanged.</p>
+      {% endif %}
+      {% elif not identity_state().configured or identity_state().viewer %}
+      {# No persisted review to address (e.g. a reopened saved plan). Keep the
+         legacy describe-based save for a signed-in viewer. #}
       <form method="post" action="/pilot/save">
         <input type="hidden" name="describe" value="{{ text }}">
         <input type="hidden" name="picked" value="{{ picked or "" }}">
         <button type="submit">Save this plan</button>
       </form>
-      {% else %}
-      <a class="btn" href="/auth/login?next=/workspace/new?describe={{ text | urlencode }}">Sign in to save this plan</a>
-      <p class="small muted" style="margin:8px 0 0">You are trying this without
-        an account — nothing is saved. Sign in to keep it; you will come back to
-        this same result.</p>
       {% endif %}
     {% endif %}
   </section>

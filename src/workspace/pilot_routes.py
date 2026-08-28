@@ -429,9 +429,20 @@ def draft(request: Request, describe: str = "", picked: str = ""):
     run = execute(reading)
     participant = _observe_attempt(request, describe, reading, run=run,
                                    picked=picked)
+    # When the evaluation is complete — sealed and asking nothing — persist the
+    # content-addressed review so the Save button can carry its *id* rather than
+    # the sentence. Saving then binds this stored artifact and re-reads nothing.
+    # Idempotent and deterministic: the same evaluation rewrites the same row and
+    # yields the same id, so two renders of one draft stay byte-identical.
+    review_id = ""
+    if reading.intent is not None and not reading.questions:
+        from .pilot_store import save_review
+
+        review_id = save_review(reading, picked)
     response = TEMPLATES.TemplateResponse(
         request, "pilot.html",
-        dict(page(reading, text=describe, run=run), picked=picked))
+        dict(page(reading, text=describe, run=run), picked=picked,
+             review_id=review_id))
     attach(response, participant)
     return response
 
@@ -644,19 +655,156 @@ def pilot_review(request: Request, review_id: str,
     return response
 
 
+def _unavailable(request: Request, message: str, *, status: int = 404):
+    from .routes import TEMPLATES
+
+    return TEMPLATES.TemplateResponse(
+        request, "pilot.html",
+        {"text": "", "reading": None, "unavailable": message},
+        status_code=status)
+
+
+def _bind_the_exact_artifact(request: Request, session):
+    """Bind an already-evaluated review to the authenticated owner. No reader.
+
+    This is the exact-save invariant made mechanical (§2/§4). The review named by
+    the session is content-addressed, so loading it returns the *exact* evaluated
+    artifact rather than a re-derivation; `reopen` takes a dict and cannot reach a
+    reader, so nothing here interprets the sentence again. The plan identity is
+    re-derived from the reopened artifact and asserted equal to the one the
+    evaluation already determined — an equality a model call on this path could
+    only break, which is why its holding is the proof no such call happened.
+
+    Owner binding changes only the *envelope*: `save` scopes the write to the
+    current (now-authenticated) owner, while the artifact's content hash — its
+    identity — is untouched.
+    """
+    from fastapi.responses import RedirectResponse
+
+    from .pilot_store import (load_review, load_review_under, plan_id_for, save)
+
+    stored = load_review_under(session.review_owner, session.compiled_plan_hash)
+    if stored is None:
+        # The review may have been written under the current owner (a signed-in
+        # visitor who evaluated their own strategy before saving it).
+        stored = load_review(session.compiled_plan_hash)
+    if stored is None:
+        return _unavailable(
+            request, "the evaluated plan behind this save is no longer "
+            "available; evaluate it again to save it")
+
+    reading = reopen(stored)                       # dict-only: no reader exists
+    minted = plan_id_for(reading)
+    # The structural invariant. `reopen` cannot construct a reader, so `minted`
+    # is the plan the pre-login evaluation already fixed; a save that recomputed
+    # the strategy would land on a different hash and trip this.
+    assert minted == session.evaluated_plan_id, (
+        "the reopened review yielded a different plan identity than was "
+        "evaluated — this save is not binding the exact artifact")
+
+    plan_id = save(reading)                        # owner is the envelope
+    assert plan_id == minted, "the saved plan id is not its content address"
+
+    participant = participant_in(request) or new_participant()
+    # After the write, never before. A handler recording SAVED first would
+    # report a save that failed.
+    observe_save(reading, plan_id, participant)
+    response = RedirectResponse(f"/pilot/plans/{plan_id}", status_code=303)
+    attach(response, participant)
+    return response
+
+
+def _begin_save(request: Request, review_id: str, picked: str):
+    """Open a save over an already-evaluated review.
+
+    Signed in (or a deployment with no accounts): bind it now. Signed out with a
+    provider present: mint the single-use session, then send the visitor to sign
+    in and return to `/pilot/save/resume`, where the exact artifact is bound to
+    the owner they just proved. Either way no sentence is re-read — the review is
+    already evaluated and content-addressed."""
+    from fastapi.responses import RedirectResponse
+
+    from . import evaluation_session as es
+
+    try:
+        session = es.create_for_review(review_id, picked)
+    except es.SessionError as gone:
+        return _unavailable(request, str(gone))
+
+    from .auth_routes import _target, signed_in
+
+    target = _target()
+    if not target.configured or signed_in(request) is not None:
+        return _bind_the_exact_artifact(request, session)
+
+    # Anonymous, and this deployment has accounts. The Save is the first — and
+    # only — authentication boundary: sign in, then come back to bind the exact
+    # evaluated artifact. The review id already rode a public, refreshable URL,
+    # and the single-use token is what the resume consumes.
+    resume = quote(
+        f"/pilot/save/resume?session={session.session_id}"
+        f"&save_token={session.save_token}", safe="")
+    return RedirectResponse(f"/auth/login?next={resume}", status_code=303)
+
+
+def _complete_from_session(request: Request, session_id: str, save_token: str):
+    """Consume the single-use token and bind, or handle a replay idempotently.
+
+    The first arrival spends the token and saves. A second arrival — a
+    double-click, a refreshed resume URL, a deliberate replay — finds the token
+    already consumed and is sent to the plan that first save minted, rather than
+    minting a second one or erroring. A token that matches no live session, or
+    one whose session expired or was tampered with, is refused."""
+    from fastapi.responses import RedirectResponse
+
+    from . import evaluation_session as es
+
+    session = es.consume_save_token(save_token)
+    if session is not None and session.session_id == session_id:
+        return _bind_the_exact_artifact(request, session)
+
+    # Not consumable now. Distinguish a genuine replay of a completed save (send
+    # them to the plan) from a stale, expired or forged link (refuse).
+    from hmac import compare_digest
+
+    existing = es.resolve(session_id)
+    if (existing is not None and es.is_consumed(session_id)
+            and compare_digest(save_token, existing.save_token)):
+        return RedirectResponse(
+            f"/pilot/plans/{existing.evaluated_plan_id}", status_code=303)
+    return _unavailable(
+        request, "this save link has already been used or has expired; open "
+        "the plan from your saved plans, or evaluate the strategy again",
+        status=409)
+
+
 @router.post("/pilot/save")
-async def pilot_save(request: Request, describe: str = Form(...)):
+async def pilot_save(request: Request, describe: str = Form(""),
+                     review_id: str = Form(""), picked: str = Form(""),
+                     session: str = Form(""), save_token: str = Form("")):
     """Persist the runtime artifact, not a rendering of it.
 
-    What is stored is the pinned intent and the settled record. Reopening
-    recompiles from that and never re-reads the sentence — which is the whole
-    property, and the first place a person can exercise it.
+    **The exact-save path (§2/§4).** When the request names an already-evaluated
+    artifact — a `review_id`, or a `session` + `save_token` — the save binds that
+    stored, content-addressed review to the owner and never re-reads `describe`.
+    No provider/model call is required merely to save an already-evaluated plan;
+    `_bind_the_exact_artifact` proves it structurally.
+
+    **The legacy direct path.** With only a `describe`, there is no prior review
+    to bind, so the reading is built here. This is retained for the no-provider
+    pilot and existing callers; the exact-save invariant governs the id path
+    above, which is the one the evaluator's Save button now uses.
     """
     from fastapi.responses import RedirectResponse
 
     refused = _refuse_unless_declared(request)
     if refused is not None:
         return refused
+
+    if session and save_token:
+        return _complete_from_session(request, session, save_token)
+    if review_id:
+        return _begin_save(request, review_id, picked)
 
     from .pilot_store import save
 
@@ -677,6 +825,42 @@ async def pilot_save(request: Request, describe: str = Form(...)):
     response = RedirectResponse(f"/pilot/plans/{plan_id}", status_code=303)
     attach(response, participant)
     return response
+
+
+@router.post("/evaluate/save")
+async def evaluate_save(request: Request, review_id: str = Form(...),
+                        picked: str = Form("")):
+    """Save an evaluated strategy — the public entry to the auth boundary.
+
+    Reachable without an account (it is where the account is asked for): it names
+    an already-evaluated, content-addressed review and either binds it now (a
+    signed-in visitor) or mints the single-use session and redirects to sign in
+    (an anonymous one). It never re-reads the sentence — the review is already
+    evaluated — so the click that starts a save costs no model call."""
+    refused = _refuse_unless_declared(request)
+    if refused is not None:
+        return refused
+    return _begin_save(request, review_id, picked)
+
+
+@router.get("/pilot/save/resume")
+def pilot_save_resume(request: Request, session: str = "", save_token: str = ""):
+    """Finish a save after signing in. Binds the exact evaluated artifact.
+
+    The `next` an anonymous Save redirected through login. It sits behind the
+    session gate, so it can only run for a now-authenticated visitor; it consumes
+    the single-use token and binds the exact review this session named to that
+    owner — with no reader on the path. It is idempotent under replay: the token
+    is single-use and the plan is content-addressed, so a re-request lands on the
+    same plan rather than minting a second."""
+    refused = _refuse_unless_declared(request)
+    if refused is not None:
+        return refused
+    if not (session and save_token):
+        return _unavailable(
+            request, "this save link is incomplete; evaluate the strategy again "
+            "to save it", status=400)
+    return _complete_from_session(request, session, save_token)
 
 
 @router.get("/pilot/plans/{plan_id}", response_class=HTMLResponse)
