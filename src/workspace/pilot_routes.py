@@ -757,6 +757,36 @@ async def evaluate_answer(request: Request, describe: str = Form(...),
                               from_review=from_review)
 
 
+@router.get("/for-advisors", response_class=HTMLResponse)
+def for_advisors(request: Request):
+    """The public advisor narrative (§8 of the public strategy-lab plan, Gate 4).
+
+    Informational only. It manages no households, reads no account state and
+    takes no parameters — the same evaluated `SavedStrategyPlan` a person can
+    already produce on the public evaluator is the portable input to Wealth
+    Manager, and this page explains that lifecycle without becoming part of it.
+
+    It is `PUBLIC_RESEARCH`: reachable without an account, carrying nothing a
+    user wrote. Crucially it does not gate the evaluator — a demo/contact path
+    is offered, never required, and `/evaluate` stays free whether or not anyone
+    writes in.
+
+    The stage labels are grounded in *deployed* status, not aspiration (this is
+    Gate 4's honesty requirement). `Evaluate` and `Save strategy plan` are LIVE
+    — they are exactly the Gate 1–3 public evaluator and the exact-save
+    `SavedStrategyPlan` handoff. The four downstream stages — connect account,
+    apply constraints, governed execution, continuous supervision — are Wealth
+    Manager capabilities that run *simulation-first* and are not live: governed
+    execution is simulated and live brokerage execution is gated on external
+    broker/RIA authorization that does not yet exist. They are labelled roadmap
+    / in development, never as live money movement, so the page's claims match
+    the same declared-vs-realized rule the rest of the system enforces.
+    """
+    from .routes import TEMPLATES
+
+    return TEMPLATES.TemplateResponse(request, "for_advisors.html", {})
+
+
 @router.get("/pilot/reviews/{review_id}", response_class=HTMLResponse)
 def pilot_review(request: Request, review_id: str,
                  stalled: str = "", unchanged: str = ""):

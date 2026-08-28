@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}For Advisors{% endblock %}
+{% block content %}
+
+<style>
+  .fa-lead { font-size:20px; line-height:1.4; margin:6px 0 4px; max-width:44ch; }
+  .fa-sub { color:var(--muted); max-width:60ch; }
+  .stages { list-style:none; padding:0; margin:22px 0 0; }
+  .stage { display:grid; grid-template-columns:22px 1fr auto; gap:12px;
+           align-items:start; padding:14px 0; border-top:1px solid var(--line); }
+  .stage:first-child { border-top:0; }
+  .stage .num { font-family:var(--mono); font-size:12px; color:var(--muted);
+                line-height:1.6; }
+  .stage h3 { margin:0 0 3px; font-size:15px; }
+  .stage p { margin:0; font-size:13px; color:var(--muted); max-width:56ch; }
+  .status { font-size:11px; text-transform:uppercase; letter-spacing:.07em;
+            font-weight:600; border:1px solid; border-radius:99px;
+            padding:3px 10px; white-space:nowrap; align-self:start; }
+  .status.live { color:var(--ok); border-color:var(--ok);
+                 background:color-mix(in srgb,var(--ok) 9%,transparent); }
+  .status.roadmap { color:var(--block); border-color:var(--block);
+                    background:color-mix(in srgb,var(--block) 7%,transparent); }
+  .fa-legend { display:flex; gap:18px; flex-wrap:wrap; margin:14px 0 0;
+               font-size:12px; color:var(--muted); }
+  .fa-legend .status { align-self:center; }
+  @media (max-width:640px){ .stage { grid-template-columns:18px 1fr; }
+                            .stage .status { grid-column:2; justify-self:start; } }
+</style>
+
+<h1>For advisors</h1>
+<p class="fa-lead"><strong>Serve more households without adding proportional
+manual workload.</strong></p>
+<p class="fa-sub">The same public evaluation you can run right now produces a
+saved strategy plan. That plan is the portable input to Wealth Manager — so the
+strategy work you do once carries forward into governed portfolio management,
+rather than being re-entered household by household.</p>
+
+<h2 style="margin-top:30px">The lifecycle</h2>
+<p class="fa-sub">Each stage is labelled by what is actually deployed today. Only
+the first two are live; the four Wealth Manager stages are on the roadmap and run
+<strong>simulation-first</strong> — nothing here moves money.</p>
+
+<div class="fa-legend">
+  <span><span class="status live">Live</span> available now on quantify.club</span>
+  <span><span class="status roadmap">Roadmap</span> Wealth Manager capability, in
+  development, simulation-first — not live</span>
+</div>
+
+<ol class="stages">
+  <li class="stage">
+    <span class="num">1</span>
+    <div>
+      <h3>Evaluate</h3>
+      <p>Describe a strategy in plain English, clarify it, and see what it does —
+      publicly, with no account. This is the live public evaluator.</p>
+    </div>
+    <span class="status live">Live</span>
+  </li>
+  <li class="stage">
+    <span class="num">2</span>
+    <div>
+      <h3>Save strategy plan</h3>
+      <p>Keep an evaluated result as a versioned <code>SavedStrategyPlan</code>.
+      Saving is the one authentication boundary; the evaluation before it stays
+      free. This is live today.</p>
+    </div>
+    <span class="status live">Live</span>
+  </li>
+  <li class="stage">
+    <span class="num">3</span>
+    <div>
+      <h3>Connect account</h3>
+      <p>Bind a saved plan to a real brokerage account in Wealth Manager. On the
+      roadmap and simulation-first: live brokerage connection is gated on
+      external broker / RIA authorization that is not in place, so no live
+      account is connected today.</p>
+    </div>
+    <span class="status roadmap">Roadmap</span>
+  </li>
+  <li class="stage">
+    <span class="num">4</span>
+    <div>
+      <h3>Apply constraints</h3>
+      <p>Layer account-level policy — suitability, restrictions, tax treatment —
+      on top of the strategy's meaning. A Wealth Manager capability in
+      development, exercised in simulation only.</p>
+    </div>
+    <span class="status roadmap">Roadmap</span>
+  </li>
+  <li class="stage">
+    <span class="num">5</span>
+    <div>
+      <h3>Governed execution</h3>
+      <p>Turn an approved plan into governed orders. Runs in <strong>simulation
+      only</strong> today: live money-moving execution is gated on broker / RIA
+      authorization that does not yet exist, so nothing is executed against a
+      real account. On the roadmap, not live.</p>
+    </div>
+    <span class="status roadmap">Roadmap</span>
+  </li>
+  <li class="stage">
+    <span class="num">6</span>
+    <div>
+      <h3>Continuous supervision</h3>
+      <p>Keep positions aligned to the plan over time — drift, rebalancing,
+      disclosure. A roadmap Wealth Manager capability; supervision of live
+      accounts is not available yet.</p>
+    </div>
+    <span class="status roadmap">Roadmap</span>
+  </li>
+</ol>
+
+<h2 style="margin-top:34px">What crosses the boundary</h2>
+<p class="fa-sub">When a plan moves to Wealth Manager it carries strategy
+<strong>meaning and provenance</strong> — the verified intent, target allocation,
+contribution and rebalance semantics, strategy-level constraints, the methodology
+and data snapshot, evaluation references, and a content hash — and nothing else.
+It never carries broker authority: no credentials, no execution authorization, no
+account-specific suitability claims. Wealth Manager imports it as evidence and
+intent, then creates its own separate account authorization. The plan describes
+what to do; it can never, by construction, be the thing that does it.</p>
+
+<h2 style="margin-top:34px">See it in practice</h2>
+<p class="fa-sub">The public evaluator is free and stays usable without contacting
+anyone — you never have to leave a lead to run or save a strategy. If you would
+like a walkthrough of the Wealth Manager roadmap for an advisory practice, get in
+touch.</p>
+<p style="margin-top:14px">
+  <a class="btn" href="/evaluate">Try the evaluator</a>
+  <a class="btn" href="mailto:advisors@quantify.club?subject=Wealth%20Manager%20demo"
+     style="margin-left:8px">Request a demo</a>
+</p>
+<p class="fa-sub" style="margin-top:10px; font-size:12px">Requesting a demo is
+optional. It gates nothing: the evaluator at <a href="/evaluate">/evaluate</a>
+remains open to anyone, no account and no contact required.</p>
+
+{% endblock %}
