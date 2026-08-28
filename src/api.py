@@ -356,6 +356,44 @@ async def _security_headers(request, call_next):
 # been built the page says so rather than 404ing: a missing dashboard is a
 # pipeline that has not run, and "not built yet" is a different thing to tell
 # somebody than "no such page".
+# The research → evaluator affordance (§7 of the public strategy-lab plan).
+#
+# The daily graphs and the evaluator are two faces of one engine, not separate
+# dashboards, so every research view offers a contextual move into the
+# evaluator. It carries only *public strategy semantics* — an optional catalogue
+# pick that lands in the evaluator's own textarea — and never any holdings, tax
+# or account state (§1 hard rule): personalization is the Wealth Manager
+# boundary, and implying it here would be the exact confusion the boundary
+# exists to prevent.
+_RESEARCH_TO_EVALUATE = (
+    '<div style="font:14px/1.5 system-ui,sans-serif;padding:12px 18px;'
+    'border-bottom:1px solid #d9dee5;background:#f5f7fa;color:#16202b;'
+    'display:flex;gap:16px;align-items:baseline;flex-wrap:wrap">'
+    '<span>This is public research, refreshed daily.</span>'
+    '<a href="/evaluate" style="font-weight:600;color:#1f6feb">'
+    'Describe your own strategy &rarr;</a>'
+    '<a href="/evaluate?picked=scheduled-funding" style="color:#1f6feb">'
+    'Evaluate a variation</a>'
+    '</div>'
+)
+
+
+def _with_evaluate_affordance(html: str) -> str:
+    """Prepend the research → evaluate banner (§7). Public semantics only.
+
+    Inserted after the document's opening ``<body>`` where there is one, so the
+    banner sits inside the rendered page; otherwise prepended. String work on the
+    served document only — the daily build is untouched.
+    """
+    lower = html.lower()
+    marker = lower.find("<body")
+    if marker != -1:
+        close = html.find(">", marker)
+        if close != -1:
+            return html[: close + 1] + _RESEARCH_TO_EVALUATE + html[close + 1 :]
+    return _RESEARCH_TO_EVALUATE + html
+
+
 @app.get("/research", response_class=HTMLResponse)
 def research() -> HTMLResponse:
     from .deploy.context import current
@@ -363,14 +401,16 @@ def research() -> HTMLResponse:
     built = Path(current().research_directory) / "regime_dashboard.html"
     if not built.exists():
         return HTMLResponse(
-            "<!doctype html><meta charset=utf-8>"
-            "<title>Research dashboard — Quantify</title>"
-            "<h1>The research dashboard has not been built yet.</h1>"
-            "<p>It is rebuilt from the day's history by a scheduled job on the "
-            "host. If this persists past the next run, the job is failing "
-            "rather than the page being missing.</p>",
+            _with_evaluate_affordance(
+                "<!doctype html><meta charset=utf-8>"
+                "<title>Research dashboard — Quantify</title>"
+                "<body>"
+                "<h1>The research dashboard has not been built yet.</h1>"
+                "<p>It is rebuilt from the day's history by a scheduled job on the "
+                "host. If this persists past the next run, the job is failing "
+                "rather than the page being missing.</p>"),
             status_code=503)
-    return HTMLResponse(built.read_text())
+    return HTMLResponse(_with_evaluate_affordance(built.read_text()))
 
 
 # --- service metadata ------------------------------------------------------
