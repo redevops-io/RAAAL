@@ -128,9 +128,26 @@ def callback(request: Request, code: str = "", state: str = "",
             "The sign-in could not be verified, so no session was created "
             f"({type(error).__name__}).", status=502)
 
+    # Session-fixation protection across login (§11). The session *is* the
+    # verified ID token, minted here and nowhere else, so the identifier a
+    # visitor carries after login is never one they (or an attacker who set a
+    # cookie on their browser beforehand) chose. `set_cookie` writes the fresh
+    # token over any prior value; the explicit `delete_cookie` first makes the
+    # rotation unmistakable — a pre-login `quantify_session` cannot survive the
+    # callback and be inherited by the authenticated session.
     response = RedirectResponse(flow.destination, status_code=303)
+    response.delete_cookie(SESSION_COOKIE, path="/")
     response.set_cookie(**session_cookie(token))
     response.delete_cookie(FLOW_COOKIE, path="/")
+
+    # Auth completed (§10). No identity travels into the funnel — the fact of a
+    # completed sign-in is the event, not who signed in.
+    try:
+        from . import telemetry
+
+        telemetry.emit(telemetry.AUTH_COMPLETED, route="/auth/callback")
+    except Exception:  # noqa: BLE001 - telemetry must not fail the login
+        pass
     return response
 
 

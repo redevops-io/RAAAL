@@ -325,18 +325,121 @@ SECURITY_HEADERS = {
 }
 
 
-@app.middleware("http")
-async def _security_headers(request, call_next):
-    """Set them, rather than default them.
+def _apply_security_headers(response) -> None:
+    """The four static headers plus the CSP, on one response.
+
+    Factored out of the middleware so the abuse short-circuits (a 429 or a 413
+    returned before any handler runs) carry the same headers a normal answer
+    does — a rejected request is still a response somebody's browser renders.
 
     Assignment and not `setdefault`: if something upstream has already put a
     weaker value on the response, the weaker value is the one that would
     survive, and "a header is present" is not the property worth having.
+
+    The CSP is set here rather than in `SECURITY_HEADERS` because it is the one
+    header a deployment may want to override per-environment (`QUANTIFY_CSP`),
+    and reading it at response time honours that override without a reimport.
+    The default is written to keep the current inline-handler pages rendering —
+    see `abuse.DEFAULT_CSP`.
     """
-    response = await call_next(request)
+    from .workspace.abuse import content_security_policy
+
     for name, value in SECURITY_HEADERS.items():
         response.headers[name] = value
+    response.headers["Content-Security-Policy"] = content_security_policy()
+
+
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    response = await call_next(request)
+    _apply_security_headers(response)
     return response
+
+
+@app.middleware("http")
+async def _abuse_controls(request, call_next):
+    """Rate limit and size ceiling on the evaluation endpoints only (§11).
+
+    Scoped by `is_rate_limited`, so research, the library, static and health are
+    never throttled. Both short-circuits carry the security headers, and both are
+    generous and env-tunable. The limiter check is fail-open: `within_rate_limit`
+    swallows its own errors and returns True, so a limiter in a bad state stops
+    limiting rather than taking the site down.
+
+    Outermost of the request-phase middleware (added last), so a rejection costs
+    the least work — nothing downstream runs for a request this turns away.
+    """
+    from fastapi.responses import PlainTextResponse
+
+    from .workspace import abuse
+
+    path = request.url.path
+    if abuse.is_rate_limited(path):
+        if request.method == "POST" and abuse.oversized(request):
+            abuse.log_event("request_too_large", request, outcome="413",
+                            limit=abuse.max_body_bytes())
+            response = PlainTextResponse(
+                "This request body is larger than the evaluator accepts. "
+                "Describe your strategy in a sentence or two — the evaluator "
+                "does not need a document.",
+                status_code=413)
+            _apply_security_headers(response)
+            return response
+        if not abuse.within_rate_limit(request):
+            abuse.log_event("rate_limited", request, outcome="429",
+                            limit=abuse.rate_limit_per_minute())
+            response = PlainTextResponse(
+                "You are sending evaluations faster than the public limit "
+                "allows. Wait a moment and try again — this limit exists so the "
+                "free evaluator stays available to everybody.",
+                status_code=429)
+            response.headers["Retry-After"] = str(
+                abuse.rate_limit_window_seconds())
+            _apply_security_headers(response)
+            return response
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def _csrf_context(request, call_next):
+    """Issue a CSRF token per browser and expose it to the templates (§11).
+
+    Double-submit: the token rides in a cookie and is rendered into the save
+    forms as a hidden field; the authenticated save compares them. This
+    middleware only *issues* the cookie and stashes the value where the template
+    global `csrf_token()` can read it — enforcement lives in the save handlers and
+    is off unless `QUANTIFY_CSRF_ENFORCE` is set, so this is inert-but-ready by
+    default and a live deployment turns protection on with one env var.
+
+    Never fails a request: a token that cannot be minted simply means the save
+    forms render an empty field, which only matters when enforcement is on, and a
+    deployment that turned enforcement on has a working token path by definition.
+
+    **Fully inert when enforcement is off (the default).** No cookie is set, the
+    template token is empty, and nothing about a response changes — so the pages
+    stay byte-for-byte what they were, which the refresh/reopen determinism tests
+    depend on. A per-request token rendered into the page would make two GETs of
+    one review differ, which is exactly the property those tests forbid. The
+    control only comes to life when a deployment sets `QUANTIFY_CSRF_ENFORCE`.
+    """
+    from .workspace import abuse
+
+    if not abuse.csrf_enforced():
+        return await call_next(request)
+
+    incoming = request.cookies.get(abuse.CSRF_COOKIE)
+    token = incoming or abuse.issue_csrf_token()
+    holder = abuse.CSRF_TOKEN.set(token)
+    try:
+        response = await call_next(request)
+        if not incoming:
+            try:
+                response.set_cookie(**abuse.csrf_cookie(token))
+            except Exception:  # noqa: BLE001 - a cookie must not fail a page
+                pass
+        return response
+    finally:
+        abuse.CSRF_TOKEN.reset(holder)
 
 
 # --- the research dashboard ------------------------------------------------
@@ -397,6 +500,9 @@ def _with_evaluate_affordance(html: str) -> str:
 @app.get("/research", response_class=HTMLResponse)
 def research() -> HTMLResponse:
     from .deploy.context import current
+    from .workspace import telemetry
+
+    telemetry.emit(telemetry.RESEARCH_VIEW, route="/research")
 
     built = Path(current().research_directory) / "regime_dashboard.html"
     if not built.exists():
@@ -438,6 +544,36 @@ app.include_router(pilot_router)
 from .workspace.auth_routes import router as auth_router  # noqa: E402
 
 app.include_router(auth_router)
+
+
+# --- advisor-viewed funnel hook (§10) -------------------------------------
+#
+# The For Advisors page (§8 / Gate 4) is defined on its own branch — its route,
+# its template and its manifest entry all land there. This branch must NOT define
+# the route, or the two registrations collide at merge. So the advisor-viewed
+# funnel event is emitted by *path*, in a middleware, rather than from a handler
+# here: when the real page ships, a GET of `/for-advisors` records the event with
+# no route or manifest owned by this branch. Until then the path simply 404s and
+# the middleware still records the visit — the emission is decoupled from who
+# defines the page.
+ADVISOR_PATH = "/for-advisors"
+
+
+@app.middleware("http")
+async def _advisor_view_funnel(request, call_next):
+    """Record the §10 advisor-viewed event for a GET of the For Advisors path.
+
+    Path-based on purpose: the route belongs to the Gate-4 branch, and this hook
+    fires for it without this branch mounting it. Best-effort — the emission is
+    wrapped so it can never affect the response — and it records the *view*, so it
+    fires whether the page is served (once the real route lands) or 404s (until
+    then), which is what a funnel of intent should count.
+    """
+    if request.method == "GET" and request.url.path == ADVISOR_PATH:
+        from .workspace import telemetry
+
+        telemetry.emit(telemetry.ADVISOR_VIEWED, route=ADVISOR_PATH)
+    return await call_next(request)
 
 
 #: Paths that require a verified session where this deployment has accounts,

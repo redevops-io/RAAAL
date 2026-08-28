@@ -326,6 +326,34 @@ def _pilot_data_policy(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _fresh_abuse_and_telemetry_state():
+    """Each test starts with an empty rate-limiter window and funnel.
+
+    The IP/session rate limiter (`src.workspace.abuse.RATE_LIMITER`) and the
+    telemetry ring are process-global by design — one in-process limiter per
+    server. In a suite that is a single process where every TestClient shares the
+    client host `testclient`, that global state would otherwise carry across
+    tests: sixty evaluation POSTs in aggregate would trip the limit and a later,
+    unrelated test would see a spurious 429. Resetting per test is the same
+    "no test inherits another's world" rule `_no_inherited_deployment` applies to
+    the bound deployment, pointed at this state.
+    """
+    try:
+        from src.workspace.abuse import reset_rate_limits
+
+        reset_rate_limits()
+    except Exception:                                           # pragma: no cover
+        pass
+    try:
+        from src.workspace import telemetry
+
+        telemetry.reset()
+    except Exception:                                           # pragma: no cover
+        pass
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _no_inherited_deployment():
     """No test serves under the deployment a previous test established.
 
