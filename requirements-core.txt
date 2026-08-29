@@ -57,7 +57,7 @@ boto3>=1.34
 # ref can be rebased under a consumer, which is the fragility this project
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
-runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.3.0
+runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.3.2
 # `discovery-runtime` is deliberately absent here and installed from
 # `vendor/discovery-runtime` by the Dockerfile instead.
 #
