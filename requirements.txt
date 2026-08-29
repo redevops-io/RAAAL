@@ -34,7 +34,7 @@ gymnasium>=0.29
 # ref can be rebased under a consumer, which is the fragility this project
 # criticised in mission-sdk's bare-commit pin. Bump deliberately; a contract
 # that moves silently is not a contract.
-runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.3.0
+runtime-contracts @ git+https://github.com/redevops-io/runtime-contracts.git@v0.3.2
 # `discovery-runtime` comes from the submodule, not from a tag fetch.
 #
 # It was pinned here at v0.1.7 while the submodule — the copy every test
