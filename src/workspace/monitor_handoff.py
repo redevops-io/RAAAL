@@ -81,19 +81,28 @@ def build_saved_plan(stored: dict, reading: Any, *, plan_id: str,
 # ── the wealth-manager seam ──────────────────────────────────────────────────────
 class WealthManagerClient(Protocol):
     def monitor(self, plan_dict: dict, *, holdings_source: str,
-                owner_id: str) -> dict: ...
+                owner_id: str, user_token: str = "") -> dict: ...
 
 
 class HttpWealthManagerClient:
-    """The real client — a thin ``POST /app/portfolios/monitor`` over httpx."""
+    """The real client — a thin ``POST /app/portfolios/monitor`` over httpx.
+
+    Bearer precedence: the **signed-in user's own token** (``user_token``, RAAAL's
+    Zitadel session ID token, forwarded verbatim) → a configured static service token
+    → a ``dev:`` fallback. Forwarding the user's token means wealth-manager seals the
+    policy under the *actual person* (``author="client"`` on their identity), not a
+    shared service principal — and there is no service secret to mint or rotate. It
+    verifies because wealth-manager trusts the same Zitadel issuer; leave
+    ``WEALTH_MANAGER_OIDC_AUDIENCE`` unset there so the RAAAL-audience token passes."""
 
     def __init__(self, base_url: str, token: str = "") -> None:
         self._base = base_url.rstrip("/")
         self._token = token
 
-    def monitor(self, plan_dict: dict, *, holdings_source: str, owner_id: str) -> dict:
+    def monitor(self, plan_dict: dict, *, holdings_source: str, owner_id: str,
+                user_token: str = "") -> dict:
         import httpx
-        bearer = self._token or f"dev:{owner_id or 'raaal'}"
+        bearer = user_token or self._token or f"dev:{owner_id or 'raaal'}"
         resp = httpx.post(
             f"{self._base}/app/portfolios/monitor",
             json={"saved_plan": plan_dict, "holdings_source": holdings_source},
@@ -129,10 +138,13 @@ def workspace_url(portfolio_id: str, *, scope: str = "") -> str:
 
 def monitor_plan(stored: dict, reading: Any, *, plan_id: str,
                  holdings_source: str = DEFAULT_HOLDINGS_SOURCE,
-                 owner_id: str = "", tenant_id: str = "") -> dict:
+                 owner_id: str = "", tenant_id: str = "",
+                 user_token: str = "") -> dict:
     """Build the plan, hand it to wealth-manager, return its monitor result (with
-    ``portfolio_id`` + workspace ``scope``). Raises :class:`MonitorUnavailable` when
-    wealth-manager is not configured."""
+    ``portfolio_id`` + workspace ``scope``). ``user_token`` is the signed-in user's own
+    Zitadel token, forwarded so wealth-manager authorizes under the real person rather
+    than a service principal. Raises :class:`MonitorUnavailable` when wealth-manager is
+    not configured."""
     if holdings_source not in HOLDINGS_SOURCES:
         holdings_source = DEFAULT_HOLDINGS_SOURCE
     plan = build_saved_plan(stored, reading, plan_id=plan_id, owner_id=owner_id,
@@ -142,7 +154,7 @@ def monitor_plan(stored: dict, reading: Any, *, plan_id: str,
         raise MonitorUnavailable(
             "wealth-manager base URL is not configured (WEALTH_MANAGER_BASE_URL)")
     result = client.monitor(plan.to_dict(), holdings_source=holdings_source,
-                            owner_id=owner_id)
+                            owner_id=owner_id, user_token=user_token)
     result.setdefault("workspace_url", workspace_url(result.get("portfolio_id", "")))
     return result
 

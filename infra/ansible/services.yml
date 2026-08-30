@@ -513,10 +513,15 @@
       changed_when: true
 
     - name: Wait for the rollout
+      # quantify-web has a slow cold start (the app initializes vendored runtimes +
+      # research data before uvicorn binds :8000), so a fresh pod can take longer than
+      # 10m to answer /health/ready. A 10m ceiling reported a false failure on a rollout
+      # that then completed a moment later; 20m covers the observed cold start. A
+      # genuinely stuck rollout still fails — just later.
       ansible.builtin.command:
         cmd: >-
           kubectl -n {{ k8s_namespace }} rollout status deploy/quantify-{{ item }}
-          --timeout=10m
+          --timeout=20m
       loop: "{{ targets | intersect(known_services) }}"
       changed_when: false
 

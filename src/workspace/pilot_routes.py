@@ -1236,6 +1236,7 @@ async def pilot_plan_monitor(request: Request, plan_id: str,
     from fastapi.responses import HTMLResponse, RedirectResponse
 
     from . import owner as owner_mod
+    from ..deploy.login import SESSION_COOKIE
     from .monitor_handoff import MonitorUnavailable, monitor_plan
     from .pilot_store import load
     from .routes import TEMPLATES
@@ -1254,10 +1255,14 @@ async def pilot_plan_monitor(request: Request, plan_id: str,
             {"text": "", "reading": None, "unavailable": "no such plan"},
             status_code=404)
     reading = reopen(stored)
+    # Forward the signed-in user's own Zitadel token (the session cookie IS the
+    # verified ID token) so wealth-manager authorizes the policy under the real
+    # person, not a shared service principal — and no service secret is needed.
+    user_token = request.cookies.get(SESSION_COOKIE, "")
     try:
         result = monitor_plan(stored, reading, plan_id=plan_id,
                               holdings_source=holdings_source,
-                              owner_id=owner_mod.current())
+                              owner_id=owner_mod.current(), user_token=user_token)
     except MonitorUnavailable:
         return HTMLResponse(
             f"<p>Monitoring isn't available yet — the Portfolio Operations service "

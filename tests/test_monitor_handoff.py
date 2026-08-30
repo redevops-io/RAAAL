@@ -84,10 +84,11 @@ def test_monitor_hands_over_plan_and_redirects(client, monkeypatch):
     captured: dict = {}
 
     class _FakeWM:
-        def monitor(self, plan_dict, *, holdings_source, owner_id):
+        def monitor(self, plan_dict, *, holdings_source, owner_id, user_token=""):
             captured["plan"] = plan_dict
             captured["holdings_source"] = holdings_source
             captured["owner_id"] = owner_id
+            captured["user_token"] = user_token
             return {"portfolio_id": "rcv1:abc123", "scope": "household:mp-x"}
 
     monitor_handoff.set_client(_FakeWM())
@@ -109,7 +110,7 @@ def test_holdings_source_choice_is_passed_through(client, monkeypatch):
     seen: dict = {}
 
     class _FakeWM:
-        def monitor(self, plan_dict, *, holdings_source, owner_id):
+        def monitor(self, plan_dict, *, holdings_source, owner_id, user_token=""):
             seen["hs"] = holdings_source
             return {"portfolio_id": "rcv1:xyz"}
 
@@ -117,6 +118,24 @@ def test_holdings_source_choice_is_passed_through(client, monkeypatch):
     client.post("/pilot/plans/plan-x/monitor", data={"holdings_source": "IMPORTED"},
                 follow_redirects=False)
     assert seen["hs"] == "IMPORTED"
+
+
+def test_signed_in_user_token_is_forwarded_to_wealth_manager(client):
+    """The session cookie IS the verified Zitadel ID token; the handoff forwards it so
+    wealth-manager authorizes under the real user, not a service principal."""
+    from src.deploy.login import SESSION_COOKIE
+    seen: dict = {}
+
+    class _FakeWM:
+        def monitor(self, plan_dict, *, holdings_source, owner_id, user_token=""):
+            seen["user_token"] = user_token
+            return {"portfolio_id": "rcv1:tok"}
+
+    monitor_handoff.set_client(_FakeWM())
+    client.cookies.set(SESSION_COOKIE, "user.jwt.token")
+    client.post("/pilot/plans/plan-x/monitor", data={"holdings_source": "SIMULATED"},
+                follow_redirects=False)
+    assert seen["user_token"] == "user.jwt.token"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
