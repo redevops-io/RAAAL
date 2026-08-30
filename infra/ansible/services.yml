@@ -349,6 +349,21 @@
       no_log: true
       when: "'web' in targets"
 
+    # The wealth-manager handoff token is included ONLY when one is exported.
+    # In this cluster wealth-manager verifies OIDC (issuer configured), so a `dev:`
+    # token is refused and an EMPTY token would break the call — worse than absent.
+    # Leaving WEALTH_MANAGER_SERVICE_TOKEN unset is the supported path when RAAAL
+    # propagates the signed-in user's own Zitadel token instead of a service token;
+    # then no key is written and the client forwards the caller's bearer.
+    - name: Include the wealth-manager service token only when one is exported
+      ansible.builtin.set_fact:
+        monitor_token_env: >-
+          {{ {'WEALTH_MANAGER_SERVICE_TOKEN': lookup('env', 'WEALTH_MANAGER_SERVICE_TOKEN')}
+             if lookup('env', 'WEALTH_MANAGER_SERVICE_TOKEN') | trim != ''
+             else {} }}
+      no_log: true
+      when: "'web' in targets"
+
     - name: Give quantify-web its configuration
       vars:
         web_config:
@@ -375,6 +390,25 @@
           OIDC_AUDIENCE: "{{ secret.client_id }}"
           OIDC_INTERNAL_BASE_URL: "http://quantify-identity"
           PUBLIC_BASE_URL: "https://{{ domain | default('quantify.club') }}"
+          # Save → Monitor This Strategy: where RAAAL hands a saved plan to
+          # wealth-manager, and where the browser is sent to open the resulting
+          # monitored portfolio. WEALTH_MANAGER_BASE_URL is the in-cluster ClusterIP
+          # address of the wealth-manager API (a private, server-to-server call — NOT
+          # the public tunnel); WORKSPACE_BASE_URL is the public origin the user's
+          # browser loads the Portfolio Operations workspace from. Both come from the
+          # environment so a deploy can point them without editing this file; unset
+          # means the "Monitor" action degrades gracefully (503) and the rest of the
+          # app is unaffected.
+          # Default to the cluster-topology addresses so a CI deploy (which does not
+          # inherit a shell's exports) still configures them; an exported env var wins.
+          # WEALTH_MANAGER_BASE_URL is wealth-manager's in-cluster ClusterIP (private,
+          # server-to-server); WORKSPACE_BASE_URL is the public Portfolio Operations origin.
+          WEALTH_MANAGER_BASE_URL: >-
+            {{ lookup('env', 'WEALTH_MANAGER_BASE_URL')
+               or 'http://wealth-manager-api.wealth-manager.svc.cluster.local' }}
+          WORKSPACE_BASE_URL: >-
+            {{ lookup('env', 'WORKSPACE_BASE_URL')
+               or 'https://workspace.quantify.club' }}
           QUANTIFY_COMMIT: "{{ build_commit }}"
           QUANTIFY_IMAGE_DIGEST: "{{ image | regex_search('sha256:[0-9a-f]+') }}"
           QUANTIFY_SNAPSHOT_ID: "{{ snapshot_id }}"
@@ -389,7 +423,7 @@
           # provider and Ansible does not resolve a Jinja expression used
           # as a mapping key inside `definition` — it fails as a censored
           # task with `no_log` on it, which is a bad way to learn that.
-          stringData: "{{ web_config | combine(model_key_env) }}"
+          stringData: "{{ web_config | combine(model_key_env) | combine(monitor_token_env | default({})) }}"
         # Replaced, not merged. `state: present` patches, so a key written by
         # an earlier deploy survives under its old name: switching the declared
         # provider from ANTHROPIC to OPENAI left ANTHROPIC_API_KEY in place

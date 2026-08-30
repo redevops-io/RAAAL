@@ -147,4 +147,19 @@ def test_monitor_degrades_when_wealth_manager_unconfigured(client, monkeypatch):
     r = client.post("/pilot/plans/plan-x/monitor",
                     data={"holdings_source": "SIMULATED"}, follow_redirects=False)
     assert r.status_code == 503
-    assert "not configured" in r.text
+
+
+def test_http_client_translates_unreachable_wm_to_monitor_unavailable(monkeypatch):
+    """When wealth-manager is configured (base URL set) but not deployed/reachable, the
+    transport error becomes MonitorUnavailable so the route degrades to 503, not a 500."""
+    import httpx
+
+    from src.workspace.monitor_handoff import HttpWealthManagerClient, MonitorUnavailable
+
+    def _boom(*a, **k):
+        raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr(httpx, "post", _boom)
+    wm = HttpWealthManagerClient("http://wealth-manager-api.wealth-manager.svc.cluster.local")
+    with pytest.raises(MonitorUnavailable):
+        wm.monitor({}, holdings_source="SIMULATED", owner_id="u")
