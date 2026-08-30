@@ -59,6 +59,15 @@ jobs:
           # problem into the pipeline rather than solving it.
           submodules: recursive
 
+      - name: Fetch the submodule's tags (the build gate requires an exact tag)
+        run: |
+          # actions/checkout populates the submodule at its gitlink commit but does
+          # NOT fetch that submodule's tags, so build_image.sh's
+          # `git describe --tags --exact-match` sees no tag and refuses a correctly
+          # pinned release (the gitlink IS v0.1.12 — proven locally). Fetch them; the
+          # checkout above already persisted credentials for the submodule.
+          git -C vendor/discovery-runtime fetch --tags --force origin
+
       - name: Refuse to deploy a dirty or ambiguous revision
         run: |
           # The commit is the deployment's identity, so it must be exactly the
