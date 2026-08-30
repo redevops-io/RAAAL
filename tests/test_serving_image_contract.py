@@ -65,8 +65,11 @@ def test_the_image_installs_the_exact_versions_it_was_tested_with(image):
     assert out.returncode == 0, out.stderr[-400:]
     versions = json.loads(out.stdout.strip().splitlines()[-1])
     assert versions["stanza"] == "1.14.0", versions
-    assert versions["discovery-runtime"] == "0.1.9", versions
-    assert versions["runtime-contracts"] == "0.2.4", versions
+    # These track the deliberate submodule/contract bumps (discovery-runtime
+    # 0.1.9→0.1.11→0.1.12 in c8b5a8b/5f7a998; runtime-contracts →0.3.0). Update them
+    # here whenever the vendored versions are bumped, or this gate goes stale.
+    assert versions["discovery-runtime"] == "0.1.12", versions
+    assert versions["runtime-contracts"] == "0.3.0", versions
 
 
 def test_the_mission_runtime_is_absent(image):
