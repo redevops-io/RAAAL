@@ -9,6 +9,7 @@ region      = "us-east-1"
 
 # --- dns -------------------------------------------------------------------
 domain_name    = "quantify.example.com"
+workspace_domain_name = "workspace.quantify.example.com"   # or "" to disable the workspace host
 hosted_zone_id = "ZXXXXXXXXXXXXX"
 
 # --- who may reach it ------------------------------------------------------

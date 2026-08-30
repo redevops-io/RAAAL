@@ -51,9 +51,19 @@ data "aws_lb" "cluster_identity" {
   tags  = { "ingress.eks.amazonaws.com/stack" = "quantify/quantify-identity" }
 }
 
+# The Portfolio Operations workspace's own internal ALB — provisioned by the
+# quantify-workspace Ingress (its own namespace + name), found by the same stack tag
+# the controller writes. Guarded on the domain being set, so this reconciles only once
+# the workspace is deployed.
+data "aws_lb" "cluster_workspace" {
+  count = (var.cluster_albs_ready && var.workspace_domain_name != "") ? 1 : 0
+  tags  = { "ingress.eks.amazonaws.com/stack" = "quantify-workspace/quantify-workspace" }
+}
+
 locals {
-  tunnel_web_origin      = var.cluster_albs_ready ? "http://${data.aws_lb.cluster_web[0].dns_name}:80" : ""
-  tunnel_identity_origin = var.cluster_albs_ready ? "http://${data.aws_lb.cluster_identity[0].dns_name}:80" : ""
+  tunnel_web_origin       = var.cluster_albs_ready ? "http://${data.aws_lb.cluster_web[0].dns_name}:80" : ""
+  tunnel_identity_origin  = var.cluster_albs_ready ? "http://${data.aws_lb.cluster_identity[0].dns_name}:80" : ""
+  tunnel_workspace_origin = (var.cluster_albs_ready && var.workspace_domain_name != "") ? "http://${data.aws_lb.cluster_workspace[0].dns_name}:80" : ""
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
@@ -91,6 +101,22 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "pilot" {
       content {
         hostname = var.identity_domain_name
         service  = local.tunnel_identity_origin
+
+        origin_request {
+          connect_timeout = "30s"
+          no_tls_verify   = false
+        }
+      }
+    }
+
+    # The Portfolio Operations workspace, on its own hostname through the same tunnel,
+    # to its own internal ALB. Its nginx serves the SPA and proxies the wealth-manager
+    # API in-cluster, so this is one more name, not a second origin path.
+    dynamic "ingress_rule" {
+      for_each = var.workspace_domain_name == "" ? [] : [1]
+      content {
+        hostname = var.workspace_domain_name
+        service  = local.tunnel_workspace_origin
 
         origin_request {
           connect_timeout = "30s"
@@ -161,6 +187,21 @@ resource "cloudflare_record" "identity" {
   content = "${cloudflare_zero_trust_tunnel_cloudflared.pilot.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
+}
+
+
+# The Portfolio Operations workspace's own name, resolving through the tunnel exactly
+# as the apex and identity do. Published with the tunnel rule above (a record pointing
+# at a tunnel that carries no ingress rule for the host resolves to nothing serving).
+resource "cloudflare_record" "workspace" {
+  count = (var.cluster_albs_ready && var.workspace_domain_name != "") ? 1 : 0
+
+  zone_id = var.cloudflare_zone_id
+  name    = var.workspace_domain_name
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.pilot.id}.cfargotunnel.com"
+  type    = "CNAME"
+  proxied = true
+  comment = "Quantify workspace — Portfolio Operations"
 }
 
 
