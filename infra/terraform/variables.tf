@@ -43,6 +43,20 @@ variable "domain_name" {
   type        = string
 }
 
+variable "workspace_domain_name" {
+  description = <<-EOT
+    Hostname the Portfolio Operations workspace SPA is served on, e.g.
+    workspace.quantify.club. It has its own internal ALB (the quantify-workspace
+    Ingress), reached through the same tunnel.
+
+    Empty disables it: no DNS record and no tunnel rule, the state before the
+    workspace was deployed. Set it only once the quantify-workspace Ingress exists,
+    so the ALB the tunnel rule names has been provisioned.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "identity_domain_name" {
   description = <<-EOT
     Hostname the identity provider is served on, e.g. auth.quantify.club.
@@ -318,8 +332,8 @@ variable "enable_kubernetes" {
     on the command line: passed as a flag, the first apply that forgot it would
     destroy the cluster, and "remember the flag" is not a control.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "cluster_albs_ready" {
@@ -338,7 +352,7 @@ variable "cluster_albs_ready" {
     not exist yet. On a steady-state redeploy the ALBs already exist; set it
     true in the environment's tfvars once the cluster is standing.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
