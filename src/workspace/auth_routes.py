@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from ..deploy.identity import Identity, IdentityUnavailable
 from ..deploy.login import (FLOW_COOKIE, SESSION_COOKIE, Flow, LoginFailed,
                             begin, complete, flow_cookie, session_cookie,
+                            session_cookie_domain,
                             viewer)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -136,7 +137,7 @@ def callback(request: Request, code: str = "", state: str = "",
     # rotation unmistakable — a pre-login `quantify_session` cannot survive the
     # callback and be inherited by the authenticated session.
     response = RedirectResponse(flow.destination, status_code=303)
-    response.delete_cookie(SESSION_COOKIE, path="/")
+    response.delete_cookie(SESSION_COOKIE, path="/", domain=session_cookie_domain() or None)
     response.set_cookie(**session_cookie(token))
     response.delete_cookie(FLOW_COOKIE, path="/")
 
@@ -160,5 +161,5 @@ def logout(request: Request):
     what pressing "sign out" on this one asks for.
     """
     response = RedirectResponse("/", status_code=303)
-    response.delete_cookie(SESSION_COOKIE, path="/")
+    response.delete_cookie(SESSION_COOKIE, path="/", domain=session_cookie_domain() or None)
     return response

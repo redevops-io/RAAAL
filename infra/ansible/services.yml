@@ -409,6 +409,13 @@
           WORKSPACE_BASE_URL: >-
             {{ lookup('env', 'WORKSPACE_BASE_URL')
                or 'https://workspace.quantify.club' }}
+          # Share the session cookie across quantify.club subdomains so the Portfolio
+          # Operations SPA (workspace.quantify.club) receives it and can forward the
+          # token to wealth-manager. Default '.quantify.club'; an env value overrides,
+          # and an empty value keeps the cookie host-only.
+          SESSION_COOKIE_DOMAIN: >-
+            {{ lookup('env', 'SESSION_COOKIE_DOMAIN')
+               or '.quantify.club' }}
           QUANTIFY_COMMIT: "{{ build_commit }}"
           QUANTIFY_IMAGE_DIGEST: "{{ image | regex_search('sha256:[0-9a-f]+') }}"
           QUANTIFY_SNAPSHOT_ID: "{{ snapshot_id }}"
