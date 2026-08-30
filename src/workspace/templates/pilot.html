@@ -105,6 +105,33 @@
     again — this is compiled from the intent you confirmed.</p>
   {% endif %}
 
+  {# ═══ Save → Monitor This Strategy ═══
+     A saved plan is not the end of the story — you can live with it over time.
+     "Monitor this strategy" hands this exact saved plan to Portfolio Operations,
+     which instantiates a monitored portfolio and tracks its guardrails, drift,
+     tax state and rebalance triggers, with the same governed Explain you saw here.
+     Simulated now (a paper book seeded to your target over real prices); you can
+     import real holdings or link a provider later. #}
+  {% if plan_id %}
+    <section class="monitor-cta" style="margin:16px 0;padding:14px;border:1px solid var(--line,#ddd);border-radius:8px">
+      <strong>Monitor this strategy</strong>
+      <p class="small muted" style="margin:6px 0 10px">Track this plan over time —
+        guardrails, allocation drift, tax-lot &amp; wash-sale state, rebalance
+        triggers and Explain — in Portfolio Operations. Nothing is executed; it is
+        observed and explained.</p>
+      <form method="post" action="/pilot/plans/{{ plan_id }}/monitor">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="small" for="holdings_source">Holdings source</label>
+        <select id="holdings_source" name="holdings_source">
+          <option value="SIMULATED" selected>Simulated portfolio (paper, over real prices)</option>
+          <option value="IMPORTED">Import my holdings (coming soon)</option>
+          <option value="LINKED">Link a provider later (coming soon)</option>
+        </select>
+        <button type="submit" style="margin-left:8px">Monitor this strategy</button>
+      </form>
+    </section>
+  {% endif %}
+
   {# One table's worth of parameters, and only the ones this sentence has.
 
      The page used to carry four lists — understood, needed, chosen, not
