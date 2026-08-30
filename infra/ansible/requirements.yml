@@ -5,3 +5,9 @@ collections:
     version: ">=8.0.0"
   - name: community.docker
     version: ">=3.10.0"
+  # services.yml drives the cluster through kubernetes.core.k8s (10 tasks); it is not
+  # bundled with ansible-core, so a runner with only ansible-core cannot run the play
+  # without it. Needs the `kubernetes` python library too — the deploy workflow pip
+  # installs that alongside.
+  - name: kubernetes.core
+    version: ">=3.0.0"

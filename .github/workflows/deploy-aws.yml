@@ -134,11 +134,69 @@ jobs:
             --manifest release-manifest.json \
             --actual "{\"image_digest\":\"${DEPLOYED_DIGEST}\",\"app_commit\":\"${COMMIT}\"}"
 
+      - name: Install Terraform
+        run: |
+          # Pinned to the version that wrote the state (`terraform state pull` ->
+          # terraform_version). A newer terraform would rewrite the state to its own
+          # version and an older one would refuse it, so this must match, not float.
+          # Installed by direct download rather than a marketplace action — the repo's
+          # Actions allowlist is `selected`, and a run step needs no addition to it.
+          ver=1.14.9
+          curl -fsSL -o /tmp/terraform.zip \
+            "https://releases.hashicorp.com/terraform/${ver}/terraform_${ver}_linux_amd64.zip"
+          mkdir -p "$HOME/bin"
+          unzip -o /tmp/terraform.zip -d "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/terraform" version
+
+      - name: Materialize the tfvars
+        working-directory: infra/terraform
+        env:
+          TFVARS: ${{ github.event.inputs.environment || 'test' }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          # environments/*.tfvars is gitignored (it named the Cloudflare account/zone),
+          # so a fresh checkout has none. Rebuild it here: the non-secret config inline,
+          # the two Cloudflare ids from secrets. build_commit / build_release_ref are NOT
+          # written — the apply step passes them by -var, from the commit being deployed.
+          : "${CF_ACCOUNT_ID:?set the CLOUDFLARE_ACCOUNT_ID secret}"
+          : "${CF_ZONE_ID:?set the CLOUDFLARE_ZONE_ID secret}"
+          cat > "environments/${TFVARS}.tfvars" <<EOF
+          project     = "quantify"
+          environment = "test"
+          region      = "us-east-1"
+          domain_name           = "quantify.club"
+          identity_domain_name  = "auth.quantify.club"
+          workspace_domain_name = "workspace.quantify.club"
+          cloudflare_account_id = "${CF_ACCOUNT_ID}"
+          cloudflare_zone_id    = "${CF_ZONE_ID}"
+          registry_host     = "388062344663.dkr.ecr.us-east-1.amazonaws.com"
+          build_snapshot_id = "syn-2026-08"
+          instance_type           = "t3.small"
+          db_instance_class       = "db.t4g.micro"
+          db_allocated_storage_gb = 20
+          db_multi_az             = false
+          pilot_data_policy = "market-data-egress/pilot-vendor-approved@1"
+          parser_mode       = "RUNTIME"
+          parser_provider   = "OPENAI"
+          parser_model      = "gpt-5.4-2026-03-05"
+          parser_fallback   = "REFUSE"
+          alert_email = "redevops@redevops.io"
+          enable_kubernetes  = true
+          cluster_albs_ready = true
+          EOF
+          echo "wrote environments/${TFVARS}.tfvars (Cloudflare ids from secrets)"
+
       - name: Terraform apply
         working-directory: infra/terraform
         env:
           IMAGE: ${{ steps.image.outputs.image }}
           TFVARS: ${{ github.event.inputs.environment || 'test' }}
+          # The Cloudflare provider reads this from the environment (providers.tf keeps
+          # it out of the plan/state on purpose); the AWS creds come from the job env.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
           terraform init -backend-config=backend.hcl -input=false
@@ -153,11 +211,25 @@ jobs:
             -var "build_commit=${COMMIT}" \
             -var "build_release_ref=${GITHUB_REF_NAME}"
 
+      - name: Install the Kubernetes client for Ansible
+        run: |
+          # kubernetes.core.k8s drives the cluster and imports the `kubernetes` python
+          # library, which is not on the runner. Install it (the collection itself comes
+          # from requirements.yml via ansible-galaxy in the next step); --break-system-
+          # packages covers a PEP 668 runner.
+          python3 -m pip install --quiet kubernetes \
+            || python3 -m pip install --quiet --break-system-packages kubernetes
+
       - name: Ansible deploy
         working-directory: infra/ansible
+        env:
+          # services.yml writes the parser's model key into the quantify-web Secret from
+          # lookup('env', 'OPENAI_API_KEY') and refuses a blank one; the AWS creds (for
+          # eks/kubectl/secretsmanager) come from the job env.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -euo pipefail
-          ansible-galaxy install -r requirements.yml
+          ansible-galaxy collection install -r requirements.yml
           # The application services only. `identity` and `tunnel` are
           # deliberately not deployed here: Zitadel restarts on a Recreate
           # strategy and the connector is the sole ingress path, so a routine
