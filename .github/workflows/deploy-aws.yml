@@ -85,6 +85,16 @@ jobs:
       # Terraform both read these variables natively, so the action buys
       # nothing here but another supply chain.
 
+      - name: Install pytest for the serving-image contract gate
+        run: |
+          # build_image.sh's step 5 runs `python3 -m pytest
+          # tests/test_serving_image_contract.py` ON THE RUNNER (the test probes the
+          # built image via `docker run`). The runner's python3 has no pytest, so the
+          # gate failed with "No module named pytest". Install it (the only host dep the
+          # contract test needs); --break-system-packages covers a PEP 668 runner.
+          python3 -m pip install --quiet pytest \
+            || python3 -m pip install --quiet --break-system-packages pytest
+
       - name: Build and push the image, pinned by digest
         id: image
         env:
