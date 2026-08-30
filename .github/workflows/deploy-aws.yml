@@ -149,7 +149,7 @@ jobs:
           echo "$HOME/bin" >> "$GITHUB_PATH"
           "$HOME/bin/terraform" version
 
-      - name: Materialize the tfvars
+      - name: Materialize the tfvars + backend config
         working-directory: infra/terraform
         env:
           TFVARS: ${{ github.event.inputs.environment || 'test' }}
@@ -157,10 +157,18 @@ jobs:
           CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
-          # environments/*.tfvars is gitignored (it named the Cloudflare account/zone),
-          # so a fresh checkout has none. Rebuild it here: the non-secret config inline,
-          # the two Cloudflare ids from secrets. build_commit / build_release_ref are NOT
-          # written — the apply step passes them by -var, from the commit being deployed.
+          # backend.hcl and environments/*.tfvars are both gitignored, so a fresh
+          # checkout has neither and `terraform init`/`apply` have nothing to read.
+          # Rebuild both here from the non-secret config inline (the S3 state bucket +
+          # the env-scoped key; the two Cloudflare ids from secrets). build_commit /
+          # build_release_ref are NOT written — the apply step passes them by -var.
+          cat > backend.hcl <<EOF
+          bucket       = "quantify-tfstate-388062344663"
+          key          = "quantify/${TFVARS}/terraform.tfstate"
+          region       = "us-east-1"
+          use_lockfile = true
+          encrypt      = true
+          EOF
           : "${CF_ACCOUNT_ID:?set the CLOUDFLARE_ACCOUNT_ID secret}"
           : "${CF_ZONE_ID:?set the CLOUDFLARE_ZONE_ID secret}"
           cat > "environments/${TFVARS}.tfvars" <<EOF
