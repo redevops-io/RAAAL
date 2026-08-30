@@ -27,6 +27,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import secrets
 import urllib.parse
 import urllib.request
@@ -211,12 +212,25 @@ def viewer(token: Optional[str], *, issuer: str, audience: str,
         return None
 
 
+def session_cookie_domain() -> str:
+    """The cookie's Domain, from ``SESSION_COOKIE_DOMAIN`` (default: host-only).
+
+    Set it to ``.quantify.club`` so the session is shared with sibling subdomains
+    (e.g. ``workspace.quantify.club``, which proxies the wealth-manager API and needs
+    the same token). Empty ⇒ a host-only cookie, the prior behaviour."""
+    return os.environ.get("SESSION_COOKIE_DOMAIN", "").strip()
+
+
 def session_cookie(token: str) -> Dict[str, Any]:
     """Cookie attributes for the session. Kept here so both the login and the
     logout path spell them identically — a deletion that disagrees with the
-    write on `path` leaves the cookie in place."""
-    return {"key": SESSION_COOKIE, "value": token, "httponly": True,
-            "secure": True, "samesite": "lax", "path": "/"}
+    write on `path`/`domain` leaves the cookie in place."""
+    attrs: Dict[str, Any] = {"key": SESSION_COOKIE, "value": token, "httponly": True,
+                             "secure": True, "samesite": "lax", "path": "/"}
+    domain = session_cookie_domain()
+    if domain:
+        attrs["domain"] = domain
+    return attrs
 
 
 def flow_cookie(flow: Flow) -> Dict[str, Any]:
