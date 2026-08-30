@@ -1216,3 +1216,58 @@ def pilot_plan_runtime_artifact(request: Request, plan_id: str):
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304, headers={"ETag": etag})
     return JSONResponse(artifact, headers={"ETag": etag})
+
+
+@router.post("/pilot/plans/{plan_id}/monitor")
+async def pilot_plan_monitor(request: Request, plan_id: str,
+                             holdings_source: str = Form("SIMULATED")):
+    """**Monitor This Strategy** — turn a saved plan into a durable monitored portfolio.
+
+    Builds a versioned ``SavedStrategyPlan`` from the plan's sealed intent, hands its
+    wire form to wealth-manager (``POST /app/portfolios/monitor``) which instantiates
+    a monitored portfolio (simulated holdings now; imported/linked later), and redirects
+    the user to that portfolio's Portfolio Operations workspace view. RAAAL builds +
+    hands over a verified plan and navigates; it re-implements no portfolio logic.
+
+    Degrades gracefully: if wealth-manager is not configured/reachable, the user is
+    returned to the plan with a message rather than an error page — the save/evaluate
+    surface is unaffected.
+    """
+    from fastapi.responses import HTMLResponse, RedirectResponse
+
+    from . import owner as owner_mod
+    from .monitor_handoff import MonitorUnavailable, monitor_plan
+    from .pilot_store import load
+    from .routes import TEMPLATES
+
+    refused = _refuse_unless_declared(request)
+    if refused is not None:
+        return refused
+    blocked = await _csrf_refusal(request)
+    if blocked is not None:
+        return blocked
+
+    stored = load(plan_id)
+    if stored is None:
+        return TEMPLATES.TemplateResponse(
+            request, "pilot.html",
+            {"text": "", "reading": None, "unavailable": "no such plan"},
+            status_code=404)
+    reading = reopen(stored)
+    try:
+        result = monitor_plan(stored, reading, plan_id=plan_id,
+                              holdings_source=holdings_source,
+                              owner_id=owner_mod.current())
+    except MonitorUnavailable:
+        return HTMLResponse(
+            f"<p>Monitoring isn't available yet — the Portfolio Operations service "
+            f"is not configured. <a href='/pilot/plans/{plan_id}'>Back to your plan</a>.</p>",
+            status_code=503)
+    except ValueError as exc:
+        return HTMLResponse(
+            f"<p>This plan can't be monitored: {exc}. "
+            f"<a href='/pilot/plans/{plan_id}'>Back to your plan</a>.</p>",
+            status_code=409)
+
+    target = result.get("workspace_url") or f"/pilot/plans/{plan_id}"
+    return RedirectResponse(target, status_code=303)
