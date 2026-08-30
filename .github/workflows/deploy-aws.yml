@@ -134,6 +134,21 @@ jobs:
             --manifest release-manifest.json \
             --actual "{\"image_digest\":\"${DEPLOYED_DIGEST}\",\"app_commit\":\"${COMMIT}\"}"
 
+      - name: Install Terraform
+        run: |
+          # Pinned to the version that wrote the state (`terraform state pull` ->
+          # terraform_version). A newer terraform would rewrite the state to its own
+          # version and an older one would refuse it, so this must match, not float.
+          # Installed by direct download rather than a marketplace action — the repo's
+          # Actions allowlist is `selected`, and a run step needs no addition to it.
+          ver=1.14.9
+          curl -fsSL -o /tmp/terraform.zip \
+            "https://releases.hashicorp.com/terraform/${ver}/terraform_${ver}_linux_amd64.zip"
+          mkdir -p "$HOME/bin"
+          unzip -o /tmp/terraform.zip -d "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/terraform" version
+
       - name: Terraform apply
         working-directory: infra/terraform
         env:
@@ -153,11 +168,20 @@ jobs:
             -var "build_commit=${COMMIT}" \
             -var "build_release_ref=${GITHUB_REF_NAME}"
 
+      - name: Install the Kubernetes client for Ansible
+        run: |
+          # kubernetes.core.k8s drives the cluster and imports the `kubernetes` python
+          # library, which is not on the runner. Install it (the collection itself comes
+          # from requirements.yml via ansible-galaxy in the next step); --break-system-
+          # packages covers a PEP 668 runner.
+          python3 -m pip install --quiet kubernetes \
+            || python3 -m pip install --quiet --break-system-packages kubernetes
+
       - name: Ansible deploy
         working-directory: infra/ansible
         run: |
           set -euo pipefail
-          ansible-galaxy install -r requirements.yml
+          ansible-galaxy collection install -r requirements.yml
           # The application services only. `identity` and `tunnel` are
           # deliberately not deployed here: Zitadel restarts on a Recreate
           # strategy and the connector is the sole ingress path, so a routine
