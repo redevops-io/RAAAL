@@ -1266,7 +1266,7 @@ async def pilot_plan_monitor(request: Request, plan_id: str,
     except MonitorUnavailable:
         return HTMLResponse(
             f"<p>Monitoring isn't available yet — the Portfolio Operations service "
-            f"is not configured. <a href='/pilot/plans/{plan_id}'>Back to your plan</a>.</p>",
+            f"is not reachable. <a href='/pilot/plans/{plan_id}'>Back to your plan</a>.</p>",
             status_code=503)
     except ValueError as exc:
         return HTMLResponse(

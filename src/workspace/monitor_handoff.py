@@ -103,12 +103,24 @@ class HttpWealthManagerClient:
                 user_token: str = "") -> dict:
         import httpx
         bearer = user_token or self._token or f"dev:{owner_id or 'raaal'}"
-        resp = httpx.post(
-            f"{self._base}/app/portfolios/monitor",
-            json={"saved_plan": plan_dict, "holdings_source": holdings_source},
-            headers={"Authorization": f"Bearer {bearer}"}, timeout=30.0)
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            resp = httpx.post(
+                f"{self._base}/app/portfolios/monitor",
+                json={"saved_plan": plan_dict, "holdings_source": holdings_source},
+                headers={"Authorization": f"Bearer {bearer}"}, timeout=30.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as exc:
+            # wealth-manager answered but refused (auth, plan rejection, …) — surface it
+            # as unavailable rather than a 500, so the plan page stays usable.
+            raise MonitorUnavailable(
+                f"wealth-manager refused the request "
+                f"(HTTP {exc.response.status_code})") from exc
+        except httpx.HTTPError as exc:
+            # transport failure: wealth-manager not deployed / unreachable. Because the
+            # base URL now always has a value, THIS is the "not up yet" path.
+            raise MonitorUnavailable(
+                f"wealth-manager is unreachable at {self._base}") from exc
 
 
 _CLIENT_OVERRIDE: Optional[WealthManagerClient] = None
