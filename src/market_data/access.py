@@ -199,8 +199,33 @@ def resolve_prices(*, context: str) -> Optional[Any]:
 
 
 #: The vendor snapshot this deployment may use, and the record that authorises
-#: it. Both named here so the pair is reviewable in one place.
+#: it. This is the in-repo default — the committed, reviewed pin. A deployment
+#: overrides it with QUANTIFY_VENDOR_MANIFEST to read a manifest mounted at
+#: runtime (a ConfigMap), which is what lets the daily refresh re-pin a fresh
+#: snapshot without rebuilding the image. The override changes WHICH manifest is
+#: read; `approved_snapshot` still hash- and licence-checks whatever it names, so
+#: a runtime manifest is trusted no more than the committed one.
 VENDOR_MANIFEST = "data/snapshots/prices-yahoo-20260822.yaml"
+
+
+def vendor_manifest_path():
+    """The vendor manifest file to read, honouring QUANTIFY_VENDOR_MANIFEST.
+
+    An absolute override is used as-is (a runtime mount); a relative one, or the
+    absent default, resolves under the repository root. The path decides which
+    manifest is read, never whether its snapshot may be served — that stays with
+    the licence + hash gate below.
+    """
+    import os
+    from pathlib import Path
+
+    from .loader import REPO_ROOT
+
+    override = os.environ.get("QUANTIFY_VENDOR_MANIFEST", "").strip()
+    if override:
+        candidate = Path(override)
+        return candidate if candidate.is_absolute() else REPO_ROOT / candidate
+    return REPO_ROOT / VENDOR_MANIFEST
 
 
 def approved_snapshot():
@@ -226,7 +251,7 @@ def approved_snapshot():
     from .loader import REPO_ROOT, load_manifest
     from .pilot_policy import licensing_resolved
 
-    manifest = REPO_ROOT / VENDOR_MANIFEST
+    manifest = vendor_manifest_path()
     if not manifest.exists():
         return None
     try:
