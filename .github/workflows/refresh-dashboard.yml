@@ -44,11 +44,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          # `requirements.txt` installs the pinned Discovery Runtime from the
-          # submodule; without this it is an empty directory and the install
-          # fails on a path that exists locally.
-          submodules: recursive
+        # No submodules: the dashboard installs `requirements-dashboard.txt`, which
+        # does not include the vendored Discovery Runtime. The refresh imports no
+        # runtime code, so the submodule the pilot needs is dead weight here.
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -56,18 +54,20 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        # The same requirements the application uses. It still carries the
-        # dashboard/ML/data stack (bokeh, yfinance, lightgbm, torch,
-        # vaderSentiment), so the refresh needs nothing this file adds.
-        run: pip install -r requirements.txt
+        # `requirements-dashboard.txt`, NOT `requirements.txt` — the latter pulls
+        # in the pilot runtime (which the dashboard does not import) and currently
+        # fails a clean resolve on a runtime-contracts version conflict. See the
+        # header of requirements-dashboard.txt for the full rationale.
+        run: pip install -r requirements-dashboard.txt
 
       - name: Refresh market data and run the historical backtest
         # `--refresh` re-downloads prices from Yahoo rather than reading a cache,
         # which is the whole point of the daily run: the dashboard's date range
-        # moves forward a day. Sentiment runs keyless — `src/sentiment.py` skips
-        # the Finnhub news source when no FINNHUB_API_KEY is set and scores from
-        # the public Stocktwits/Reddit sources with VADER, so no secret is needed
-        # here. Set FINNHUB_API_KEY in the environment only to add that source.
+        # moves forward a day. Sentiment is pinned to VADER — keyless and local.
+        # `auto` would try FinGPT first, which pulls a multi-GB transformers model
+        # on a cold runner; VADER is the documented fallback and needs neither a
+        # key nor a download, and it is the scorer a keyless run would land on
+        # anyway. The forecaster stays on its LightGBM default (no torch).
         run: |
           set -euo pipefail
           python -m src.history \
@@ -76,7 +76,7 @@ jobs:
             --refresh \
             --use-forecaster \
             --use-sentiment \
-            --sentiment-backend auto
+            --sentiment-backend vader
 
       - name: Build the dashboard
         # Bokeh writes reports/regime_dashboard.html; Pages serves index.html, so

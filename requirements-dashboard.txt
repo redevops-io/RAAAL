@@ -1,0 +1,42 @@
+# Dependencies for the daily landing-dashboard refresh (refresh-dashboard.yml).
+#
+# Deliberately NOT `requirements.txt`. That file installs the whole pilot
+# application, including the vendored Discovery Runtime and its tag-pinned
+# contracts — and the daily dashboard imports none of it (verified: the transitive
+# `src.history` + `src.visualization.bokeh_app` closure references neither
+# `discovery_runtime` nor `runtime_contracts`). Worse, installing it fails on a
+# clean resolve: requirements.txt pins `runtime-contracts@v0.3.2` directly while
+# the vendored `discovery-runtime` pins `runtime-contracts@0.3.0`, and pip cannot
+# satisfy both. The dashboard has no reason to be held hostage to that, so it
+# declares only what it actually uses.
+#
+# This is the research/ML/data stack from requirements.txt lines 1–27, minus:
+#   * torch / transformers — only the LSTM/Transformer forecaster backends and
+#     the FinGPT sentiment scorer touch them, both lazily and both unused here
+#     (the refresh runs the LightGBM forecaster and VADER sentiment). Excluding
+#     them keeps the install off an ~800 MB torch download and a multi-GB model
+#     pull on every run.
+#   * stable-baselines3 / gymnasium — the RL workstream, not exercised by the
+#     historical backtest the dashboard is built from.
+#   * pytest and the pilot runtime (runtime-contracts, discovery-runtime,
+#     agentic-os, stanza, pyjwt) — none of it is on the refresh path.
+#
+# If the dashboard ever grows a real dependency on one of the excluded packages,
+# add it here explicitly rather than reaching back to requirements.txt.
+
+numpy>=1.24
+pandas>=2.0
+yfinance>=0.2.40
+scipy>=1.11
+pydantic>=2.7
+tabulate>=0.9
+pyarrow>=15.0
+bokeh>=3.5
+scikit-learn>=1.3.0
+networkx>=3.1
+matplotlib>=3.7.0
+joblib>=1.3.0
+lightgbm>=4.0
+ta>=0.11.0
+vaderSentiment>=3.3.2
+requests>=2.31
