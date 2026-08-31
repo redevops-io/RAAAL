@@ -515,6 +515,39 @@
               database is at this build head.' }}
       when: "'data' in targets"
 
+    # --- the vendor snapshot manifest (daily-refresh seam) -----------------
+    #
+    # web mounts `quantify-vendor-manifest` (a ConfigMap) and reads the vendor pin
+    # from it via QUANTIFY_VENDOR_MANIFEST, so `refresh-pilot-snapshot` can re-pin
+    # a fresh snapshot daily without rebuilding the image. The ConfigMap must
+    # exist before web references it (the mount is not optional). Seeded from the
+    # committed pin ONLY when absent: on a fresh cluster this is the reviewed
+    # starting snapshot; on a running one the daily workflow owns its contents, so
+    # a redeploy must not revert the day's snapshot to the committed one.
+    - name: Look for an existing vendor-manifest ConfigMap
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: ConfigMap
+        name: quantify-vendor-manifest
+        namespace: "{{ k8s_namespace }}"
+      register: vendor_cm
+      when: "'web' in targets"
+
+    - name: Seed the vendor-manifest ConfigMap from the committed pin (only if absent)
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: quantify-vendor-manifest
+            namespace: "{{ k8s_namespace }}"
+          data:
+            manifest.yaml: "{{ lookup('file', playbook_dir + '/../../data/snapshots/prices-yahoo-20260822.yaml') }}"
+        state: present
+      when:
+        - "'web' in targets"
+        - vendor_cm.resources | default([]) | length == 0
+
     # --- the workloads -----------------------------------------------------
 
     - name: Render each manifest with the pinned image
