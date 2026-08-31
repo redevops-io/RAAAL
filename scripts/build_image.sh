@@ -122,12 +122,32 @@ say "6. push"
 : "${AWS_REGION:?AWS_REGION is required to push}"
 : "${ECR_REPOSITORY:?ECR_REPOSITORY is required to push}"
 REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"
-aws ecr get-login-password --region "$AWS_REGION" \
-  | docker login --username AWS --password-stdin "$REGISTRY" >&2
-
 REMOTE="${REGISTRY}/${ECR_REPOSITORY}:${COMMIT:0:7}"
-docker tag "$TAG" "$REMOTE"
-docker push "$REMOTE" >&2
+
+# The push is idempotent on the commit, because the tag is the commit and ECR
+# tags are immutable. A second push of an already-built commit fails with "tag
+# invalid ... cannot be overwritten" — and that is the ordinary state of a
+# re-run at an unchanged HEAD (a deploy repeated after a config change, a
+# retried run), not a build failure: the image for this commit is already in
+# the registry. So when the tag already resolves to a digest, skip the push and
+# let step 7 below pick up the image that exists. The deployment's identity is
+# the commit; rebuilding and re-pushing it would only try to overwrite itself.
+#
+# A commit whose tag is absent still pushes normally — including the common
+# case this exists for, a brand-new merge commit that has never been built.
+if EXISTING_DIGEST="$(aws ecr describe-images --region "$AWS_REGION" \
+      --repository-name "$ECR_REPOSITORY" --image-ids imageTag="${COMMIT:0:7}" \
+      --query 'imageDetails[0].imageDigest' --output text 2>/dev/null)" \
+   && [[ "$EXISTING_DIGEST" == sha256:* ]]; then
+  say "6. push — skipped; ${COMMIT:0:7} is already in ${ECR_REPOSITORY}"
+  printf '   %s (immutable tag; deploying the image that exists)\n' \
+    "$EXISTING_DIGEST" >&2
+else
+  aws ecr get-login-password --region "$AWS_REGION" \
+    | docker login --username AWS --password-stdin "$REGISTRY" >&2
+  docker tag "$TAG" "$REMOTE"
+  docker push "$REMOTE" >&2
+fi
 
 # --- 7. emit the digest, never the tag -----------------------------------
 say "7. digest"
