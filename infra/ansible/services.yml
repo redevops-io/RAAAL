@@ -638,9 +638,26 @@
           --command -- wget -qO- --timeout=20 http://quantify-identity/debug/ready
       register: identity_ready
       changed_when: false
-      failed_when: identity_ready.rc != 0
+      # Retried for the same reason as the service probe below: a post-rollout
+      # one-shot into the endpoint cutover reads as not-ready when the pod is
+      # merely seconds from answering. Zitadel is also the slowest to warm.
+      retries: 12
+      delay: 10
+      until: identity_ready.rc == 0
       when: "'identity' in targets"
 
+    # Retried, for the same reason the rollout wait above is: this fires the
+    # instant `kubectl rollout status` returns, and "the Deployment is
+    # available" and "the Service's endpoints are the new pods and answering"
+    # are not the same instant — the gap is the endpoint cutover, and a
+    # one-shot probe into it reads as a service that cannot identify itself.
+    # Observed: a run where /health had already gated the pods Ready and the web
+    # app was serving, yet this probe of quantify-evaluate/version came back rc 0
+    # with an empty body — a `kubectl run -i` attach landing mid-cutover, not a
+    # build that lost its /version. `until` (not `failed_when`) so a transient
+    # empty answer is retried rather than failing the deploy; after the retries
+    # a still-empty answer is a real failure and is reported as one. Per loop
+    # item, so each service converges on its own.
     - name: Ask each service to identify itself
       ansible.builtin.command:
         cmd: >-
@@ -652,7 +669,9 @@
                           | difference(['identity', 'web', 'tunnel']) }}"
       register: identity
       changed_when: false
-      failed_when: identity.rc != 0 or 'contract_version' not in identity.stdout
+      retries: 12
+      delay: 10
+      until: identity.rc == 0 and 'contract_version' in identity.stdout
 
     - name: What answered
       ansible.builtin.debug:
