@@ -29,6 +29,25 @@
       color: var(--muted); margin-top: 8px; }
   .evidence dd { margin: 2px 0 0; }
   .evidence .absent { color: var(--muted); font-style: italic; }
+  /* The evaluate action and its gate. Disabled is a real, visible state:
+     the run cannot proceed until every required value is present, and the
+     button says so rather than failing on click. */
+  .prun-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .prun[disabled] { background: var(--chip); color: var(--muted);
+      border-color: var(--line); cursor: not-allowed; }
+  .prun-hint { font-size: 12.5px; color: var(--muted); }
+  /* Refusal callouts, coloured by what the reader can do about it: a plan
+     value they can change reads in the accent (actionable); a data gap or an
+     internal refusal reads in the block colour (nothing here to act on). */
+  .refusal { border-left: 3px solid var(--block); border-radius: 0 8px 8px 0;
+      padding: 12px 16px; margin: 16px 0;
+      background: color-mix(in srgb, var(--block) 6%, var(--panel)); }
+  .refusal h2 { margin-top: 0; }
+  .refusal-plan { border-left-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 6%, var(--panel)); }
+  .refusal-lead { color: var(--ink); max-width: 62ch; }
+  .refusal-detail { font-size: 13px; color: var(--muted); max-width: 62ch;
+      border-top: 1px solid var(--line); padding-top: 8px; margin-top: 10px; }
 </style>
 
 <h1>Plan</h1>
@@ -56,10 +75,18 @@
   <button type="submit">Read it</button>
 </form>
 
-{% if unavailable %}
+{% if unavailable and not strategy_not_executed %}
   {# A refusal, not a degraded reading. The deployment declares one
      interpreter; serving the other silently would hand two users different
-     products under one name. #}
+     products under one name.
+
+     Gated on `not strategy_not_executed` so this fires only for a *reading*
+     that could not be produced — the sentence was not understood, or the
+     deployment cannot serve it. A *run* that read fine and then refused (a data
+     gap, a value the engine won't take) is a different message, and §6.B
+     Outcome below classifies it into what the person can do about it; showing
+     this generic "cannot be read" above it as well would both duplicate and
+     misdescribe — the plan was read, the run is what stopped. #}
   <section class="refusal">
     <h2>This cannot be read right now</h2>
     <p>{{ unavailable }}</p>
@@ -338,12 +365,27 @@
       </details>
       {% endif %}
 
-      {% if needed %}
-        {# One round. `pilot.answer` re-fuses with the answers as USER-authored
-           readings; there is no second pass that could ask again, which is the
-           convergence property `test_clarification_converges` pins. #}
-        <button type="submit" class="prun">Fill in the {{ needed_rows | length }} and run it</button>
-      {% endif %}
+      {# The evaluate action, always present so running is a deliberate, visible
+         act rather than something that only happened implicitly when the page
+         loaded. `pilot.answer` re-fuses with the answers as USER-authored
+         readings and there is no second pass that could ask again — the
+         convergence property `test_clarification_converges` pins.
+
+         Gated on the required values: while any result-changing dimension is
+         still unresolved the button is disabled and the hint names how many
+         remain, and it enables the moment every required box has a value. It
+         renders ENABLED so a browser with no script can still submit and let
+         the server re-fuse — the disable is the enhancement below, never the
+         only gate. With nothing unresolved it is simply "Evaluate", re-running
+         the confirmed plan. #}
+      <div class="prun-row">
+        <button type="submit" class="prun"
+                data-needs="{{ needed_rows | length }}">Evaluate</button>
+        {% if needed_rows %}
+        <span class="prun-hint" data-run-hint>Fill in the {{ needed_rows | length }} required
+          value{{ "" if needed_rows|length == 1 else "s" }} above to evaluate.</span>
+        {% endif %}
+      </div>
     </form>
 
     {% if not questions %}
@@ -445,10 +487,37 @@
     </section>
   {% elif strategy_not_executed %}
     {# A refusal is a result. The figure is absent and the reason is the
-       engine's own, never a generic one. #}
-    <section class="refusal">
-      <h2>This did not produce a figure</h2>
-      <p>{{ unavailable or "the engine refused to execute this plan" }}</p>
+       engine's own, never a generic one — and now the reason is sorted into
+       the one dimension the reader can act on. `refusal_kind` is set at the
+       refusal site (see evaluation/core.py) so this never guesses from the
+       message text:
+         · data_gap  — the data isn't there; editing a value can't conjure it.
+         · plan      — a value or combination the run won't accept; fixable here.
+         · internal  — a capability the build doesn't run, or an integrity
+                       check that failed; neither a value nor the data fixes it.
+       The engine's own sentence is always shown as the specific detail; the
+       line above it tells the person whether there is anything for them to do. #}
+    <section class="refusal refusal-{{ refusal_kind or 'internal' }}">
+      {% if refusal_kind == "data_gap" %}
+        <h2>No market data for this — nothing to fix here</h2>
+        <p class="refusal-lead">This can't run because the price history it
+          needs isn't available for the instruments or period named.
+          <strong>You can't resolve this by changing a value</strong> — the data
+          simply isn't there. A different instrument, or a shorter or earlier
+          period, may have data.</p>
+      {% elif refusal_kind == "plan" %}
+        <h2>A value needs adjusting before this can run</h2>
+        <p class="refusal-lead">The run stopped on something you can fix: a
+          value in this plan isn't one the engine can evaluate as stated.
+          Adjust it in <a href="#answers">the parameters above</a> and press
+          Evaluate again — the specific reason is below.</p>
+      {% else %}
+        <h2>This did not produce a figure</h2>
+        <p class="refusal-lead">The engine declined to run this plan. It isn't a
+          value you can change or a data gap you can close — the reason is
+          below.</p>
+      {% endif %}
+      <p class="refusal-detail">{{ unavailable or "the engine refused to execute this plan" }}</p>
     </section>
   {% endif %}
 
@@ -669,6 +738,7 @@
     var total = needs.length;
     var doneEl = document.querySelector('[data-done]');
     var run = form.querySelector('.prun');
+    var hint = form.querySelector('[data-run-hint]');
     function refresh() {
       var done = 0;
       needs.forEach(function (f) {
@@ -680,10 +750,18 @@
       });
       if (doneEl) doneEl.textContent = done;
       if (run) {
+        // Clickable only when every required value is present — the ambiguities
+        // the evaluation needs resolved are resolved. The label stays
+        // "Evaluate"; the hint carries the count of what is still missing.
         var left = total - done;
-        run.textContent = left > 0
-          ? 'Fill in the ' + left + ' and run it'
-          : 'Run it';
+        run.disabled = left > 0;
+        if (hint) {
+          hint.hidden = left === 0;
+          if (left > 0) {
+            hint.textContent = 'Fill in the ' + left + ' required value'
+              + (left === 1 ? '' : 's') + ' above to evaluate.';
+          }
+        }
       }
     }
     needs.forEach(function (f) {

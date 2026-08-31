@@ -338,6 +338,9 @@ def _run(scenario, access, scope: Optional[Dict[str, Any]] = None,
                 "comparability": None, "strategy_not_executed": True,
                 "coverage": evaluated.coverage, "ledger": evaluated.ledger,
                 "reconciliation": evaluated.reconciliation,
+                # Carried from the refusal site, where the reason is known — so
+                # the page can say whether a value fixes it or nothing does.
+                "refusal_kind": evaluated.refusal_kind,
                 "unavailable": evaluated.refusal}
 
     result = evaluated.result

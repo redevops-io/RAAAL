@@ -371,3 +371,124 @@ class TestNoRecompute:
         assert pr._comparison_note(empty) is None
         assert pr._market_snapshot(empty) is None
         assert pr._disclosures(empty) == []
+
+
+# --- the evaluate action ----------------------------------------------------
+
+class TestEvaluateAction:
+    """Running is a deliberate, gated act: one explicit Evaluate button, present
+    whether or not anything is unresolved, that a browser is told to keep
+    disabled until every required value is filled — clickable exactly when the
+    ambiguities the run needs resolved are resolved."""
+
+    def _render(self, parameters, needed):
+        from src.workspace.catalog_intent import reading_for
+        from src.workspace.pilot_routes import page
+        from src.workspace.routes import TEMPLATES
+
+        reading = reading_for("cross-sectional-momentum",
+                              "Hold the strongest few, rebalanced monthly.")
+        ctx = page(reading, text="Hold the strongest few, rebalanced monthly.",
+                   run={})
+        ctx["parameters"] = parameters
+        ctx["needed"] = needed
+        ctx["picked"] = "cross-sectional-momentum"
+        return TEMPLATES.env.get_template("pilot.html").render(**ctx)
+
+    def test_the_button_is_present_and_labelled_evaluate_when_resolved(self, client):
+        """A fully resolved strategy still shows an explicit Evaluate control —
+        the run is no longer only an implicit thing that happened on load."""
+        html = _evaluate(client)
+        assert 'class="prun"' in html
+        assert ">Evaluate</button>" in html
+        # Nothing unresolved: rendered ready, and no "fill in N" hint element
+        # (the script still references the hint by attribute — assert on the
+        # rendered span, not the attribute name).
+        assert 'data-needs="0"' in html
+        assert '<span class="prun-hint"' not in html
+
+    def test_the_button_renders_enabled_for_a_scriptless_browser(self, client):
+        """The disable is a JS enhancement, never the only gate — the server must
+        not ship a `disabled` button a scriptless browser could never submit."""
+        html = _evaluate(client)
+        m = re.search(r'<button[^>]*class="prun"[^>]*>', html)
+        assert m and "disabled" not in m.group(0)
+
+    def test_an_unresolved_dimension_keeps_the_button_and_declares_the_gate(self):
+        """When a required value is still missing the button is still present
+        (always), and the gate is declared in the markup: a required count the
+        script reads and a hint it turns into 'fill in the N required values'."""
+        from src.workspace.parameters import Parameter
+
+        html = self._render(
+            parameters=[
+                Parameter(name="assets", state="SETTLED", value="VTI",
+                          author="USER"),
+                Parameter(name="lookback", state="NEEDED", value=""),
+            ],
+            needed=["lookback"])
+        assert ">Evaluate</button>" in html
+        assert 'data-needs="1"' in html
+        assert "data-run-hint" in html
+
+
+# --- §6.B: failure feedback -------------------------------------------------
+
+class TestFailureFeedback:
+    """A run that produces no figure sorts its reason into the one dimension the
+    reader can act on — a value they can change (`plan`), a data gap they cannot
+    (`data_gap`), or neither (`internal`) — instead of one flat 'unavailable'
+    line that never says whether there is anything to do."""
+
+    def _refusal(self, *, kind, detail):
+        from src.workspace.catalog_intent import reading_for
+        from src.workspace.pilot_routes import page
+        from src.workspace.routes import TEMPLATES
+
+        reading = reading_for("cross-sectional-momentum",
+                              "Hold the strongest few, rebalanced monthly.")
+        run = {"result": None, "strategy_not_executed": True,
+               "refusal_kind": kind, "unavailable": detail}
+        ctx = page(reading, text="Hold the strongest few, rebalanced monthly.",
+                   run=run)
+        return TEMPLATES.env.get_template("pilot.html").render(**ctx)
+
+    def test_a_data_gap_says_it_is_not_the_users_to_fix_and_shows_the_reason(self):
+        html = self._refusal(
+            kind="data_gap",
+            detail=("No price history for ZZZZ over this period, so the scenario "
+                    "cannot be replayed. This is a data gap, not a result."))
+        assert "refusal-data_gap" in html
+        # Told plainly that editing a value cannot help.
+        assert "can't resolve this by changing a value" in html
+        # And the engine's own sentence is still shown as the specific detail.
+        assert "No price history for ZZZZ" in html
+
+    def test_a_plan_refusal_points_the_user_at_the_values_to_change(self):
+        html = self._refusal(
+            kind="plan",
+            detail=("this plan allocates by a computed strategy, which restores "
+                    "its weights on a calendar."))
+        assert "refusal-plan" in html
+        # Sent back to the parameters, by the anchor that actually reaches them.
+        assert 'href="#answers"' in html
+        assert "this plan allocates by a computed strategy" in html
+
+    def test_the_two_kinds_give_opposite_guidance(self):
+        gap = self._refusal(kind="data_gap", detail="d")
+        plan = self._refusal(kind="plan", detail="p")
+        assert "can't resolve this by changing a value" in gap
+        assert "can't resolve this by changing a value" not in plan
+        assert "Adjust it in" in plan
+        assert "Adjust it in" not in gap
+
+    def test_an_internal_refusal_blames_neither_a_value_nor_the_data(self):
+        html = self._refusal(
+            kind="internal",
+            detail=("This result is unavailable. The executed purchases and the "
+                    "reported totals do not agree, so no figure is shown."))
+        assert "refusal-internal" in html
+        assert "can't resolve this by changing a value" not in html
+        # Not sent to the parameters — nothing the person types changes it.
+        assert 'href="#answers"' not in html
+        assert "The executed purchases" in html
