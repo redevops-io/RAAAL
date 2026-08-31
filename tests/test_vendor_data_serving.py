@@ -157,3 +157,34 @@ def test_s3_reinvested_fetches_the_twin_when_absent(tmp_path, monkeypatch):
     assert captured["version_id"] == "v-tr"
     assert captured["uri"].endswith(".total-return.parquet")    # twin key, not price key
     assert list(frame.columns) == ["SPY"]
+
+
+class TestVendorManifestIsRuntimeConfigurable:
+    """The vendor manifest path is the in-repo default, but a deployment can point
+    it elsewhere with QUANTIFY_VENDOR_MANIFEST — the seam that lets the daily
+    refresh re-pin a fresh snapshot from a mounted file without rebuilding the
+    image. Overriding the path changes WHICH manifest is read, never whether its
+    snapshot may be served (the licence + hash gate is unchanged)."""
+
+    def test_default_is_the_committed_manifest(self, monkeypatch):
+        from src.market_data.access import vendor_manifest_path, VENDOR_MANIFEST
+        from src.market_data.loader import REPO_ROOT
+
+        monkeypatch.delenv("QUANTIFY_VENDOR_MANIFEST", raising=False)
+        assert vendor_manifest_path() == REPO_ROOT / VENDOR_MANIFEST
+        assert vendor_manifest_path().exists(), "the committed default must exist"
+
+    def test_an_absolute_override_is_used_as_a_runtime_mount(self, monkeypatch):
+        from pathlib import Path
+        from src.market_data.access import vendor_manifest_path
+
+        monkeypatch.setenv("QUANTIFY_VENDOR_MANIFEST", "/etc/quantify/vendor.yaml")
+        assert vendor_manifest_path() == Path("/etc/quantify/vendor.yaml")
+
+    def test_a_relative_override_resolves_under_the_repo(self, monkeypatch):
+        from src.market_data.access import vendor_manifest_path
+        from src.market_data.loader import REPO_ROOT
+
+        monkeypatch.setenv("QUANTIFY_VENDOR_MANIFEST",
+                           "data/snapshots/prices-yahoo-20260822.yaml")
+        assert vendor_manifest_path() == REPO_ROOT / "data/snapshots/prices-yahoo-20260822.yaml"
