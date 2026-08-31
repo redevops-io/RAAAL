@@ -1,0 +1,140 @@
+name: Refresh landing dashboard
+
+# The daily market-data refresh and the Bokeh landing page, republished to
+# Cloudflare Pages. This is the job the original `daily-deploy.yml` did before it
+# was repurposed into the EKS `deploy-aws.yml` — and it is deliberately kept
+# apart from that one, because the two answer different questions:
+#
+#   * `deploy-aws.yml` ships the *application* (the pilot behind the login) to
+#     the cluster. It is heavy, it owns infrastructure, and it is run by hand
+#     from a workstation with Terraform + Ansible when a release is cut.
+#   * this workflow ships the *static landing dashboard*. It touches no cluster
+#     and no database — it pulls fresh prices, rebuilds `reports/`, and publishes
+#     that directory to the `raaal-dashboard` Pages project. It is the thing that
+#     has to happen every day, on its own, whether or not anyone is deploying.
+#
+# So it runs here, on a scheduled hosted runner, rather than being folded back
+# into the deploy that replaced it.
+
+on:
+  # Once a day. The old workflow fired three times to survive a self-hosted host
+  # that was offline for part of the day; a hosted runner is always available, so
+  # one attempt plus manual re-dispatch is enough and the skip-gate it needed is
+  # gone with it.
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC (~1-2 AM ET)
+  workflow_dispatch:
+
+# One refresh at a time. A newer run waits for the one in flight rather than
+# racing it to the same Pages project.
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # The backtest spans 2016->today with the forecaster and sentiment engines,
+    # and a hosted runner is smaller than the 4-core self-hosted host this used
+    # to run on. Generous, so a slow data pull is not read as a hang.
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # `requirements.txt` installs the pinned Discovery Runtime from the
+          # submodule; without this it is an empty directory and the install
+          # fails on a path that exists locally.
+          submodules: recursive
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        # The same requirements the application uses. It still carries the
+        # dashboard/ML/data stack (bokeh, yfinance, lightgbm, torch,
+        # vaderSentiment), so the refresh needs nothing this file adds.
+        run: pip install -r requirements.txt
+
+      - name: Refresh market data and run the historical backtest
+        # `--refresh` re-downloads prices from Yahoo rather than reading a cache,
+        # which is the whole point of the daily run: the dashboard's date range
+        # moves forward a day. Sentiment runs keyless — `src/sentiment.py` skips
+        # the Finnhub news source when no FINNHUB_API_KEY is set and scores from
+        # the public Stocktwits/Reddit sources with VADER, so no secret is needed
+        # here. Set FINNHUB_API_KEY in the environment only to add that source.
+        run: |
+          set -euo pipefail
+          python -m src.history \
+            --start 2016-01-01 \
+            --end "$(date -u +%F)" \
+            --refresh \
+            --use-forecaster \
+            --use-sentiment \
+            --sentiment-backend auto
+
+      - name: Build the dashboard
+        # Bokeh writes reports/regime_dashboard.html; Pages serves index.html, so
+        # the built file is copied to that name. A missing build is a hard failure
+        # here rather than an empty publish downstream.
+        run: |
+          set -euo pipefail
+          python -m src.visualization.bokeh_app
+          test -f reports/regime_dashboard.html
+          cp reports/regime_dashboard.html reports/index.html
+          ls -lh reports/*.html
+
+      - name: Verify data freshness
+        # The failure this catches: a run that "succeeded" against a stale cache
+        # and published last week's chart. It asserts the parquet the dashboard
+        # was built from actually reaches recent dates.
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          import pandas as pd
+
+          prices = pd.read_parquet("data/history/prices.parquet")
+          latest = prices.index.max().date()
+          print(f"price range {prices.index.min().date()} -> {latest}")
+          size_mb = Path("reports/regime_dashboard.html").stat().st_size / 1e6
+          print(f"dashboard {size_mb:.2f} MB")
+
+          # The prices must reach within a week of now, allowing for weekends and
+          # market holidays. Older than that is a stale cache, not a fresh pull.
+          import datetime as dt
+          age = (dt.date.today() - latest).days
+          if age > 7:
+              sys.exit(f"prices end {latest} ({age} days old) — refresh did not pull fresh data")
+          PY
+
+      - name: Publish to Cloudflare Pages
+        # Published with wrangler in a run step rather than the cloudflare/pages
+        # marketplace action (now deprecated, and a marketplace action needs the
+        # repository's `selected` Actions allowlist widened — a run step does not).
+        # The API token must carry the "Cloudflare Pages: Edit" permission; the
+        # DNS/tunnel token from the EKS deploy may not, so this can need its own.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@3 pages deploy reports \
+            --project-name=raaal-dashboard \
+            --branch=main \
+            --commit-dirty=true
+
+      - name: Keep the built dashboard as an artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dashboard-${{ github.run_id }}
+          path: reports/*.html
+          retention-days: 14
+          if-no-files-found: warn
