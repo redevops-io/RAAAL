@@ -263,3 +263,29 @@ def test_no_look_ahead(name, prices):
     assert worst < 1e-6, (
         f"{name}: corrupting prices after {cutoff.date()} moved the earlier "
         f"path by ${worst:.6f} — a decision read a price it could not have seen")
+
+
+def test_an_uncovered_instrument_refuses_as_a_named_data_gap(prices):
+    """A symbol the snapshot cannot price refuses explicitly, by name, and blames
+    the data rather than the description. This is the NVDA report: 'invest $50
+    into NVDA every week' against a snapshot that prices a fixed ETF/macro
+    universe. The old message — 'no price history for X over this period' — read
+    as a bad ticker or a wrong date and sent the person editing an input that was
+    never the problem."""
+    fields = {"amount": "50", "cadence": "weekly", "assets": "NVDA"}
+    built = {k: IntentField(value=v, author=Author.READER) for k, v in fields.items()}
+    draft = VerifiedIntent(objective="evaluate_investment_strategy",
+                           produced_by="independent", utterance_ref="independent",
+                           fields=built, unresolved=())
+    scenario = compile_intent(draft.seal()).scenario
+    assert scenario is not None, "the plan did not compile"
+    assert "NVDA" not in prices.columns, "fixture unexpectedly prices NVDA"
+
+    result = evaluate_plan(scenario, prices)
+    assert not result.publishable
+    assert result.refusal_kind == "data_gap"
+    # Named, and attributed to the data, not the input.
+    assert "no pricing data for NVDA" in result.refusal
+    assert "not a problem with your description" in result.refusal
+    # The misleading period framing is gone for an instrument simply not covered.
+    assert "over this period" not in result.refusal

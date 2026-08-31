@@ -303,11 +303,33 @@ def evaluate_plan(scenario, prices, *, scope: Optional[Dict[str, Any]] = None,
                         resolved_window=resolved_window)
 
     if not tradeable or not flows:
-        return _refused(
-            "No price history for "
-            f"{', '.join(assets) or 'the instruments named'} over this period, "
-            "so the scenario cannot be replayed. This is a data gap, not a "
-            "result.", kind="data_gap", resolved_window=resolved_window)
+        # Two different gaps used to share one sentence. Separated, because the
+        # sentence decides what the reader does next.
+        uncovered = [one for one in assets if one not in prices.columns]
+        if not tradeable and uncovered:
+            # Instruments we simply hold no series for — the NVDA case: a symbol
+            # this deployment does not price. Said as a coverage gap and nothing
+            # else. The old wording ("no price history ... over this period")
+            # read as a bad ticker or a wrong date and sent people editing an
+            # input that was never wrong — the same failure `asset_identity`
+            # avoids for indices. Named explicitly so the gap is legible, and
+            # attributed to the data rather than to the description, without
+            # claiming the symbol was "understood" (a typo and a real but
+            # unpriced ticker are indistinguishable from here).
+            named = ", ".join(uncovered)
+            reason = (
+                f"There is no pricing data for {named} in this deployment, so "
+                "the strategy cannot be replayed — this is a gap in the market "
+                "data available here, not a problem with your description")
+        else:
+            # Instruments we can price, but no contribution lands in the window
+            # their data covers: genuinely a period problem, and phrased as one.
+            reason = (
+                "No price history for "
+                f"{', '.join(assets) or 'the instruments named'} over this "
+                "period, so the scenario cannot be replayed")
+        return _refused(f"{reason}. This is a data gap, not a result.",
+                        kind="data_gap", resolved_window=resolved_window)
 
     scope = declare_unsimulated(scenario, scope)
     if pin_scope is not None:
