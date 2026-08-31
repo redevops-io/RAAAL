@@ -288,6 +288,9 @@ def execute(reading: PilotReading, *, plan_id: str = "") -> Dict[str, Any]:
     # absent data source is a refusal with a reason, not a crash.
     if not access.usable:
         return {"result": None, "strategy_not_executed": True,
+                # A data gap the person cannot close by editing a value: the
+                # deployment holds no priced series for this plan at all.
+                "refusal_kind": "data_gap",
                 "unavailable": "market data is not available in this "
                                "deployment, so no figure can be produced for "
                                "this plan"}
@@ -339,6 +342,11 @@ def page(reading: PilotReading, *, text: str,
                  else getattr(run["result"], "gain", None)),
         "coverage": run.get("coverage"),
         "unavailable": run.get("unavailable"),
+        # Which dimension the refusal lives in, so the page can tell the person
+        # whether editing a value fixes it (`plan`), whether it is a data gap
+        # they cannot close (`data_gap`), or neither (`internal`). None on a run
+        # that produced a figure.
+        "refusal_kind": run.get("refusal_kind"),
         "strategy_not_executed": run.get("strategy_not_executed", False),
         "text": text,
         "reading": reading,

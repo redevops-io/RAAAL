@@ -77,6 +77,22 @@ class Evaluated:
 
     publishable: bool
     refusal: Optional[str] = None
+    refusal_kind: Optional[str] = None
+    """Why the refusal happened, in the one dimension the reader can act on:
+
+    - ``"plan"``  — a value or combination the run will not accept (an
+      unsupported cadence, a self-contradicting rebalancing rule, a strategy
+      with no schedule). The person can change it and re-evaluate.
+    - ``"data_gap"`` — the market data needed to replay the plan is not
+      available for the instruments or period named. Editing a value does not
+      fix this; a different instrument or period might.
+    - ``"internal"`` — a refusal that is neither of the above: a capability the
+      build does not run, or an integrity check (reconciliation) that failed.
+      Nothing the person types changes it.
+
+    Left ``None`` on a publishable result. Set at the refusal site rather than
+    inferred from the message downstream, so the classification is authored
+    where the reason is known and cannot drift from a string match."""
     result: Optional[Any] = None
     ledger: Optional[Any] = None
     reconciliation: Optional[Any] = None
@@ -92,8 +108,12 @@ class Evaluated:
     scope: Optional[Dict[str, Any]] = None
 
 
-def _refused(why: str, **carried) -> Evaluated:
-    return Evaluated(publishable=False, refusal=why, **carried)
+def _refused(why: str, *, kind: str = "plan", **carried) -> Evaluated:
+    # `plan` is the default because most refusals here are a value the person
+    # stated and can restate; the two that are not — a data gap and an
+    # integrity/capability refusal — say so at their own call sites.
+    return Evaluated(publishable=False, refusal=why, refusal_kind=kind,
+                     **carried)
 
 
 def declare_unsimulated(scenario, scope: Optional[Dict[str, Any]]
@@ -278,14 +298,16 @@ def evaluate_plan(scenario, prices, *, scope: Optional[Dict[str, Any]] = None,
         return _refused(str(refused), resolved_window=resolved_window)
 
     if scenario.event_program and not scenario.is_event_funded:
-        return _refused(STRATEGY_NOT_EXECUTED, resolved_window=resolved_window)
+        # A capability the build does not run, not a value to fix.
+        return _refused(STRATEGY_NOT_EXECUTED, kind="internal",
+                        resolved_window=resolved_window)
 
     if not tradeable or not flows:
         return _refused(
             "No price history for "
             f"{', '.join(assets) or 'the instruments named'} over this period, "
             "so the scenario cannot be replayed. This is a data gap, not a "
-            "result.", resolved_window=resolved_window)
+            "result.", kind="data_gap", resolved_window=resolved_window)
 
     scope = declare_unsimulated(scenario, scope)
     if pin_scope is not None:
@@ -345,6 +367,7 @@ def evaluate_plan(scenario, prices, *, scope: Optional[Dict[str, Any]] = None,
                 "reported totals do not agree, so no figure is shown. "
                 + "; ".join(reconciliation.detail[name]
                             for name in reconciliation.failures()),
+                kind="internal",
                 ledger=execution_ledger, reconciliation=reconciliation,
                 resolved_window=resolved_window)
 
