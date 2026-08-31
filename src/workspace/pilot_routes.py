@@ -867,7 +867,8 @@ def pilot_review(request: Request, review_id: str,
     answers, and cannot mint a second plan. Reopening a clarification is a read
     of what was settled, the same kind of operation as reopening a saved plan.
     """
-    from .pilot_store import load_review
+    from .pilot_store import load_review, load_review_under
+    from .owner import SHARED
     from .routes import TEMPLATES
 
     refused = _refuse_unless_declared(request)
@@ -875,6 +876,20 @@ def pilot_review(request: Request, review_id: str,
         return refused
 
     stored = load_review(review_id)
+    if stored is None:
+        # The anonymous → signed-in handoff. An evaluation run before signing in
+        # is saved under the shared workspace (`owner.SHARED`), because that is
+        # who the request was. The instant the visitor signs in to save it, the
+        # current owner becomes their subject and this scoped read finds nothing
+        # — so the review they just ran, with its figure and its description,
+        # reads as "no longer available" the moment they authenticate. It is not
+        # gone: it is content-addressed under SHARED, so fall back to reading it
+        # there by its own id. This is the same handoff the exact-save flow
+        # already relies on (see load_review_under); a review id is a hash of the
+        # reading, so this reads a specific evaluated artifact the requester can
+        # already name — never a way to browse another tenant's private plans,
+        # which live in pilot_plans and stay scoped to the current owner.
+        stored = load_review_under(SHARED, review_id)
     if stored is None:
         # 404 rather than a redirect to a fresh form. A person who followed a
         # stale link should be told the state is gone, not silently handed an

@@ -299,3 +299,51 @@ class TestSignedInVisitorSavesDirectly:
                             headers=_as("user-a"))
         assert saved.status_code == 303
         assert saved.headers["location"].startswith("/pilot/plans/")
+
+
+class TestAnonymousReviewSurvivesLogin:
+    """The regression this guards: an evaluation run *before* signing in is
+    saved under the shared workspace (`owner.SHARED`), and the instant the
+    visitor authenticates, the review view scoped `load_review` to their new
+    subject and found nothing — so the evaluation they just ran, its figure and
+    its description, read as "this review is no longer available" exactly when
+    they came back to save it. The review is content-addressed under SHARED and
+    must survive the transition.
+
+    This is the *view* counterpart to the exact-save handoff above: the save
+    path already read the anonymous review under SHARED; the page a person looks
+    at while deciding to save has to as well, or there is nothing to save."""
+
+    def test_the_review_survives_the_login_the_flow_forces(self, client):
+        # Evaluate with no account: the review is saved under the shared
+        # workspace. Viewing it redirects to sign in — this deployment gates the
+        # review page on a session, which is the login prompt in the report.
+        review_id = _evaluate_anonymously(client)
+
+        anon = client.get(f"/pilot/reviews/{review_id}")
+        assert anon.status_code == 303
+        assert anon.headers["location"].startswith("/auth/login?next="), (
+            anon.headers.get("location"))
+
+        # Back from login carrying a verified subject — the transition the bug
+        # broke. Before the fix this 404'd 'no longer available', because the
+        # view scoped `load_review` to the new subject while the review the
+        # visitor had just evaluated lived under SHARED.
+        signed = client.get(f"/pilot/reviews/{review_id}", headers=_as("alice"))
+        assert signed.status_code == 200, (
+            "the review the visitor just evaluated 404'd the instant they signed "
+            "in to save it — an anonymous evaluation under the shared workspace "
+            "must stay readable by its content-addressed id after authentication")
+        assert "no longer available" not in signed.text
+        # The interpreted-strategy section restates the sentence: its presence is
+        # how we know the description came back rather than an empty shell.
+        assert SENTENCE in signed.text
+
+    def test_a_review_that_was_never_evaluated_still_404s(self, client):
+        """The fallback reads a specific content-addressed id under SHARED, not
+        'anything' — an id no evaluation ever produced is still gone, and says
+        so, whether or not the requester is signed in."""
+        missing = client.get("/pilot/reviews/review-0123456789abcdef",
+                             headers=_as("alice"))
+        assert missing.status_code == 404
+        assert "no longer available" in missing.text
