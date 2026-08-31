@@ -33,6 +33,14 @@ import yaml
 REPO = pathlib.Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
+#: The committed universe of record — every ticker priced into the snapshot, and
+#: therefore what a plan may name (the pilot's priceable set is the snapshot's own
+#: columns). Committed so the daily refresh has a source that exists in a fresh
+#: checkout; adding an instrument is an edit here.
+UNIVERSE = REPO / "data" / "instruments" / "pilot_universe.yaml"
+#: The load-test catalog. Gitignored, so present only on a machine that has it;
+#: unioned in when it is, absent without complaint. `pilot_universe.yaml` is the
+#: authority either way.
 MAPPING = REPO / "data" / "catalog_instruments.yaml"
 
 #: The ticker whose trading days define the calendar. Every other series is
@@ -42,7 +50,7 @@ SESSION_REFERENCE = "SPY"
 
 
 def tickers_from(mapping: dict) -> list[str]:
-    """Every ticker the catalog needs, from the mapping and the aliases.
+    """Every ticker the load-test catalog needs, from the mapping and the aliases.
 
     Derived, not restated. A second hand-written list is the copy that stops
     matching the first, and the one that drifts is always the one nobody reads.
@@ -50,6 +58,23 @@ def tickers_from(mapping: dict) -> list[str]:
     named = {t for entry in mapping["mappings"].values() for t in entry["tickers"]}
     aliased = set(mapping.get("aliases", {}).values())
     return sorted(named | aliased)
+
+
+def universe_tickers() -> list[str]:
+    """The tickers to price: the committed universe, unioned with the load-test
+    catalog when that (gitignored) file happens to be present. The committed file
+    is the authority; the catalog only ever adds, never subtracts."""
+    tickers: set[str] = set()
+    if UNIVERSE.exists():
+        doc = yaml.safe_load(UNIVERSE.read_text()) or {}
+        tickers |= set(doc.get("funds_and_macro", []))
+        tickers |= set(doc.get("equities", []))
+    if MAPPING.exists():
+        tickers |= set(tickers_from(yaml.safe_load(MAPPING.read_text())))
+    if not tickers:
+        raise SystemExit(
+            f"no universe: neither {UNIVERSE} nor {MAPPING} yielded any ticker")
+    return sorted(tickers)
 
 
 def main() -> int:
@@ -61,9 +86,9 @@ def main() -> int:
 
     from src.market_data import ingest
 
-    mapping = yaml.safe_load(MAPPING.read_text())
-    tickers = tickers_from(mapping)
-    print(f"{len(tickers)} tickers from {MAPPING.name}")
+    tickers = universe_tickers()
+    print(f"{len(tickers)} tickers "
+          f"(committed {UNIVERSE.name}{' + ' + MAPPING.name if MAPPING.exists() else ''})")
 
     # One ingestion path. The retries, the calendar and the corporate-action
     # capture all live in `src.market_data.ingest`, so this script cannot
