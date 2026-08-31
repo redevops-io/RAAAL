@@ -48,6 +48,16 @@ spec:
         # rebuild it.
         - name: research
           emptyDir: {}
+        # The daily-refreshed vendor snapshot manifest. Mounted read-only from a
+        # ConfigMap the refresh-pilot-snapshot workflow rewrites each day;
+        # `approved_snapshot` re-reads it per request (no memoization), so a fresh
+        # pin is picked up live without a pod roll. The pilot's inline evaluation
+        # reads it via QUANTIFY_VENDOR_MANIFEST below. Not `optional`: a vendor
+        # deployment whose manifest is missing resolves no snapshot and serves
+        # nothing, so refusing to start is better than serving empty.
+        - name: vendor-manifest
+          configMap:
+            name: quantify-vendor-manifest
       initContainers:
         - name: build-dashboard
           image: IMAGE_PLACEHOLDER
@@ -109,9 +119,17 @@ spec:
             # Serve the dashboard the init container built, from the shared dir.
             - name: QUANTIFY_RESEARCH_DIR
               value: /srv/research
+            # Read the vendor manifest from the mounted ConfigMap rather than the
+            # image's committed default, so the daily refresh can re-pin it without
+            # a rebuild (the QUANTIFY_VENDOR_MANIFEST seam in market_data/access).
+            - name: QUANTIFY_VENDOR_MANIFEST
+              value: /etc/quantify/vendor/manifest.yaml
           volumeMounts:
             - name: research
               mountPath: /srv/research
+            - name: vendor-manifest
+              mountPath: /etc/quantify/vendor
+              readOnly: true
           resources:
             # Raised for the syntax witness. The Stanza pipeline is loaded
             # once per process and holds its model resident; the API alone ran

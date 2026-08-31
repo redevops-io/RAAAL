@@ -101,3 +101,18 @@ class TestRefusesWhatItCannotStandBehind:
                   "total_return": UPLOADS["total_return"]}
         with pytest.raises(SnapshotPinError, match="object_version_id"):
             _pin(uploads=broken)
+
+
+class TestUriIsPinnable:
+    def test_defaults_to_the_env_reference_for_the_committed_manifest(self):
+        assert _pin()["uri"] == "${QUANTIFY_VENDOR_PRICES_URI}"
+
+    def test_a_literal_uri_is_used_for_the_daily_configmap_pin(self):
+        pinned = pin_manifest(
+            BASE, UPLOADS,
+            license_record="data/licensing/market-data-licensing@1.yaml",
+            license_dataset_id="market-data/prices",
+            uploaded_at="2026-09-01",
+            uri="s3://quantify-club-market-data/market-data/prices/prices-yahoo-2026-08-31/prices-yahoo-2026-08-31.parquet",
+        )
+        assert pinned["uri"].startswith("s3://") and "prices-yahoo-2026-08-31" in pinned["uri"]

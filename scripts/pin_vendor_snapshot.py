@@ -56,6 +56,7 @@ def pin_manifest(
     license_record: str,
     license_dataset_id: str,
     uploaded_at: str,
+    uri: str = "${QUANTIFY_VENDOR_PRICES_URI}",
 ) -> Dict[str, Any]:
     """The pinned vendor manifest, from the built base + the upload records.
 
@@ -85,9 +86,11 @@ def pin_manifest(
         "dataset_id": dataset_id,
         "snapshot_id": _require(base, "snapshot_id", "base manifest"),
         "kind": "vendor",
-        # Env-referenced, never the built local path: the private bucket name
-        # stays out of the committed/mounted manifest (as the previous pin did).
-        "uri": "${QUANTIFY_VENDOR_PRICES_URI}",
+        # `${QUANTIFY_VENDOR_PRICES_URI}` for the committed default (keeps the
+        # bucket name out of the AGPL repo); a literal s3:// URI for the daily
+        # ConfigMap pin, so a new per-snapshot key is picked up with no env change
+        # and no pod roll. Never the built local path.
+        "uri": uri,
         "object_version_id": _require(market, "object_version_id", "market upload"),
         "sha256": _require(market, "sha256", "market upload"),
         "content_digest": content_digest,
@@ -146,6 +149,9 @@ def main() -> int:
     parser.add_argument("--license-record", required=True, type=Path)
     parser.add_argument("--uploaded-at", required=True,
                         help="the upload date (YYYY-MM-DD); passed in, not read from a clock")
+    parser.add_argument("--uri", default="${QUANTIFY_VENDOR_PRICES_URI}",
+                        help="the manifest's uri: a literal s3:// URI for the daily "
+                             "ConfigMap pin, or the default env reference for the committed one")
     parser.add_argument("--out", type=Path, help="write here; default: stdout")
     args = parser.parse_args()
 
@@ -159,6 +165,7 @@ def main() -> int:
             license_record=str(args.license_record),
             license_dataset_id=dataset_id,
             uploaded_at=args.uploaded_at,
+            uri=args.uri,
         )
     except SnapshotPinError as err:
         print(f"refusing to pin: {err}", file=sys.stderr)

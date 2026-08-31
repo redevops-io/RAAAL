@@ -1,0 +1,127 @@
+name: Refresh pilot snapshot
+
+# Re-pins the pilot's strategy-evaluation data daily, in step with the landing
+# dashboard — the vendor half of "keep the front page and the evaluation fresh".
+# A sibling of refresh-dashboard.yml, deliberately separate: a broken snapshot
+# upload must not take down the landing-page refresh, and vice versa.
+#
+# The chain is the three tools built for it, each tested and dry-run-capable:
+#   build_catalog_snapshot.py   fresh Yahoo over the tradable universe -> parquets + base manifest
+#   upload_vendor_snapshot.py   the two parquets -> S3 (a new per-snapshot key) -> versions + hashes
+#   pin_vendor_snapshot.py      base + upload records -> the pinned manifest the pilot reads
+# then the manifest is written into the `quantify-vendor-manifest` ConfigMap that
+# the web pod mounts. `approved_snapshot` re-reads it per request (no
+# memoization), so the fresh pin is picked up live — no image rebuild, no roll.
+#
+# workflow_dispatch is listed FIRST and the schedule can be enabled once a manual
+# run has been watched end to end: the first live re-pin of production licensed
+# data should be observed, not fired by cron on day one.
+
+on:
+  workflow_dispatch:
+  # Uncomment to run daily once a manual run has proven the path end to end.
+  # schedule:
+  #   - cron: '30 6 * * *'   # 06:30 UTC, after the landing refresh
+
+concurrency:
+  group: refresh-pilot-snapshot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  MARKET_DATA_BUCKET: quantify-club-market-data
+  EKS_CLUSTER: quantify-test-eks
+  NAMESPACE: quantify
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        # The build/upload/pin chain needs the data + AWS deps, not the whole
+        # pilot runtime. requirements-dashboard.txt carries pandas/pyarrow/yfinance
+        # (the landing refresh's stack); boto3 + pyyaml are the upload/pin extras.
+        run: pip install -r requirements-dashboard.txt boto3 pyyaml
+
+      - name: Decide the snapshot id and the per-snapshot S3 URI
+        id: id
+        run: |
+          set -euo pipefail
+          SID="prices-yahoo-$(date -u +%Y%m%d)"
+          URI="s3://${MARKET_DATA_BUCKET}/market-data/prices/${SID}/${SID}.parquet"
+          echo "snapshot_id=${SID}" >> "$GITHUB_OUTPUT"
+          echo "price_uri=${URI}" >> "$GITHUB_OUTPUT"
+          echo "building ${SID}"
+
+      - name: Build the vendor snapshot from fresh Yahoo data
+        # Fresh prices over the resolver+catalog tradable universe, with the
+        # dividend-reinvested twin. A new snapshot id is a new object, not an
+        # overwrite, so the builder's reconciliation guard has nothing to conflict
+        # with on a fresh runner.
+        run: |
+          set -euo pipefail
+          python scripts/build_catalog_snapshot.py \
+            --out data/snapshots \
+            --snapshot-id "${{ steps.id.outputs.snapshot_id }}"
+
+      - name: Upload the snapshot to S3 (market series + total-return twin)
+        env:
+          QUANTIFY_VENDOR_PRICES_URI: ${{ steps.id.outputs.price_uri }}
+        run: |
+          set -euo pipefail
+          python scripts/upload_vendor_snapshot.py \
+            --snapshot-dir data/snapshots \
+            --snapshot-id "${{ steps.id.outputs.snapshot_id }}" \
+            --out uploads.json
+
+      - name: Pin the manifest to the uploaded objects
+        # The literal per-snapshot URI (not the env reference), so the ConfigMap
+        # manifest names its own object and needs no env change to be picked up.
+        run: |
+          set -euo pipefail
+          python scripts/pin_vendor_snapshot.py \
+            --base "data/snapshots/${{ steps.id.outputs.snapshot_id }}.yaml" \
+            --uploads uploads.json \
+            --license-record data/licensing/market-data-licensing@1.yaml \
+            --uploaded-at "$(date -u +%F)" \
+            --uri "${{ steps.id.outputs.price_uri }}" \
+            --out pinned.yaml
+          echo "----- pinned manifest -----"
+          cat pinned.yaml
+
+      - name: Publish the pin to the cluster ConfigMap the web pod reads
+        # A server-side apply of the one key the mount consumes. No pod roll:
+        # approved_snapshot re-reads the mounted file per request, and the kubelet
+        # syncs a ConfigMap change within ~1 minute, so the next evaluation serves
+        # the fresh snapshot on its own.
+        run: |
+          set -euo pipefail
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER}"
+          kubectl -n "${NAMESPACE}" create configmap quantify-vendor-manifest \
+            --from-file=manifest.yaml=pinned.yaml \
+            --dry-run=client -o yaml | kubectl apply -f -
+          echo "re-pinned ${{ steps.id.outputs.snapshot_id }} into quantify-vendor-manifest"
+
+      - name: Keep the pinned manifest as an artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pinned-manifest-${{ steps.id.outputs.snapshot_id }}
+          path: pinned.yaml
+          if-no-files-found: warn
