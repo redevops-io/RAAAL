@@ -64,11 +64,10 @@ jobs:
       - name: Refresh market data and run the historical backtest
         # `--refresh` re-downloads prices from Yahoo rather than reading a cache,
         # which is the whole point of the daily run: the dashboard's date range
-        # moves forward a day. FINNHUB_API_KEY feeds the sentiment engine; with
-        # `--sentiment-backend auto` a missing key degrades to a keyless scorer
-        # rather than failing the run.
-        env:
-          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        # moves forward a day. Sentiment runs keyless — `src/sentiment.py` skips
+        # the Finnhub news source when no FINNHUB_API_KEY is set and scores from
+        # the public Stocktwits/Reddit sources with VADER, so no secret is needed
+        # here. Set FINNHUB_API_KEY in the environment only to add that source.
         run: |
           set -euo pipefail
           python -m src.history \
