@@ -221,11 +221,14 @@ jobs:
 
       - name: Install the Kubernetes client for Ansible
         run: |
-          # kubernetes.core.k8s drives the cluster and imports the `kubernetes` python
-          # library, which is not on the runner. Install it (the collection itself comes
-          # from requirements.yml via ansible-galaxy in the next step); --break-system-
-          # packages covers a PEP 668 runner.
-          python3 -m pip install --quiet kubernetes \
+          # kubernetes.core.k8s imports the `kubernetes` python library, and its modules
+          # run under ansible-core's OWN interpreter. On the runner ansible-core is a
+          # pipx app (/opt/pipx/venvs/ansible-core), so a system `pip install` is invisible
+          # to it — the play failed with "Failed to import the required Python library
+          # (kubernetes)". Inject it into the ansible-core venv; fall back to a
+          # system / PEP-668 install if ansible-core is not a pipx app.
+          pipx inject ansible-core kubernetes \
+            || python3 -m pip install --quiet kubernetes \
             || python3 -m pip install --quiet --break-system-packages kubernetes
 
       - name: Ansible deploy
