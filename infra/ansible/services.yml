@@ -638,26 +638,36 @@
           --command -- wget -qO- --timeout=20 http://quantify-identity/debug/ready
       register: identity_ready
       changed_when: false
-      # Retried for the same reason as the service probe below: a post-rollout
-      # one-shot into the endpoint cutover reads as not-ready when the pod is
-      # merely seconds from answering. Zitadel is also the slowest to warm.
-      retries: 12
-      delay: 10
+      # Retried for the same reasons as the service probe below, and the window
+      # is sized the same way: long enough to cover a cold image pull, not just
+      # the endpoint cutover. Zitadel is also the slowest to warm.
+      retries: 40
+      delay: 20
       until: identity_ready.rc == 0
       when: "'identity' in targets"
 
-    # Retried, for the same reason the rollout wait above is: this fires the
-    # instant `kubectl rollout status` returns, and "the Deployment is
-    # available" and "the Service's endpoints are the new pods and answering"
-    # are not the same instant — the gap is the endpoint cutover, and a
-    # one-shot probe into it reads as a service that cannot identify itself.
-    # Observed: a run where /health had already gated the pods Ready and the web
-    # app was serving, yet this probe of quantify-evaluate/version came back rc 0
-    # with an empty body — a `kubectl run -i` attach landing mid-cutover, not a
-    # build that lost its /version. `until` (not `failed_when`) so a transient
-    # empty answer is retried rather than failing the deploy; after the retries
-    # a still-empty answer is a real failure and is reported as one. Per loop
-    # item, so each service converges on its own.
+    # Retried, and the window has to cover two different waits, not one:
+    #
+    #   1. The endpoint cutover. This fires the instant `kubectl rollout status`
+    #      returns — and that command can return *early*, because right after a
+    #      `rollout restart` it may read the pre-restart "complete" state before
+    #      the controller has observed the new generation. So the probe can open
+    #      on a service whose new pod does not exist yet.
+    #   2. The image pull. The serving image is multi-GB; on a node that does not
+    #      already have it, containerd spends several minutes pulling before the
+    #      container starts at all. Observed: quantify-data's container did not
+    #      start until 7m37s after it was scheduled (a 3.8GB pull), and the probe
+    #      — then a 2-minute window — gave up ~30s before it began, reporting
+    #      "connection refused" as a deploy failure on a rollout that was fine.
+    #
+    # So the window is sized to a cold pull plus warm-up (~13m), not to the
+    # cutover alone. `until` (not `failed_when`) so a transient rc 0 empty body
+    # (a `kubectl run -i` attach mid-cutover) or a connection-refused (still
+    # pulling) is retried; a service still silent after the whole window is a
+    # real failure and is reported as one. Per loop item, so each converges on
+    # its own — a fast service passes on the first try and does not wait for a
+    # slow one. The real fix for the latency is a smaller image; this stops the
+    # pull from being read as a broken deploy in the meantime.
     - name: Ask each service to identify itself
       ansible.builtin.command:
         cmd: >-
@@ -669,8 +679,8 @@
                           | difference(['identity', 'web', 'tunnel']) }}"
       register: identity
       changed_when: false
-      retries: 12
-      delay: 10
+      retries: 40
+      delay: 20
       until: identity.rc == 0 and 'contract_version' in identity.stdout
 
     - name: What answered
