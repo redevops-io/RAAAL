@@ -48,6 +48,23 @@
   .refusal-lead { color: var(--ink); max-width: 62ch; }
   .refusal-detail { font-size: 13px; color: var(--muted); max-width: 62ch;
       border-top: 1px solid var(--line); padding-top: 8px; margin-top: 10px; }
+  /* The outcome, surfaced at the top of the result page so it is not lost below
+     the parameter table. Colour follows the same meaning as the §6.B refusal:
+     a figure and a plan-fixable value read in the accent; a data gap or an
+     internal refusal read in the block colour. */
+  .outcome-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px;
+      margin: 12px 0; padding: 10px 14px; border-radius: 8px;
+      border-left: 3px solid var(--block);
+      background: color-mix(in srgb, var(--block) 6%, var(--panel)); }
+  .outcome-top.ok, .outcome-top.refusal-plan { border-left-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 6%, var(--panel)); }
+  .outcome-top__label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+      font-weight: 700; color: var(--muted); }
+  .outcome-top__figure { font-family: var(--mono); font-size: 20px; font-weight: 700;
+      color: var(--ink); }
+  .outcome-top__why { color: var(--ink); max-width: 60ch; }
+  .outcome-top__link { font-size: 12px; color: var(--accent); margin-left: auto;
+      white-space: nowrap; }
 </style>
 
 <h1>Plan</h1>
@@ -188,6 +205,33 @@
       how it was settled — what you supplied, what a witness inferred, what the
       methodology defaulted, and what is still unresolved.</p>
     {% if text %}<p class="restated">You described: <q>{{ text }}</q></p>{% endif %}
+
+    {# The outcome, surfaced at the top. Without it a result page whose result
+       lives in §6.B — below a tall parameter table — reads at a glance as the
+       page you submitted from: the interpreted strategy is identical, and the
+       figure or refusal is below the fold. This says, first thing, what came of
+       the run. Shown only when a run happened (a figure or a refusal), so the
+       draft page at /workspace/new — which has no run — does not grow a banner,
+       and the review page is visibly the result page it is. A figure links down
+       to its chart; a refusal states its reason here, classified the same way
+       §6.B does, rather than only there. #}
+    {% if figure is not none %}
+      <div class="outcome-top ok" role="status">
+        <span class="outcome-top__label">Result</span>
+        <span class="outcome-top__figure">{{ figure }}</span>
+        <a class="outcome-top__link" href="#outcome">see the outcome and chart ↓</a>
+      </div>
+    {% elif strategy_not_executed %}
+      <div class="outcome-top refusal-{{ refusal_kind or 'internal' }}" role="status">
+        <span class="outcome-top__label">
+          {% if refusal_kind == "data_gap" %}No market data
+          {%- elif refusal_kind == "plan" %}A value needs adjusting
+          {%- else %}Not evaluated{% endif %}
+        </span>
+        <span class="outcome-top__why">{{ unavailable or "the engine refused to execute this plan" }}</span>
+        <a class="outcome-top__link" href="#outcome">details ↓</a>
+      </div>
+    {% endif %}
 
     {% if needed %}
     {# §6.A — result-changing unresolved dimensions BLOCK final evaluation. The
