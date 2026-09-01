@@ -526,7 +526,15 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
     # instruction as a dropped one. Guarded again here rather than trusting the
     # upstream refusal: a value can arrive by a path `decide` did not see, and a
     # window set without a resolvable duration would slice to an empty frame.
-    stated_window = value("evaluation_period")
+    # `evaluation_period` is the window read from "over the past 5 years";
+    # `holding_period` is what the model reads a plan's own "for 5 years" as,
+    # and on a build that holds to the end of the evaluation period the two name
+    # the same trailing period (capability.decide lets a trailing duration run
+    # under either). Prefer the window when both are present; consult both by
+    # name so the stranded check does not read the one not chosen as dropped.
+    stated_period = value("evaluation_period")
+    holding_period = value("holding_period")
+    stated_window = stated_period if stated_period is not None else holding_period
     if stated_window is not None:
         window = time_window.from_canonical(str(stated_window))
         if window is not None and window.supported and (window.years or window.months):

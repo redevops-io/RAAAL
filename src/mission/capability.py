@@ -490,6 +490,22 @@ def decide(name: str, value: Any = None) -> Optional[Refusal]:
     if d is None:
         return None
 
+    # A stated period this build restricts the replay to, named as either
+    # dimension. "over the past 5 years" reads as `evaluation_period`; a plan's
+    # own "for 5 years" reads as `holding_period` — and on a build that buys and
+    # holds to the *end of the evaluation period*, a holding length and the
+    # evaluation window are the same trailing period. So a sized trailing
+    # duration runs under either name, before the dimension's own support check
+    # below can refuse `holding_period` (NOT_MODELLED) for a length that does, in
+    # this reading, have an effect. A non-duration ("200 days", "since 2021")
+    # falls through to that refusal unchanged.
+    if name in ("evaluation_period", "holding_period") and value is not None:
+        from .time_window import from_canonical
+
+        window = from_canonical(str(value))
+        if window is not None and window.supported and (window.years or window.months):
+            return None
+
     if d.support in (REFUSED, NOT_MODELLED):
         return Refusal(kind=UNSUPPORTED_DIMENSION, dimension=name,
                        stated_value=value, detail=d.why)
