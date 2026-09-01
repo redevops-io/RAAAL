@@ -132,9 +132,19 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
     if policy is PilotDataPolicy.SYNTHETIC_ONLY:
         snapshot = synthetic_snapshot()
         decision = AccessDecision.SYNTHETIC_ALLOWED
+        # The synthetic snapshot is a local fixture; loading it never reaches out.
+        allow_network = False
     else:
         snapshot = approved_snapshot()
         decision = AccessDecision.PILOT_VENDOR_APPROVED
+        # A vendor snapshot is S3-backed; loading fetches and verifies it by the
+        # pinned object version, exactly as `adapters._serving_snapshot` does for
+        # the same policy. Without this the pilot's inline resolve() read the
+        # cache only and returned "no market data" on any pod whose cache nothing
+        # had warmed — which is every fresh web pod, because the market-data
+        # cache is not baked into the image and no step populates it. The pod now
+        # holds a read-only S3 credential (its Pod Identity role) for this fetch.
+        allow_network = True
     if snapshot is None:
         return MarketDataAccess(
             None, not_recorded("no snapshot was resolved for this policy"))
@@ -157,7 +167,8 @@ def resolve(*, context: str, accessed_at: Optional[str] = None,
             access_decision_reason=str(refusal)[:200], accessed_at=stamp))
 
     try:
-        frame = load_prices(snapshot, reinvested=reinvested)
+        frame = load_prices(snapshot, reinvested=reinvested,
+                            allow_network=allow_network)
     except Exception as unavailable:
         # The reason, not a generic failure. A snapshot with no total-return
         # twin cannot answer a plan that reinvests dividends, and "could not be

@@ -271,6 +271,65 @@ resource "aws_eks_pod_identity_association" "data" {
   role_arn        = aws_iam_role.pod_data[0].arn
 }
 
+# `quantify-web` reads the licensed vendor snapshot from S3 too, because the
+# pilot's evaluation runs inline in the web pod (run_boundary resolves the
+# approved snapshot per request) rather than calling the data service for it.
+# The original boundary — web/evaluate reach market data *through* quantify-data
+# and hold no credentials of their own — did not survive that move: an inline
+# read needs the pod's own credentials, and without them every figure came back
+# "no market data". So the grant is deliberately the narrowest that restores it:
+# read-only, versioned, this one bucket, and *not* the database-password secret
+# `pod_data` also carries — the web pod gets its database URL from its env
+# secret, not from this role.
+#
+# Created out of band first (an `aws eks create-pod-identity-association` while a
+# full `terraform apply` was gated on a Cloudflare-tunnel credential); these
+# resources describe what exists and must be `terraform import`ed before the
+# next apply, or the apply will try to create a role and association that are
+# already there.
+resource "aws_iam_role" "pod_web" {
+  count = var.enable_kubernetes ? 1 : 0
+  name  = "${local.eks_name}-pod-web"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "pods.eks.amazonaws.com" }
+      Action    = ["sts:AssumeRole", "sts:TagSession"]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "pod_web" {
+  count = var.enable_kubernetes ? 1 : 0
+  name  = "market-data-read"
+  role  = aws_iam_role.pod_web[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      # Read-only and by object version, exactly as pod_data reads it — the pin
+      # refuses an unversioned read, so GetObjectVersion is the one that matters.
+      # No secret access: the web pod's role is market data and nothing else.
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:GetObjectVersion"]
+      Resource = [
+        "arn:aws:s3:::${var.market_data_bucket}",
+        "arn:aws:s3:::${var.market_data_bucket}/*",
+      ]
+    }]
+  })
+}
+
+resource "aws_eks_pod_identity_association" "web" {
+  count           = var.enable_kubernetes ? 1 : 0
+  cluster_name    = aws_eks_cluster.main[0].name
+  namespace       = "quantify"
+  service_account = "quantify-web"
+  role_arn        = aws_iam_role.pod_web[0].arn
+}
+
 # The connection string, assembled where both halves are already known.
 #
 # Marked sensitive so terraform will not print it, and fetched by the
@@ -293,6 +352,7 @@ output "eks_pod_identity_roles" {
   description = "Which role each service assumes. Evaluate has none, on purpose."
   value = var.enable_kubernetes ? {
     "quantify-data"     = aws_iam_role.pod_data[0].arn
+    "quantify-web"      = aws_iam_role.pod_web[0].arn
     "quantify-evaluate" = "none — it reaches market data through quantify-data"
   } : {}
 }
