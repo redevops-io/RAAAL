@@ -31,7 +31,7 @@ producing a plan that answers a different question.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Mapping, Optional, Sequence
 
@@ -46,6 +46,7 @@ from .scenario import (
     Objective,
     ScenarioSpecification,
 )
+from . import time_window
 from .signals import Estimator, SignalKind
 from .strategy_methods import strategy_capability
 from ..config import UNIVERSE
@@ -511,6 +512,27 @@ def compile_intent(intent: VerifiedIntent, *, name: str = "plan",
         tax_treatment=str(ENGINE_CONSTANTS["tax_treatment"]),
         funding=funding,
     )
+
+    # The stated evaluation window, carried onto the scenario so the engine
+    # restricts the replay to it.
+    #
+    # `capability.decide` (via `refusals_for` above) has already refused an
+    # open-ended, explicit-range or rolling window, so a value reaching an
+    # executable compile is a trailing duration the engine resolves — "the past
+    # 5 years". Set on the provenance the engine reads (`_resolve_window` ->
+    # `time_window.resolve` slices the snapshot to it), and the figure is then
+    # reported over exactly that period rather than the whole history. `value`
+    # marks it consulted so the stranded check below does not read a consumed
+    # instruction as a dropped one. Guarded again here rather than trusting the
+    # upstream refusal: a value can arrive by a path `decide` did not see, and a
+    # window set without a resolvable duration would slice to an empty frame.
+    stated_window = value("evaluation_period")
+    if stated_window is not None:
+        window = time_window.from_canonical(str(stated_window))
+        if window is not None and window.supported and (window.years or window.months):
+            scenario = replace(scenario, provenance=replace(
+                scenario.provenance, time_window=window))
+
     # A stated dimension that no builder read is an instruction that vanished.
     #
     # `moving_average_window` was the case that found this: "buy VTI below its

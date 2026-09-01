@@ -230,7 +230,7 @@
        §6.B does, rather than only there. #}
     {% if figure is not none %}
       <div class="outcome-top ok" role="status">
-        <span class="outcome-top__label">Result</span>
+        <span class="outcome-top__label">Result{% if period %} · {{ period.label }}{% endif %}</span>
         <span class="outcome-top__figure">{{ figure }}</span>
         <a class="outcome-top__link" href="#outcome">see the outcome and chart ↓</a>
       </div>
@@ -522,8 +522,15 @@
 
   {% if figure is not none %}
     <section class="result">
-      <h3>Return / growth</h3>
+      <h3>Return / growth{% if period %} · {{ period.label }}{% endif %}</h3>
       <p class="figure">{{ figure }}</p>
+      {# When the plan named a trailing window, the figure is *for that period* —
+         said out loud so a five-year return is never read as an all-history one.
+         `short` means the snapshot did not reach the full window back, so the
+         label would otherwise overstate the span the number covers. #}
+      {% if period %}
+      <p class="quiet">Over {{ period.label }}{% if period.start and period.end %} ({{ period.start }} → {{ period.end }}){% endif %}, this is what the plan would have returned.{% if period.short %} The snapshot does not reach the whole period back, so this covers as far back as the data goes.{% endif %}</p>
+      {% endif %}
       {% if gain is not none %}<p class="quiet">gain {{ "%.2f"|format(gain) }}</p>{% endif %}
       {# Risk-adjusted performance, on the time-weighted return so a plan that
          put more money in later reads as a higher figure and not a better

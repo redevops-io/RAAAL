@@ -400,12 +400,20 @@ MANIFEST: Mapping[str, Dimension] = {
     # Refused by name, so a person asking for five years is told this build
     # evaluates over the data it has rather than being silently given a
     # different window. Queued in docs/Benchmark-Queue.md.
+    # Open-valued and EXECUTED, not blanket-refused: the engine restricts a
+    # replay to a *trailing* window ("the past 5 years") — `time_window.resolve`
+    # slices the snapshot to it and the figure is reported over exactly that
+    # period. It cannot yet resolve an open-ended ("since 2021"), explicit-range
+    # or rolling window, so those are refused *by value* in `decide` — the same
+    # shape as `stated_weights`: the boundary is a property of the value, not of
+    # the dimension. A dimension that runs for some values and refuses others is
+    # not one this manifest may mark REFUSED, or it would refuse the ones that
+    # work.
     "evaluation_period": _d(
-        "evaluation_period", REFUSED,
-        why=("this build evaluates over the whole price history it holds and "
-             "cannot yet restrict a run to a stated window; the period you "
-             "asked for would be recorded and not honoured, and a figure "
-             "labelled with it would be wrong")),
+        "evaluation_period", EXECUTED, closed=False,
+        why=("this build restricts a replay to a trailing period — 'the past 5 "
+             "years' — and cannot yet resolve an open-ended, explicit-range or "
+             "rolling window")),
 }
 
 
@@ -502,6 +510,30 @@ def decide(name: str, value: Any = None) -> Optional[Refusal]:
                    "40% in BND' would let this plan run — this build divides "
                    "each purchase by stated weights, and will not guess which "
                    "way round they go")
+
+    # A stated evaluation window this build cannot resolve.
+    #
+    # `evaluation_period` runs for a trailing duration — the engine restricts
+    # the replay to "the past 5 years" and reports the figure over exactly that
+    # period. It cannot resolve an open-ended ("since 2021"), explicit-range or
+    # rolling window, and reading one as trailing would answer a different
+    # question with a plausible number. So the supported kind runs and the rest
+    # are refused here, by value — the same shape as `stated_weights`, a
+    # property of the value rather than of the dimension. Placed before the
+    # generic `executes` check because the dimension is open-valued, so that
+    # check accepts every value and would let an unresolvable window through.
+    if name == "evaluation_period" and value is not None:
+        from .time_window import from_canonical
+
+        window = from_canonical(str(value))
+        if window is not None and window.supported and (window.years or window.months):
+            return None
+        return Refusal(
+            kind=UNSUPPORTED_VALUE, dimension=name, stated_value=value,
+            detail=("this build replays a trailing period — say 'the past 5 "
+                    "years' or 'the past 6 months' — and cannot yet restrict a "
+                    "run to that window; reading it as a trailing period would "
+                    "report a figure for a period you did not ask about"))
 
     if value is not None and not d.executes(value):
         return Refusal(

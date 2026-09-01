@@ -72,6 +72,18 @@ _LOOKBACK = re.compile(
     r"\b(\d{1,2})[\s-]*(year|yr|month|mo)s?[\s-]*(?:lookback|look-back|history|window)\b",
     re.IGNORECASE)
 
+#: A bare duration — "for 5 years", "over 6 months" — with no "past"/"last".
+#: For a historical replay the only period a duration can name is the trailing
+#: one: a backtest can cover the last five years, not the next five, so "invest
+#: for 5 years" asks what the past five years would have returned. Read after
+#: the explicit-trailing forms (so "the past 5 years" keeps its own match) and
+#: after the rolling/cadence guard (so a contribution's own "for 5 years" is the
+#: window, not mistaken for many). Days are deliberately not matched: "for 200
+#: days" is a holding period, a different dimension.
+_BARE_DURATION = re.compile(
+    r"\b(?:for|over)\s+(\d{1,2}|" + "|".join(_WORD_NUMBERS) + r")[\s-]*(year|yr|month|mo)s?\b",
+    re.IGNORECASE)
+
 _SINCE = re.compile(r"\bsince\s+(?:the\s+)?(\d{4}|\w+\s+\d{4})\b", re.IGNORECASE)
 _UNTIL = re.compile(r"\b(?:through|until|up\s+to)\s+(\d{4})\b", re.IGNORECASE)
 _RANGE = re.compile(r"\bfrom\s+.{3,20}\s+(?:to|through|until)\s+.{3,20}", re.IGNORECASE)
@@ -224,6 +236,18 @@ def detect(text: str) -> Optional[TimeWindow]:
             return TimeWindow(WindowKind.TRAILING, found.group(0).strip(),
                               months=count)
 
+    found = _BARE_DURATION.search(text)
+    if found:
+        raw, unit = found.group(1), found.group(2).lower()
+        count = _WORD_NUMBERS.get(raw.lower(), None)
+        if count is None:
+            count = int(raw)
+        if unit.startswith("y"):
+            return TimeWindow(WindowKind.TRAILING, found.group(0).strip(),
+                              years=count)
+        return TimeWindow(WindowKind.TRAILING, found.group(0).strip(),
+                          months=count)
+
     found = _SINCE.search(text)
     if found:
         return TimeWindow(WindowKind.SINCE, found.group(0).strip())
@@ -231,6 +255,39 @@ def detect(text: str) -> Optional[TimeWindow]:
     if found:
         return TimeWindow(WindowKind.UNTIL, found.group(0).strip())
     return None
+
+
+def from_canonical(value: str) -> Optional[TimeWindow]:
+    """The schema's canonical `evaluation_period` value ('trailing:5y') as a
+    TimeWindow.
+
+    The inverse of what `readers_quantify` emits: `detect` reads prose, this
+    reads the canonical value the intent already carries by the time the
+    compiler sees it. `None` for a form this does not recognise at all, so the
+    compiler refuses it by name rather than guessing what was meant — and a
+    recognised-but-unsized or unsupported kind comes back as a `TimeWindow`
+    whose `.supported`/sized-ness the caller checks, so "since:2021" is refused
+    with its own reason rather than coerced into a trailing window.
+    """
+    if not value:
+        return None
+    head, sep, rest = str(value).partition(":")
+    if not sep:
+        return None
+    try:
+        kind = WindowKind(head.strip().lower())
+    except ValueError:
+        return None
+    sized = re.match(r"^(\d{1,2})\s*([ym])$", rest.strip().lower())
+    if sized:
+        count = int(sized.group(1))
+        if sized.group(2) == "y":
+            return TimeWindow(kind, value, years=count)
+        return TimeWindow(kind, value, months=count)
+    # since:2021 / until:2024 / range:.. / trailing:unresolved — a recognised
+    # kind carrying no resolvable duration. Returned so the caller sees the
+    # kind (and that it is unsized), never coerced into a sized trailing one.
+    return TimeWindow(kind, value)
 
 
 def _back(anchor: dt.date, *, years: int = 0, months: int = 0) -> dt.date:
