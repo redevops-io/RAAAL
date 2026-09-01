@@ -19,9 +19,10 @@ name: Refresh pilot snapshot
 
 on:
   workflow_dispatch:
-  # Uncomment to run daily once a manual run has proven the path end to end.
-  # schedule:
-  #   - cron: '30 6 * * *'   # 06:30 UTC, after the landing refresh
+  # Daily, enabled after a watched manual run proved the path end to end
+  # (build → upload → pin → ConfigMap, re-pinning the live snapshot with no roll).
+  schedule:
+    - cron: '30 6 * * *'   # 06:30 UTC, after the landing refresh
 
 concurrency:
   group: refresh-pilot-snapshot
