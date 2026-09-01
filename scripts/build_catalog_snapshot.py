@@ -134,7 +134,10 @@ def main() -> int:
         print(f"  unexplained move  {ticker}: "
               f"{', '.join(f'{d.date()} {v:+.1%}' for d, v in moves.items())}")
 
-    out = pathlib.Path(arguments.out)
+    # Resolved to absolute: the manifest records `parquet.relative_to(REPO)`, and
+    # a relative --out (as the daily workflow passes, `data/snapshots`) makes
+    # `parquet` relative, which cannot be taken relative_to the absolute repo root.
+    out = pathlib.Path(arguments.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     today = dt.date.today()
     snapshot_id = arguments.snapshot_id or f"prices-catalog-{today:%Y%m%d}"
