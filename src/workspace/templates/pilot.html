@@ -65,6 +65,18 @@
   .outcome-top__why { color: var(--ink); max-width: 60ch; }
   .outcome-top__link { font-size: 12px; color: var(--accent); margin-left: auto;
       white-space: nowrap; }
+  /* The plan is forward-looking; the figures are a backtest. This frames the
+     first as the thing to approve and the second as a data point, so the page
+     never reads as a prediction. */
+  .forward-plan { border: 1px solid var(--accent); border-radius: 10px;
+      padding: 12px 16px; margin: 14px 0;
+      background: color-mix(in srgb, var(--accent) 5%, var(--panel)); }
+  .fp-eyebrow { display: block; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .06em; font-weight: 700; color: var(--accent);
+      margin-bottom: 4px; }
+  .fp-lead { margin: 0; color: var(--ink); max-width: 66ch; }
+  .backtest-note { color: var(--muted); max-width: 64ch; }
+  .backtest-note strong { color: var(--ink); }
 </style>
 
 <h1>Plan</h1>
@@ -206,6 +218,22 @@
       methodology defaulted, and what is still unresolved.</p>
     {% if text %}<p class="restated">You described: <q>{{ text }}</q></p>{% endif %}
 
+    {# Every plan here is forward-looking: the terms below are what the person
+       would commit to from now on, and Save is the approval that makes it
+       theirs. The figures further down are a *backtest* of the same strategy on
+       past data — a data point, never a forecast — so the page reads "here is
+       your plan, and here is how it would have done", not "here is a number".
+       Shown when a figure exists (there is a plan that ran and a backtest to
+       caption); a refusal has no plan to commit to and no history to show. #}
+    {% if figure is not none %}
+    <div class="forward-plan" role="note">
+      <span class="fp-eyebrow">Your plan, going forward</span>
+      <p class="fp-lead">{% if period and period.span %}{{ period.span }} of contributions on the terms below, starting the day you begin.{% else %}An ongoing plan on the terms below.{% endif %}
+        Approve it — <a href="#save-plan">Save this plan</a> — and it becomes your investment plan going forward.
+        The performance shown below is a historical <strong>backtest</strong> of the same strategy, <strong>not a forecast</strong>.</p>
+    </div>
+    {% endif %}
+
     {# The parameter partition, computed once at the top of §6.A so both the
        outcome banner (which needs to know whether a refusal is what stopped the
        run) and the table further down read the same lists. Defined here rather
@@ -229,9 +257,13 @@
        to its chart; a refusal states its reason here, classified the same way
        §6.B does, rather than only there. #}
     {% if figure is not none %}
+      {# Labelled "Backtest", not "Result": the figure is what the strategy
+         would have returned on past data, not what it will return. The number
+         is the same one the run produced; only the claim it makes is corrected. #}
       <div class="outcome-top ok" role="status">
-        <span class="outcome-top__label">Result{% if period %} · {{ period.label }}{% endif %}</span>
+        <span class="outcome-top__label">Backtest{% if period %} · {{ period.label }}{% else %} · historical{% endif %}</span>
         <span class="outcome-top__figure">{{ figure }}</span>
+        <span class="outcome-top__why">what this plan would have returned historically — not a forecast.</span>
         <a class="outcome-top__link" href="#outcome">see the outcome and chart ↓</a>
       </div>
     {% elif strategy_not_executed %}
@@ -474,6 +506,7 @@
     </form>
 
     {% if not questions %}
+      <span id="save-plan"></span>
       {# Trying is free; keeping needs an account. #}
       {% if review_id %}
       {# Exact-save (§2/§4). The button carries the *content address* of the
@@ -522,15 +555,20 @@
 
   {% if figure is not none %}
     <section class="result">
-      <h3>Return / growth{% if period %} · {{ period.label }}{% endif %}</h3>
+      <h3>Historical backtest{% if period %} · {{ period.label }}{% endif %}</h3>
       <p class="figure">{{ figure }}</p>
-      {# When the plan named a trailing window, the figure is *for that period* —
-         said out loud so a five-year return is never read as an all-history one.
-         `short` means the snapshot did not reach the full window back, so the
-         label would otherwise overstate the span the number covers. #}
-      {% if period %}
-      <p class="quiet">Over {{ period.label }}{% if period.start and period.end %} ({{ period.start }} → {{ period.end }}){% endif %}, this is what the plan would have returned.{% if period.short %} The snapshot does not reach the whole period back, so this covers as far back as the data goes.{% endif %}</p>
-      {% endif %}
+      {# The figure is a backtest on past data, captioned as one — the period it
+         covers, and the caveat that a past result is not a future one. When the
+         plan named a trailing window the figure is *for that period* (said out
+         loud so a five-year return is never read as an all-history one); with no
+         window it is the whole price history held. `short` means the snapshot
+         did not reach the full window back, so the label would otherwise
+         overstate the span the number covers. #}
+      <p class="quiet backtest-note">
+        {% if period %}Over {{ period.label }}{% if period.start and period.end %} ({{ period.start }} → {{ period.end }}){% endif %}, this is what the plan would have returned.{% if period.short %} The snapshot does not reach the whole period back, so this covers as far back as the data goes.{% endif %}
+        {%- else %}Over all the price history held, this is what the plan would have returned.{% endif %}
+        This is a backtest of past data, not a forecast — <strong>past performance is not indicative of future results.</strong>
+      </p>
       {% if gain is not none %}<p class="quiet">gain {{ "%.2f"|format(gain) }}</p>{% endif %}
       {# Risk-adjusted performance, on the time-weighted return so a plan that
          put more money in later reads as a higher figure and not a better

@@ -539,8 +539,19 @@ def _period(run):
     label = getattr(window, "label", "") if window is not None else ""
     if not label:
         return None
+    years = getattr(window, "years", None)
+    months = getattr(window, "months", None)
+    # The forward span, phrased for a plan going forward ("5 years") rather than
+    # backward ("the past 5 years") — the same window, named for the commitment
+    # it describes instead of the history it was measured over.
+    span = None
+    if years:
+        span = f"{years} year{'' if years == 1 else 's'}"
+    elif months:
+        span = f"{months} month{'' if months == 1 else 's'}"
     return {
         "label": label,
+        "span": span,
         "short": bool(getattr(resolved, "short", False)),
         "start": getattr(resolved, "start", None),
         "end": getattr(resolved, "end", None),
