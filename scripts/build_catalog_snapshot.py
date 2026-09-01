@@ -134,7 +134,10 @@ def main() -> int:
         print(f"  unexplained move  {ticker}: "
               f"{', '.join(f'{d.date()} {v:+.1%}' for d, v in moves.items())}")
 
-    out = pathlib.Path(arguments.out)
+    # Resolved to absolute: the manifest records `parquet.relative_to(REPO)`, and
+    # a relative --out (as the daily workflow passes, `data/snapshots`) makes
+    # `parquet` relative, which cannot be taken relative_to the absolute repo root.
+    out = pathlib.Path(arguments.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     today = dt.date.today()
     snapshot_id = arguments.snapshot_id or f"prices-catalog-{today:%Y%m%d}"
@@ -190,11 +193,19 @@ def main() -> int:
         return 1
 
     digest = hashlib.sha256(parquet.read_bytes()).hexdigest()
+    # Repo-relative when the output is under the repo (the workflow and a normal
+    # local run); the absolute path otherwise. Informational either way — the pin
+    # step overrides this with the S3 URI — so an out dir elsewhere must not crash
+    # the build over a path label.
+    try:
+        local_uri = str(parquet.relative_to(REPO))
+    except ValueError:
+        local_uri = str(parquet)
     manifest = {
         "dataset_id": "market-data/prices",
         "snapshot_id": snapshot_id,
         "kind": "licensed",
-        "uri": str(parquet.relative_to(REPO)),
+        "uri": local_uri,
         "generator": "scripts/build_catalog_snapshot.py",
         "file_sha256": digest,
         "schema_version": 1,
