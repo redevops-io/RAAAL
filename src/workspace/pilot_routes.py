@@ -341,6 +341,13 @@ def page(reading: PilotReading, *, text: str,
         "gain": (None if run.get("result") is None
                  else getattr(run["result"], "gain", None)),
         "coverage": run.get("coverage"),
+        # The period the figure covers, when the plan named a trailing window the
+        # engine restricted the replay to — so §6.B captions the return with it
+        # ("over the past 5 years, this would have been the return") instead of
+        # letting it read as the whole history. `short` says the snapshot did not
+        # reach the full window back, so a figure is never labelled "5 years"
+        # over three years of data. None when the plan ran over all history.
+        "period": _period(run),
         "unavailable": run.get("unavailable"),
         # Which dimension the refusal lives in, so the page can tell the person
         # whether editing a value fixes it (`plan`), whether it is a data gap
@@ -516,6 +523,28 @@ def methodology_concept_for(picked: str) -> Optional[str]:
     if chosen is None:
         return None
     return FAMILY_METHODOLOGY.get(chosen.family)
+
+
+def _period(run):
+    """The trailing window the figure covers, as `{label, short, start, end}`,
+    or None when the plan ran over the whole history.
+
+    Read from the resolved window on the result — the sessions actually
+    evaluated, not the phrase asked — so the caption names the period the figure
+    is really for. `short` (the snapshot did not reach the full window back) is
+    carried through so §6.B can say "as far back as the data goes" rather than
+    labelling a three-year figure "the past five years"."""
+    resolved = run.get("resolved_window") if isinstance(run, dict) else None
+    window = getattr(resolved, "window", None) if resolved is not None else None
+    label = getattr(window, "label", "") if window is not None else ""
+    if not label:
+        return None
+    return {
+        "label": label,
+        "short": bool(getattr(resolved, "short", False)),
+        "start": getattr(resolved, "start", None),
+        "end": getattr(resolved, "end", None),
+    }
 
 
 def _performance(run):
