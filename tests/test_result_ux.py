@@ -492,3 +492,46 @@ class TestFailureFeedback:
         # Not sent to the parameters — nothing the person types changes it.
         assert 'href="#answers"' not in html
         assert "The executed purchases" in html
+
+
+class TestOutcomeSurfacedAtTop:
+    """A result page whose only result sits in §6.B — below a tall parameter
+    table — reads at a glance as the page it was submitted from. The outcome is
+    surfaced at the top so a figure or a refusal is the first thing seen, and the
+    review page is visibly distinct from the /workspace/new draft (which has no
+    run and must NOT grow the banner)."""
+
+    def _render(self, run):
+        from src.workspace.catalog_intent import reading_for
+        from src.workspace.pilot_routes import page
+        from src.workspace.routes import TEMPLATES
+
+        reading = reading_for("cross-sectional-momentum",
+                              "Hold the strongest few, rebalanced monthly.")
+        ctx = page(reading, text="invest $50 into MSFT weekly for 5 years", run=run)
+        return TEMPLATES.env.get_template("pilot.html").render(**ctx)
+
+    def test_a_refusal_is_announced_at_the_top_above_the_parameters(self):
+        html = self._render({
+            "result": None, "strategy_not_executed": True, "refusal_kind": "data_gap",
+            "unavailable": "There is no pricing data for MSFT in this deployment.",
+        })
+        assert 'class="outcome-top' in html
+        assert "There is no pricing data for MSFT" in html
+        # The banner comes before the parameter table — the reason it exists.
+        assert html.index("outcome-top") < html.index('class="params"')
+
+    def test_the_draft_page_has_no_outcome_banner(self, client):
+        # /workspace/new renders with run={} (no evaluation yet), so nothing is
+        # announced — the banner is what tells a review page apart from the draft.
+        # (The class appears in the stylesheet; assert the rendered div is absent.)
+        html = self._render({})
+        assert '<div class="outcome-top' not in html
+
+    def test_a_figure_is_surfaced_at_the_top_with_a_link_to_the_chart(self, client):
+        html = _evaluate(client)
+        assert 'class="outcome-top ok"' in html
+        assert 'href="#outcome"' in html
+        # The headline figure at the top is the same one §6.B renders below.
+        m = re.search(r'class="outcome-top__figure">([^<]+)<', html)
+        assert m and m.group(1).strip()
