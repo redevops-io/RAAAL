@@ -96,16 +96,37 @@ def main() -> int:
     panel = ingest.fetch(tickers, start=arguments.start,
                          session_reference=SESSION_REFERENCE)
     close = panel.prices
-    inception = {c: close[c].first_valid_index() for c in close.columns}
 
+    # A few tickers returning nothing on one fetch is a Yahoo hiccup, not a
+    # broken snapshot — over a 141-name universe pulled daily, one flaky name
+    # (an MMC that comes back empty this morning) will happen. Drop those from
+    # THIS snapshot rather than failing the whole refresh: a plan naming a
+    # dropped ticker gets an honest data gap for the day, and the name returns
+    # tomorrow. What still fails is a LARGE fraction missing — a vendor outage
+    # or a bad universe — and the calendar reference going missing, because
+    # every series is reindexed onto it.
     empty = [c for c in close.columns if close[c].notna().sum() == 0]
-    if empty:
-        print(f"no data returned for: {empty}", file=sys.stderr)
-        return 1
     missing = sorted(set(tickers) - set(close.columns))
-    if missing:
-        print(f"absent from the response entirely: {missing}", file=sys.stderr)
-        return 1
+    dropped = sorted(set(empty) | set(missing))
+    if dropped:
+        tolerance = max(3, int(len(tickers) * 0.05))
+        print(f"no data for {len(dropped)}/{len(tickers)} tickers: {dropped}",
+              file=sys.stderr)
+        if SESSION_REFERENCE in dropped:
+            print(f"the calendar reference {SESSION_REFERENCE} returned no data; "
+                  "refusing — every series is reindexed onto it.", file=sys.stderr)
+            return 1
+        if len(dropped) > tolerance:
+            print(f"more than {tolerance} tickers returned nothing — refusing a "
+                  "snapshot that thin; this is a vendor outage, not a data gap.",
+                  file=sys.stderr)
+            return 1
+        if empty:
+            close = close.drop(columns=empty)
+        print(f"proceeding without {dropped}; {len(close.columns)} priced",
+              file=sys.stderr)
+
+    inception = {c: close[c].first_valid_index() for c in close.columns}
 
     # A move no split accounts for is either a real session or a stitched
     # series. Reported, never fatal: BTC-USD and ^VIX have genuine ones.
@@ -156,7 +177,10 @@ def main() -> int:
     # The total-return series beside the market one. Both are needed and using
     # either for the other's question is wrong in a way that looks reasonable.
     if panel.total_return is not None:
-        panel.total_return.to_parquet(out / f"{snapshot_id}.total-return.parquet")
+        # Aligned to the market series' columns: if a ticker was dropped above,
+        # its twin is dropped too, so the two series name the same instruments.
+        twin = panel.total_return[[c for c in close.columns if c in panel.total_return.columns]]
+        twin.to_parquet(out / f"{snapshot_id}.total-return.parquet")
 
     # The claim `calendar/nyse@1` has to be true of the file, not of the
     # intention. The first build asserted it while carrying 1210 weekends.
