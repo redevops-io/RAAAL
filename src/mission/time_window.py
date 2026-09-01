@@ -257,6 +257,27 @@ def detect(text: str) -> Optional[TimeWindow]:
     return None
 
 
+_BARE_VALUE = re.compile(
+    r"^\s*(\d{1,2}|" + "|".join(_WORD_NUMBERS) + r")[\s-]*(year|yr|y|month|mo|m)s?\s*$",
+    re.IGNORECASE)
+
+
+def _bare_trailing(value: str) -> Optional[TimeWindow]:
+    """A bare duration value — "5 years", "5y", "6 months" — as a trailing
+    window, or None if it is not a sized duration at all. Years vs months from
+    the unit; "m"/"mo"/"month" is months, "y"/"yr"/"year" is years."""
+    matched = _BARE_VALUE.match(value)
+    if not matched:
+        return None
+    raw, unit = matched.group(1), matched.group(2).lower()
+    count = _WORD_NUMBERS.get(raw.lower(), None)
+    if count is None:
+        count = int(raw)
+    if unit.startswith("y"):
+        return TimeWindow(WindowKind.TRAILING, value, years=count)
+    return TimeWindow(WindowKind.TRAILING, value, months=count)
+
+
 def from_canonical(value: str) -> Optional[TimeWindow]:
     """The schema's canonical `evaluation_period` value ('trailing:5y') as a
     TimeWindow.
@@ -273,7 +294,14 @@ def from_canonical(value: str) -> Optional[TimeWindow]:
         return None
     head, sep, rest = str(value).partition(":")
     if not sep:
-        return None
+        # No "kind:" prefix. A bare duration the reader emitted raw — "5 years",
+        # "5y", "6 months" — not the canonical "trailing:5y" the schema asks
+        # for. The hosted reader does this for a plan's own "for 5 years", and
+        # for a replay a duration can only mean the past, so it is the trailing
+        # window. Read here rather than refused as unparseable: refusing a value
+        # that names a period this build resolves, over a spelling, is the same
+        # substitution `detect` avoids in prose.
+        return _bare_trailing(str(value))
     try:
         kind = WindowKind(head.strip().lower())
     except ValueError:
