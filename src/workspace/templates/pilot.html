@@ -206,6 +206,19 @@
       methodology defaulted, and what is still unresolved.</p>
     {% if text %}<p class="restated">You described: <q>{{ text }}</q></p>{% endif %}
 
+    {# The parameter partition, computed once at the top of §6.A so both the
+       outcome banner (which needs to know whether a refusal is what stopped the
+       run) and the table further down read the same lists. Defined here rather
+       than beside the table because Jinja evaluates top-down: used below its
+       own `{% set %}` it is simply undefined, which is the bug that let the
+       "Not evaluated" banner silently not render. #}
+    {% set needed_rows  = parameters | selectattr("state", "equalto", "NEEDED")  | list %}
+    {% set assumed_rows = parameters | selectattr("state", "equalto", "ASSUMED") | list %}
+    {% set settled_rows = parameters | selectattr("state", "equalto", "SETTLED") | list %}
+    {% set chosen_rows  = parameters | selectattr("state", "equalto", "CHOSEN")  | list %}
+    {% set refused_rows = parameters | selectattr("state", "equalto", "REFUSED") | list %}
+    {% set filled_rows  = assumed_rows + settled_rows + chosen_rows %}
+
     {# The outcome, surfaced at the top. Without it a result page whose result
        lives in §6.B — below a tall parameter table — reads at a glance as the
        page you submitted from: the interpreted strategy is identical, and the
@@ -230,6 +243,29 @@
         </span>
         <span class="outcome-top__why">{{ unavailable or "the engine refused to execute this plan" }}</span>
         <a class="outcome-top__link" href="#outcome">details ↓</a>
+      </div>
+    {% elif not executable and refused_rows %}
+      {# A run was attempted and produced nothing because a dimension was read
+         and cannot be honoured — a stated evaluation window this build does not
+         yet restrict to, or any value with nowhere to go. `execute()` returns
+         no run at all for a non-executable reading, so `figure`,
+         `strategy_not_executed` and `unavailable` are all empty here and none
+         of the branches above fire. Without this one the page showed the
+         interpreted strategy and then nothing — no figure and, worse, no
+         reason — which reads as a button that silently failed. The reason
+         already exists on the refused row (the capability manifest's own
+         words); it is stated up here, first thing, rather than only in the
+         folded "Won't be used" section a reader would have to go hunting for. #}
+      <div class="outcome-top refusal-plan" role="status">
+        <span class="outcome-top__label">Not evaluated</span>
+        <span class="outcome-top__why">
+          {%- if refused_rows | length == 1 -%}
+            {{ refused_rows[0].detail or "part of your description was read but this build cannot use, so no figure was produced" }}
+          {%- else -%}
+            {{ refused_rows | length }} parts of your description were read but this build cannot use, so no figure could be produced — each is listed below with its reason.
+          {%- endif -%}
+        </span>
+        <a class="outcome-top__link" href="#wont-run">what &amp; why ↓</a>
       </div>
     {% endif %}
 
@@ -263,12 +299,8 @@
       {% else %}<span class="plabel defaulted">defaulted by methodology</span>{% endif %}
     {%- endmacro %}
 
-    {% set needed_rows  = parameters | selectattr("state", "equalto", "NEEDED")  | list %}
-    {% set assumed_rows = parameters | selectattr("state", "equalto", "ASSUMED") | list %}
-    {% set settled_rows = parameters | selectattr("state", "equalto", "SETTLED") | list %}
-    {% set chosen_rows  = parameters | selectattr("state", "equalto", "CHOSEN")  | list %}
-    {% set refused_rows = parameters | selectattr("state", "equalto", "REFUSED") | list %}
-    {% set filled_rows  = assumed_rows + settled_rows + chosen_rows %}
+    {# `needed_rows` / `refused_rows` / `filled_rows` are set once at the top of
+       §6.A (above the outcome banner) so both places read the same lists. #}
 
     {# The answer control, and the two hidden fields that state authorship so a
        value can be shown and still stay ours. `original_` carries what the row
@@ -297,6 +329,12 @@
         <span class="psp"></span>
         <span class="pprogress"><b data-done>0</b> of {{ needed_rows | length }} answered</span>
       </div>
+    {% elif refused_rows and not executable %}
+      {# Not "nothing is blocking a run": the refused rows below block it. Said
+         here too, not only in the banner, because this is the sentence right
+         above the parameter table and the one a reader checks the table
+         against. #}
+      <p class="quiet" style="margin:0 0 14px">This won't evaluate as written: {{ refused_rows | length }} value{{ "" if refused_rows|length == 1 else "s" }} below {{ "was" if refused_rows|length == 1 else "were" }} read but this build can't use{% if needed_rows %} (and {{ needed_rows|length }} still need you){% endif %}. Everything else is settled — remove or rephrase {{ "it" if refused_rows|length == 1 else "those" }} and the plan runs.</p>
     {% elif filled_rows %}
       <p class="quiet" style="margin:0 0 14px">Every parameter has a value — nothing is blocking a run. Check the {{ filled_rows | length }} below, then save.</p>
     {% endif %}
@@ -392,8 +430,11 @@
          between what the plan said and what it did. Folded, and shut by
          default: it is neither work nor a choice, only a thing to know. #}
       {% if refused_rows %}
-      <details class="pgroup">
-        <summary class="pgh skip"><span class="pcaret" aria-hidden="true">▾</span><span class="pdot skip"></span>Won't be used<span class="pgh-sub">{{ refused_rows | length }} — read, but nothing here consumes it</span></summary>
+      {# Open by default when it is the reason nothing ran (a non-executable
+         reading), shut when it is only a note beside a figure that did run.
+         The "why nothing happened" case must not be folded away. #}
+      <details class="pgroup" id="wont-run"{% if not executable %} open{% endif %}>
+        <summary class="pgh skip"><span class="pcaret" aria-hidden="true">▾</span><span class="pdot skip"></span>Won't be used<span class="pgh-sub">{{ refused_rows | length }} — read, but nothing here consumes it{% if not executable %}, so this plan does not run{% endif %}</span></summary>
         {% for row in refused_rows %}
           <div class="prow p-refused">
             <div class="pmeta">
