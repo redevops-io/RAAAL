@@ -477,6 +477,11 @@ _RESEARCH_TO_EVALUATE = (
     'Describe your own strategy &rarr;</a>'
     '<a href="/evaluate?picked=scheduled-funding" style="color:#1f6feb">'
     'Evaluate a variation</a>'
+    # The Asset Manager demo — a *public, no-sign-in* view of the governed mission
+    # runtime on synthetic accounts (a separate host, no holdings/tax/account state
+    # of any real client), so it belongs on the public research surface.
+    '<a href="https://workspace.quantify.club/demo" style="margin-left:auto;'
+    'font-weight:600;color:#1f6feb">Asset Manager demo (no sign-in) &rarr;</a>'
     '</div>'
 )
 
