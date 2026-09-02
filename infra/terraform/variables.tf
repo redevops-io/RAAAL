@@ -113,13 +113,21 @@ variable "managed_node_pools" {
   description = <<-EOT
     Which AWS-managed EKS Auto Mode node pools may provision nodes.
     ["general-purpose"] is the default broad pool; Auto Mode cost-optimises it to
-    the smallest instance each pod fits on (hence 2 vCPU / 4 GB nodes). Set to []
-    to retire the managed small nodes and run entirely on the custom
-    `general-large` NodePool below — a graceful, Auto-Mode-driven migration
-    (it drains and replaces nodes respecting disruption budgets, no kubectl).
+    the smallest instance each pod fits on (hence 2 vCPU / 4 GB nodes).
+
+    To move app workloads onto the custom `general-large` NodePool, set this to
+    ["system"]: that removes the small general-purpose app pool but keeps a valid
+    managed pool for kube-system critical addons (on tainted nodes), so the
+    untainted app pods flow to `general-large`. EKS REFUSES [] while a node role
+    is set ("nodePool value(s) must be provided"), so the list must be non-empty.
   EOT
   type        = list(string)
   default     = ["general-purpose"]
+
+  validation {
+    condition     = length(var.managed_node_pools) > 0
+    error_message = "EKS Auto Mode requires at least one managed node pool when node_role_arn is set. Use [\"system\"] (not []) to run app workloads on the custom general-large pool."
+  }
 }
 
 variable "large_node_pool_enabled" {

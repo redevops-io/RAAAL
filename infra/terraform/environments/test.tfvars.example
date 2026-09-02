@@ -42,10 +42,11 @@ db_allocated_storage_gb = 20
 db_multi_az             = false
 
 # EKS Auto Mode node sizing. Node shape is a NodePool (ansible renders it from
-# these). Default [] here retires the AWS-managed small (2 vCPU / 4 GB) pool and
-# runs on the custom `general-large` NodePool (≥4 vCPU, m/r family). Set to
-# ["general-purpose"] to fall back to the managed small pool.
-managed_node_pools         = []
+# these). ["system"] removes the AWS-managed small (2 vCPU / 4 GB) app pool but
+# keeps a valid managed pool for kube-system addons, so app pods run on the custom
+# `general-large` NodePool (≥4 vCPU, m/r family). ["general-purpose"] keeps the
+# small managed pool. EKS refuses [] while a node role is set — never empty.
+managed_node_pools         = ["system"]
 large_node_pool_enabled    = true
 large_node_pool_categories = ["m", "r"]
 large_node_pool_min_vcpu   = 4
