@@ -39,6 +39,7 @@
 
   tasks:
     - name: Require a cluster to deploy to
+      tags: [always]
       ansible.builtin.command:
         cmd: terraform output -raw eks_cluster_name
         chdir: "{{ terraform_dir }}"
@@ -47,6 +48,7 @@
       failed_when: cluster.rc != 0 or cluster.stdout | trim == ""
 
     - name: Point kubectl at it
+      tags: [always]
       ansible.builtin.command:
         cmd: >-
           aws eks update-kubeconfig --region {{ region | default('us-east-1') }}
@@ -54,6 +56,7 @@
       changed_when: false
 
     - name: Read the image this deployment pins
+      tags: [always]
       ansible.builtin.command:
         cmd: terraform output -json ansible_variables
         chdir: "{{ terraform_dir }}"
@@ -62,6 +65,7 @@
       check_mode: false
 
     - name: Name what is being deployed
+      tags: [always]
       ansible.builtin.set_fact:
         image: "{{ (tfvars.stdout | from_json).quantify_image }}"
         build_commit: "{{ (tfvars.stdout | from_json).quantify_build_commit }}"
@@ -74,6 +78,11 @@
         parser_model: "{{ (tfvars.stdout | from_json).quantify_parser_model }}"
         parser_provider: "{{ (tfvars.stdout | from_json).quantify_parser_provider }}"
         parser_fallback: "{{ (tfvars.stdout | from_json).quantify_parser_fallback }}"
+        # EKS Auto Mode node sizing (see the "large-node NodePool" task). Defaulted
+        # so the play still renders on a tfvars/state that predates these outputs.
+        large_node_pool_enabled: "{{ (tfvars.stdout | from_json).quantify_large_node_pool_enabled | default(true) }}"
+        large_node_pool_categories: "{{ (tfvars.stdout | from_json).quantify_large_node_pool_categories | default(['m', 'r']) }}"
+        large_node_pool_min_vcpu: "{{ (tfvars.stdout | from_json).quantify_large_node_pool_min_vcpu | default(4) }}"
         # Mirrors `PROVIDER_KEY_VARS` in src/deploy/context.py. Computed here
         # so the Secret's key is a single-line expression: a multi-line Jinja
         # mapping key is not YAML Ansible will parse, and it failed the whole
@@ -105,6 +114,64 @@
           metadata:
             name: "{{ k8s_namespace }}"
         state: present
+
+    # --- EKS Auto Mode node sizing ----------------------------------------
+    #
+    # A custom NodePool that provisions larger, memory-optimised nodes so
+    # several pods share a node and a rolling-update surge lands without
+    # waiting on a brand-new node (the AWS-managed `general-purpose` pool
+    # cost-optimises to 2 vCPU / 4 GB nodes, one app pod per node). Weight 100
+    # so Auto Mode prefers it for new capacity; references the built-in Auto
+    # Mode `default` NodeClass. To fully migrate onto it, set
+    # `managed_node_pools = []` in the environment tfvars (Terraform) so the
+    # managed small pool stops provisioning and Auto Mode drains its nodes.
+    - name: The large-node NodePool (EKS Auto Mode)
+      when: large_node_pool_enabled | bool
+      tags: [nodepool]
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: karpenter.sh/v1
+          kind: NodePool
+          metadata:
+            name: general-large
+          spec:
+            weight: 100
+            template:
+              spec:
+                nodeClassRef:
+                  group: eks.amazonaws.com
+                  kind: NodeClass
+                  name: default
+                requirements:
+                  - key: karpenter.sh/capacity-type
+                    operator: In
+                    values: ["on-demand"]
+                  - key: eks.amazonaws.com/instance-category
+                    operator: In
+                    values: "{{ large_node_pool_categories }}"
+                  - key: eks.amazonaws.com/instance-generation
+                    operator: Gt
+                    values: ["4"]
+                  - key: eks.amazonaws.com/instance-cpu
+                    operator: Gt
+                    # Karpenter requires string values; force it (native Jinja
+                    # would otherwise hand back an int and the API rejects it).
+                    values: ["{{ (large_node_pool_min_vcpu | int - 1) | string }}"]
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values: ["amd64"]
+                  - key: kubernetes.io/os
+                    operator: In
+                    values: ["linux"]
+            disruption:
+              consolidationPolicy: WhenEmptyOrUnderutilized
+              consolidateAfter: 1m
+              budgets:
+                - nodes: "1"
+            limits:
+              cpu: "48"
+              memory: 192Gi
 
     # --- the credential ----------------------------------------------------
     #

@@ -95,9 +95,57 @@ variable "cloudflare_zone_id" {
 # --- compute ---------------------------------------------------------------
 
 variable "instance_type" {
-  description = "EC2 instance type for the application host."
+  description = "EC2 instance type for the application host (legacy EC2 path; the EKS Auto Mode nodes are sized by the NodePool variables below, not this)."
   type        = string
   default     = "t3.small"
+}
+
+# --- EKS Auto Mode node sizing ---------------------------------------------
+#
+# Auto Mode has no "instance type" knob on the cluster: node shape is a NodePool
+# (a Karpenter CRD), applied to the cluster by `ansible/services.yml`. These
+# variables are the sizing knob — Terraform owns them and passes them through
+# `ansible_variables`, Ansible renders the NodePool. Changing a node's size is
+# then a diff in a reviewed tfvars file, not a `kubectl` command against the live
+# cluster.
+
+variable "managed_node_pools" {
+  description = <<-EOT
+    Which AWS-managed EKS Auto Mode node pools may provision nodes.
+    ["general-purpose"] is the default broad pool; Auto Mode cost-optimises it to
+    the smallest instance each pod fits on (hence 2 vCPU / 4 GB nodes).
+
+    To move app workloads onto the custom `general-large` NodePool, set this to
+    ["system"]: that removes the small general-purpose app pool but keeps a valid
+    managed pool for kube-system critical addons (on tainted nodes), so the
+    untainted app pods flow to `general-large`. EKS REFUSES [] while a node role
+    is set ("nodePool value(s) must be provided"), so the list must be non-empty.
+  EOT
+  type        = list(string)
+  default     = ["general-purpose"]
+
+  validation {
+    condition     = length(var.managed_node_pools) > 0
+    error_message = "EKS Auto Mode requires at least one managed node pool when node_role_arn is set. Use [\"system\"] (not []) to run app workloads on the custom general-large pool."
+  }
+}
+
+variable "large_node_pool_enabled" {
+  description = "Apply the custom 'general-large' NodePool — bigger, memory-optimised nodes so several pods share a node and a rollout surge lands without waiting on a fresh node."
+  type        = bool
+  default     = true
+}
+
+variable "large_node_pool_categories" {
+  description = "EC2 instance categories the large NodePool may use (m = 4 GB/vCPU, r = 8 GB/vCPU — memory headroom; c is excluded as too CPU-lean for these pods)."
+  type        = list(string)
+  default     = ["m", "r"]
+}
+
+variable "large_node_pool_min_vcpu" {
+  description = "Minimum vCPU per node in the large NodePool. 4 → e.g. m6a.xlarge (4 vCPU / 16 GiB), which packs all current quantify pods plus surge with room to spare."
+  type        = number
+  default     = 4
 }
 
 variable "root_volume_gb" {

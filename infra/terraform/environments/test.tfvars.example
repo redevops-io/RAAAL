@@ -36,10 +36,20 @@ build_release_ref = "feat/quantify-repository-baseline"
 build_snapshot_id = "syn-2026-08"
 
 # --- sizing ----------------------------------------------------------------
-instance_type           = "t3.small"
+instance_type           = "t3.small"   # legacy EC2 host only — NOT the EKS node lever
 db_instance_class       = "db.t4g.micro"
 db_allocated_storage_gb = 20
 db_multi_az             = false
+
+# EKS Auto Mode node sizing. Node shape is a NodePool (ansible renders it from
+# these). ["system"] removes the AWS-managed small (2 vCPU / 4 GB) app pool but
+# keeps a valid managed pool for kube-system addons, so app pods run on the custom
+# `general-large` NodePool (≥4 vCPU, m/r family). ["general-purpose"] keeps the
+# small managed pool. EKS refuses [] while a node role is set — never empty.
+managed_node_pools         = ["system"]
+large_node_pool_enabled    = true
+large_node_pool_categories = ["m", "r"]
+large_node_pool_min_vcpu   = 4
 
 # --- application -----------------------------------------------------------
 pilot_data_policy = "SYNTHETIC_ONLY"
