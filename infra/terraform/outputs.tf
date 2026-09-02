@@ -71,5 +71,10 @@ output "ansible_variables" {
     quantify_secret_model_key      = aws_secretsmanager_secret.model_api_key.name
     quantify_secret_basic_auth     = aws_secretsmanager_secret.workspace_basic_auth.name
     quantify_secret_tunnel_token   = aws_secretsmanager_secret.tunnel_token.name
+    # EKS Auto Mode node sizing — Terraform owns the knob, ansible renders the
+    # NodePool from these (see the "large-node NodePool" task in services.yml).
+    quantify_large_node_pool_enabled    = var.large_node_pool_enabled
+    quantify_large_node_pool_categories = var.large_node_pool_categories
+    quantify_large_node_pool_min_vcpu   = var.large_node_pool_min_vcpu
   }
 }

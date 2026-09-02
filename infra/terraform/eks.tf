@@ -113,7 +113,11 @@ resource "aws_eks_cluster" "main" {
 
   compute_config {
     enabled       = true
-    node_pools    = ["general-purpose"]
+    # Which AWS-managed pools provision nodes. [] retires the managed small nodes
+    # and hands provisioning to the custom `general-large` NodePool (applied by
+    # ansible/services.yml), which references this same Auto Mode `default`
+    # NodeClass — a supported pattern for running Auto Mode on larger nodes.
+    node_pools    = var.managed_node_pools
     node_role_arn = aws_iam_role.eks_node[0].arn
   }
 
