@@ -109,12 +109,18 @@
     <p class="sl-basket-lead">Pick individual stocks and funds; the engine backtests holding them equally weighted and shows the same evaluation as a written strategy. Only securities we price are offered
       — <strong>{{ evaluable_universe().equities|length }} stocks</strong> and <strong>{{ evaluable_universe().funds|length }} funds</strong>.</p>
 
-    <div class="sl-basket-group">
+    <div class="sl-basket-group sl-basket-group--stocks">
       <span class="sl-basket-label">Individual stocks</span>
-      <div class="sl-tickers">
-        {% for s in evaluable_universe().equities %}
-          <button type="button" class="sl-tk" data-ticker="{{ s.ticker }}" title="{{ s.name }}">{{ s.ticker }}</button>
-        {% endfor %}
+      <div class="sl-stock-wrap">
+        <input type="text" class="sl-stock-search"
+               placeholder="Search {{ evaluable_universe().equities|length }} S&amp;P 500 stocks — ticker or company…"
+               aria-label="Search individual stocks">
+        <div class="sl-tickers sl-tickers--scroll">
+          {% for s in evaluable_universe().equities %}
+            <button type="button" class="sl-tk" data-ticker="{{ s.ticker }}"
+                    data-name="{{ s.name|lower }}" title="{{ s.name }}">{{ s.ticker }}</button>
+          {% endfor %}
+        </div>
       </div>
     </div>
     <div class="sl-basket-group">
@@ -196,6 +202,13 @@
   .sl-basket-go { border: 0; border-radius: 7px; padding: 7px 14px; font-size: 12.5px; font-weight: 600;
     cursor: pointer; color: #fff; background: var(--accent, #1f6feb); white-space: nowrap; }
   .sl-basket-go:disabled { opacity: .45; cursor: not-allowed; }
+  .sl-basket-group--stocks { align-items: flex-start; }
+  .sl-stock-wrap { flex: 1; min-width: 200px; }
+  .sl-stock-search { width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 5px 9px; font-size: 12px;
+    border-radius: 7px; color: inherit;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    background: color-mix(in srgb, var(--block, #6b7280) 5%, var(--panel, #0f1621)); }
+  .sl-tickers--scroll { max-height: 132px; overflow-y: auto; align-content: flex-start; padding: 2px 2px 4px; }
   @media (max-width: 720px) { .sl-cols { grid-template-columns: 1fr; } .sl-universe { position: static; }
     .sl-basket-label { width: auto; } }
 </style>
@@ -385,6 +398,20 @@
             refresh();
           });
         });
+        // Filter the (long) stock list by ticker or company name.
+        var search = basket.querySelector(".sl-stock-search");
+        var stockChips = Array.prototype.slice.call(basket.querySelectorAll(".sl-tickers--scroll .sl-tk"));
+        if (search) {
+          search.addEventListener("input", function () {
+            var q = search.value.trim().toLowerCase();
+            stockChips.forEach(function (tk) {
+              var t = tk.getAttribute("data-ticker").toLowerCase();
+              var n = tk.getAttribute("data-name") || "";
+              tk.style.display = (!q || t.indexOf(q) >= 0 || n.indexOf(q) >= 0) ? "" : "none";
+            });
+          });
+        }
+
         go.addEventListener("click", function () {
           var s = sentence();
           if (!s) return;
