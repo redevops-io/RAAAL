@@ -48,11 +48,14 @@
 {# The visual browser. Hidden until the script reveals it, so scripting-off
    visitors never see a grid whose clicks do nothing. #}
 <div class="sl-browser" hidden>
-  <div class="sl-filters" role="tablist" aria-label="Kind of strategy">
-    <button type="button" class="sl-chip is-on" data-group="">All strategies</button>
-    {% for group in strategy_library() %}
-      <button type="button" class="sl-chip" data-group="{{ group.key }}" title="{{ group.note }}">{{ group.title }}</button>
-    {% endfor %}
+  <div class="sl-catbar">
+    <label for="sl-category">Strategy category</label>
+    <select id="sl-category" class="sl-catselect">
+      {% for group in strategy_library() %}
+        <option value="{{ group.key }}"{% if loop.first %} selected{% endif %}>{{ group.title }}</option>
+      {% endfor %}
+    </select>
+    <span class="sl-cat-note" id="sl-cat-note"></span>
   </div>
 
   <div class="sl-cols">
@@ -147,6 +150,12 @@
     background: transparent; color: var(--muted, #8a94a6); }
   .sl-chip.is-on { color: var(--accent, #1f6feb); border-color: var(--accent, #1f6feb);
     background: color-mix(in srgb, var(--accent, #1f6feb) 10%, transparent); }
+  .sl-catbar { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; flex-wrap: wrap; }
+  .sl-catbar label { font-size: 12px; color: var(--muted, #8a94a6); margin: 0; }
+  .sl-catselect { font-size: 13px; padding: 5px 10px; border-radius: 8px; color: inherit;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    background: color-mix(in srgb, var(--block, #6b7280) 5%, var(--panel, #0f1621)); }
+  .sl-cat-note { font-size: 11.5px; color: var(--muted, #8a94a6); }
   .sl-cols { display: grid; grid-template-columns: 1fr 260px; gap: 16px; align-items: start; }
   .sl-group { margin-bottom: 16px; }
   .sl-group-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; }
@@ -313,18 +322,29 @@
       browser.hidden = false;
       if (fallback) fallback.setAttribute("hidden", "");
 
-      var chips = Array.prototype.slice.call(browser.querySelectorAll(".sl-chip"));
+      // The category is chosen from a dropdown, and only that category's cards
+      // show — the whole library at once was too many. The per-group heading is
+      // hidden (the dropdown + note carry the category), so the cards stand alone.
       var sections = Array.prototype.slice.call(browser.querySelectorAll(".sl-group"));
-      chips.forEach(function (chip) {
-        chip.addEventListener("click", function () {
-          chips.forEach(function (c) { c.classList.remove("is-on"); });
-          chip.classList.add("is-on");
-          var g = chip.getAttribute("data-group");
-          sections.forEach(function (sec) {
-            sec.style.display = (!g || sec.getAttribute("data-group") === g) ? "" : "none";
-          });
-        });
+      var catselect = document.getElementById("sl-category");
+      var catnote = document.getElementById("sl-cat-note");
+      var noteByGroup = {};
+      sections.forEach(function (sec) {
+        var head = sec.querySelector(".sl-group-title");
+        var span = head && head.querySelector("span");
+        noteByGroup[sec.getAttribute("data-group")] = span ? span.textContent : "";
+        if (head) head.style.display = "none";
       });
+      function showCategory(g) {
+        sections.forEach(function (sec) {
+          sec.style.display = (sec.getAttribute("data-group") === g) ? "" : "none";
+        });
+        if (catnote) catnote.textContent = noteByGroup[g] || "";
+      }
+      if (catselect) {
+        catselect.addEventListener("change", function () { showCategory(catselect.value); });
+        showCategory(catselect.value);   // default: only the first category's cards
+      }
 
       var uniDefault = browser.querySelector(".sl-uni-default");
       var uniComputed = browser.querySelector(".sl-uni-computed");
@@ -344,12 +364,18 @@
         card.addEventListener("mouseenter", function () { setUniverse(group); });
         card.addEventListener("focus", function () { setUniverse(group); });
         card.addEventListener("click", function () {
+          // Reflect the selected strategy in the prompt below rather than
+          // submitting on the click — the sentence lands in the box to read or
+          // edit, and the "Read it" button evaluates it. `pick` carries the key
+          // so the submission is still recorded as a catalogue pick.
+          var text = card.getAttribute("data-text");
+          var box = document.getElementById("describe");
+          if (box && box.value.trim() && box.value.trim() !== text &&
+              !confirm("Replace what you have written?")) return;
           cards.forEach(function (c) { c.classList.remove("is-sel"); });
           card.classList.add("is-sel");
-          // Drive the fallback select's own change handler — one implementation
-          // of fill + confirm + submit, reused rather than re-written.
           pick.value = card.getAttribute("data-key");
-          pick.dispatchEvent(new Event("change"));
+          if (box) { box.value = text; box.focus(); }
         });
       });
 
