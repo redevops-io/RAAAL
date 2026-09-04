@@ -1,20 +1,27 @@
-{# The strategy selector: category first, then a strategy within it.
+{# The strategy selector: a browseable card grid over the whole library, with the
+   category-then-strategy selects kept underneath as the scripting-off fallback.
 
-   One list of twenty was the thing to fix. Twenty entries under five headings
-   is a wall a person scans rather than a choice they make, and the headings
-   carried the useful distinction — what the strategy does to the money — while
-   being the part you could not act on. Choosing the category first turns that
-   heading into the first decision and leaves five or fewer options behind it.
+   One list of twenty was the thing to fix. The dropdown made the library a wall
+   a person scans rather than a choice they make; the card grid makes every
+   offered strategy visible and scannable, grouped by the distinction the engine
+   actually acts on — what puts money in and what it buys — with its research
+   provenance beside it. Picking a card does exactly what picking from the
+   dropdown did: the sentence lands in the box and the form is read.
 
-   Both selects are always rendered with every option present. The second is
-   filtered by script, and with scripting off it degrades to exactly the list
-   that was there before: grouped by `optgroup`, all twenty selectable, the
-   textarea still the real input. Nobody is locked out of a product whose whole
-   input is a sentence.
+   Two rules the library holds are preserved here. **Everything is offered; what
+   cannot run is refused by name** — so every card is selectable and the engine
+   answers each honestly on read. And the universe panel shows honestly what a
+   strategy *runs on* (the fixed ten-fund research universe for the computed
+   strategies, the funds a sentence names for the rest) rather than implying an
+   investable-universe selection the engine does not take.
 
-   The including page owns the surrounding form. This renders the two selects
-   and the script that fills the box, and expects a textarea with id `describe`
-   beside it — the id both forms already use. #}
+   Progressive enhancement: with scripting off, the two selects below are the
+   whole selector, grouped by `optgroup`, all entries selectable, the textarea
+   the real input — exactly the interface that was here before. With scripting
+   on, the selects are hidden and the card grid drives the same `#pick` element,
+   so the `picked` value and the fill-and-read behaviour are unchanged. #}
+
+<div class="sl-fallback">
 <label for="pick-group">Kind of strategy</label>
 <select id="pick-group">
   <option value="">All kinds</option>
@@ -36,6 +43,101 @@
     </optgroup>
   {% endfor %}
 </select>
+</div>
+
+{# The visual browser. Hidden until the script reveals it, so scripting-off
+   visitors never see a grid whose clicks do nothing. #}
+<div class="sl-browser" hidden>
+  <div class="sl-filters" role="tablist" aria-label="Kind of strategy">
+    <button type="button" class="sl-chip is-on" data-group="">All strategies</button>
+    {% for group in strategy_library() %}
+      <button type="button" class="sl-chip" data-group="{{ group.key }}" title="{{ group.note }}">{{ group.title }}</button>
+    {% endfor %}
+  </div>
+
+  <div class="sl-cols">
+    <div class="sl-strategies">
+      {% for group in strategy_library() %}
+        <section class="sl-group" data-group="{{ group.key }}">
+          <h4 class="sl-group-title">{{ group.title }}<span>{{ group.note }}</span></h4>
+          <div class="sl-grid">
+            {% for item in group.entries %}
+              <button type="button" class="sl-card" data-key="{{ item.key }}"
+                      data-text="{{ item.text }}" data-group="{{ group.key }}">
+                <span class="sl-card-title">{{ item.title }}</span>
+                <span class="sl-card-desc">{{ item.text }}</span>
+                <span class="sl-card-foot">
+                  <span class="sl-fam">{{ item.family|replace('_', ' ') }}</span>
+                  {% if item.source %}<a class="sl-src" href="{{ item.source }}" target="_blank" rel="noopener"
+                     onclick="event.stopPropagation()">source&nbsp;↗</a>{% endif %}
+                </span>
+              </button>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+
+    <aside class="sl-universe" aria-live="polite">
+      <h4 class="sl-uni-title">Runs on</h4>
+      <div class="sl-uni-default">Hover or pick a strategy to see the securities it runs on.</div>
+      <div class="sl-uni-computed" hidden>
+        <p>The ten-fund research universe — held fixed and rebalanced to the weights the strategy computes each period:</p>
+        <div class="sl-uni-chips">
+          {% for a in research_universe() %}
+            <span class="sl-uni-chip" title="{{ a.name }} · {{ a.asset_class }}">{{ a.ticker }}</span>
+          {% endfor %}
+        </div>
+        <p class="sl-uni-note">You set only how much and how often you add; the strategy sets the weights.</p>
+      </div>
+      <div class="sl-uni-named" hidden>
+        <p>The funds your sentence names — exactly the tickers you write (e.g. VTI, BND).</p>
+        <p class="sl-uni-note">Change what it holds by editing the sentence below.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<style>
+  .sl-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .sl-chip { font-size: 12px; padding: 4px 11px; border-radius: 999px; cursor: pointer;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    background: transparent; color: var(--muted, #8a94a6); }
+  .sl-chip.is-on { color: var(--accent, #1f6feb); border-color: var(--accent, #1f6feb);
+    background: color-mix(in srgb, var(--accent, #1f6feb) 10%, transparent); }
+  .sl-cols { display: grid; grid-template-columns: 1fr 260px; gap: 16px; align-items: start; }
+  .sl-group { margin-bottom: 16px; }
+  .sl-group-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; }
+  .sl-group-title span { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted, #8a94a6); margin-top: 2px; }
+  .sl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+  .sl-card { text-align: left; display: flex; flex-direction: column; gap: 5px; cursor: pointer;
+    padding: 10px 11px; border-radius: 10px; min-height: 96px;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    background: color-mix(in srgb, var(--block, #6b7280) 5%, var(--panel, #0f1621));
+    color: inherit; transition: border-color .12s, transform .12s; }
+  .sl-card:hover, .sl-card:focus-visible { border-color: var(--accent, #1f6feb);
+    transform: translateY(-1px); outline: none; }
+  .sl-card.is-sel { border-color: var(--accent, #1f6feb);
+    background: color-mix(in srgb, var(--accent, #1f6feb) 9%, var(--panel, #0f1621)); }
+  .sl-card-title { font-weight: 600; font-size: 13px; }
+  .sl-card-desc { font-size: 11.5px; line-height: 1.35; color: var(--muted, #8a94a6);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .sl-card-foot { display: flex; align-items: center; gap: 8px; margin-top: auto; font-size: 10.5px; }
+  .sl-fam { font-family: var(--mono, ui-monospace, monospace); color: var(--muted, #8a94a6);
+    text-transform: capitalize; }
+  .sl-src { margin-left: auto; color: var(--accent, #1f6feb); text-decoration: none; white-space: nowrap; }
+  .sl-universe { position: sticky; top: 8px; padding: 12px 13px; border-radius: 12px;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    background: color-mix(in srgb, var(--block, #6b7280) 5%, var(--panel, #0f1621)); font-size: 12px; }
+  .sl-uni-title { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted, #8a94a6); }
+  .sl-universe p { margin: 0 0 8px; line-height: 1.4; }
+  .sl-uni-note { color: var(--muted, #8a94a6); font-size: 11px; }
+  .sl-uni-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .sl-uni-chip { font-family: var(--mono, ui-monospace, monospace); font-size: 11px; padding: 2px 7px;
+    border-radius: 6px; border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+    color: var(--ok, #2dd4bf); }
+  @media (max-width: 720px) { .sl-cols { grid-template-columns: 1fr; } .sl-universe { position: static; } }
+</style>
 
 {# No framework and no build step. Two behaviours: narrow the strategy list to
    the chosen kind, and put the chosen sentence in the box. #}
@@ -112,6 +214,74 @@
       kind.value = current.getAttribute("data-group");
     }
     narrow();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", start);
+    } else {
+      start();
+    }
+  })();
+</script>
+
+{# The visual layer. Reveals the card grid, hides the fallback selects, and
+   drives the SAME `#pick` element on a click so the picked value and the
+   fill-and-read behaviour above are reused verbatim. Guarded so scripting-off
+   or a missing grid leaves the selects exactly as they were. #}
+<script>
+  (function () {
+    function start() {
+      var browser = document.querySelector(".sl-browser");
+      var fallback = document.querySelector(".sl-fallback");
+      var pick = document.getElementById("pick");
+      if (!browser || !pick) return;
+
+      browser.hidden = false;
+      if (fallback) fallback.setAttribute("hidden", "");
+
+      var chips = Array.prototype.slice.call(browser.querySelectorAll(".sl-chip"));
+      var sections = Array.prototype.slice.call(browser.querySelectorAll(".sl-group"));
+      chips.forEach(function (chip) {
+        chip.addEventListener("click", function () {
+          chips.forEach(function (c) { c.classList.remove("is-on"); });
+          chip.classList.add("is-on");
+          var g = chip.getAttribute("data-group");
+          sections.forEach(function (sec) {
+            sec.style.display = (!g || sec.getAttribute("data-group") === g) ? "" : "none";
+          });
+        });
+      });
+
+      var uniDefault = browser.querySelector(".sl-uni-default");
+      var uniComputed = browser.querySelector(".sl-uni-computed");
+      var uniNamed = browser.querySelector(".sl-uni-named");
+      function setUniverse(group) {
+        if (!uniDefault) return;
+        var computed = group === "computed-strategies";
+        var known = !!group;
+        uniDefault.hidden = known;
+        if (uniComputed) uniComputed.hidden = !(known && computed);
+        if (uniNamed) uniNamed.hidden = !(known && !computed);
+      }
+
+      var cards = Array.prototype.slice.call(browser.querySelectorAll(".sl-card"));
+      cards.forEach(function (card) {
+        var group = card.getAttribute("data-group");
+        card.addEventListener("mouseenter", function () { setUniverse(group); });
+        card.addEventListener("focus", function () { setUniverse(group); });
+        card.addEventListener("click", function () {
+          cards.forEach(function (c) { c.classList.remove("is-sel"); });
+          card.classList.add("is-sel");
+          // Drive the fallback select's own change handler — one implementation
+          // of fill + confirm + submit, reused rather than re-written.
+          pick.value = card.getAttribute("data-key");
+          pick.dispatchEvent(new Event("change"));
+        });
+      });
+
+      // If the page came back with a pick, reflect it in the grid.
+      var pre = pick.value && browser.querySelector('.sl-card[data-key="' + pick.value + '"]');
+      if (pre) { pre.classList.add("is-sel"); setUniverse(pre.getAttribute("data-group")); }
     }
 
     if (document.readyState === "loading") {
