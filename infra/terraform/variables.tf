@@ -120,9 +120,13 @@ variable "managed_node_pools" {
     managed pool for kube-system critical addons (on tainted nodes), so the
     untainted app pods flow to `general-large`. EKS REFUSES [] while a node role
     is set ("nodePool value(s) must be provided"), so the list must be non-empty.
+    The default is ["system"]: the cluster runs on the custom `general-large`
+    NodePool (4 vCPU / 16 GiB), matching the deployed state — so a canonical
+    `terraform apply` preserves the node migration rather than reverting to the
+    small managed pool.
   EOT
   type        = list(string)
-  default     = ["general-purpose"]
+  default     = ["system"]
 
   validation {
     condition     = length(var.managed_node_pools) > 0

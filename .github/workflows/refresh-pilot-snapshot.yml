@@ -40,7 +40,11 @@ env:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Headroom for the full S&P 500 + funds (544 tickers) fetched from Yahoo. The
+    # 544-ticker build runs in ~5 min, but the ceiling is generous so a slow
+    # vendor day or a retry burst never trips the job. The parquets are ~20 MB
+    # total (well within the runner's disk), so no storage tuning is needed.
+    timeout-minutes: 90
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
