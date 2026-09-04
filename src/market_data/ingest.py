@@ -46,9 +46,13 @@ import pandas as pd
 
 #: Retries and backoff, carried over from `data_loader._download_ticker`,
 #: which had them and which this replaces for the snapshot path.
-RETRIES = 3
+# Retries/backoff on the vendor pull. Raised for the full S&P 500 + funds
+# (544 tickers): a larger universe is a larger surface for a transient Yahoo
+# hiccup, so give the batch more attempts before the drop-tolerance guard in
+# build_catalog_snapshot decides a name is genuinely missing for the day.
+RETRIES = 5
 BACKOFF_SECONDS = 2.0
-MAX_BACKOFF_SECONDS = 20.0
+MAX_BACKOFF_SECONDS = 30.0
 
 #: A single-session move this large is worth explaining. It is not evidence of
 #: anything on its own — see `unexplained`, which requires that no corporate
