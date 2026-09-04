@@ -134,6 +134,14 @@ TEMPLATES.env.globals["research_universe"] = lambda: [
     for a in __import__("src.config", fromlist=["UNIVERSE"]).UNIVERSE
 ]
 
+#: The securities a custom basket may actually hold — the priced intersection of
+#: the declared universe and the snapshot (individual stocks + funds), so the
+#: composer never offers a ticker the engine cannot evaluate. See
+#: `evaluable_universe` for why this is the priced set and not the declared one.
+TEMPLATES.env.globals["evaluable_universe"] = lambda: __import__(
+    "src.workspace.evaluable_universe",
+    fromlist=["evaluable"]).evaluable()
+
 #: The CSRF token for the request being rendered (§11), for the save forms'
 #: hidden field. Registered here so it is defined on the templates regardless of
 #: whether `src.api` has been imported; the value is filled per request by the

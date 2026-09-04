@@ -96,6 +96,42 @@
       </div>
     </aside>
   </div>
+
+  {# Build a custom basket — the honest universe selector. Offers only the
+     securities the snapshot actually prices (individual stocks + funds), so a
+     basket never names a ticker the engine cannot evaluate. Picking some and
+     "Evaluate this basket" composes an equal-weight holding sentence, lands it
+     in the box and reads it — the same scenario → evaluate → graph path a
+     written strategy takes, so the result is the same evaluation people already
+     get from a prompt. #}
+  <section class="sl-basket">
+    <h4 class="sl-basket-title">Or build a custom basket of securities</h4>
+    <p class="sl-basket-lead">Pick individual stocks and funds; the engine backtests holding them equally weighted and shows the same evaluation as a written strategy. Only securities we price are offered
+      — <strong>{{ evaluable_universe().equities|length }} stocks</strong> and <strong>{{ evaluable_universe().funds|length }} funds</strong>.</p>
+
+    <div class="sl-basket-group">
+      <span class="sl-basket-label">Individual stocks</span>
+      <div class="sl-tickers">
+        {% for s in evaluable_universe().equities %}
+          <button type="button" class="sl-tk" data-ticker="{{ s.ticker }}" title="{{ s.name }}">{{ s.ticker }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="sl-basket-group">
+      <span class="sl-basket-label">Funds &amp; ETFs</span>
+      <div class="sl-tickers">
+        {% for s in evaluable_universe().funds %}
+          <button type="button" class="sl-tk" data-ticker="{{ s.ticker }}" title="{{ s.name }}">{{ s.ticker }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="sl-basket-bar">
+      <span class="sl-basket-count">Nothing selected</span>
+      <span class="sl-basket-weights"></span>
+      <button type="button" class="sl-basket-go" disabled>Evaluate this basket&nbsp;→</button>
+    </div>
+  </section>
 </div>
 
 <style>
@@ -136,7 +172,32 @@
   .sl-uni-chip { font-family: var(--mono, ui-monospace, monospace); font-size: 11px; padding: 2px 7px;
     border-radius: 6px; border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
     color: var(--ok, #2dd4bf); }
-  @media (max-width: 720px) { .sl-cols { grid-template-columns: 1fr; } .sl-universe { position: static; } }
+  .sl-basket { margin-top: 18px; padding: 14px 15px; border-radius: 12px;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    background: color-mix(in srgb, var(--block, #6b7280) 4%, var(--panel, #0f1621)); }
+  .sl-basket-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
+  .sl-basket-lead { margin: 0 0 12px; font-size: 12px; line-height: 1.45; color: var(--muted, #8a94a6); }
+  .sl-basket-group { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .sl-basket-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted, #8a94a6); width: 108px; flex: none; }
+  .sl-tickers { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 200px; }
+  .sl-tk { font-family: var(--mono, ui-monospace, monospace); font-size: 11.5px; padding: 3px 9px;
+    border-radius: 7px; cursor: pointer; color: inherit;
+    border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+    background: color-mix(in srgb, var(--block, #6b7280) 6%, var(--panel, #0f1621)); }
+  .sl-tk:hover { border-color: var(--accent, #1f6feb); }
+  .sl-tk.is-on { color: var(--accent, #1f6feb); border-color: var(--accent, #1f6feb);
+    background: color-mix(in srgb, var(--accent, #1f6feb) 12%, transparent); }
+  .sl-basket-bar { display: flex; align-items: center; gap: 12px; margin-top: 12px;
+    padding-top: 12px; border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
+  .sl-basket-count { font-size: 12.5px; font-weight: 600; }
+  .sl-basket-weights { font-size: 11.5px; color: var(--muted, #8a94a6); font-family: var(--mono, ui-monospace, monospace);
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sl-basket-go { border: 0; border-radius: 7px; padding: 7px 14px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; color: #fff; background: var(--accent, #1f6feb); white-space: nowrap; }
+  .sl-basket-go:disabled { opacity: .45; cursor: not-allowed; }
+  @media (max-width: 720px) { .sl-cols { grid-template-columns: 1fr; } .sl-universe { position: static; }
+    .sl-basket-label { width: auto; } }
 </style>
 
 {# No framework and no build step. Two behaviours: narrow the strategy list to
@@ -282,6 +343,59 @@
       // If the page came back with a pick, reflect it in the grid.
       var pre = pick.value && browser.querySelector('.sl-card[data-key="' + pick.value + '"]');
       if (pre) { pre.classList.add("is-sel"); setUniverse(pre.getAttribute("data-group")); }
+
+      // Custom basket: pick priced securities → compose an equal-weight holding
+      // sentence and read it. Same scenario → evaluate → graph path as any other
+      // strategy, so the composed basket lands in the box exactly like a pick.
+      var basket = browser.querySelector(".sl-basket");
+      if (basket) {
+        var box2 = document.getElementById("describe");
+        var chosen = [];
+        var tks = Array.prototype.slice.call(basket.querySelectorAll(".sl-tk"));
+        var countEl = basket.querySelector(".sl-basket-count");
+        var weightsEl = basket.querySelector(".sl-basket-weights");
+        var go = basket.querySelector(".sl-basket-go");
+        var MAX = 15;
+
+        function weights(n) {
+          var base = Math.floor(100 / n), rem = 100 - base * n, w = [];
+          for (var i = 0; i < n; i++) w.push(base + (i < rem ? 1 : 0));
+          return w;
+        }
+        function sentence() {
+          if (!chosen.length) return "";
+          if (chosen.length === 1) return "I invest $500 a month, all of it into " + chosen[0] + ".";
+          var w = weights(chosen.length);
+          var parts = chosen.map(function (t, i) { return w[i] + "% in " + t; });
+          var last = parts.pop();
+          return "I invest $500 a month, " + parts.join(", ") + " and " + last + ".";
+        }
+        function refresh() {
+          var n = chosen.length;
+          countEl.textContent = n ? (n + (n === MAX ? " selected (max)" : " selected") + " · equal weight") : "Nothing selected";
+          weightsEl.textContent = n ? sentence().replace("I invest $500 a month, ", "") : "";
+          go.disabled = n === 0;
+        }
+        tks.forEach(function (tk) {
+          tk.addEventListener("click", function () {
+            var t = tk.getAttribute("data-ticker");
+            var i = chosen.indexOf(t);
+            if (i >= 0) { chosen.splice(i, 1); tk.classList.remove("is-on"); }
+            else { if (chosen.length >= MAX) return; chosen.push(t); tk.classList.add("is-on"); }
+            refresh();
+          });
+        });
+        go.addEventListener("click", function () {
+          var s = sentence();
+          if (!s) return;
+          if (box2 && box2.value.trim() && box2.value.trim() !== s &&
+              !confirm("Replace what you have written?")) return;
+          if (pick) pick.value = "";  // a composed basket is a typed strategy, not a catalogue pick
+          if (box2) box2.value = s;
+          var form = (box2 && box2.form) || (pick && pick.form);
+          if (form) form.submit();
+        });
+      }
     }
 
     if (document.readyState === "loading") {
