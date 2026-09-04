@@ -123,6 +123,17 @@ TEMPLATES.env.globals["strategy_library"] = lambda: __import__(
     "src.workspace.strategy_library",
     fromlist=["LIBRARY"]).LIBRARY
 
+#: The ten-fund research universe the computed strategies hold and rebalance,
+#: exposed so the strategy browser can show honestly what a strategy runs on
+#: rather than implying an investable-universe selection the engine does not take
+#: (the engine holds this fixed set for computed strategies, and the funds a
+#: sentence names for the rest). Names/asset-classes come straight from config so
+#: the panel cannot drift from what the optimizer actually orders.
+TEMPLATES.env.globals["research_universe"] = lambda: [
+    {"ticker": a.ticker, "name": a.label, "asset_class": a.asset_class}
+    for a in __import__("src.config", fromlist=["UNIVERSE"]).UNIVERSE
+]
+
 #: The CSRF token for the request being rendered (§11), for the save forms'
 #: hidden field. Registered here so it is defined on the templates regardless of
 #: whether `src.api` has been imported; the value is filled per request by the
