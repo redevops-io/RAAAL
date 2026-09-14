@@ -1514,13 +1514,15 @@ retention, erasure and egress rules differ for exactly that reason.
 
 ## What it costs
 
-Honesty about the jump: today this is one `t3.small` running docker compose
-behind a Cloudflare tunnel, with an internal ALB and RDS. Managed Kubernetes
-plus an Iceberg catalog plus a data engine is a different operational class —
-more moving parts, a real monthly bill, and a deployment story that has already
-cost this project several evenings at its current size.
+The live deployment is now managed Kubernetes: an EKS cluster
+(`quantify-test-eks`, us-east-1, namespace `quantify`) behind a Cloudflare
+tunnel, with per-service ALB Ingresses and RDS. Managed Kubernetes plus an
+Iceberg catalog plus a data engine is a different operational class from the
+single-host origin — more moving parts, a real monthly bill, and a deployment
+story that cost this project several evenings to stand up.
 
-The staged path that keeps the deployment working throughout:
+The staged path that kept the deployment working throughout the migration —
+each step reversible, and now complete:
 
 1. **Split evaluation out first.** It is stateless, it already has QuantLib,
    and it is the only service that can be extracted without touching data
@@ -1531,9 +1533,9 @@ The staged path that keeps the deployment working throughout:
    `SYNTHETIC_ONLY` and nothing about vendor terms is decided yet.
 3. **Answer the licensing questions for data at rest**, then let the data
    engine write. This is the step that needs a person and not a deploy.
-4. **Kubernetes last.** Three services on compose on one host is a valid
-   intermediate state and tests the split without the cluster. Moving to EKS
-   is then a deployment change rather than a redesign.
+4. **Kubernetes.** Services on compose on one host was a valid intermediate
+   state that tested the split without the cluster; the move to EKS was then a
+   deployment change rather than a redesign.
 
 ## The trigger for the lake is reproducibility, not volume
 
@@ -1910,11 +1912,10 @@ components:
     repository: redevops-io/RAAAL
     local_path: /projects/RAAAL
     remote_url: git@github.com:redevops-io/RAAAL.git
-    branch: main
-    commit: dd2b860
-    last_commit: 2026-06-05
-    deployed: true                  # Cloudflare Pages, daily-deploy.yml
-    deployment_reference: .github/workflows/daily-deploy.yml
+    branch: master
+    deployed_build: e616a94         # build_commit in environments/test.tfvars
+    deployed: true                  # EKS (quantify-test-eks, ns quantify), deploy-aws.yml
+    deployment_reference: .github/workflows/deploy-aws.yml + infra/ansible/services.yml
     importers: []                   # imports neither runtime
     contract_status: canonical-consumer
 
@@ -2546,8 +2547,10 @@ python3 scripts/assess.py            # statistical assessment only
 python3 scripts/publish_run.py       # record a run in the ledger
 ```
 
-Deployment notes for the Cloudflare Pages dashboard are in `deploy_cloudflare.sh`
-and `.github/workflows/daily-deploy.yml`.
+The app is deployed to EKS via `infra/ansible/services.yml` +
+`.github/workflows/deploy-aws.yml` (see `infra/README.md`). Refresh notes for the
+static Cloudflare Pages `/research` dashboard are in `deploy_cloudflare.sh` and
+`.github/workflows/refresh-dashboard.yml`.
 
 
 ---
