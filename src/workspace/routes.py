@@ -9,6 +9,7 @@ Nothing here is public. Every page is scoped to one owner at the query, and a
 plan may cite public artifacts while nothing public may cite a plan.
 """
 from __future__ import annotations
+import os
 
 from contextvars import ContextVar
 from dataclasses import replace as dataclasses_replace
@@ -93,6 +94,8 @@ router = APIRouter(prefix="/workspace", tags=["workspace"])
 #: calls. A disclosure that each surface must remember to include is a
 #: disclosure that will be missing from the twelfth — and the surface it is
 #: missing from will be the one someone reads a figure on.
+TEMPLATES.env.globals["umami_website_id"] = os.environ.get("UMAMI_WEBSITE_ID", "")
+TEMPLATES.env.globals["umami_url"] = os.environ.get("UMAMI_URL", "https://umami.redevops.io")
 TEMPLATES.env.globals["data_notice"] = lambda: _data_notice()
 
 #: Whether this deployment has accounts, and who is looking.

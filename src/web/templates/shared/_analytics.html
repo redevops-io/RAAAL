@@ -1,0 +1,35 @@
+{# Umami analytics + first-party campaign attribution for quantify.club.
+   Cookieless, always-on (matches the redevops.io model). Inert unless the
+   umami_website_id global is set (UMAMI_WEBSITE_ID env). No financial /
+   portfolio / user-entered content ever enters an event property. #}
+{% if umami_website_id %}
+<script async defer src="{{ umami_url }}/script.js" data-website-id="{{ umami_website_id }}" data-do-not-track="true"></script>
+<script>
+(function(){try{
+  var UTM=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+  var p=new URLSearchParams(location.search),cur={};
+  UTM.forEach(function(k){var v=p.get(k);if(v)cur[k]=v.slice(0,128);});
+  function uid(){try{return crypto.randomUUID();}catch(e){return 'x'+Math.random().toString(36).slice(2)+Date.now().toString(36);}}
+  var vis=localStorage.getItem('qf_visitor_v1')||uid();try{localStorage.setItem('qf_visitor_v1',vis);}catch(e){}
+  if(!localStorage.getItem('qf_first_touch_v1')&&Object.keys(cur).length){var ft=Object.assign({},cur,{ts:Date.now()});try{localStorage.setItem('qf_first_touch_v1',JSON.stringify(ft));}catch(e){}}
+  var s={};try{s=JSON.parse(sessionStorage.getItem('qf_session_v1')||'{}');}catch(e){}
+  if(Object.keys(cur).length||!s.session_id){s=Object.assign(s,cur,{session_id:s.session_id||uid(),referrer:(s.referrer||document.referrer||'').slice(0,256)});try{sessionStorage.setItem('qf_session_v1',JSON.stringify(s));}catch(e){}}
+  if(!sessionStorage.getItem('qf_landed_at_v1')){try{sessionStorage.setItem('qf_landed_at_v1',String(Date.now()));}catch(e){}}
+  function fire(n){try{
+    if(window.umami&&window.umami.track){
+      var f={};try{f=JSON.parse(localStorage.getItem('qf_first_touch_v1')||'{}');}catch(e){}
+      var d={session_id:s.session_id,visitor_id:vis,referrer:s.referrer,path:location.pathname};
+      UTM.forEach(function(k){if(s[k])d[k]=s[k];if(f[k])d['first_'+k]=f[k];});
+      window.umami.track('landing_view',d);
+    } else if((n||0)<20){ setTimeout(function(){fire((n||0)+1);},300); }
+  }catch(e){}}
+  fire(0);
+  // outbound_click — links to another origin.
+  document.addEventListener('click',function(e){try{
+    var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(!a)return;
+    var u=new URL(a.href,location.href);
+    if(u.origin!==location.origin&&window.umami)window.umami.track('outbound_click',{destination_host:u.host});
+  }catch(e){}},true);
+}catch(e){}})();
+</script>
+{% endif %}

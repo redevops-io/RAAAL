@@ -483,6 +483,11 @@
           SESSION_COOKIE_DOMAIN: >-
             {{ lookup('env', 'SESSION_COOKIE_DOMAIN')
                or '.quantify.club' }}
+          # Umami analytics (src/web/templates/shared/_analytics.html). The website id
+          # for quantify.club comes from the umami dashboard; unset = analytics inert.
+          UMAMI_WEBSITE_ID: "{{ lookup('env', 'UMAMI_WEBSITE_ID') or '' }}"
+          UMAMI_URL: >-
+            {{ lookup('env', 'UMAMI_URL') or 'https://umami.redevops.io' }}
           QUANTIFY_COMMIT: "{{ build_commit }}"
           QUANTIFY_IMAGE_DIGEST: "{{ image | regex_search('sha256:[0-9a-f]+') }}"
           QUANTIFY_SNAPSHOT_ID: "{{ snapshot_id }}"

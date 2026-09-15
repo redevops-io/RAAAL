@@ -9,6 +9,7 @@ trustworthy, or why it is not, by navigating the pages — without reading the
 documentation.
 """
 from __future__ import annotations
+import os
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -54,6 +55,8 @@ TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 #: opinion, while one calling `relation(...)` is reading the single declaration.
 #: The lookup raises on an undeclared relation, so a new relation type cannot
 #: reach a page as a silent default.
+TEMPLATES.env.globals["umami_website_id"] = os.environ.get("UMAMI_WEBSITE_ID", "")
+TEMPLATES.env.globals["umami_url"] = os.environ.get("UMAMI_URL", "https://umami.redevops.io")
 TEMPLATES.env.globals["relation"] = resolve_relation_semantics
 router = APIRouter(prefix="/ui", tags=["ui"])
 
