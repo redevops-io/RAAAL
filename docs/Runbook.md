@@ -110,9 +110,11 @@ because a key happens to be in the shell.
    `python -m alembic upgrade head` (or start the image with the migration
    entrypoint). The application refuses to serve a database at the wrong head,
    so this cannot be skipped silently.
-5. **Start the image.**
-   `docker compose -f deploy/docker-compose.production.yml --env-file .env up -d`
-6. **Verify the startup proof.** `docker compose logs api | grep "deployment proof"`
+5. **Deploy the services.** `aws eks update-kubeconfig --name quantify-test-eks
+   --region us-east-1`, then `ansible-playbook services.yml` (from `infra/ansible`;
+   CI runs this via `.github/workflows/deploy-aws.yml`).
+6. **Verify the startup proof.**
+   `kubectl -n quantify logs deploy/quantify-web | grep "deployment proof"`
    — expect `"result": "READY"`, the build identity, and the parser
    configuration. It carries no credentials and no hostname; that is asserted
    by `test_preflight.py::TestTheStartupProof`.
@@ -192,6 +194,24 @@ The eight are `alert_email`, `cloudflare_account_id`, `cloudflare_zone_id`,
 `build_snapshot_id`. The last four are in `terraform output ansible_variables`
 for the *currently deployed* build; the first four are not recoverable from
 state without guessing, which is the mistake above.
+
+The EKS era adds gating variables an apply must get right, all defaulting to the
+safe-but-wrong value for a live cluster:
+
+* `enable_kubernetes` — defaults **false** so a routine apply cannot create (or,
+  if a flag is forgotten, destroy) the cluster as a side effect. It is set in the
+  environment's tfvars, not on the command line.
+* `cluster_albs_ready` — the **two-phase** apply. Defaults false so a first apply
+  cannot fail on ALBs that do not exist yet; apply once false to stand the cluster
+  up, deploy the services so the `web`/`identity` Ingresses provision their ALBs,
+  then apply again with `cluster_albs_ready=true` to wire the Cloudflare tunnel
+  origins and DNS to them. On a steady-state redeploy it is already true in tfvars.
+* `workspace_domain_name` — defaults `""` (no `workspace.quantify.club` record or
+  tunnel rule); set only once the separate quantify-workspace Ingress exists.
+* `managed_node_pools` / `large_node_pool_*` — node-pool shape. `managed_node_pools`
+  defaults `["system"]`, moving app pods onto the custom `general-large` NodePool;
+  EKS refuses an empty list while a node role is set. Reverting these silently
+  re-migrates every node.
 
 ## Backup and restore
 
@@ -341,7 +361,7 @@ Every response carries `X-Request-ID`, and every response with a 4xx or 5xx
 status leaves exactly one operator line under that id. Search for it:
 
 ```bash
-docker compose logs api | grep req-abc123
+kubectl -n quantify logs deploy/quantify-web | grep req-abc123
 ```
 
 For a database failure the line holds the SQLSTATE, the internal reason, the
@@ -372,7 +392,7 @@ entirely.
 Retention is not scheduled. Run it:
 
 ```bash
-docker compose exec api python -m src.telemetry.purge          # or --dry-run
+kubectl -n quantify exec deploy/quantify-web -- python -m src.telemetry.purge   # or --dry-run
 ```
 
 A cron entry calling that is the whole requirement; there is deliberately no
@@ -382,7 +402,7 @@ scheduling subsystem.
 
 Database credentials and the model key are read once at startup, into an
 immutable deployment context. Rotation therefore requires a restart:
-update the secret store, then `docker compose up -d --force-recreate api`.
+update the secret store, then `kubectl -n quantify rollout restart deploy/quantify-web`.
 The startup proof will show the new configuration. Nothing logs either value —
 `DatabaseTarget.display` redacts the connection string and `ModelTarget`
 exposes only whether a key is present.
@@ -398,7 +418,7 @@ the question nobody can answer retroactively.
 ```bash
 mkdir -p evidence
 python deploy/acceptance.py https://YOUR-HOST --record evidence/acceptance.json
-docker compose logs api | grep "deployment proof" > evidence/startup-proof.txt
+kubectl -n quantify logs deploy/quantify-web | grep "deployment proof" > evidence/startup-proof.txt
 ```
 
 **It is deliberately two files.** The acceptance script sees only the public
@@ -484,9 +504,11 @@ merely incomplete.
 
 Stated so nobody discovers it during an incident:
 
-- **No user accounts.** A single `pilot` owner; access control is the reverse
-  proxy's basic auth. Tenant isolation is enforced in the schema and tested,
-  but the pilot does not yet issue separate identities.
+- **One pilot owner.** Access control is **Zitadel OIDC** (`auth.quantify.club`,
+  the `quantify-identity` service; PKCE at `/auth/login`), not a reverse-proxy
+  basic-auth credential. Tenant isolation is enforced in the schema and tested,
+  but the pilot still runs with a single owner rather than separate per-user
+  identities.
 - **No rate limits or cost caps** (Gate 8, outstanding). A pilot user could
   drive model spend.
 - **No egress allowlist** (Gate 10, outstanding).

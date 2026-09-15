@@ -151,21 +151,23 @@ five typed impacts.
 
 ## Deployment
 
-The static dashboard builds to `reports/` and deploys to Cloudflare Pages:
+The app is a live service on **Amazon EKS** (cluster `quantify-test-eks`,
+namespace `quantify`, us-east-1), fronted by a terraform-managed Cloudflare
+tunnel with Zitadel OIDC at `auth.quantify.club`. It is deployed via
+`infra/ansible/services.yml` driven by
+[.github/workflows/deploy-aws.yml](.github/workflows/deploy-aws.yml); see
+[infra/README.md](infra/README.md) for the terraform + ansible detail (the
+two-phase apply, the service list, and secret handling).
+
+Separately, the static `/research` regime dashboard is published as an artifact
+to the Cloudflare **Pages** project `raaal-dashboard` (raaal-dashboard.pages.dev)
+via [.github/workflows/refresh-dashboard.yml](.github/workflows/refresh-dashboard.yml)
+(with `deploy_cloudflare.sh` as a manual fallback):
 
 ```bash
 python3 -m src.history --start 2015-01-01 --end $(date +%Y-%m-%d) --step 5
 python3 -m src.visualization.bokeh_app --output reports/regime_dashboard.html
-
-export DOMAIN="quantify.club"
-./deploy_cloudflare.sh
 ```
-
-DNS is a `CNAME` from `@` (or `www`) to the Pages project; Cloudflare provisions
-TLS automatically. Daily rebuilds run from
-[.github/workflows/daily-deploy.yml](.github/workflows/daily-deploy.yml) and need
-`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_EMAIL` as
-repository secrets.
 
 ---
 
